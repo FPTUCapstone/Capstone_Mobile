@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 
@@ -82,7 +84,21 @@ class _TravelerSection extends StatelessWidget {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: AppSpacing.xs),
-            const Text('Feature placeholder', textAlign: TextAlign.center),
+            Text(
+              destination.label == 'Home'
+                  ? 'Your next adventure starts here.'
+                  : 'Feature placeholder',
+              textAlign: TextAlign.center,
+            ),
+            if (destination.label == 'Home' ||
+                destination.label == 'Profile') ...[
+              const SizedBox(height: AppSpacing.lg),
+              FilledButton.icon(
+                onPressed: () => context.push(AppRoutes.travelerSettings),
+                icon: const Icon(Icons.manage_accounts_outlined),
+                label: const Text('Account settings'),
+              ),
+            ],
           ],
         ),
       ),

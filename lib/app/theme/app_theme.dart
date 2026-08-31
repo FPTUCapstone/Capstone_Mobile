@@ -10,7 +10,7 @@ abstract final class AppTheme {
       brightness: Brightness.light,
       surface: AppColors.surface,
       error: AppColors.error,
-    );
+    ).copyWith(primary: AppColors.primary, secondary: AppColors.secondary);
     return _buildTheme(colorScheme);
   }
 
@@ -31,6 +31,16 @@ abstract final class AppTheme {
       colorScheme: colorScheme,
       scaffoldBackgroundColor: colorScheme.surface,
       textTheme: AppTypography.textTheme(colorScheme.onSurface),
+      cardTheme: CardThemeData(
+        color: colorScheme.surfaceContainerLowest,
+        elevation: 1,
+        shadowColor: AppColors.ink.withValues(alpha: 0.08),
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.md),
+          side: BorderSide(color: colorScheme.outlineVariant),
+        ),
+      ),
       appBarTheme: AppBarTheme(
         centerTitle: false,
         backgroundColor: colorScheme.surface,
@@ -48,7 +58,7 @@ abstract final class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: colorScheme.surfaceContainerHighest,
+        fillColor: colorScheme.surfaceContainerLowest,
         contentPadding: const EdgeInsets.all(AppSpacing.md),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.sm),
@@ -57,6 +67,14 @@ abstract final class AppTheme {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.sm),
           borderSide: BorderSide(color: outline),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.sm),
+          borderSide: BorderSide(color: colorScheme.error),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.sm),
+          borderSide: BorderSide(color: colorScheme.primary, width: 1.6),
         ),
       ),
     );
