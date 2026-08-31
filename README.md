@@ -2,8 +2,9 @@
 
 TripMate Mobile is the Flutter application for Travelers and Tour Operators in
 the TripMate Smart Travel Planner & Travel Services Platform. This repository
-currently contains the production-oriented application foundation and
-intentionally does not contain real business features or backend integrations.
+currently contains the production-oriented application foundation plus a
+local-only Account and Authentication demo for UC-01 through UC-09. The demo
+does not contain backend integrations or production authentication.
 
 ## Mobile Scope
 
@@ -58,9 +59,10 @@ Presentation -> Domain <- Data
 - **Core** contains reusable infrastructure such as Dio, storage, dependency
   injection, errors, and validation. It contains no TripMate business feature.
 
-`AuthSessionCubit` is a deliberately small routing preview, not authentication.
-Future business flows should receive feature-specific BLoCs/Cubits and use cases;
-the app must not grow a single global business-state BLoC.
+`AuthSessionCubit` is a deliberately small local demo session, not production
+authentication. Feature-specific demo Cubits own the operator application,
+password, and travel-preference interactions; the app does not use a single
+global business-state BLoC.
 
 ## Project Structure
 
@@ -108,23 +110,42 @@ lib/
 |   |   `-- presentation/
 |   |       |-- cubit/
 |   |       |   |-- auth_session_cubit.dart
-|   |       |   `-- auth_session_state.dart
+|   |       |   |-- auth_session_state.dart
+|   |       |   |-- operator_application_cubit.dart
+|   |       |   `-- password_demo_cubit.dart
+|   |       |-- demo/auth_demo_data.dart
 |   |       `-- pages/
 |   |           |-- login_page.dart
-|   |           |-- registration_page.dart
+|   |           |-- traveler_registration_page.dart
+|   |           |-- operator_registration_page.dart
+|   |           |-- operator_application_page.dart
+|   |           |-- reset_password_page.dart
+|   |           |-- change_password_page.dart
+|   |           |-- demo_screen_index_page.dart
 |   |           `-- splash_page.dart
 |   |-- tour_operator/presentation/pages/operator_shell_page.dart
-|   `-- traveler/presentation/pages/traveler_shell_page.dart
+|   `-- traveler/presentation/
+|       |-- cubit/travel_preferences_cubit.dart
+|       `-- pages/
+|           |-- traveler_shell_page.dart
+|           |-- traveler_settings_page.dart
+|           |-- traveler_profile_page.dart
+|           `-- travel_preferences_page.dart
 `-- shared/widgets/
     |-- app_button.dart
+    |-- app_alert.dart
+    |-- app_page_scaffold.dart
+    |-- app_password_field.dart
     |-- app_text_field.dart
     |-- error_view.dart
-    `-- loading_indicator.dart
+    |-- loading_indicator.dart
+    `-- status_badge.dart
 
 test/
 |-- app_bootstrap_test.dart
 |-- core/utils/validators_test.dart
-`-- features/auth/presentation/cubit/auth_session_cubit_test.dart
+|-- features/auth/presentation/cubit/auth_session_cubit_test.dart
+`-- features/auth/presentation/pages/demo_auth_flows_test.dart
 ```
 
 Feature `data/` and additional `domain/` directories should be added only when
@@ -135,12 +156,21 @@ keeps the architecture explicit without accumulating empty abstractions.
 
 Routes are centralized in `AppRoutes`:
 
-- `/` — splash/bootstrap placeholder
-- `/auth/login` — sign-in placeholder and role-shell preview
-- `/auth/register/traveler` — Traveler registration placeholder
-- `/auth/register/operator` — Tour Operator onboarding placeholder
+- `/` — bootstrap redirect
+- `/auth/login` — local demo sign-in
+- `/auth/register/traveler` — Traveler registration demo
+- `/auth/register/operator` — Tour Operator registration demo
+- `/auth/reset-password` — password reset demo
 - `/traveler` — Traveler navigation shell
+- `/traveler/settings` — account settings and sign-out confirmation
+- `/traveler/profile` — Traveler profile demo
+- `/traveler/preferences` — interactive travel preferences
+- `/traveler/change-password` — change-password demo
 - `/operator` — Tour Operator navigation shell
+- `/operator/application` — rejected and pending application states
+
+Debug builds also expose `/demo`, a development-only index for UC-01 through
+UC-09. These routes are omitted from release builds.
 
 `RouteGuards` is the extension point for future authenticated session and role
 checks. The current Cubit state exists only to demonstrate unauthenticated,
@@ -175,7 +205,9 @@ Do not place tokens or secrets in Dart defines or source control.
 - Network logs are enabled outside production, and infrastructure errors can be
   translated to safe `Failure` values.
 
-No API endpoint or authentication flow is implemented yet.
+No API endpoint, OAuth provider, OTP delivery, file upload, or persistent
+authentication flow is implemented yet. Demo credentials and transitions are
+defined locally in presentation code.
 
 ## Getting Started
 
@@ -201,12 +233,15 @@ flutter build apk --debug
 ## Development Status
 
 - Implemented: application bootstrap, architecture boundaries, dependency
-  injection, routing foundation, role-separated placeholder shells, shared
-  theme/widgets, networking/storage abstractions, and automated tests.
-- Placeholder only: login, registration/onboarding, Traveler navigation, and
-  Tour Operator navigation UI.
-- Not present: mock business data, production authentication, backend API
-  endpoints, or completed TripMate business features.
+  injection, routing foundation, role-separated shells, shared theme/widgets,
+  networking/storage abstractions, automated tests, and the local UC-01 through
+  UC-09 mobile demo.
+- Prototype only: registration, sign-in/out, password reset/change, Traveler
+  profile/preferences, and rejected Operator resubmission use in-memory state.
+- Placeholder only: Traveler and Tour Operator features outside UC-01 through
+  UC-09.
+- Not present: production authentication, backend API endpoints, OAuth/OTP
+  integrations, document upload, or persistent demo state.
 - Planned: repository/use-case implementations, DTO mapping, session
   restoration, backend integration, and feature-specific BLoCs/Cubits.
 

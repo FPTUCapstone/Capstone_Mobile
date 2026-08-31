@@ -1,56 +1,332 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
-import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
+import 'package:trip_mate_mobile/core/utils/validators.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/demo/auth_demo_data.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_password_field.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
 
-class LoginPage extends StatelessWidget {
+enum _LoginMode { email, phone }
+
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _phoneController = TextEditingController(text: '0905 123 456');
+  final _codeController = TextEditingController();
+  var _keepSignedIn = true;
+  var _mode = _LoginMode.email;
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Sign in')),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          children: [
-            Text(
-              'Choose a mobile experience',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            const Text(
-              'These buttons only preview role-based routing. No credentials '
-              'are collected or sent.',
-            ),
+    return BlocBuilder<AuthSessionCubit, AuthSessionState>(
+      builder: (context, session) {
+        return AppPageScaffold(
+          showAppBar: false,
+          content: [
             const SizedBox(height: AppSpacing.xl),
-            AppButton(
-              label: 'Preview Traveler shell',
-              onPressed: () =>
-                  context.read<AuthSessionCubit>().previewAs(UserRole.traveler),
+            const _TripMateMark(),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'Welcome back',
+              style: Theme.of(context).textTheme.headlineMedium,
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppSpacing.md),
-            AppButton(
-              label: 'Preview Tour Operator shell',
-              onPressed: () => context.read<AuthSessionCubit>().previewAs(
-                UserRole.tourOperator,
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Sign in to continue planning your trip.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            SegmentedButton<_LoginMode>(
+              segments: const [
+                ButtonSegment(value: _LoginMode.email, label: Text('Email')),
+                ButtonSegment(
+                  value: _LoginMode.phone,
+                  label: Text('Phone / OTP'),
+                ),
+              ],
+              selected: {_mode},
+              showSelectedIcon: false,
+              onSelectionChanged: (selection) {
+                setState(() => _mode = selection.first);
+              },
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  if (_mode == _LoginMode.email) ...[
+                    AppTextField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      label: 'Email address',
+                      prefixIcon: const Icon(Icons.mail_outline),
+                      textInputAction: TextInputAction.next,
+                      validator: Validators.email,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    AppPasswordField(
+                      controller: _passwordController,
+                      label: 'Password',
+                      textInputAction: TextInputAction.done,
+                      validator: Validators.password,
+                    ),
+                  ] else ...[
+                    AppTextField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      label: 'Phone number',
+                      prefixIcon: const Icon(Icons.phone_outlined),
+                      textInputAction: TextInputAction.next,
+                      validator: Validators.phone,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    AppTextField(
+                      controller: _codeController,
+                      helperText: 'Demo verification code: 123456',
+                      keyboardType: TextInputType.number,
+                      label: 'Verification code',
+                      prefixIcon: const Icon(Icons.password_outlined),
+                      validator: (value) => Validators.requiredField(
+                        value,
+                        fieldName: 'Verification code',
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
-            TextButton(
-              onPressed: () => context.go(AppRoutes.travelerRegistration),
-              child: const Text('Traveler registration placeholder'),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                Checkbox(
+                  value: _keepSignedIn,
+                  onChanged: (value) {
+                    setState(() => _keepSignedIn = value ?? false);
+                  },
+                ),
+                const Expanded(child: Text('Keep me signed in')),
+                TextButton(
+                  onPressed: () => context.push(AppRoutes.resetPassword),
+                  child: const Text('Forgot password?'),
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () => context.go(AppRoutes.operatorRegistration),
-              child: const Text('Tour Operator onboarding placeholder'),
+            if (session.status == AuthSessionStatus.failure) ...[
+              const SizedBox(height: AppSpacing.sm),
+              AppAlert(
+                message: session.errorMessage ?? 'Unable to sign in.',
+                type: AppAlertType.error,
+              ),
+            ],
+            const SizedBox(height: AppSpacing.md),
+            AppButton(
+              isLoading: session.isLoading,
+              label: 'Sign in',
+              onPressed: _submit,
             ),
+            const SizedBox(height: AppSpacing.lg),
+            Row(
+              children: [
+                const Expanded(child: Divider()),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                  ),
+                  child: Text(
+                    'or continue with',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+                const Expanded(child: Divider()),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            OutlinedButton.icon(
+              onPressed: _showGoogleDemoMessage,
+              icon: const Text(
+                'G',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+              label: const Text('Continue with Google'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: const Text('Demo credentials'),
+              subtitle: const Text('Local prototype accounts only'),
+              children: const [
+                _CredentialRow('Traveler', AuthDemoData.traveler),
+                _CredentialRow('Tour Operator', AuthDemoData.operator),
+                _CredentialRow(
+                  'Rejected Operator',
+                  AuthDemoData.rejectedOperator,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('New to TripMate?'),
+                TextButton(
+                  onPressed: _showAccountTypeSheet,
+                  child: const Text('Create an account'),
+                ),
+              ],
+            ),
+            if (kDebugMode)
+              Center(
+                child: TextButton.icon(
+                  onPressed: () => context.push(AppRoutes.demoIndex),
+                  icon: const Icon(Icons.developer_mode_outlined),
+                  label: const Text('Open demo screen index'),
+                ),
+              ),
           ],
+        );
+      },
+    );
+  }
+
+  void _showAccountTypeSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            0,
+            AppSpacing.lg,
+            AppSpacing.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Create an account',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              AppButton(
+                label: 'Traveler account',
+                onPressed: () {
+                  Navigator.pop(sheetContext);
+                  context.push(AppRoutes.travelerRegistration);
+                },
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              OutlinedButton(
+                onPressed: () {
+                  Navigator.pop(sheetContext);
+                  context.push(AppRoutes.operatorRegistration);
+                },
+                child: const Text('Tour Operator account'),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  void _showGoogleDemoMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Google sign-in is visual only in this demo.'),
+      ),
+    );
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    if (_mode == _LoginMode.email) {
+      context.read<AuthSessionCubit>().signIn(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+    } else {
+      context.read<AuthSessionCubit>().signInWithDemoCode(_codeController.text);
+    }
+  }
+}
+
+class _TripMateMark extends StatelessWidget {
+  const _TripMateMark();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(19),
+        ),
+        child: const Icon(Icons.landscape, color: Colors.white, size: 34),
+      ),
+    );
+  }
+}
+
+class _CredentialRow extends StatelessWidget {
+  const _CredentialRow(this.label, this.account);
+
+  final DemoAccount account;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      dense: true,
+      title: Text(label),
+      subtitle: Text('${account.email} · ${AuthDemoData.password}'),
+      trailing: IconButton(
+        onPressed: () {
+          final state = context.findAncestorStateOfType<_LoginPageState>();
+          state?._emailController.text = account.email;
+          state?._passwordController.text = AuthDemoData.password;
+        },
+        tooltip: 'Use $label credentials',
+        icon: const Icon(Icons.content_paste_go_outlined),
       ),
     );
   }

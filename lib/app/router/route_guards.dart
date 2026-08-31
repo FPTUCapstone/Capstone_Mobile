@@ -12,12 +12,18 @@ abstract final class RouteGuards {
     final isProtectedRoute = isTravelerRoute || isOperatorRoute;
 
     if (!session.isAuthenticated) {
-      return isProtectedRoute ? AppRoutes.login : null;
+      if (location == AppRoutes.splash || isProtectedRoute) {
+        return AppRoutes.login;
+      }
+      return null;
     }
 
-    final home = session.role == UserRole.traveler
-        ? AppRoutes.traveler
-        : AppRoutes.operator;
+    final home = switch (session.role) {
+      UserRole.traveler => AppRoutes.traveler,
+      UserRole.tourOperator when session.isRejectedOperator =>
+        AppRoutes.operatorApplication,
+      _ => AppRoutes.operator,
+    };
 
     if (location == AppRoutes.splash || isAuthRoute) {
       return home;
