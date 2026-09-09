@@ -10,7 +10,7 @@ final class AppConfig {
     );
     const apiBaseUrlValue = String.fromEnvironment(
       'API_BASE_URL',
-      defaultValue: 'https://api.example.invalid',
+      defaultValue: 'http://localhost:5021',
     );
 
     return AppConfig(

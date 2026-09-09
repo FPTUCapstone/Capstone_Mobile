@@ -8,6 +8,8 @@ import 'package:trip_mate_mobile/core/network/network_info.dart';
 import 'package:trip_mate_mobile/core/storage/preferences_service.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_group_repository_impl.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 
 final GetIt serviceLocator = GetIt.instance;
 
@@ -32,6 +34,9 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerLazySingleton<DioClient>(
       () =>
           DioClient(config: serviceLocator(), secureStorage: serviceLocator()),
+    )
+    ..registerLazySingleton<TravelGroupRepository>(
+      () => TravelGroupRepositoryImpl(dioClient: serviceLocator()),
     )
     ..registerFactory<AuthSessionCubit>(AuthSessionCubit.new);
 }

@@ -9,6 +9,7 @@ abstract final class AppRoutes {
   static const travelerProfile = '/traveler/profile';
   static const travelerPreferences = '/traveler/preferences';
   static const travelerChangePassword = '/traveler/change-password';
+  static const createTravelGroup = '/traveler/groups/create';
   static const operator = '/operator';
   static const operatorApplication = '/operator/application';
 
@@ -22,6 +23,7 @@ abstract final class AppRoutes {
   static const demoUc07 = '/demo/uc-07';
   static const demoUc08 = '/demo/uc-08';
   static const demoUc09 = '/demo/uc-09';
+  static const demoUc17 = '/demo/uc-17';
 
   static const authPrefix = '/auth';
   static const travelerPrefix = '/traveler';
@@ -39,6 +41,7 @@ abstract final class AppRouteNames {
   static const travelerProfile = 'traveler-profile';
   static const travelerPreferences = 'traveler-preferences';
   static const travelerChangePassword = 'traveler-change-password';
+  static const createTravelGroup = 'create-travel-group';
   static const operator = 'operator';
   static const operatorApplication = 'operator-application';
   static const demoIndex = 'demo-index';
