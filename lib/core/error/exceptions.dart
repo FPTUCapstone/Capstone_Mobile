@@ -12,7 +12,14 @@ final class NetworkException extends AppException {
 }
 
 final class ServerException extends AppException {
-  const ServerException([super.message = 'A server error occurred.']);
+  const ServerException([
+    super.message = 'A server error occurred.',
+    this.code,
+    this.statusCode,
+  ]);
+
+  final String? code;
+  final int? statusCode;
 }
 
 final class AuthenticationException extends AppException {

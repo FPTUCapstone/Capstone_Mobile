@@ -5,6 +5,7 @@ class AppPasswordField extends StatefulWidget {
   const AppPasswordField({
     required this.controller,
     required this.label,
+    this.enabled = true,
     this.helperText,
     this.textInputAction,
     this.validator,
@@ -12,6 +13,7 @@ class AppPasswordField extends StatefulWidget {
   });
 
   final TextEditingController controller;
+  final bool enabled;
   final String? helperText;
   final String label;
   final TextInputAction? textInputAction;
@@ -28,13 +30,14 @@ class _AppPasswordFieldState extends State<AppPasswordField> {
   Widget build(BuildContext context) {
     return AppTextField(
       controller: widget.controller,
+      enabled: widget.enabled,
       helperText: widget.helperText,
       label: widget.label,
       obscureText: _obscured,
       textInputAction: widget.textInputAction,
       validator: widget.validator,
       suffix: IconButton(
-        onPressed: () => setState(() => _obscured = !_obscured),
+        onPressed: widget.enabled ? () => setState(() => _obscured = !_obscured) : null,
         tooltip: _obscured ? 'Show password' : 'Hide password',
         icon: Icon(
           _obscured ? Icons.visibility_outlined : Icons.visibility_off,

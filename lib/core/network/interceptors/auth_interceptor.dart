@@ -12,6 +12,13 @@ final class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    final explicitAuthorization = options.headers['Authorization'];
+    if (explicitAuthorization is String &&
+        explicitAuthorization.trim().isNotEmpty) {
+      handler.next(options);
+      return;
+    }
+
     final accessToken = await _secureStorage.read(AppConstants.accessTokenKey);
     if (accessToken != null && accessToken.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $accessToken';
