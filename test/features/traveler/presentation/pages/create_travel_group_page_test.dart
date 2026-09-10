@@ -74,26 +74,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('This field is required.'), findsOneWidget);
-    expect(find.text('Please select an itinerary.'), findsOneWidget);
+    expect(find.text('Itinerary ID is required.'), findsOneWidget);
     expect(repository.lastSubmittedName, isNull);
   });
 
   testWidgets(
-    'submits successfully when user inputs group name and selects itinerary',
+    'submits successfully when user inputs group name and itinerary id',
     (tester) async {
       await tester.pumpWidget(buildSubject());
       await tester.pumpAndSettle();
 
       final textFields = find.byType(TextFormField);
       await tester.enterText(textFields.at(0), 'Da Nang Trip 2026');
-
-      // Tap itinerary field to open picker bottom sheet
-      await tester.tap(textFields.at(1));
-      await tester.pumpAndSettle();
-
-      // Select the first itinerary
-      await tester.tap(find.text('Chuyến đi Đà Nẵng 4N3D'));
-      await tester.pumpAndSettle();
+      await tester.enterText(textFields.at(1), '1');
 
       await tester.tap(find.text('Create Group'));
       await tester.pump();
