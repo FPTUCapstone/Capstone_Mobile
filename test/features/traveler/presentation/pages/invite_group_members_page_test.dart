@@ -21,9 +21,9 @@ final class _MockRepository implements TravelGroupRepository {
   );
 
   @override
-  Future<TravelGroup> createTravelGroup(
-    String name, {
-    int itineraryId = 1,
+  Future<TravelGroup> createTravelGroup({
+    required String name,
+    required int itineraryId,
   }) async => const TravelGroup(id: 1, name: 'Group');
 
   @override

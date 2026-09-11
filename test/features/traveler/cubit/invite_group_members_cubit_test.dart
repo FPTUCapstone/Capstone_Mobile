@@ -14,9 +14,9 @@ final class _SuccessRepository implements TravelGroupRepository {
   final GroupInvitation _invitation;
 
   @override
-  Future<TravelGroup> createTravelGroup(
-    String name, {
-    int itineraryId = 1,
+  Future<TravelGroup> createTravelGroup({
+    required String name,
+    required int itineraryId,
   }) async => const TravelGroup(id: 1, name: 'Group');
 
   @override
@@ -27,9 +27,9 @@ final class _FailureRepository implements TravelGroupRepository {
   const _FailureRepository();
 
   @override
-  Future<TravelGroup> createTravelGroup(
-    String name, {
-    int itineraryId = 1,
+  Future<TravelGroup> createTravelGroup({
+    required String name,
+    required int itineraryId,
   }) async => throw Exception('server error');
 
   @override
@@ -41,9 +41,9 @@ final class _AuthenticationFailureRepository implements TravelGroupRepository {
   const _AuthenticationFailureRepository();
 
   @override
-  Future<TravelGroup> createTravelGroup(
-    String name, {
-    int itineraryId = 1,
+  Future<TravelGroup> createTravelGroup({
+    required String name,
+    required int itineraryId,
   }) async => throw UnimplementedError();
 
   @override
@@ -55,9 +55,9 @@ final class _PermissionFailureRepository implements TravelGroupRepository {
   const _PermissionFailureRepository();
 
   @override
-  Future<TravelGroup> createTravelGroup(
-    String name, {
-    int itineraryId = 1,
+  Future<TravelGroup> createTravelGroup({
+    required String name,
+    required int itineraryId,
   }) async => throw UnimplementedError();
 
   @override

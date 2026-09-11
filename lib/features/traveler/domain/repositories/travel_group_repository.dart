@@ -9,7 +9,10 @@ abstract interface class TravelGroupRepository {
   /// Creates a new travel group with [name] linked to [itineraryId].
   ///
   /// Throws [ServerFailure] on HTTP errors and [NetworkFailure] on connectivity issues.
-  Future<TravelGroup> createTravelGroup(String name, {int itineraryId = 1});
+  Future<TravelGroup> createTravelGroup({
+    required String name,
+    required int itineraryId,
+  });
 
   /// Retrieves or generates an active invitation for the travel group with [groupId].
   Future<GroupInvitation> getGroupInvitation(int groupId);

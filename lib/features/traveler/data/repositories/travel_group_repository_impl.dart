@@ -20,16 +20,23 @@ final class TravelGroupRepositoryImpl implements TravelGroupRepository {
   static const _path = '/api/v1/travel-groups';
 
   @override
-  Future<TravelGroup> createTravelGroup(
-    String name, {
-    int itineraryId = 1,
+  Future<TravelGroup> createTravelGroup({
+    required String name,
+    required int itineraryId,
   }) async {
-    final response = await _dioClient.dio.post<Map<String, dynamic>>(
-      _path,
-      data: {'groupName': name, 'name': name, 'itineraryId': itineraryId},
-    );
-    final model = TravelGroupModel.fromJson(response.data!);
-    return model.toEntity();
+    try {
+      final response = await _dioClient.dio.post<Map<String, dynamic>>(
+        _path,
+        data: {'groupName': name, 'itineraryId': itineraryId},
+      );
+      final data = response.data;
+      if (data == null) {
+        throw const FormatException('Empty travel group response.');
+      }
+      return TravelGroupModel.fromJson(data).toEntity();
+    } catch (error) {
+      throw ErrorMapper.toFailure(error);
+    }
   }
 
   @override
