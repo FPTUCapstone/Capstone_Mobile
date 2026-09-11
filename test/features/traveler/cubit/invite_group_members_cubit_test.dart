@@ -17,7 +17,7 @@ final class _SuccessRepository implements TravelGroupRepository {
   Future<TravelGroup> createTravelGroup(
     String name, {
     int itineraryId = 1,
-  }) async => const TravelGroup(id: 1, name: 'Group', inviteCode: 'ABC12345');
+  }) async => const TravelGroup(id: 1, name: 'Group');
 
   @override
   Future<GroupInvitation> getGroupInvitation(int groupId) async => _invitation;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_state.dart';
@@ -161,13 +162,25 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
             break;
           case CreateTravelGroupStatus.success:
             setState(() => _nameError = null);
-            Future<void>.delayed(const Duration(milliseconds: 800), () {
-              if (!context.mounted) return;
-              final router = GoRouter.maybeOf(context);
-              if (router != null && router.canPop()) {
-                router.pop();
-              }
-            });
+            final group = state.result;
+            final router = GoRouter.maybeOf(context);
+            if (group != null && router != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Travel group created successfully! You are the Group Host.',
+                  ),
+                ),
+              );
+              Future<void>.delayed(const Duration(milliseconds: 800), () {
+                if (!context.mounted) return;
+                router.goNamed(
+                  AppRouteNames.travelGroupDetails,
+                  pathParameters: {'groupId': group.id.toString()},
+                  extra: group,
+                );
+              });
+            }
           case CreateTravelGroupStatus.failure:
             setState(() => _nameError = null);
           case CreateTravelGroupStatus.submitting:
@@ -198,7 +211,7 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
                 if (isSuccess) ...[
                   const AppAlert(
                     message:
-                        'Travel group created! You are the Group Host. Share the invite code to add members.',
+                        'Travel group created successfully! You are the Group Host.',
                     type: AppAlertType.success,
                   ),
                   const SizedBox(height: AppSpacing.md),

@@ -35,7 +35,7 @@ final class TravelGroupRepositoryImpl implements TravelGroupRepository {
   @override
   Future<GroupInvitation> getGroupInvitation(int groupId) async {
     try {
-      final response = await _dioClient.dio.get<Map<String, dynamic>>(
+      final response = await _dioClient.dio.post<Map<String, dynamic>>(
         '$_path/$groupId/invitation',
       );
       final data = response.data;
