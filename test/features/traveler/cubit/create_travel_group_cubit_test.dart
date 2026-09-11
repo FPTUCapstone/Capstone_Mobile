@@ -46,11 +46,7 @@ void main() {
   const validName = 'My Trip Group';
   final tooLongName = 'A' * 151;
   const testItineraryId = 10;
-  const travelGroup = TravelGroup(
-    id: 1,
-    name: validName,
-    inviteCode: 'ABCD1234',
-  );
+  const travelGroup = TravelGroup(id: 1, name: validName);
 
   group('CreateTravelGroupCubit', () {
     test('initial state is CreateTravelGroupStatus.initial', () {
