@@ -21,8 +21,11 @@ abstract final class ErrorMapper {
 
   static Failure _mapDioException(DioException error) {
     final statusCode = error.response?.statusCode;
-    if (statusCode == 401 || statusCode == 403) {
+    if (statusCode == 401) {
       return const AuthenticationFailure();
+    }
+    if (statusCode == 403) {
+      return const PermissionFailure();
     }
     if (statusCode != null && statusCode >= 500) {
       return const ServerFailure();
