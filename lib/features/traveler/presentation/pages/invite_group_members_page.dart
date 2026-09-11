@@ -231,7 +231,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
             // Expiration text
             Center(
               child: Text(
-                'Mã có hiệu lực đến: ${invitation.expiresAt.day.toString().padLeft(2, '0')}/${invitation.expiresAt.month.toString().padLeft(2, '0')}/${invitation.expiresAt.year}',
+                'Valid until: ${invitation.expiresAt.day.toString().padLeft(2, '0')}/${invitation.expiresAt.month.toString().padLeft(2, '0')}/${invitation.expiresAt.year}',
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
