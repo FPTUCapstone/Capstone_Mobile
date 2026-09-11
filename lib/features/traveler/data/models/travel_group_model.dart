@@ -12,10 +12,29 @@ final class TravelGroupModel {
   });
 
   factory TravelGroupModel.fromJson(Map<String, dynamic> json) {
+    final id = json['groupId'];
+    final name = json['groupName'];
+    final inviteCode = json['inviteCode'];
+    if (id is! int || id <= 0) {
+      throw const FormatException(
+        'Travel group response has an invalid groupId.',
+      );
+    }
+    if (name is! String || name.trim().isEmpty) {
+      throw const FormatException(
+        'Travel group response has an invalid groupName.',
+      );
+    }
+    if (inviteCode is! String || inviteCode.trim().isEmpty) {
+      throw const FormatException(
+        'Travel group response has an invalid inviteCode.',
+      );
+    }
+
     return TravelGroupModel(
-      id: (json['groupId'] ?? json['id'] ?? 0) as int,
-      name: (json['groupName'] ?? json['name'] ?? '') as String,
-      inviteCode: (json['inviteCode'] ?? '') as String,
+      id: id,
+      name: name.trim(),
+      inviteCode: inviteCode.trim(),
     );
   }
 
