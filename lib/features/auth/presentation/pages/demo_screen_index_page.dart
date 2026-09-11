@@ -18,6 +18,7 @@ class DemoScreenIndexPage extends StatelessWidget {
     ('UC-07', 'Change Password', AppRoutes.demoUc07),
     ('UC-08', 'Update Traveler Profile', AppRoutes.demoUc08),
     ('UC-09', 'Travel Preferences', AppRoutes.demoUc09),
+    ('UC-17', 'Create Travel Group', AppRoutes.demoUc17),
   ];
 
   @override
