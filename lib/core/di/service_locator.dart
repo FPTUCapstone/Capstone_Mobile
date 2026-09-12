@@ -16,6 +16,8 @@ import 'package:trip_mate_mobile/features/auth/data/services/firebase_auth_servi
 import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_group_repository_impl.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 
 final GetIt serviceLocator = GetIt.instance;
 
@@ -52,6 +54,9 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerLazySingleton<AuthRepository>(
       () => AuthRepositoryImpl(serviceLocator()),
+    )
+    ..registerLazySingleton<TravelGroupRepository>(
+      () => TravelGroupRepositoryImpl(dioClient: serviceLocator()),
     )
     ..registerFactory<AuthSessionCubit>(
       () => AuthSessionCubit(

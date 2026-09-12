@@ -23,6 +23,12 @@ final class AuthenticationFailure extends Failure {
   const AuthenticationFailure([super.message = 'Please sign in to continue.']);
 }
 
+final class PermissionFailure extends Failure {
+  const PermissionFailure([
+    super.message = 'You do not have permission to access this function.',
+  ]);
+}
+
 final class ValidationFailure extends Failure {
   const ValidationFailure(super.message);
 }

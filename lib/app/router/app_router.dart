@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/app/router/create_travel_group_route_args.dart';
 import 'package:trip_mate_mobile/app/router/route_guards.dart';
+import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_application_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/login_page.dart';
@@ -12,7 +14,11 @@ import 'package:trip_mate_mobile/features/auth/presentation/pages/splash_page.da
 import 'package:trip_mate_mobile/features/auth/presentation/pages/traveler_registration_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/verify_email_page.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_travel_group_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_details_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_preferences_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_profile_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_settings_page.dart';
@@ -78,6 +84,39 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
           create: (_) => TravelPreferencesCubit(),
           child: const TravelPreferencesPage(),
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.createTravelGroup,
+        name: AppRouteNames.createTravelGroup,
+        builder: (_, state) {
+          final args = state.extra;
+          if (args is! CreateTravelGroupRouteArgs || args.itineraryId <= 0) {
+            return const ErrorView(message: 'A valid itinerary is required.');
+          }
+          return BlocProvider(
+            create: (_) => CreateTravelGroupCubit(repository: serviceLocator()),
+            child: CreateTravelGroupPage(
+              itineraryId: args.itineraryId,
+              itineraryTitle: args.itineraryTitle,
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.travelGroupDetails,
+        name: AppRouteNames.travelGroupDetails,
+        builder: (_, state) {
+          final groupId = int.tryParse(state.pathParameters['groupId'] ?? '');
+          if (groupId == null || groupId <= 0) {
+            return const ErrorView(message: 'Page not found.');
+          }
+          return TravelGroupDetailsPage(
+            groupId: groupId,
+            group: state.extra is TravelGroup
+                ? state.extra as TravelGroup
+                : null,
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.operator,
