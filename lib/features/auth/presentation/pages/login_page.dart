@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -8,14 +7,11 @@ import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/utils/validators.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
-import 'package:trip_mate_mobile/features/auth/presentation/demo/auth_demo_data.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_password_field.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
-
-enum _LoginMode { email, phone }
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -28,17 +24,12 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _phoneController = TextEditingController(text: '0905 123 456');
-  final _codeController = TextEditingController();
   var _keepSignedIn = true;
-  var _mode = _LoginMode.email;
 
   @override
   void dispose() {
-    _codeController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _phoneController.dispose();
     super.dispose();
   }
 
@@ -66,63 +57,26 @@ class _LoginPageState extends State<LoginPage> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.lg),
-            SegmentedButton<_LoginMode>(
-              segments: const [
-                ButtonSegment(value: _LoginMode.email, label: Text('Email')),
-                ButtonSegment(
-                  value: _LoginMode.phone,
-                  label: Text('Phone / OTP'),
-                ),
-              ],
-              selected: {_mode},
-              showSelectedIcon: false,
-              onSelectionChanged: (selection) {
-                setState(() => _mode = selection.first);
-              },
-            ),
-            const SizedBox(height: AppSpacing.lg),
             Form(
               key: _formKey,
               child: Column(
                 children: [
-                  if (_mode == _LoginMode.email) ...[
-                    AppTextField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      label: 'Email address',
-                      prefixIcon: const Icon(Icons.mail_outline),
-                      textInputAction: TextInputAction.next,
-                      validator: Validators.email,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    AppPasswordField(
-                      controller: _passwordController,
-                      label: 'Password',
-                      textInputAction: TextInputAction.done,
-                      validator: Validators.password,
-                    ),
-                  ] else ...[
-                    AppTextField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      label: 'Phone number',
-                      prefixIcon: const Icon(Icons.phone_outlined),
-                      textInputAction: TextInputAction.next,
-                      validator: Validators.phone,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    AppTextField(
-                      controller: _codeController,
-                      helperText: 'Demo verification code: 123456',
-                      keyboardType: TextInputType.number,
-                      label: 'Verification code',
-                      prefixIcon: const Icon(Icons.password_outlined),
-                      validator: (value) => Validators.requiredField(
-                        value,
-                        fieldName: 'Verification code',
-                      ),
-                    ),
-                  ],
+                  AppTextField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    label: 'Email address',
+                    prefixIcon: const Icon(Icons.mail_outline),
+                    textInputAction: TextInputAction.next,
+                    validator: Validators.email,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  AppPasswordField(
+                    controller: _passwordController,
+                    label: 'Password',
+                    textInputAction: TextInputAction.done,
+                    validator: (value) =>
+                        Validators.requiredField(value, fieldName: 'Password'),
+                  ),
                 ],
               ),
             ),
@@ -136,10 +90,6 @@ class _LoginPageState extends State<LoginPage> {
                   },
                 ),
                 const Expanded(child: Text('Keep me signed in')),
-                TextButton(
-                  onPressed: () => context.push(AppRoutes.resetPassword),
-                  child: const Text('Forgot password?'),
-                ),
               ],
             ),
             if (session.status == AuthSessionStatus.failure) ...[
@@ -173,7 +123,9 @@ class _LoginPageState extends State<LoginPage> {
             ),
             const SizedBox(height: AppSpacing.md),
             OutlinedButton.icon(
-              onPressed: _showGoogleDemoMessage,
+              onPressed: session.isLoading
+                  ? null
+                  : () => context.read<AuthSessionCubit>().signInWithGoogle(),
               icon: const Text(
                 'G',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
@@ -182,20 +134,6 @@ class _LoginPageState extends State<LoginPage> {
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            ExpansionTile(
-              tilePadding: EdgeInsets.zero,
-              title: const Text('Demo credentials'),
-              subtitle: const Text('Local prototype accounts only'),
-              children: const [
-                _CredentialRow('Traveler', AuthDemoData.traveler),
-                _CredentialRow('Tour Operator', AuthDemoData.operator),
-                _CredentialRow(
-                  'Rejected Operator',
-                  AuthDemoData.rejectedOperator,
-                ),
-              ],
             ),
             const SizedBox(height: AppSpacing.md),
             Row(
@@ -208,14 +146,6 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ],
             ),
-            if (kDebugMode)
-              Center(
-                child: TextButton.icon(
-                  onPressed: () => context.push(AppRoutes.demoIndex),
-                  icon: const Icon(Icons.developer_mode_outlined),
-                  label: const Text('Open demo screen index'),
-                ),
-              ),
           ],
         );
       },
@@ -265,26 +195,15 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void _showGoogleDemoMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Google sign-in is visual only in this demo.'),
-      ),
-    );
-  }
-
   void _submit() {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    if (_mode == _LoginMode.email) {
-      context.read<AuthSessionCubit>().signIn(
-        email: _emailController.text,
-        password: _passwordController.text,
-      );
-    } else {
-      context.read<AuthSessionCubit>().signInWithDemoCode(_codeController.text);
-    }
+    context.read<AuthSessionCubit>().signIn(
+      email: _emailController.text,
+      password: _passwordController.text,
+      keepSignedIn: _keepSignedIn,
+    );
   }
 }
 
@@ -302,31 +221,6 @@ class _TripMateMark extends StatelessWidget {
           borderRadius: BorderRadius.circular(19),
         ),
         child: const Icon(Icons.landscape, color: Colors.white, size: 34),
-      ),
-    );
-  }
-}
-
-class _CredentialRow extends StatelessWidget {
-  const _CredentialRow(this.label, this.account);
-
-  final DemoAccount account;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      dense: true,
-      title: Text(label),
-      subtitle: Text('${account.email} · ${AuthDemoData.password}'),
-      trailing: IconButton(
-        onPressed: () {
-          final state = context.findAncestorStateOfType<_LoginPageState>();
-          state?._emailController.text = account.email;
-          state?._passwordController.text = AuthDemoData.password;
-        },
-        tooltip: 'Use $label credentials',
-        icon: const Icon(Icons.content_paste_go_outlined),
       ),
     );
   }

@@ -24,16 +24,6 @@ class _TravelerSettingsPageState extends State<TravelerSettingsPage> {
       title: 'Settings',
       content: [
         Card(
-          child: ListTile(
-            leading: const CircleAvatar(child: Text('PN')),
-            title: const Text('Nguyen Minh Phuc'),
-            subtitle: const Text('Traveler · traveler@tripmate.demo'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push(AppRoutes.travelerProfile),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Card(
           child: Column(
             children: [
               _SettingsRow(
@@ -46,12 +36,6 @@ class _TravelerSettingsPageState extends State<TravelerSettingsPage> {
                 icon: Icons.tune,
                 label: 'Travel preferences',
                 onTap: () => context.push(AppRoutes.travelerPreferences),
-              ),
-              const Divider(height: 1),
-              _SettingsRow(
-                icon: Icons.lock_outline,
-                label: 'Change password',
-                onTap: () => context.push(AppRoutes.travelerChangePassword),
               ),
               const Divider(height: 1),
               SwitchListTile(
@@ -73,10 +57,7 @@ class _TravelerSettingsPageState extends State<TravelerSettingsPage> {
         ),
         const SizedBox(height: AppSpacing.md),
         const Card(
-          child: ListTile(
-            title: Text('App version'),
-            trailing: Text('1.0.0 (demo)'),
-          ),
+          child: ListTile(title: Text('App version'), trailing: Text('1.0.0')),
         ),
       ],
       footer: OutlinedButton.icon(
@@ -99,7 +80,7 @@ class _TravelerSettingsPageState extends State<TravelerSettingsPage> {
         icon: const Icon(Icons.logout, color: AppColors.error),
         title: const Text('Sign out of TripMate?'),
         content: const Text(
-          'Your demo session on this device ends. Downloaded offline trips stay on the device.',
+          'Your session on this device will end. Downloaded offline trips stay on the device.',
         ),
         actions: [
           TextButton(
@@ -114,8 +95,7 @@ class _TravelerSettingsPageState extends State<TravelerSettingsPage> {
       ),
     );
     if (confirmed == true && mounted) {
-      context.read<AuthSessionCubit>().clearSession();
-      context.go(AppRoutes.login);
+      await context.read<AuthSessionCubit>().clearSession();
     }
   }
 }
