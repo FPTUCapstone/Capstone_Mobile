@@ -11,5 +11,6 @@ abstract interface class TravelGroupRepository {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   });
 }

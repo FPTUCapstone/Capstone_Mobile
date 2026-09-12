@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
@@ -13,6 +15,7 @@ final class CreateTravelGroupCubit extends Cubit<CreateTravelGroupState> {
       super(const CreateTravelGroupState.initial());
 
   final TravelGroupRepository _repository;
+  String? _pendingIdempotencyKey;
 
   static const _maxNameLength = 150;
 
@@ -54,11 +57,14 @@ final class CreateTravelGroupCubit extends Cubit<CreateTravelGroupState> {
     }
 
     emit(const CreateTravelGroupState.submitting());
+    final idempotencyKey = _pendingIdempotencyKey ??= _generateIdempotencyKey();
     try {
       final group = await _repository.createTravelGroup(
         name: trimmed,
         itineraryId: itineraryId,
+        idempotencyKey: idempotencyKey,
       );
+      _pendingIdempotencyKey = null;
       emit(CreateTravelGroupState.success(group));
     } catch (error) {
       final message = switch (error) {
@@ -71,5 +77,16 @@ final class CreateTravelGroupCubit extends Cubit<CreateTravelGroupState> {
       };
       emit(CreateTravelGroupState.failure(message));
     }
+  }
+
+  static String _generateIdempotencyKey() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    final hex = bytes
+        .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+        .join();
+    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
   }
 }

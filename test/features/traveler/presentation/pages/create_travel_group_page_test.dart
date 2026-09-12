@@ -15,6 +15,7 @@ final class _MockRepository implements TravelGroupRepository {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async {
     lastSubmittedName = name;
     lastSubmittedItineraryId = itineraryId;
