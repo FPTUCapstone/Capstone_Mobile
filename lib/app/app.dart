@@ -21,6 +21,12 @@ class _TripMateAppState extends State<TripMateApp> {
   late final GoRouter _router = createAppRouter(_sessionCubit);
 
   @override
+  void initState() {
+    super.initState();
+    unawaited(_sessionCubit.restoreSession());
+  }
+
+  @override
   void dispose() {
     _router.dispose();
     unawaited(_sessionCubit.close());
