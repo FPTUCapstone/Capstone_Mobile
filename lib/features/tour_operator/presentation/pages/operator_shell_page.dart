@@ -28,8 +28,8 @@ class _OperatorShellPageState extends State<OperatorShellPage> {
         title: Text('Operator · ${_destinations[_selectedIndex].label}'),
         actions: [
           IconButton(
-            onPressed: context.read<AuthSessionCubit>().clearPreviewSession,
-            tooltip: 'Exit preview',
+            onPressed: context.read<AuthSessionCubit>().clearSession,
+            tooltip: 'Sign out',
             icon: const Icon(Icons.logout),
           ),
         ],
