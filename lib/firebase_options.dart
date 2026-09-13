@@ -6,9 +6,7 @@ abstract final class DefaultFirebaseOptions {
       return android;
     }
 
-    throw UnsupportedError(
-      'TripMate Firebase is configured for Android only.',
-    );
+    throw UnsupportedError('TripMate Firebase is configured for Android only.');
   }
 
   static const FirebaseOptions android = FirebaseOptions(

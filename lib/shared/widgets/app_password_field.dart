@@ -37,7 +37,9 @@ class _AppPasswordFieldState extends State<AppPasswordField> {
       textInputAction: widget.textInputAction,
       validator: widget.validator,
       suffix: IconButton(
-        onPressed: widget.enabled ? () => setState(() => _obscured = !_obscured) : null,
+        onPressed: widget.enabled
+            ? () => setState(() => _obscured = !_obscured)
+            : null,
         tooltip: _obscured ? 'Show password' : 'Hide password',
         icon: Icon(
           _obscured ? Icons.visibility_outlined : Icons.visibility_off,
