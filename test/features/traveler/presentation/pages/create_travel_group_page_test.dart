@@ -15,10 +15,11 @@ final class _MockRepository implements TravelGroupRepository {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async {
     lastSubmittedName = name;
     lastSubmittedItineraryId = itineraryId;
-    return TravelGroup(id: 1, name: name, inviteCode: 'ABC12345');
+    return TravelGroup(id: 1, name: name);
   }
 }
 

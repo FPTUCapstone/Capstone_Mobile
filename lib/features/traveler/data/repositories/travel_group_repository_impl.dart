@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:trip_mate_mobile/core/error/error_mapper.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/features/traveler/data/models/travel_group_model.dart';
@@ -20,11 +21,13 @@ final class TravelGroupRepositoryImpl implements TravelGroupRepository {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async {
     try {
       final response = await _dioClient.dio.post<Map<String, dynamic>>(
         _path,
         data: {'groupName': name, 'itineraryId': itineraryId},
+        options: Options(headers: {'Idempotency-Key': idempotencyKey}),
       );
       final data = response.data;
       if (data == null) {

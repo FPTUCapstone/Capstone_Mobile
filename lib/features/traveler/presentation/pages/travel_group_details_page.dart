@@ -21,10 +21,6 @@ final class TravelGroupDetailsPage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const Text('You are the Group Host.'),
-          if (currentGroup != null) ...[
-            const SizedBox(height: 24),
-            SelectableText('Invite code: ${currentGroup.inviteCode}'),
-          ],
         ],
       ),
     );
