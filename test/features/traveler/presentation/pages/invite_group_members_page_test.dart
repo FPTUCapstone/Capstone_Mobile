@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -27,13 +28,22 @@ final class _MockRepository implements TravelGroupRepository {
   }) async => const TravelGroup(id: 1, name: 'Group');
 
   @override
-  Future<GroupInvitation> getGroupInvitation(int groupId) async {
+  Future<GroupInvitation> getOrCreateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async {
     getInvitationCallCount++;
     if (shouldFail) {
       throw Exception('network error');
     }
     return testInvitation;
   }
+
+  @override
+  Future<GroupInvitation> regenerateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => testInvitation;
 }
 
 void main() {
@@ -104,6 +114,17 @@ void main() {
   });
 
   testWidgets('shows SnackBar when tapping copy code button', (tester) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (methodCall) async {
+          if (methodCall.method == 'Clipboard.setData') {
+            return null;
+          }
+          return null;
+        });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null),
+    );
     await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
@@ -118,5 +139,32 @@ void main() {
       find.text('Invite code "TM7X9K2A" copied to clipboard.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('requires confirmation before regenerating the invitation', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    await tester.pumpWidget(buildSubject());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Regenerate Invitation'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Regenerate invitation?'), findsOneWidget);
+    expect(
+      find.text('The current invitation code will stop working immediately.'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Regenerate invitation?'), findsNothing);
   });
 }

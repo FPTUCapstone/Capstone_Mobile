@@ -20,7 +20,16 @@ final class _SuccessRepository implements TravelGroupRepository {
   }) async => const TravelGroup(id: 1, name: 'Group');
 
   @override
-  Future<GroupInvitation> getGroupInvitation(int groupId) async => _invitation;
+  Future<GroupInvitation> getOrCreateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => _invitation;
+
+  @override
+  Future<GroupInvitation> regenerateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => _invitation;
 }
 
 final class _FailureRepository implements TravelGroupRepository {
@@ -33,8 +42,16 @@ final class _FailureRepository implements TravelGroupRepository {
   }) async => throw Exception('server error');
 
   @override
-  Future<GroupInvitation> getGroupInvitation(int groupId) async =>
-      throw Exception('server error');
+  Future<GroupInvitation> getOrCreateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw Exception('server error');
+
+  @override
+  Future<GroupInvitation> regenerateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw Exception('server error');
 }
 
 final class _AuthenticationFailureRepository implements TravelGroupRepository {
@@ -47,8 +64,16 @@ final class _AuthenticationFailureRepository implements TravelGroupRepository {
   }) async => throw UnimplementedError();
 
   @override
-  Future<GroupInvitation> getGroupInvitation(int groupId) async =>
-      throw const AuthenticationFailure();
+  Future<GroupInvitation> getOrCreateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw const AuthenticationFailure();
+
+  @override
+  Future<GroupInvitation> regenerateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw const AuthenticationFailure();
 }
 
 final class _PermissionFailureRepository implements TravelGroupRepository {
@@ -61,8 +86,48 @@ final class _PermissionFailureRepository implements TravelGroupRepository {
   }) async => throw UnimplementedError();
 
   @override
-  Future<GroupInvitation> getGroupInvitation(int groupId) async =>
-      throw const PermissionFailure();
+  Future<GroupInvitation> getOrCreateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw const PermissionFailure();
+
+  @override
+  Future<GroupInvitation> regenerateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw const PermissionFailure();
+}
+
+final class _RegenerateRepository implements TravelGroupRepository {
+  _RegenerateRepository({required this.initial, required this.replacement});
+
+  final GroupInvitation initial;
+  final GroupInvitation replacement;
+  final List<String> idempotencyKeys = [];
+
+  @override
+  Future<TravelGroup> createTravelGroup({
+    required String name,
+    required int itineraryId,
+  }) async => const TravelGroup(id: 1, name: 'Group');
+
+  @override
+  Future<GroupInvitation> getOrCreateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async {
+    idempotencyKeys.add(idempotencyKey);
+    return initial;
+  }
+
+  @override
+  Future<GroupInvitation> regenerateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async {
+    idempotencyKeys.add(idempotencyKey);
+    return replacement;
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -95,6 +160,78 @@ void main() {
       expect: () => [
         const InviteGroupMembersState.loading(),
         InviteGroupMembersState.success(testInvitation),
+      ],
+    );
+
+    test(
+      'uses different UUIDv4 keys for separate load and regenerate operations',
+      () async {
+        final repository = _RegenerateRepository(
+          initial: testInvitation,
+          replacement: GroupInvitation(
+            groupId: 1,
+            groupName: 'Da Nang Summer Trip',
+            inviteCode: 'NEWCODE1',
+            qrData: 'tripmate://groups/join?code=NEWCODE1',
+            expiresAt: DateTime(2026, 11, 8, 10, 30),
+          ),
+        );
+        final cubit = InviteGroupMembersCubit(repository: repository);
+
+        await cubit.loadInvitation(1);
+        await cubit.regenerateInvitation(1);
+
+        expect(repository.idempotencyKeys, hasLength(2));
+        expect(
+          repository.idempotencyKeys[0],
+          isNot(repository.idempotencyKeys[1]),
+        );
+        for (final key in repository.idempotencyKeys) {
+          expect(
+            key,
+            matches(
+              RegExp(
+                r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+                caseSensitive: false,
+              ),
+            ),
+          );
+        }
+        await cubit.close();
+      },
+    );
+
+    blocTest<InviteGroupMembersCubit, InviteGroupMembersState>(
+      'emits [regenerating, success] and uses a new idempotency key for regenerate',
+      build: () {
+        return InviteGroupMembersCubit(
+          repository: _RegenerateRepository(
+            initial: testInvitation,
+            replacement: GroupInvitation(
+              groupId: 1,
+              groupName: 'Da Nang Summer Trip',
+              inviteCode: 'NEWCODE1',
+              qrData: 'tripmate://groups/join?code=NEWCODE1',
+              expiresAt: DateTime(2026, 11, 8, 10, 30),
+            ),
+          ),
+        );
+      },
+      seed: () => InviteGroupMembersState.success(testInvitation),
+      act: (cubit) => cubit.regenerateInvitation(1),
+      expect: () => [
+        InviteGroupMembersState.regenerating(testInvitation),
+        isA<InviteGroupMembersState>()
+            .having(
+              (state) => state.status,
+              'status',
+              InviteGroupMembersStatus.success,
+            )
+            .having(
+              (state) => state.invitation?.inviteCode,
+              'invite code',
+              'NEWCODE1',
+            ),
       ],
     );
 

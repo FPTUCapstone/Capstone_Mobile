@@ -26,8 +26,9 @@ final class GroupInvitationModel {
     }
 
     final parsedExpiresAt = DateTime.tryParse(expiresAt);
+    final normalizedGroupName = groupName.trim();
     if (groupId <= 0 ||
-        groupName.isEmpty ||
+        normalizedGroupName.isEmpty ||
         inviteCode.isEmpty ||
         qrData.isEmpty ||
         parsedExpiresAt == null) {
@@ -36,7 +37,7 @@ final class GroupInvitationModel {
 
     return GroupInvitationModel(
       groupId: groupId,
-      groupName: groupName,
+      groupName: normalizedGroupName,
       inviteCode: inviteCode,
       qrData: qrData,
       expiresAt: parsedExpiresAt,

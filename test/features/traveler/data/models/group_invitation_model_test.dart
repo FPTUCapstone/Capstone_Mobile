@@ -31,5 +31,18 @@ void main() {
         );
       },
     );
+
+    test('rejects a whitespace-only group name', () {
+      expect(
+        () => GroupInvitationModel.fromJson({
+          'groupId': 42,
+          'groupName': '   ',
+          'inviteCode': 'TM7X9K2A',
+          'qrData': 'tripmate://groups/join?code=TM7X9K2A',
+          'expiresAt': '2026-10-08T10:30:00Z',
+        }),
+        throwsFormatException,
+      );
+    });
   });
 }

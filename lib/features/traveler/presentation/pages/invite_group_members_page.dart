@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -30,16 +32,15 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
   }
 
   Future<void> _copyInviteCode(String code) async {
-    final copyOperation = Clipboard.setData(ClipboardData(text: code));
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Invite code "$code" copied to clipboard.'),
-        duration: Duration(seconds: 2),
-      ),
-    );
     try {
-      await copyOperation;
+      await Clipboard.setData(ClipboardData(text: code));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Invite code "$code" copied to clipboard.'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -52,8 +53,57 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
     }
   }
 
-  Future<void> _shareInvitation(String deepLink) {
-    return SharePlus.instance.share(ShareParams(text: deepLink));
+  Future<void> _shareInvitation(String deepLink) async {
+    try {
+      await SharePlus.instance.share(ShareParams(text: deepLink));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _confirmRegenerateInvitation() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Regenerate invitation?'),
+        content: const Text(
+          'The current invitation code will stop working immediately.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Regenerate'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      unawaited(
+        context.read<InviteGroupMembersCubit>().regenerateInvitation(
+          widget.groupId,
+        ),
+      );
+    }
+  }
+
+  String _formatExpiry(DateTime expiresAt) {
+    final hoChiMinhTime = expiresAt.toUtc().add(const Duration(hours: 7));
+    return '${hoChiMinhTime.day.toString().padLeft(2, '0')}/'
+        '${hoChiMinhTime.month.toString().padLeft(2, '0')}/'
+        '${hoChiMinhTime.year} '
+        '${hoChiMinhTime.hour.toString().padLeft(2, '0')}:'
+        '${hoChiMinhTime.minute.toString().padLeft(2, '0')} ICT';
   }
 
   @override
@@ -75,7 +125,8 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
           );
         }
 
-        if (state.status == InviteGroupMembersStatus.failure) {
+        if (state.status == InviteGroupMembersStatus.failure &&
+            state.invitation == null) {
           return AppPageScaffold(
             title: 'Invite Members',
             content: [
@@ -97,9 +148,20 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
         }
 
         final invitation = state.invitation!;
+        final isRegenerating =
+            state.status == InviteGroupMembersStatus.regenerating;
         return AppPageScaffold(
           title: 'Invite Members',
           content: [
+            if (state.status == InviteGroupMembersStatus.failure) ...[
+              AppAlert(
+                message:
+                    state.errorMessage ??
+                    'TripMate is temporarily unable to process your request.',
+                type: AppAlertType.error,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+            ],
             // Group Header Card
             Container(
               padding: const EdgeInsets.all(AppSpacing.md),
@@ -219,7 +281,9 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
                       IconButton(
                         icon: const Icon(Icons.copy_rounded),
                         tooltip: 'Copy Code',
-                        onPressed: () => _copyInviteCode(invitation.inviteCode),
+                        onPressed: isRegenerating
+                            ? null
+                            : () => _copyInviteCode(invitation.inviteCode),
                       ),
                     ],
                   ),
@@ -231,7 +295,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
             // Expiration text
             Center(
               child: Text(
-                'Valid until: ${invitation.expiresAt.day.toString().padLeft(2, '0')}/${invitation.expiresAt.month.toString().padLeft(2, '0')}/${invitation.expiresAt.year}',
+                'Valid until: ${_formatExpiry(invitation.expiresAt)}',
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
@@ -239,10 +303,22 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
             ),
             const SizedBox(height: AppSpacing.xl),
 
-            // Action Button
+            // Action buttons
             AppButton(
               label: 'Share Invitation',
-              onPressed: () => _shareInvitation(invitation.qrData),
+              onPressed: isRegenerating
+                  ? null
+                  : () => _shareInvitation(invitation.qrData),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            OutlinedButton.icon(
+              onPressed: isRegenerating ? null : _confirmRegenerateInvitation,
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text(
+                isRegenerating
+                    ? 'Regenerating invitation...'
+                    : 'Regenerate Invitation',
+              ),
             ),
           ],
         );
