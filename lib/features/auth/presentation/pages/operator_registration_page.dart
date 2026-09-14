@@ -44,7 +44,9 @@ class _OperatorRegistrationPageState extends State<OperatorRegistrationPage> {
     return BlocConsumer<OperatorApplicationCubit, OperatorApplicationState>(
       listener: (context, state) {
         if (state.status == OperatorApplicationStatus.pending) {
-          context.read<AuthSessionCubit>().previewAs(UserRole.tourOperator);
+          context.read<AuthSessionCubit>().authenticateSession(
+            UserRole.tourOperator,
+          );
           context.go(
             AppRoutes.operatorApplication,
             extra: OperatorApplicationStatus.pending,

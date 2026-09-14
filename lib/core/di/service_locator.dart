@@ -1,13 +1,21 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trip_mate_mobile/app/config/app_config.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/core/network/network_info.dart';
 import 'package:trip_mate_mobile/core/storage/preferences_service.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
+import 'package:trip_mate_mobile/features/auth/data/datasources/auth_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:trip_mate_mobile/features/auth/data/services/firebase_auth_service.dart';
+import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/data/datasources/poi_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/poi/data/repositories/poi_repository_impl.dart';
 import 'package:trip_mate_mobile/features/poi/data/services/geolocator_poi_location_service.dart';
@@ -18,6 +26,8 @@ import 'package:trip_mate_mobile/features/poi/domain/usecases/get_poi_location_u
 import 'package:trip_mate_mobile/features/poi/domain/usecases/get_pois_use_case.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_group_repository_impl.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 
 final GetIt serviceLocator = GetIt.instance;
 
@@ -36,6 +46,12 @@ Future<void> configureDependencies({AppConfig? config}) async {
       () => const FlutterSecureStorageService(FlutterSecureStorage()),
     )
     ..registerLazySingleton<Connectivity>(Connectivity.new)
+    ..registerLazySingleton<GoogleSignIn>(() => GoogleSignIn.instance)
+    ..registerLazySingleton<FirebaseAuthService>(
+      () => Firebase.apps.isEmpty
+          ? const UnavailableFirebaseAuthService()
+          : FirebaseAuthServiceImpl(FirebaseAuth.instance, serviceLocator()),
+    )
     ..registerLazySingleton<NetworkInfo>(
       () => ConnectivityNetworkInfo(serviceLocator()),
     )
@@ -66,5 +82,23 @@ Future<void> configureDependencies({AppConfig? config}) async {
       ),
     )
     ..registerFactory<PoiDetailCubit>(() => PoiDetailCubit(serviceLocator()))
-    ..registerFactory<AuthSessionCubit>(AuthSessionCubit.new);
+    ..registerLazySingleton<AuthRemoteDataSource>(
+      () => AuthRemoteDataSourceImpl(serviceLocator()),
+    )
+    ..registerLazySingleton<AuthRepository>(
+      () => AuthRepositoryImpl(serviceLocator()),
+    )
+    ..registerLazySingleton<TravelGroupRepository>(
+      () => TravelGroupRepositoryImpl(dioClient: serviceLocator()),
+    )
+    ..registerFactory<AuthSessionCubit>(
+      () => AuthSessionCubit(
+        serviceLocator(),
+        serviceLocator(),
+        serviceLocator(),
+      ),
+    )
+    ..registerFactory<RegisterCubit>(
+      () => RegisterCubit(serviceLocator(), serviceLocator()),
+    );
 }

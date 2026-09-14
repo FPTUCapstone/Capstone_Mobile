@@ -9,7 +9,7 @@ final class GeolocatorPoiLocationService implements PoiLocationService {
   @override
   Future<PoiLocation> requestCurrentLocation() async {
     if (!await Geolocator.isLocationServiceEnabled()) {
-      throw const PermissionFailure(
+      throw const LocationPermissionFailure(
         'Dịch vụ vị trí đang tắt. Bạn vẫn có thể khám phá địa điểm.',
       );
     }
@@ -20,7 +20,7 @@ final class GeolocatorPoiLocationService implements PoiLocationService {
     }
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      throw const PermissionFailure();
+      throw const LocationPermissionFailure();
     }
 
     final position = await Geolocator.getCurrentPosition(

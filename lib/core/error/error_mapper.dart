@@ -34,12 +34,9 @@ abstract final class ErrorMapper {
     if (statusCode == 404 && _errorCode(responseData) == 'Poi.NotFound') {
       return const NotFoundFailure();
     }
-    if (statusCode == 401 || statusCode == 403) {
-      return const AuthenticationFailure();
-    }
-    if (statusCode != null && statusCode >= 500) {
-      return const ServerFailure();
-    }
+    if (statusCode == 401) return const AuthenticationFailure();
+    if (statusCode == 403) return const PermissionFailure();
+    if (statusCode != null && statusCode >= 500) return const ServerFailure();
 
     return switch (error.type) {
       DioExceptionType.connectionTimeout ||

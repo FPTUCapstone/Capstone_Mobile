@@ -91,7 +91,7 @@ final class PoiListCubit extends Cubit<PoiListState> {
           page: 1,
         ),
       );
-    } on PermissionFailure catch (failure) {
+    } on LocationPermissionFailure catch (failure) {
       emit(state.copyWith(isLocating: false, locationMessage: failure.message));
     } on Failure catch (failure) {
       emit(state.copyWith(isLocating: false, locationMessage: failure.message));
