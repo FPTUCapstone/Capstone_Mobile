@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/router/route_guards.dart';
+import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_application_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/password_demo_cubit.dart';
@@ -15,6 +17,10 @@ import 'package:trip_mate_mobile/features/auth/presentation/pages/operator_regis
 import 'package:trip_mate_mobile/features/auth/presentation/pages/reset_password_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/splash_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/traveler_registration_page.dart';
+import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
+import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
+import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
+import 'package:trip_mate_mobile/features/poi/presentation/pages/poi_detail_page.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_preferences_page.dart';
@@ -59,6 +65,26 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         builder: (_, _) => BlocProvider(
           create: (_) => PasswordDemoCubit(),
           child: const ResetPasswordPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.explore,
+        name: AppRouteNames.explore,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<PoiListCubit>()..loadInitial(),
+          child: ExplorePoiPage(
+            isTraveler: sessionCubit.state.role == UserRole.traveler,
+          ),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.poiDetailPattern,
+        name: AppRouteNames.poiDetail,
+        builder: (_, state) => BlocProvider(
+          create: (_) =>
+              serviceLocator<PoiDetailCubit>()
+                ..load(state.pathParameters['id'] ?? ''),
+          child: const PoiDetailPage(),
         ),
       ),
       GoRoute(

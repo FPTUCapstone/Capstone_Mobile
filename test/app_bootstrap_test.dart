@@ -47,6 +47,28 @@ void main() {
     );
   });
 
+  testWidgets('guest can enter public POI exploration without signing in', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const TripMateApp());
+    await tester.pumpAndSettle();
+
+    final guestExploreLink = find.text('Duyệt khám phá không cần đăng nhập');
+    await tester.scrollUntilVisible(
+      guestExploreLink,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.widgetWithText(TextButton, 'Duyệt khám phá không cần đăng nhập'),
+    );
+    await tester.pumpAndSettle(const Duration(milliseconds: 100));
+
+    expect(find.text('Khám phá miền Trung'), findsOneWidget);
+    expect(find.text('Đăng nhập'), findsOneWidget);
+  });
+
   testWidgets('valid Traveler sign-in reaches the Traveler area', (
     tester,
   ) async {
@@ -62,8 +84,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pumpAndSettle();
 
-    expect(find.text('Traveler · Home'), findsOneWidget);
-    expect(find.text('Traveler Home'), findsOneWidget);
+    expect(find.text('Traveler · Trang chủ'), findsOneWidget);
+    expect(find.text('Traveler Trang chủ'), findsOneWidget);
     expect(find.text('Your next adventure starts here.'), findsOneWidget);
+
+    await tester.tap(find.text('Khám phá'));
+    await tester.pumpAndSettle(const Duration(milliseconds: 100));
+
+    expect(find.text('Khám phá miền Trung'), findsOneWidget);
+    expect(find.text('Xin chào, Du khách'), findsOneWidget);
   });
 }

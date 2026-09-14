@@ -198,8 +198,9 @@ class _LoginPageState extends State<LoginPage> {
               ],
             ),
             const SizedBox(height: AppSpacing.md),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 const Text('New to TripMate?'),
                 TextButton(
@@ -207,6 +208,14 @@ class _LoginPageState extends State<LoginPage> {
                   child: const Text('Create an account'),
                 ),
               ],
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Center(
+              child: TextButton.icon(
+                onPressed: () => context.go(AppRoutes.explore),
+                icon: const Icon(Icons.travel_explore),
+                label: const Text('Duyệt khám phá không cần đăng nhập'),
+              ),
             ),
             if (kDebugMode)
               Center(

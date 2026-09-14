@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-sealed class Failure extends Equatable {
+sealed class Failure extends Equatable implements Exception {
   const Failure(this.message);
 
   final String message;
@@ -24,7 +24,28 @@ final class AuthenticationFailure extends Failure {
 }
 
 final class ValidationFailure extends Failure {
-  const ValidationFailure(super.message);
+  const ValidationFailure(
+    super.message, {
+    this.fieldErrors = const <String, List<String>>{},
+  });
+
+  final Map<String, List<String>> fieldErrors;
+
+  @override
+  List<Object?> get props => [message, fieldErrors];
+}
+
+final class NotFoundFailure extends Failure {
+  const NotFoundFailure([
+    super.message = 'Địa điểm không tồn tại hoặc đã đóng.',
+  ]);
+}
+
+final class PermissionFailure extends Failure {
+  const PermissionFailure([
+    super.message =
+        'Không thể dùng vị trí. Bạn vẫn có thể khám phá các địa điểm.',
+  ]);
 }
 
 final class UnknownFailure extends Failure {
