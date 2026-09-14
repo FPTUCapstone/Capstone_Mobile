@@ -2,7 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:trip_mate_mobile/app/config/environment.dart';
 
 final class AppConfig {
-  const AppConfig({required this.environment, required this.apiBaseUrl});
+  const AppConfig({
+    required this.environment,
+    required this.apiBaseUrl,
+    this.poiCategoryPreview = false,
+  });
 
   factory AppConfig.fromEnvironment() {
     const environmentValue = String.fromEnvironment(
@@ -10,6 +14,7 @@ final class AppConfig {
       defaultValue: 'development',
     );
     const apiBaseUrlValue = String.fromEnvironment('API_BASE_URL');
+    const poiCategoryPreview = bool.fromEnvironment('POI_CATEGORY_PREVIEW');
     final resolvedApiBaseUrl = apiBaseUrlValue.isNotEmpty
         ? apiBaseUrlValue
         : _defaultApiBaseUrl();
@@ -17,11 +22,13 @@ final class AppConfig {
     return AppConfig(
       environment: Environment.fromValue(environmentValue),
       apiBaseUrl: _parseBaseUrl(resolvedApiBaseUrl),
+      poiCategoryPreview: poiCategoryPreview,
     );
   }
 
   final Environment environment;
   final Uri apiBaseUrl;
+  final bool poiCategoryPreview;
 
   bool get enableNetworkLogs => environment != Environment.production;
 
