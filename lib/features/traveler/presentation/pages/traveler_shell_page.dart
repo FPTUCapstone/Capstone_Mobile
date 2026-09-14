@@ -30,8 +30,8 @@ class _TravelerShellPageState extends State<TravelerShellPage> {
         title: Text('Traveler · ${_destinations[_selectedIndex].label}'),
         actions: [
           IconButton(
-            onPressed: context.read<AuthSessionCubit>().clearPreviewSession,
-            tooltip: 'Exit preview',
+            onPressed: context.read<AuthSessionCubit>().clearSession,
+            tooltip: 'Sign out',
             icon: const Icon(Icons.logout),
           ),
         ],

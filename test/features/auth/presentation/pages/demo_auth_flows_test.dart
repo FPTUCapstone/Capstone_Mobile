@@ -1,21 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
-import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:trip_mate_mobile/app/config/app_config.dart';
+import 'package:trip_mate_mobile/app/config/environment.dart';
 import 'package:trip_mate_mobile/app/theme/app_theme.dart';
+import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_application_cubit.dart';
-import 'package:trip_mate_mobile/features/auth/presentation/cubit/password_demo_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/operator_application_page.dart';
-import 'package:trip_mate_mobile/features/auth/presentation/pages/reset_password_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/traveler_registration_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_preferences_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_settings_page.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
 
 void main() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    await serviceLocator.reset();
+    await configureDependencies(
+      config: AppConfig(
+        environment: Environment.development,
+        apiBaseUrl: Uri.parse('https://api.test.invalid'),
+      ),
+    );
+  });
+
+  tearDown(() => serviceLocator.reset());
+
   testWidgets('Traveler registration reports required-field validation', (
     tester,
   ) async {
@@ -27,50 +42,13 @@ void main() {
 
     expect(find.text('Full name is required.'), findsOneWidget);
     expect(find.text('Email is required.'), findsOneWidget);
-    expect(find.text('Phone number is required.'), findsOneWidget);
     expect(find.text('Password is required.'), findsOneWidget);
-  });
-
-  testWidgets('password reset accepts the demo code and returns to sign-in', (
-    tester,
-  ) async {
-    final router = GoRouter(
-      initialLocation: '/reset-test',
-      routes: [
-        GoRoute(
-          path: '/reset-test',
-          builder: (_, _) => BlocProvider(
-            create: (_) => PasswordDemoCubit(),
-            child: const ResetPasswordPage(),
-          ),
-        ),
-        GoRoute(
-          path: AppRoutes.login,
-          builder: (_, _) => const Scaffold(body: Text('Sign-in destination')),
-        ),
-      ],
-    );
-    addTearDown(router.dispose);
-    await tester.pumpWidget(_routerPage(router));
-
-    await tester.enterText(find.byType(TextFormField).at(0), '123456');
-    await tester.enterText(find.byType(TextFormField).at(1), 'StrongPass1!');
-    await tester.enterText(find.byType(TextFormField).at(2), 'StrongPass1!');
-    await _tapVisible(
-      tester,
-      find.widgetWithText(FilledButton, 'Set new password'),
-    );
-    await tester.pump(const Duration(milliseconds: 500));
-    await tester.pump(const Duration(milliseconds: 550));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Sign-in destination'), findsOneWidget);
   });
 
   testWidgets('sign out asks for confirmation before clearing the session', (
     tester,
   ) async {
-    final session = AuthSessionCubit()..previewAs(UserRole.traveler);
+    final session = AuthSessionCubit()..authenticateSession(UserRole.traveler);
     addTearDown(session.close);
     await tester.pumpWidget(
       BlocProvider<AuthSessionCubit>.value(
@@ -119,21 +97,57 @@ void main() {
 
     await tester.pump();
     expect(cubit.state.status, OperatorApplicationStatus.rejected);
-    await _tapVisible(
-      tester,
-      find.widgetWithText(FilledButton, 'Resubmit application'),
+
+    // Enter a valid phone number to pass validation.
+    final phoneField = find.descendant(
+      of: find.byWidgetPredicate(
+        (widget) => widget is AppTextField && widget.label == 'Business phone',
+      ),
+      matching: find.byType(TextFormField),
     );
+    expect(phoneField, findsOneWidget);
+    await tester.enterText(phoneField, '0912345678');
+    await tester.pump();
+
+    expect(tester.state<FormState>(find.byType(Form)).validate(), isTrue);
+    await tester.pump();
+
+    final resubmitButton = find.byWidgetPredicate(
+      (widget) => widget is AppButton && widget.label == 'Resubmit application',
+      skipOffstage: false,
+    );
+    expect(resubmitButton, findsOneWidget);
+    expect(tester.widget<AppButton>(resubmitButton).onPressed, isNotNull);
+
+    await tester.scrollUntilVisible(
+      resubmitButton,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump();
+
+    final filledButton = find.descendant(
+      of: resubmitButton,
+      matching: find.byType(FilledButton),
+    );
+    expect(filledButton, findsOneWidget);
+    expect(tester.widget<FilledButton>(filledButton).onPressed, isNotNull);
+
+    await tester.tap(resubmitButton);
     await tester.pump(const Duration(milliseconds: 550));
     await tester.pumpAndSettle();
 
     expect(cubit.state.status, OperatorApplicationStatus.pending);
+    await tester.drag(find.byType(ListView), const Offset(0, 600));
+    await tester.pumpAndSettle();
+
+    expect(find.text('REJECTED'), findsNothing);
+    expect(find.text('PENDING APPROVAL'), findsOneWidget);
+    expect(find.text('Application submitted'), findsOneWidget);
   });
 }
 
 Widget _page(Widget child) => MaterialApp(theme: AppTheme.light, home: child);
-
-Widget _routerPage(GoRouter router) =>
-    MaterialApp.router(theme: AppTheme.light, routerConfig: router);
 
 Future<void> _tapVisible(WidgetTester tester, Finder finder) async {
   await tester.scrollUntilVisible(

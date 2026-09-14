@@ -1,4 +1,3 @@
-import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 
 /// Abstract contract for travel group data operations.
@@ -13,7 +12,4 @@ abstract interface class TravelGroupRepository {
     required String name,
     required int itineraryId,
   });
-
-  /// Retrieves or generates an active invitation for the travel group with [groupId].
-  Future<GroupInvitation> getGroupInvitation(int groupId);
 }

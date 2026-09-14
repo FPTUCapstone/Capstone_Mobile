@@ -18,12 +18,9 @@ abstract final class RouteGuards {
       return null;
     }
 
-    final home = switch (session.role) {
-      UserRole.traveler => AppRoutes.traveler,
-      UserRole.tourOperator when session.isRejectedOperator =>
-        AppRoutes.operatorApplication,
-      _ => AppRoutes.operator,
-    };
+    final home = session.role == UserRole.traveler
+        ? AppRoutes.traveler
+        : AppRoutes.operator;
 
     if (location == AppRoutes.splash || isAuthRoute) {
       return home;

@@ -1,6 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
+import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
@@ -17,10 +17,6 @@ final class _SuccessRepository implements TravelGroupRepository {
     required String name,
     required int itineraryId,
   }) async => _result;
-
-  @override
-  Future<GroupInvitation> getGroupInvitation(int groupId) async =>
-      throw UnimplementedError();
 }
 
 final class _FailureRepository implements TravelGroupRepository {
@@ -31,10 +27,17 @@ final class _FailureRepository implements TravelGroupRepository {
     required String name,
     required int itineraryId,
   }) async => throw Exception('server error');
+}
+
+final class _TypedFailureRepository implements TravelGroupRepository {
+  const _TypedFailureRepository(this.failure);
+  final Failure failure;
 
   @override
-  Future<GroupInvitation> getGroupInvitation(int groupId) async =>
-      throw UnimplementedError();
+  Future<TravelGroup> createTravelGroup({
+    required String name,
+    required int itineraryId,
+  }) async => throw failure;
 }
 
 // --------------------------------------------------------------------------
@@ -43,7 +46,11 @@ void main() {
   const validName = 'My Trip Group';
   final tooLongName = 'A' * 151;
   const testItineraryId = 10;
-  const travelGroup = TravelGroup(id: 1, name: validName);
+  const travelGroup = TravelGroup(
+    id: 1,
+    name: validName,
+    inviteCode: 'ABCD1234',
+  );
 
   group('CreateTravelGroupCubit', () {
     test('initial state is CreateTravelGroupStatus.initial', () {
@@ -53,6 +60,32 @@ void main() {
       expect(cubit.state.status, CreateTravelGroupStatus.initial);
       cubit.close();
     });
+
+    blocTest<CreateTravelGroupCubit, CreateTravelGroupState>(
+      'non-positive itinerary emits validationFailure without calling repository',
+      build: () => CreateTravelGroupCubit(
+        repository: const _SuccessRepository(travelGroup),
+      ),
+      act: (cubit) => cubit.submit(name: validName, itineraryId: 0),
+      expect: () => [
+        isA<CreateTravelGroupState>()
+            .having(
+              (s) => s.status,
+              'status',
+              CreateTravelGroupStatus.validationFailure,
+            )
+            .having(
+              (s) => s.errorMessage,
+              'errorMessage',
+              'Please select an itinerary.',
+            ),
+        isA<CreateTravelGroupState>().having(
+          (s) => s.status,
+          'status',
+          CreateTravelGroupStatus.initial,
+        ),
+      ],
+    );
 
     blocTest<CreateTravelGroupCubit, CreateTravelGroupState>(
       'empty name emits validationFailure with MSG01 then resets to initial',
@@ -76,6 +109,52 @@ void main() {
           'status',
           CreateTravelGroupStatus.initial,
         ),
+      ],
+    );
+
+    blocTest<CreateTravelGroupCubit, CreateTravelGroupState>(
+      'authentication failure emits MSG125',
+      build: () => CreateTravelGroupCubit(
+        repository: const _TypedFailureRepository(AuthenticationFailure()),
+      ),
+      act: (cubit) =>
+          cubit.submit(name: validName, itineraryId: testItineraryId),
+      expect: () => [
+        isA<CreateTravelGroupState>().having(
+          (s) => s.status,
+          'status',
+          CreateTravelGroupStatus.submitting,
+        ),
+        isA<CreateTravelGroupState>()
+            .having((s) => s.status, 'status', CreateTravelGroupStatus.failure)
+            .having(
+              (s) => s.errorMessage,
+              'errorMessage',
+              'Your session has expired. Please sign in again to continue.',
+            ),
+      ],
+    );
+
+    blocTest<CreateTravelGroupCubit, CreateTravelGroupState>(
+      'permission failure emits MSG126',
+      build: () => CreateTravelGroupCubit(
+        repository: const _TypedFailureRepository(PermissionFailure()),
+      ),
+      act: (cubit) =>
+          cubit.submit(name: validName, itineraryId: testItineraryId),
+      expect: () => [
+        isA<CreateTravelGroupState>().having(
+          (s) => s.status,
+          'status',
+          CreateTravelGroupStatus.submitting,
+        ),
+        isA<CreateTravelGroupState>()
+            .having((s) => s.status, 'status', CreateTravelGroupStatus.failure)
+            .having(
+              (s) => s.errorMessage,
+              'errorMessage',
+              'You do not have permission to access this function.',
+            ),
       ],
     );
 

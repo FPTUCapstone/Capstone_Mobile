@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_travel_group_page.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
 
 final class _MockRepository implements TravelGroupRepository {
   String? lastSubmittedName;
@@ -18,12 +18,8 @@ final class _MockRepository implements TravelGroupRepository {
   }) async {
     lastSubmittedName = name;
     lastSubmittedItineraryId = itineraryId;
-    return TravelGroup(id: 1, name: name);
+    return TravelGroup(id: 1, name: name, inviteCode: 'ABC12345');
   }
-
-  @override
-  Future<GroupInvitation> getGroupInvitation(int groupId) async =>
-      throw UnimplementedError();
 }
 
 void main() {
@@ -39,7 +35,10 @@ void main() {
     cubit.close();
   });
 
-  Widget buildSubject({int? itineraryId, String? itineraryTitle}) {
+  Widget buildSubject({
+    int itineraryId = 10,
+    String itineraryTitle = 'Summer trip',
+  }) {
     return MaterialApp(
       home: BlocProvider<CreateTravelGroupCubit>.value(
         value: cubit,
@@ -51,25 +50,25 @@ void main() {
     );
   }
 
-  testWidgets(
-    'renders empty input fields by default without pre-assigned values',
-    (tester) async {
-      await tester.pumpWidget(buildSubject());
-      await tester.pumpAndSettle();
+  testWidgets('renders the selected itinerary as read-only association', (
+    tester,
+  ) async {
+    await tester.pumpWidget(buildSubject());
+    await tester.pumpAndSettle();
 
-      final textFields = find.byType(TextFormField);
-      expect(textFields, findsNWidgets(2));
+    final textFields = find.byType(AppTextField);
+    expect(textFields, findsNWidgets(2));
 
-      // Both fields start empty
-      final nameField = tester.widget<TextFormField>(textFields.at(0));
-      expect(nameField.controller?.text, isEmpty);
+    final nameField = tester.widget<AppTextField>(textFields.at(0));
+    expect(nameField.controller?.text, isEmpty);
 
-      final itineraryField = tester.widget<TextFormField>(textFields.at(1));
-      expect(itineraryField.controller?.text, isEmpty);
-    },
-  );
+    final itineraryField = tester.widget<AppTextField>(textFields.at(1));
+    expect(itineraryField.controller?.text, 'Summer trip');
+    expect(itineraryField.readOnly, isTrue);
+    expect(itineraryField.onTap, isNull);
+  });
 
-  testWidgets('shows validation error when submitting with empty fields', (
+  testWidgets('shows MSG01 when submitting with an empty group name', (
     tester,
   ) async {
     await tester.pumpWidget(buildSubject());
@@ -79,26 +78,23 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('This field is required.'), findsOneWidget);
-    expect(find.text('Please select an itinerary.'), findsOneWidget);
     expect(repository.lastSubmittedName, isNull);
   });
 
-  testWidgets(
-    'submits successfully when user inputs group name and itinerary id',
-    (tester) async {
-      await tester.pumpWidget(
-        buildSubject(itineraryId: 1, itineraryTitle: 'Da Nang itinerary'),
-      );
-      await tester.pumpAndSettle();
+  testWidgets('submits with the selected itinerary id when the name is valid', (
+    tester,
+  ) async {
+    await tester.pumpWidget(buildSubject());
+    await tester.pumpAndSettle();
 
-      final textFields = find.byType(TextFormField);
-      await tester.enterText(textFields.at(0), 'Da Nang Trip 2026');
-      await tester.tap(find.text('Create Group'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 900));
+    final textFields = find.byType(TextFormField);
+    await tester.enterText(textFields.at(0), 'Da Nang Trip 2026');
 
-      expect(repository.lastSubmittedName, 'Da Nang Trip 2026');
-      expect(repository.lastSubmittedItineraryId, 1);
-    },
-  );
+    await tester.tap(find.text('Create Group'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 900));
+
+    expect(repository.lastSubmittedName, 'Da Nang Trip 2026');
+    expect(repository.lastSubmittedItineraryId, 10);
+  });
 }
