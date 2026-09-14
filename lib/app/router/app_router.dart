@@ -16,8 +16,10 @@ import 'package:trip_mate_mobile/features/auth/presentation/pages/verify_email_p
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/invite_group_members_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_travel_group_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/invite_group_members_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_details_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_preferences_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_profile_page.dart';
@@ -115,6 +117,21 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
             group: state.extra is TravelGroup
                 ? state.extra as TravelGroup
                 : null,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.inviteGroupMembers,
+        name: AppRouteNames.inviteGroupMembers,
+        builder: (_, state) {
+          final groupId = int.tryParse(state.pathParameters['groupId'] ?? '');
+          if (groupId == null || groupId <= 0) {
+            return const ErrorView(message: 'Page not found.');
+          }
+          return BlocProvider(
+            create: (_) =>
+                InviteGroupMembersCubit(repository: serviceLocator()),
+            child: InviteGroupMembersPage(groupId: groupId),
           );
         },
       ),

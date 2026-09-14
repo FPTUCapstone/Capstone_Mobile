@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 
 final class TravelGroupDetailsPage extends StatelessWidget {
@@ -21,10 +23,15 @@ final class TravelGroupDetailsPage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const Text('You are the Group Host.'),
-          if (currentGroup != null) ...[
-            const SizedBox(height: 24),
-            SelectableText('Invite code: ${currentGroup.inviteCode}'),
-          ],
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: () => context.goNamed(
+              AppRouteNames.inviteGroupMembers,
+              pathParameters: {'groupId': groupId.toString()},
+            ),
+            icon: const Icon(Icons.person_add_alt_1_outlined),
+            label: const Text('Invite Members'),
+          ),
         ],
       ),
     );

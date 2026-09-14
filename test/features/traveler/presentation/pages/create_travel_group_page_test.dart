@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
@@ -18,8 +19,20 @@ final class _MockRepository implements TravelGroupRepository {
   }) async {
     lastSubmittedName = name;
     lastSubmittedItineraryId = itineraryId;
-    return TravelGroup(id: 1, name: name, inviteCode: 'ABC12345');
+    return TravelGroup(id: 1, name: name);
   }
+
+  @override
+  Future<GroupInvitation> getOrCreateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<GroupInvitation> regenerateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
 }
 
 void main() {
