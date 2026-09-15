@@ -11,6 +11,8 @@ abstract final class AppRoutes {
   static const travelerSettings = '/traveler/settings';
   static const travelerProfile = '/traveler/profile';
   static const travelerPreferences = '/traveler/preferences';
+  static const createItinerary = '/traveler/itineraries/create';
+  static const itineraryResult = '/traveler/itineraries/result';
   static const createTravelGroup = '/traveler/groups/create';
   static const joinTravelGroup = '/traveler/groups/join';
   static const travelerTravelGroups = '/traveler/groups';
@@ -37,6 +39,8 @@ abstract final class AppRouteNames {
   static const travelerSettings = 'traveler-settings';
   static const travelerProfile = 'traveler-profile';
   static const travelerPreferences = 'traveler-preferences';
+  static const createItinerary = 'create-itinerary';
+  static const itineraryResult = 'itinerary-result';
   static const createTravelGroup = 'create-travel-group';
   static const joinTravelGroup = 'join-travel-group';
   static const travelGroupDetails = 'travel-group-details';
