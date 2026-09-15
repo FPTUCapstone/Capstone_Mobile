@@ -23,6 +23,9 @@ abstract final class ErrorMapper {
     final statusCode = error.response?.statusCode;
     if (statusCode == 401) return const AuthenticationFailure();
     if (statusCode == 403) return const PermissionFailure();
+    if (statusCode == 409) return const ConflictFailure();
+    if (statusCode == 422) return const ConstraintFailure();
+    if (statusCode == 429) return const DailyLimitFailure();
     if (statusCode != null && statusCode >= 500) return const ServerFailure();
 
     return switch (error.type) {

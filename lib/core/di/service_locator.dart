@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trip_mate_mobile/app/config/app_config.dart';
+import 'package:trip_mate_mobile/core/location/device_location_service.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/core/network/network_info.dart';
 import 'package:trip_mate_mobile/core/storage/preferences_service.dart';
@@ -16,7 +17,11 @@ import 'package:trip_mate_mobile/features/auth/data/services/firebase_auth_servi
 import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/data/repositories/itinerary_repository_impl.dart';
+import 'package:trip_mate_mobile/features/traveler/data/repositories/point_of_interest_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_group_repository_impl.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 
 final GetIt serviceLocator = GetIt.instance;
@@ -45,6 +50,9 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerLazySingleton<NetworkInfo>(
       () => ConnectivityNetworkInfo(serviceLocator()),
     )
+    ..registerLazySingleton<DeviceLocationService>(
+      GeolocatorDeviceLocationService.new,
+    )
     ..registerLazySingleton<DioClient>(
       () =>
           DioClient(config: serviceLocator(), secureStorage: serviceLocator()),
@@ -57,6 +65,12 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerLazySingleton<TravelGroupRepository>(
       () => TravelGroupRepositoryImpl(dioClient: serviceLocator()),
+    )
+    ..registerLazySingleton<ItineraryRepository>(
+      () => ItineraryRepositoryImpl(dioClient: serviceLocator()),
+    )
+    ..registerLazySingleton<PointOfInterestRepository>(
+      () => PointOfInterestRepositoryImpl(dioClient: serviceLocator()),
     )
     ..registerFactory<AuthSessionCubit>(
       () => AuthSessionCubit(

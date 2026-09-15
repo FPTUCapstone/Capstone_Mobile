@@ -99,6 +99,14 @@ class _TravelerSection extends StatelessWidget {
                 label: const Text('Account settings'),
               ),
             ],
+            if (destination.label == 'Trips') ...[
+              const SizedBox(height: AppSpacing.lg),
+              FilledButton.icon(
+                onPressed: () => context.push(AppRoutes.createItinerary),
+                icon: const Icon(Icons.auto_awesome_outlined),
+                label: const Text('Create an itinerary'),
+              ),
+            ],
           ],
         ),
       ),

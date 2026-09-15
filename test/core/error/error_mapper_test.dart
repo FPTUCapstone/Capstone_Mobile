@@ -31,4 +31,20 @@ void main() {
 
     expect(failure, isA<PermissionFailure>());
   });
+
+  test('maps planning HTTP outcomes to safe business failures', () {
+    Failure failureFor(int statusCode) => ErrorMapper.toFailure(
+      DioException(
+        requestOptions: RequestOptions(path: '/scheduling-requests'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/scheduling-requests'),
+          statusCode: statusCode,
+        ),
+      ),
+    );
+
+    expect(failureFor(409), isA<ConflictFailure>());
+    expect(failureFor(422), isA<ConstraintFailure>());
+    expect(failureFor(429), isA<DailyLimitFailure>());
+  });
 }

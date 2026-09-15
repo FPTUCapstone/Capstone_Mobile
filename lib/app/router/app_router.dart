@@ -14,10 +14,15 @@ import 'package:trip_mate_mobile/features/auth/presentation/pages/splash_page.da
 import 'package:trip_mate_mobile/features/auth/presentation/pages/traveler_registration_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/verify_email_page.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/poi_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_itinerary_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_travel_group_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_result_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_details_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_preferences_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_profile_page.dart';
@@ -84,6 +89,35 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
           create: (_) => TravelPreferencesCubit(),
           child: const TravelPreferencesPage(),
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.createItinerary,
+        name: AppRouteNames.createItinerary,
+        builder: (_, _) => MultiBlocProvider(
+          providers: [
+            BlocProvider(
+              create: (_) => CreateItineraryCubit(repository: serviceLocator()),
+            ),
+            BlocProvider(
+              create: (_) => PoiSearchCubit(
+                locationService: serviceLocator(),
+                repository: serviceLocator(),
+              ),
+            ),
+          ],
+          child: const CreateItineraryPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.itineraryResult,
+        name: AppRouteNames.itineraryResult,
+        builder: (_, state) {
+          final itinerary = state.extra;
+          if (itinerary is! GeneratedItinerary) {
+            return const ErrorView(message: 'Your itinerary is unavailable.');
+          }
+          return ItineraryResultPage(itinerary: itinerary);
+        },
       ),
       GoRoute(
         path: AppRoutes.createTravelGroup,
