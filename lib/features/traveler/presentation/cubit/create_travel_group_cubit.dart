@@ -25,9 +25,6 @@ final class _PendingOperation {
 /// Input: [TravelGroupRepository] injected via constructor.
 /// Output: [CreateTravelGroupState] transitions consumed by [CreateTravelGroupPage].
 final class CreateTravelGroupCubit extends Cubit<CreateTravelGroupState> {
-  CreateTravelGroupCubit({required TravelGroupRepository repository})
-    : _repository = repository,
-      super(const CreateTravelGroupState.initial());
   CreateTravelGroupCubit({
     required TravelGroupRepository repository,
     String Function()? operationKeyFactory,
@@ -36,7 +33,6 @@ final class CreateTravelGroupCubit extends Cubit<CreateTravelGroupState> {
        super(const CreateTravelGroupState.initial());
 
   final TravelGroupRepository _repository;
-  String? _pendingIdempotencyKey;
   final String Function() _operationKeyFactory;
   _PendingOperation? _pendingOperation;
 
@@ -97,14 +93,12 @@ final class CreateTravelGroupCubit extends Cubit<CreateTravelGroupState> {
     );
 
     emit(const CreateTravelGroupState.submitting());
-    final idempotencyKey = _pendingIdempotencyKey ??= _generateIdempotencyKey();
     try {
       final group = await _repository.createTravelGroup(
         name: trimmed,
         itineraryId: itineraryId,
         idempotencyKey: idempotencyKey,
       );
-      _pendingIdempotencyKey = null;
       _pendingOperation = null;
       emit(CreateTravelGroupState.success(group));
     } catch (error) {

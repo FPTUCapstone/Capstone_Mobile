@@ -83,15 +83,15 @@ void main() {
       });
 
       // Transport assertion: Idempotency-Key header must be sent with the exact UUID
-      expect(
-        capturedRequest.headers['Idempotency-Key'],
-        testUuid,
-      );
+      expect(capturedRequest.headers['Idempotency-Key'], testUuid);
       // Verify UUID format (8-4-4-4-12 hex digits)
       final uuidRegex = RegExp(
         r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
       );
-      expect(uuidRegex.hasMatch(capturedRequest.headers['Idempotency-Key']), isTrue);
+      expect(
+        uuidRegex.hasMatch(capturedRequest.headers['Idempotency-Key']),
+        isTrue,
+      );
     },
   );
 }
