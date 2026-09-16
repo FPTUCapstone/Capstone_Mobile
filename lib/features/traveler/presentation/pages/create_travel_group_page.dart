@@ -65,7 +65,7 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text(
-                    'Travel group created! You are the Group Host. Share the invite code to add members.',
+                    'Travel group created successfully! You are the Group Host.',
                   ),
                 ),
               );
@@ -108,7 +108,7 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
                 if (isSuccess) ...[
                   const AppAlert(
                     message:
-                        'Travel group created! You are the Group Host. Share the invite code to add members.',
+                        'Travel group created successfully! You are the Group Host.',
                     type: AppAlertType.success,
                   ),
                   const SizedBox(height: AppSpacing.md),
