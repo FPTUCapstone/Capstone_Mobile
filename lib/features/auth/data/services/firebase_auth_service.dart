@@ -1,33 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:trip_mate_mobile/core/error/exceptions.dart';
+import 'package:trip_mate_mobile/features/auth/domain/services/auth_identity_service.dart';
 
-abstract interface class FirebaseAuthService {
-  Future<String?> get currentUserEmail;
-
-  Future<String> registerWithEmail({
-    required String email,
-    required String password,
-  });
-
-  Future<String> signInWithEmail({
-    required String email,
-    required String password,
-  });
-
-  Future<String> signInWithGoogle();
-
-  Future<void> sendEmailVerification();
-
-  Future<String?> refreshIdToken();
-
-  Future<bool> get isEmailVerified;
-
-  Future<void> signOut();
-}
-
-final class UnavailableFirebaseAuthService implements FirebaseAuthService {
+final class UnavailableFirebaseAuthService implements AuthIdentityService {
   const UnavailableFirebaseAuthService();
 
   @override
@@ -61,13 +36,11 @@ final class UnavailableFirebaseAuthService implements FirebaseAuthService {
   Future<void> signOut() => _unavailable();
 
   Future<T> _unavailable<T>() => Future<T>.error(
-    const AuthenticationException(
-      'Firebase Authentication is not initialized for this build.',
-    ),
+    const AuthIdentityException(AuthIdentityFailure.unavailable),
   );
 }
 
-final class FirebaseAuthServiceImpl implements FirebaseAuthService {
+final class FirebaseAuthServiceImpl implements AuthIdentityService {
   FirebaseAuthServiceImpl(this._firebaseAuth, this._googleSignIn);
 
   final FirebaseAuth _firebaseAuth;
@@ -81,111 +54,68 @@ final class FirebaseAuthServiceImpl implements FirebaseAuthService {
   Future<String> registerWithEmail({
     required String email,
     required String password,
-  }) async {
+  }) => _mapProviderErrors(() async {
     final credential = await _firebaseAuth.createUserWithEmailAndPassword(
       email: email,
       password: password,
     );
-    final token = await credential.user?.getIdToken();
-    if (token == null || token.isEmpty) {
-      throw FirebaseAuthException(
-        code: 'missing-id-token',
-        message: 'Firebase did not return an ID token.',
-      );
-    }
-    return token;
-  }
+    return _requireToken(await credential.user?.getIdToken());
+  });
 
   @override
   Future<String> signInWithEmail({
     required String email,
     required String password,
-  }) async {
+  }) => _mapProviderErrors(() async {
     final credential = await _firebaseAuth.signInWithEmailAndPassword(
       email: email,
       password: password,
     );
     final token = await _reloadVerifiedUserAndRefreshToken(credential.user);
     if (token == null) {
-      throw const AuthenticationException(
-        'Please verify your email before continuing.',
-      );
+      throw const AuthIdentityException(AuthIdentityFailure.emailUnverified);
     }
     return token;
-  }
+  });
 
   @override
-  Future<String> signInWithGoogle() async {
+  Future<String> signInWithGoogle() => _mapProviderErrors(() async {
     final account = await _googleSignIn.authenticate();
     final idToken = account.authentication.idToken;
     if (idToken == null || idToken.isEmpty) {
-      throw FirebaseAuthException(
-        code: 'missing-google-id-token',
-        message: 'Google did not return an ID token.',
-      );
+      throw const AuthIdentityException(AuthIdentityFailure.unknown);
     }
 
     final credential = GoogleAuthProvider.credential(idToken: idToken);
     final firebaseCredential = await _firebaseAuth.signInWithCredential(
       credential,
     );
-    final firebaseIdToken = await firebaseCredential.user?.getIdToken();
-    if (firebaseIdToken == null || firebaseIdToken.isEmpty) {
-      throw FirebaseAuthException(
-        code: 'missing-id-token',
-        message: 'Firebase did not return an ID token.',
-      );
-    }
-    return firebaseIdToken;
-  }
+    return _requireToken(await firebaseCredential.user?.getIdToken());
+  });
 
   @override
-  Future<void> sendEmailVerification() async {
+  Future<void> sendEmailVerification() => _mapProviderErrors(() async {
     final user = _firebaseAuth.currentUser;
     if (user == null) {
-      throw FirebaseAuthException(
-        code: 'no-current-user',
-        message: 'No Firebase user is signed in.',
-      );
+      throw const AuthIdentityException(AuthIdentityFailure.noCurrentUser);
     }
     await user.sendEmailVerification();
-  }
+  });
 
   @override
-  Future<String?> refreshIdToken() async {
-    return _reloadVerifiedUserAndRefreshToken(_firebaseAuth.currentUser);
-  }
+  Future<String?> refreshIdToken() => _mapProviderErrors(
+    () => _reloadVerifiedUserAndRefreshToken(_firebaseAuth.currentUser),
+  );
 
   Future<String?> _reloadVerifiedUserAndRefreshToken(User? user) async {
     if (user == null) {
-      throw FirebaseAuthException(
-        code: 'no-current-user',
-        message: 'No Firebase user is signed in.',
-      );
-    }
-    if (kDebugMode) {
-      debugPrint(
-        '[AUTH-VERIFY] emailVerified before reload=${user.emailVerified}',
-      );
+      throw const AuthIdentityException(AuthIdentityFailure.noCurrentUser);
     }
     await user.reload();
     final refreshedUser = _firebaseAuth.currentUser;
     final emailVerified = refreshedUser?.emailVerified ?? false;
-    if (kDebugMode) {
-      debugPrint('[AUTH-VERIFY] emailVerified after reload=$emailVerified');
-    }
     if (!emailVerified) return null;
-    if (kDebugMode) {
-      debugPrint('[AUTH-VERIFY] token refresh requested=true');
-    }
-    final token = await refreshedUser?.getIdToken(true);
-    if (token == null || token.isEmpty) {
-      throw FirebaseAuthException(
-        code: 'missing-id-token',
-        message: 'Firebase did not return an ID token.',
-      );
-    }
-    return token;
+    return _requireToken(await refreshedUser?.getIdToken(true));
   }
 
   @override
@@ -193,8 +123,43 @@ final class FirebaseAuthServiceImpl implements FirebaseAuthService {
       _firebaseAuth.currentUser?.emailVerified ?? false;
 
   @override
-  Future<void> signOut() async {
+  Future<void> signOut() => _mapProviderErrors(() async {
     await _googleSignIn.signOut();
     await _firebaseAuth.signOut();
+  });
+
+  String _requireToken(String? token) {
+    if (token == null || token.isEmpty) {
+      throw const AuthIdentityException(AuthIdentityFailure.unknown);
+    }
+    return token;
   }
+
+  Future<T> _mapProviderErrors<T>(Future<T> Function() action) async {
+    try {
+      return await action();
+    } on AuthIdentityException {
+      rethrow;
+    } on FirebaseAuthException catch (error) {
+      throw AuthIdentityException(_firebaseFailure(error.code));
+    } on GoogleSignInException catch (error) {
+      throw AuthIdentityException(
+        error.code == GoogleSignInExceptionCode.canceled
+            ? AuthIdentityFailure.canceled
+            : AuthIdentityFailure.unknown,
+      );
+    }
+  }
+
+  AuthIdentityFailure _firebaseFailure(String code) => switch (code) {
+    'invalid-credential' ||
+    'wrong-password' ||
+    'user-not-found' ||
+    'invalid-email' => AuthIdentityFailure.invalidCredentials,
+    'email-already-in-use' => AuthIdentityFailure.emailAlreadyInUse,
+    'network-request-failed' => AuthIdentityFailure.network,
+    'too-many-requests' => AuthIdentityFailure.tooManyRequests,
+    'no-current-user' => AuthIdentityFailure.noCurrentUser,
+    _ => AuthIdentityFailure.unknown,
+  };
 }

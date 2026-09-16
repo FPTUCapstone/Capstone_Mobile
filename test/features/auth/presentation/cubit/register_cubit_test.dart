@@ -1,24 +1,22 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/exceptions.dart';
-import 'package:trip_mate_mobile/features/auth/data/models/login_request.dart';
-import 'package:trip_mate_mobile/features/auth/data/models/register_traveler_request.dart';
-import 'package:trip_mate_mobile/features/auth/data/models/register_traveler_response.dart';
-import 'package:trip_mate_mobile/features/auth/data/models/session_response_dto.dart';
-import 'package:trip_mate_mobile/features/auth/data/services/firebase_auth_service.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/auth_credentials.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/auth_session.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/traveler_registration.dart';
 import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_repository.dart';
+import 'package:trip_mate_mobile/features/auth/domain/services/auth_identity_service.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_state.dart';
 
 class MockAuthRepository implements AuthRepository {
-  RegisterTravelerResponse? responseToReturn;
+  TravelerRegistrationResult? responseToReturn;
   Object? exceptionToThrow;
-  RegisterTravelerRequest? lastRequest;
+  TravelerRegistration? lastRequest;
 
   @override
-  Future<RegisterTravelerResponse> registerTraveler(
-    RegisterTravelerRequest request,
+  Future<TravelerRegistrationResult> registerTraveler(
+    TravelerRegistration request,
     String firebaseIdToken,
   ) async {
     lastRequest = request;
@@ -29,25 +27,25 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<SessionResponseDto> googleAuth(String firebaseIdToken) {
+  Future<AuthSession> googleAuth(String firebaseIdToken) {
     throw UnimplementedError();
   }
 
   @override
-  Future<SessionResponseDto> login(
-    LoginRequest request, [
+  Future<AuthSession> login(
+    AuthCredentials request, [
     String? firebaseIdToken,
   ]) {
     throw UnimplementedError();
   }
 
   @override
-  Future<SessionResponseDto> verifyEmail(String firebaseIdToken) {
+  Future<AuthSession> verifyEmail(String firebaseIdToken) {
     throw UnimplementedError();
   }
 }
 
-class MockFirebaseAuthService implements FirebaseAuthService {
+class MockFirebaseAuthService implements AuthIdentityService {
   MockFirebaseAuthService({this.registerError});
 
   final Object? registerError;
@@ -100,7 +98,7 @@ void main() {
       expect(cubit.state, const RegisterInitial());
     });
 
-    final testResponse = const RegisterTravelerResponse(
+    final testResponse = const TravelerRegistrationResult(
       userId: 1,
       email: 'traveler@example.com',
       fullName: 'Nguyen Van A',
@@ -160,7 +158,9 @@ void main() {
       build: () => RegisterCubit(
         mockRepository,
         MockFirebaseAuthService(
-          registerError: FirebaseAuthException(code: 'email-already-in-use'),
+          registerError: const AuthIdentityException(
+            AuthIdentityFailure.emailAlreadyInUse,
+          ),
         ),
       ),
       act: (cubit) => cubit.registerTraveler(
@@ -184,7 +184,9 @@ void main() {
       build: () => RegisterCubit(
         mockRepository,
         MockFirebaseAuthService(
-          registerError: FirebaseAuthException(code: 'network-request-failed'),
+          registerError: const AuthIdentityException(
+            AuthIdentityFailure.network,
+          ),
         ),
       ),
       act: (cubit) => cubit.registerTraveler(

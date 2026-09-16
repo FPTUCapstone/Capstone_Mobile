@@ -35,6 +35,19 @@ class _OperatorApplicationPageState extends State<OperatorApplicationPage> {
   Widget build(BuildContext context) {
     return BlocBuilder<OperatorApplicationCubit, OperatorApplicationState>(
       builder: (context, state) {
+        if (state.status == OperatorApplicationStatus.unresolved) {
+          return const AppPageScaffold(
+            title: 'My Application',
+            content: [
+              AppAlert(
+                title: 'Application status unavailable',
+                message:
+                    'We could not confirm your application status. Please contact TripMate support.',
+                type: AppAlertType.warning,
+              ),
+            ],
+          );
+        }
         if (state.status == OperatorApplicationStatus.pending) {
           return const _PendingApplicationView();
         }

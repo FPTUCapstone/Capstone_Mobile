@@ -30,7 +30,7 @@ final class RecordingHttpClientAdapter implements HttpClientAdapter {
   RecordingHttpClientAdapter({
     this.statusCode = 200,
     this.body =
-        '{"success":true,"data":{"userId":1,"status":"Active","accessToken":"app-access-token","refreshToken":"app-refresh-token"}}',
+        '{"success":true,"data":{"userId":1,"role":"Traveler","status":"Active","applicationStatus":null,"accessToken":"app-access-token","refreshToken":"app-refresh-token"}}',
   });
 
   final String body;
@@ -55,6 +55,40 @@ final class RecordingHttpClientAdapter implements HttpClientAdapter {
 
   @override
   void close({bool force = false}) {}
+}
+
+/// Simulates transport failures (no response at all) so the friendly-copy
+/// mapping for network/timeout can be exercised without a real socket.
+final class FailingHttpClientAdapter implements HttpClientAdapter {
+  FailingHttpClientAdapter(this.type);
+
+  final DioExceptionType type;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    throw DioException(
+      requestOptions: options,
+      type: type,
+      error: const SocketExceptionStub(),
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+/// Stand-in for a transport-level error object; its [toString] mimics raw
+/// platform internals so the assertions can prove nothing leaks to the user.
+final class SocketExceptionStub implements Exception {
+  const SocketExceptionStub();
+
+  @override
+  String toString() =>
+      'SocketException: Connection refused (OS Error: errno = 10061), address = localhost, port = 5000';
 }
 
 void main() {
@@ -87,6 +121,47 @@ void main() {
         throwsA(isA<AppException>()),
       );
     });
+
+    test('unknown registration response maps to safe generic copy', () async {
+      dioClient.dio.httpClientAdapter = RecordingHttpClientAdapter(
+        body:
+            '{"success":true,"data":{"userId":"internal-type-error","email":42}}',
+      );
+
+      await expectLater(
+        () => dataSource.registerTraveler(testRequest, 'firebase-token'),
+        throwsA(
+          isA<ServerException>().having(
+            (error) => error.message,
+            'message',
+            'Something went wrong. Please try again.',
+          ),
+        ),
+      );
+    });
+
+    test(
+      'structured duplicate registration error keeps its safe mapping',
+      () async {
+        dioClient.dio.httpClientAdapter = RecordingHttpClientAdapter(
+          statusCode: 400,
+          body: '{"errors":{"code":"MSG03"}}',
+        );
+
+        await expectLater(
+          () => dataSource.registerTraveler(testRequest, 'firebase-token'),
+          throwsA(
+            isA<ServerException>()
+                .having((error) => error.code, 'code', 'MSG03')
+                .having(
+                  (error) => error.message,
+                  'message',
+                  'An account with this email already exists. Please sign in or use another email.',
+                ),
+          ),
+        );
+      },
+    );
 
     test(
       'verify-email preserves the refreshed Firebase bearer token when an app token is stored',
@@ -183,6 +258,37 @@ void main() {
       );
     });
 
+    test('unresolved account state is mapped to support-oriented copy', () async {
+      final adapter = RecordingHttpClientAdapter(
+        statusCode: 403,
+        body:
+            '{"errorCode":"auth.account_state_unresolved","detail":"internal eligibility detail"}',
+      );
+      dioClient.dio.httpClientAdapter = adapter;
+
+      expect(
+        () => dataSource.login(
+          const LoginRequest(
+            email: 'operator@example.com',
+            password: 'password',
+          ),
+        ),
+        throwsA(
+          isA<ServerException>()
+              .having(
+                (error) => error.code,
+                'code',
+                'auth.account_state_unresolved',
+              )
+              .having(
+                (error) => error.message,
+                'message',
+                'We could not confirm your account status. Please contact TripMate support.',
+              ),
+        ),
+      );
+    });
+
     test('login rejects a malformed successful response', () async {
       final client = DioClient(
         config: AppConfig(
@@ -209,10 +315,177 @@ void main() {
           isA<ServerException>().having(
             (error) => error.message,
             'message',
-            'Invalid authenticated response.',
+            'Unable to complete sign in. Please try again.',
           ),
         ),
       );
     });
+
+    // --- B5: every sign-in failure the backend can produce must surface friendly
+    // copy and never raw tokens, stack traces or server internals.
+
+    const signInRequest = LoginRequest(
+      email: 'traveler@example.com',
+      password: 'Password123!',
+    );
+    const unavailableCopy =
+        'TripMate is temporarily unable to process your request. '
+        'Please check your connection and try again.';
+
+    Future<void> expectSignInFailure(
+      RecordingHttpClientAdapter adapter,
+      int statusCode,
+      String expectedMessage,
+    ) async {
+      dioClient.dio.httpClientAdapter = adapter;
+      await expectLater(
+        () => dataSource.login(signInRequest),
+        throwsA(
+          isA<AppException>()
+              .having((error) => error.message, 'message', expectedMessage)
+              .having(
+                (error) => error is ServerException ? error.statusCode : null,
+                'statusCode',
+                statusCode,
+              ),
+        ),
+      );
+    }
+
+    test('invalid credentials map to a generic non-disclosing message', () async {
+      await expectSignInFailure(
+        RecordingHttpClientAdapter(
+          statusCode: 401,
+          body:
+              '{"errorCode":"auth.invalid_credentials","detail":"password mismatch for user 42"}',
+        ),
+        401,
+        'Invalid email or password. Please try again.',
+      );
+    });
+
+    test('unknown backend 400 validation detail is never displayed', () async {
+      await expectSignInFailure(
+        RecordingHttpClientAdapter(
+          statusCode: 400,
+          body:
+              '{"errors":{"code":"internal.validation","email":["System.NullReferenceException at AuthController.Login"]}}',
+        ),
+        400,
+        'Unable to complete this request. Please try again.',
+      );
+    });
+
+    test(
+      'account without a password maps to the same generic message',
+      () async {
+        await expectSignInFailure(
+          RecordingHttpClientAdapter(
+            statusCode: 401,
+            body: '{"errorCode":"auth.invalid_credentials"}',
+          ),
+          401,
+          'Invalid email or password. Please try again.',
+        );
+      },
+    );
+
+    test('locked account maps to the support-oriented message', () async {
+      await expectSignInFailure(
+        RecordingHttpClientAdapter(
+          statusCode: 403,
+          body:
+              '{"errorCode":"auth.account_locked","detail":"LockReason=abuse"}',
+        ),
+        403,
+        'Your account is locked. Please contact support.',
+      );
+    });
+
+    test('inactive account maps to the support-oriented message', () async {
+      await expectSignInFailure(
+        RecordingHttpClientAdapter(
+          statusCode: 403,
+          body: '{"errorCode":"auth.account_inactive"}',
+        ),
+        403,
+        'Your account is inactive. Please contact support.',
+      );
+    });
+
+    test('unverified email maps to the verification prompt', () async {
+      await expectSignInFailure(
+        RecordingHttpClientAdapter(
+          statusCode: 403,
+          body:
+              '{"errorCode":"MSG_EMAIL_NOT_VERIFIED","detail":"Firebase claim"}',
+        ),
+        403,
+        'Please verify your email before continuing.',
+      );
+    });
+
+    test('administrator Google sign-in maps to the Web-only message', () async {
+      await expectSignInFailure(
+        RecordingHttpClientAdapter(
+          statusCode: 403,
+          body:
+              '{"errorCode":"auth.admin_google_sign_in_disabled","detail":"BR-18 internal rule"}',
+        ),
+        403,
+        'Administrator accounts are supported on Web only.',
+      );
+    });
+
+    test(
+      'administrator Mobile password refusal maps to the Web-only message',
+      () async {
+        await expectSignInFailure(
+          RecordingHttpClientAdapter(
+            statusCode: 403,
+            body:
+                '{"errorCode":"auth.admin_mobile_sign_in_disabled","detail":"internal mobile gate"}',
+          ),
+          403,
+          'Administrator accounts are supported on Web only.',
+        );
+      },
+    );
+
+    test('server 5xx maps to friendly copy without leaking internals', () async {
+      await expectSignInFailure(
+        RecordingHttpClientAdapter(
+          statusCode: 500,
+          body:
+              '{"detail":"System.NullReferenceException: Object reference not set at TripMate.Api.Controllers.V1.AuthController.Login"}',
+        ),
+        500,
+        unavailableCopy,
+      );
+    });
+
+    for (final type in <DioExceptionType>[
+      DioExceptionType.connectionTimeout,
+      DioExceptionType.sendTimeout,
+      DioExceptionType.receiveTimeout,
+      DioExceptionType.connectionError,
+    ]) {
+      test(
+        'transport failure $type maps to a recoverable network message',
+        () async {
+          dioClient.dio.httpClientAdapter = FailingHttpClientAdapter(type);
+          await expectLater(
+            () => dataSource.login(signInRequest),
+            throwsA(
+              isA<NetworkException>().having(
+                (error) => error.message,
+                'message',
+                unavailableCopy,
+              ),
+            ),
+          );
+        },
+      );
+    }
   });
 }

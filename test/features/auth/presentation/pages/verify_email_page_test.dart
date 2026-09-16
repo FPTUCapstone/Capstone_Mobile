@@ -1,23 +1,49 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/core/error/exceptions.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
-import 'package:trip_mate_mobile/features/auth/data/models/login_request.dart';
-import 'package:trip_mate_mobile/features/auth/data/models/register_traveler_request.dart';
-import 'package:trip_mate_mobile/features/auth/data/models/register_traveler_response.dart';
-import 'package:trip_mate_mobile/features/auth/data/models/session_response_dto.dart';
-import 'package:trip_mate_mobile/features/auth/data/services/firebase_auth_service.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/auth_credentials.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/auth_session.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/traveler_registration.dart';
 import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_repository.dart';
+import 'package:trip_mate_mobile/features/auth/domain/services/auth_identity_service.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/pages/login_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/verify_email_page.dart';
 
 void main() {
   group('VerifyEmailPage', () {
+    testWidgets(
+      'does not render a stale sign-in error after registration navigation',
+      (tester) async {
+        final cubit = AuthSessionCubit(
+          FakeAuthRepository(),
+          FakeSecureStorageService(),
+          FakeFirebaseAuthService(
+            signInError: const AuthIdentityException(
+              AuthIdentityFailure.invalidCredentials,
+            ),
+          ),
+        );
+        await cubit.signIn(email: 'old@example.com', password: 'wrong');
+
+        await tester.pumpWidget(
+          _testApp(cubit: cubit, email: 'new.traveler@example.com'),
+        );
+
+        expect(find.text('Verify your email'), findsOneWidget);
+        expect(find.text('n***@example.com'), findsOneWidget);
+        expect(
+          find.text('Invalid email or password. Please try again.'),
+          findsNothing,
+        );
+      },
+    );
+
     testWidgets('shows only a masked email supplied through route memory', (
       tester,
     ) async {
@@ -101,8 +127,8 @@ void main() {
             FakeAuthRepository(),
             FakeSecureStorageService(),
             FakeFirebaseAuthService(
-              sendEmailVerificationError: FirebaseAuthException(
-                code: 'no-current-user',
+              sendEmailVerificationError: const AuthIdentityException(
+                AuthIdentityFailure.noCurrentUser,
               ),
             ),
           ),
@@ -236,8 +262,8 @@ void main() {
             FakeAuthRepository(),
             FakeSecureStorageService(),
             FakeFirebaseAuthService(
-              sendEmailVerificationError: FirebaseAuthException(
-                code: 'too-many-requests',
+              sendEmailVerificationError: const AuthIdentityException(
+                AuthIdentityFailure.tooManyRequests,
               ),
             ),
           ),
@@ -266,8 +292,8 @@ void main() {
             FakeAuthRepository(),
             FakeSecureStorageService(),
             FakeFirebaseAuthService(
-              sendEmailVerificationError: FirebaseAuthException(
-                code: 'network-request-failed',
+              sendEmailVerificationError: const AuthIdentityException(
+                AuthIdentityFailure.network,
               ),
             ),
           ),
@@ -403,6 +429,35 @@ void main() {
       expect(find.text('Sign in destination'), findsOneWidget);
     });
   });
+
+  testWidgets('LoginPage still renders an invalid-credentials failure', (
+    tester,
+  ) async {
+    final cubit = AuthSessionCubit(
+      FakeAuthRepository(),
+      FakeSecureStorageService(),
+      FakeFirebaseAuthService(
+        signInError: const AuthIdentityException(
+          AuthIdentityFailure.invalidCredentials,
+        ),
+      ),
+    );
+    await cubit.signIn(email: 'traveler@example.com', password: 'wrong');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider<AuthSessionCubit>.value(
+          value: cubit,
+          child: const LoginPage(),
+        ),
+      ),
+    );
+
+    expect(
+      find.text('Invalid email or password. Please try again.'),
+      findsOneWidget,
+    );
+  });
 }
 
 Widget _testApp({required AuthSessionCubit cubit, String? email}) {
@@ -442,25 +497,25 @@ final class FakeAuthRepository implements AuthRepository {
   var verifyEmailCalls = 0;
 
   @override
-  Future<SessionResponseDto> verifyEmail(String firebaseIdToken) async {
+  Future<AuthSession> verifyEmail(String firebaseIdToken) async {
     verifyEmailCalls += 1;
     if (verifyEmailError != null) throw verifyEmailError!;
     return _session;
   }
 
   @override
-  Future<SessionResponseDto> googleAuth(String firebaseIdToken) =>
+  Future<AuthSession> googleAuth(String firebaseIdToken) =>
       throw UnimplementedError();
 
   @override
-  Future<SessionResponseDto> login(
-    LoginRequest request, [
+  Future<AuthSession> login(
+    AuthCredentials request, [
     String? firebaseIdToken,
   ]) => throw UnimplementedError();
 
   @override
-  Future<RegisterTravelerResponse> registerTraveler(
-    RegisterTravelerRequest request,
+  Future<TravelerRegistrationResult> registerTraveler(
+    TravelerRegistration request,
     String firebaseIdToken,
   ) => throw UnimplementedError();
 }
@@ -481,7 +536,7 @@ final class FakeSecureStorageService implements SecureStorageService {
   Future<void> write(String key, String value) async => values[key] = value;
 }
 
-final class FakeFirebaseAuthService implements FirebaseAuthService {
+final class FakeFirebaseAuthService implements AuthIdentityService {
   FakeFirebaseAuthService({
     this.firebaseEmail,
     this.emailVerified = true,
@@ -489,6 +544,7 @@ final class FakeFirebaseAuthService implements FirebaseAuthService {
     this.refreshToken,
     this.sendEmailVerificationCompleter,
     this.sendEmailVerificationError,
+    this.signInError,
   });
 
   final String? firebaseEmail;
@@ -497,6 +553,7 @@ final class FakeFirebaseAuthService implements FirebaseAuthService {
   final String? refreshToken;
   final Completer<void>? sendEmailVerificationCompleter;
   final Object? sendEmailVerificationError;
+  final Object? signInError;
   var sendEmailVerificationCalls = 0;
 
   @override
@@ -531,7 +588,10 @@ final class FakeFirebaseAuthService implements FirebaseAuthService {
   Future<String> signInWithEmail({
     required String email,
     required String password,
-  }) => throw UnimplementedError();
+  }) async {
+    if (signInError != null) throw signInError!;
+    return 'firebase-sign-in-token';
+  }
 
   @override
   Future<String> signInWithGoogle() => throw UnimplementedError();
@@ -540,9 +600,14 @@ final class FakeFirebaseAuthService implements FirebaseAuthService {
   Future<void> signOut() async {}
 }
 
-const _session = SessionResponseDto(
+// Post-A2 the backend verify-email session always carries the routing identity
+// (role + effective status + applicationStatus), so the shared fixture mirrors
+// the real Traveler verification response. A role-less response fails closed and
+// is covered by the cubit tests instead.
+const _session = AuthSession(
   userId: 1,
   status: 'Active',
+  role: 'Traveler',
   accessToken: 'backend-access-token',
   refreshToken: 'backend-refresh-token',
 );

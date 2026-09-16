@@ -1,7 +1,13 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-enum OperatorApplicationStatus { draft, rejected, submitting, pending }
+enum OperatorApplicationStatus {
+  draft,
+  rejected,
+  submitting,
+  pending,
+  unresolved,
+}
 
 final class OperatorApplicationState extends Equatable {
   const OperatorApplicationState({required this.status, this.licenceFileName});

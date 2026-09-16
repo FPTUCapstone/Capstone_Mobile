@@ -1,9 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/core/error/exceptions.dart';
-import 'package:trip_mate_mobile/features/auth/data/models/register_traveler_request.dart';
-import 'package:trip_mate_mobile/features/auth/data/services/firebase_auth_service.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/traveler_registration.dart';
 import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_repository.dart';
+import 'package:trip_mate_mobile/features/auth/domain/services/auth_identity_service.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_state.dart';
 
 final class RegisterCubit extends Cubit<RegisterState> {
@@ -11,7 +10,7 @@ final class RegisterCubit extends Cubit<RegisterState> {
     : super(const RegisterInitial());
 
   final AuthRepository _authRepository;
-  final FirebaseAuthService _firebaseAuthService;
+  final AuthIdentityService _firebaseAuthService;
 
   Future<void> registerTraveler({
     required String fullName,
@@ -28,7 +27,7 @@ final class RegisterCubit extends Cubit<RegisterState> {
           ? phone.trim()
           : null;
 
-      final request = RegisterTravelerRequest(
+      final registration = TravelerRegistration(
         fullName: fullName.trim(),
         email: sanitizedEmail,
         password: password,
@@ -41,19 +40,19 @@ final class RegisterCubit extends Cubit<RegisterState> {
         password: password,
       );
       final response = await _authRepository.registerTraveler(
-        request,
+        registration,
         firebaseIdToken,
       );
       await _firebaseAuthService.sendEmailVerification();
       emit(RegisterSuccess(response));
     } on AppException catch (e) {
       emit(RegisterFailure(e.message));
-    } on FirebaseAuthException catch (e) {
+    } on AuthIdentityException catch (error) {
       emit(
-        RegisterFailure(switch (e.code) {
-          'email-already-in-use' =>
+        RegisterFailure(switch (error.failure) {
+          AuthIdentityFailure.emailAlreadyInUse =>
             'An account with this email already exists. Please sign in or use another email.',
-          'network-request-failed' =>
+          AuthIdentityFailure.network =>
             'TripMate is temporarily unable to process your request. Please check your connection and try again.',
           _ => 'Registration failed. Please try again later.',
         }),

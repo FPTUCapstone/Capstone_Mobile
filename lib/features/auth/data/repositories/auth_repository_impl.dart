@@ -1,8 +1,8 @@
 import 'package:trip_mate_mobile/features/auth/data/datasources/auth_remote_data_source.dart';
-import 'package:trip_mate_mobile/features/auth/data/models/login_request.dart';
-import 'package:trip_mate_mobile/features/auth/data/models/register_traveler_request.dart';
-import 'package:trip_mate_mobile/features/auth/data/models/register_traveler_response.dart';
-import 'package:trip_mate_mobile/features/auth/data/models/session_response_dto.dart';
+import 'package:trip_mate_mobile/features/auth/data/mappers/auth_mapper.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/auth_credentials.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/auth_session.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/traveler_registration.dart';
 import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_repository.dart';
 
 final class AuthRepositoryImpl implements AuthRepository {
@@ -11,28 +11,38 @@ final class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _remoteDataSource;
 
   @override
-  Future<RegisterTravelerResponse> registerTraveler(
-    RegisterTravelerRequest request,
+  Future<TravelerRegistrationResult> registerTraveler(
+    TravelerRegistration registration,
     String firebaseIdToken,
-  ) {
-    return _remoteDataSource.registerTraveler(request, firebaseIdToken);
+  ) async {
+    final response = await _remoteDataSource.registerTraveler(
+      registration.toDto(),
+      firebaseIdToken,
+    );
+    return response.toDomain();
   }
 
   @override
-  Future<SessionResponseDto> verifyEmail(String firebaseIdToken) {
-    return _remoteDataSource.verifyEmail(firebaseIdToken);
+  Future<AuthSession> verifyEmail(String firebaseIdToken) async {
+    final response = await _remoteDataSource.verifyEmail(firebaseIdToken);
+    return response.toDomain();
   }
 
   @override
-  Future<SessionResponseDto> googleAuth(String firebaseIdToken) {
-    return _remoteDataSource.googleAuth(firebaseIdToken);
+  Future<AuthSession> googleAuth(String firebaseIdToken) async {
+    final response = await _remoteDataSource.googleAuth(firebaseIdToken);
+    return response.toDomain();
   }
 
   @override
-  Future<SessionResponseDto> login(
-    LoginRequest request, [
+  Future<AuthSession> login(
+    AuthCredentials credentials, [
     String? firebaseIdToken,
-  ]) {
-    return _remoteDataSource.login(request, firebaseIdToken);
+  ]) async {
+    final response = await _remoteDataSource.login(
+      credentials.toDto(),
+      firebaseIdToken,
+    );
+    return response.toDomain();
   }
 }
