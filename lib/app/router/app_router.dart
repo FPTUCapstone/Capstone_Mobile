@@ -5,6 +5,7 @@ import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/router/create_travel_group_route_args.dart';
 import 'package:trip_mate_mobile/app/router/route_guards.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/tour_operator_application_status.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_application_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/login_page.dart';
@@ -128,9 +129,13 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         name: AppRouteNames.operatorApplication,
         builder: (_, state) => BlocProvider(
           create: (_) => OperatorApplicationCubit(
-            initialStatus:
-                state.extra as OperatorApplicationStatus? ??
+            initialStatus: switch (sessionCubit.state.applicationStatus) {
+              TourOperatorApplicationStatus.pendingApproval =>
+                OperatorApplicationStatus.pending,
+              TourOperatorApplicationStatus.rejected =>
                 OperatorApplicationStatus.rejected,
+              _ => OperatorApplicationStatus.unresolved,
+            },
           ),
           child: const OperatorApplicationPage(),
         ),
@@ -138,7 +143,7 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
     ],
     errorBuilder: (_, state) => Scaffold(
       appBar: AppBar(title: const Text('Page not found')),
-      body: ErrorView(message: state.error?.toString() ?? 'Page not found.'),
+      body: const ErrorView(message: 'Page not found.'),
     ),
   );
 }

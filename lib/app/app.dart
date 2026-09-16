@@ -7,6 +7,7 @@ import 'package:trip_mate_mobile/app/router/app_router.dart';
 import 'package:trip_mate_mobile/app/theme/app_theme.dart';
 import 'package:trip_mate_mobile/core/constants/app_constants.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/core/network/session_coordinator.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 
 class TripMateApp extends StatefulWidget {
@@ -18,17 +19,20 @@ class TripMateApp extends StatefulWidget {
 
 class _TripMateAppState extends State<TripMateApp> {
   late final AuthSessionCubit _sessionCubit = serviceLocator();
+  late final SessionCoordinator _sessionCoordinator = serviceLocator();
   late final GoRouter _router = createAppRouter(_sessionCubit);
 
   @override
   void initState() {
     super.initState();
+    _sessionCoordinator.register(_sessionCubit.handleSessionExpired);
     unawaited(_sessionCubit.restoreSession());
   }
 
   @override
   void dispose() {
     _router.dispose();
+    _sessionCoordinator.unregister(_sessionCubit.handleSessionExpired);
     unawaited(_sessionCubit.close());
     super.dispose();
   }

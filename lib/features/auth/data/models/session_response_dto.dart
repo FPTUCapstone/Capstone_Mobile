@@ -7,6 +7,7 @@ final class SessionResponseDto extends Equatable {
     required this.accessToken,
     required this.refreshToken,
     this.role,
+    this.applicationStatus,
     this.email,
     this.fullName,
     this.accessTokenExpiresAtUtc,
@@ -21,6 +22,7 @@ final class SessionResponseDto extends Equatable {
 
     if (userId is! int ||
         status == null ||
+        role == null ||
         accessToken is! String ||
         refreshToken is! String ||
         accessToken.isEmpty ||
@@ -32,6 +34,11 @@ final class SessionResponseDto extends Equatable {
       userId: userId,
       status: status,
       role: role,
+      // Preserve the transport value. The Data mapper translates recognized,
+      // null, and unknown values into the domain-owned fail-closed type.
+      applicationStatus: json['applicationStatus'] is String
+          ? json['applicationStatus'] as String
+          : null,
       accessToken: accessToken,
       refreshToken: refreshToken,
       email: json['email'] as String?,
@@ -43,6 +50,7 @@ final class SessionResponseDto extends Equatable {
   final int userId;
   final String status;
   final String? role;
+  final String? applicationStatus;
   final String accessToken;
   final String refreshToken;
   final String? email;
@@ -54,6 +62,7 @@ final class SessionResponseDto extends Equatable {
     userId,
     status,
     role,
+    applicationStatus,
     accessToken,
     refreshToken,
     email,
