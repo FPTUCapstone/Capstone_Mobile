@@ -252,6 +252,56 @@ void main() {
       ],
     );
 
+    blocTest<CreateTravelGroupCubit, CreateTravelGroupState>(
+      'validation failure from backend emits failure with backend message',
+      build: () => CreateTravelGroupCubit(
+        repository: const _TypedFailureRepository(
+          ValidationFailure('A valid Idempotency-Key header is required.'),
+        ),
+      ),
+      act: (cubit) =>
+          cubit.submit(name: validName, itineraryId: testItineraryId),
+      expect: () => [
+        isA<CreateTravelGroupState>().having(
+          (s) => s.status,
+          'status',
+          CreateTravelGroupStatus.submitting,
+        ),
+        isA<CreateTravelGroupState>()
+            .having((s) => s.status, 'status', CreateTravelGroupStatus.failure)
+            .having(
+              (s) => s.errorMessage,
+              'errorMessage',
+              'A valid Idempotency-Key header is required.',
+            ),
+      ],
+    );
+
+    blocTest<CreateTravelGroupCubit, CreateTravelGroupState>(
+      'conflict failure from backend emits failure with conflict message',
+      build: () => CreateTravelGroupCubit(
+        repository: const _TypedFailureRepository(
+          ConflictFailure('Idempotency key payload mismatch.'),
+        ),
+      ),
+      act: (cubit) =>
+          cubit.submit(name: validName, itineraryId: testItineraryId),
+      expect: () => [
+        isA<CreateTravelGroupState>().having(
+          (s) => s.status,
+          'status',
+          CreateTravelGroupStatus.submitting,
+        ),
+        isA<CreateTravelGroupState>()
+            .having((s) => s.status, 'status', CreateTravelGroupStatus.failure)
+            .having(
+              (s) => s.errorMessage,
+              'errorMessage',
+              'Idempotency key payload mismatch.',
+            ),
+      ],
+    );
+
     // -- Idempotency contract tests (P1 & P2) --------------------------------
 
     test('exact retry reuses the same idempotency key after failure', () async {

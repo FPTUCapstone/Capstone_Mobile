@@ -30,7 +30,13 @@ final class PermissionFailure extends Failure {
 }
 
 final class ValidationFailure extends Failure {
-  const ValidationFailure(super.message);
+  const ValidationFailure([super.message = 'The provided data is invalid.']);
+}
+
+final class ConflictFailure extends Failure {
+  const ConflictFailure([
+    super.message = 'The operation is in conflict or already being processed.',
+  ]);
 }
 
 final class UnknownFailure extends Failure {
