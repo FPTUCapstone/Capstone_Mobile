@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
@@ -16,6 +18,7 @@ final class _SuccessRepository implements TravelGroupRepository {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async => _result;
 }
 
@@ -26,6 +29,7 @@ final class _FailureRepository implements TravelGroupRepository {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async => throw Exception('server error');
 }
 
@@ -37,7 +41,34 @@ final class _TypedFailureRepository implements TravelGroupRepository {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async => throw failure;
+}
+
+final class _TrackingRepository implements TravelGroupRepository {
+  final calls = <({String name, int itineraryId, String idempotencyKey})>[];
+  bool shouldFail = true;
+  Completer<TravelGroup>? slowCompleter;
+
+  @override
+  Future<TravelGroup> createTravelGroup({
+    required String name,
+    required int itineraryId,
+    required String idempotencyKey,
+  }) async {
+    calls.add((
+      name: name,
+      itineraryId: itineraryId,
+      idempotencyKey: idempotencyKey,
+    ));
+    if (slowCompleter != null) {
+      return slowCompleter!.future;
+    }
+    if (shouldFail) {
+      throw Exception('network error');
+    }
+    return TravelGroup(id: 1, name: name);
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -46,11 +77,7 @@ void main() {
   const validName = 'My Trip Group';
   final tooLongName = 'A' * 151;
   const testItineraryId = 10;
-  const travelGroup = TravelGroup(
-    id: 1,
-    name: validName,
-    inviteCode: 'ABCD1234',
-  );
+  const travelGroup = TravelGroup(id: 1, name: validName);
 
   group('CreateTravelGroupCubit', () {
     test('initial state is CreateTravelGroupStatus.initial', () {
@@ -223,6 +250,194 @@ void main() {
               'TripMate is temporarily unable to process your request. Please check your connection and try again.',
             ),
       ],
+    );
+
+    blocTest<CreateTravelGroupCubit, CreateTravelGroupState>(
+      'validation failure from backend emits failure with backend message',
+      build: () => CreateTravelGroupCubit(
+        repository: const _TypedFailureRepository(
+          ValidationFailure('A valid Idempotency-Key header is required.'),
+        ),
+      ),
+      act: (cubit) =>
+          cubit.submit(name: validName, itineraryId: testItineraryId),
+      expect: () => [
+        isA<CreateTravelGroupState>().having(
+          (s) => s.status,
+          'status',
+          CreateTravelGroupStatus.submitting,
+        ),
+        isA<CreateTravelGroupState>()
+            .having((s) => s.status, 'status', CreateTravelGroupStatus.failure)
+            .having(
+              (s) => s.errorMessage,
+              'errorMessage',
+              'A valid Idempotency-Key header is required.',
+            ),
+      ],
+    );
+
+    blocTest<CreateTravelGroupCubit, CreateTravelGroupState>(
+      'conflict failure from backend emits failure with conflict message',
+      build: () => CreateTravelGroupCubit(
+        repository: const _TypedFailureRepository(
+          ConflictFailure('Idempotency key payload mismatch.'),
+        ),
+      ),
+      act: (cubit) =>
+          cubit.submit(name: validName, itineraryId: testItineraryId),
+      expect: () => [
+        isA<CreateTravelGroupState>().having(
+          (s) => s.status,
+          'status',
+          CreateTravelGroupStatus.submitting,
+        ),
+        isA<CreateTravelGroupState>()
+            .having((s) => s.status, 'status', CreateTravelGroupStatus.failure)
+            .having(
+              (s) => s.errorMessage,
+              'errorMessage',
+              'Idempotency key payload mismatch.',
+            ),
+      ],
+    );
+
+    // -- Idempotency contract tests (P1 & P2) --------------------------------
+
+    test('exact retry reuses the same idempotency key after failure', () async {
+      final repository = _TrackingRepository();
+      var keyCounter = 0;
+      final cubit = CreateTravelGroupCubit(
+        repository: repository,
+        operationKeyFactory: () => 'key-${++keyCounter}',
+      );
+
+      // First submit fails
+      await cubit.submit(name: 'Trip A', itineraryId: 10);
+      expect(repository.calls, hasLength(1));
+      expect(repository.calls[0].idempotencyKey, 'key-1');
+      expect(cubit.state.status, CreateTravelGroupStatus.failure);
+
+      // Exact retry with same normalized payload reuses key-1
+      await cubit.submit(name: '  Trip A  ', itineraryId: 10);
+      expect(repository.calls, hasLength(2));
+      expect(repository.calls[1].idempotencyKey, 'key-1');
+      expect(keyCounter, 1);
+
+      await cubit.close();
+    });
+
+    test(
+      'changing group name after failure generates a new idempotency key',
+      () async {
+        final repository = _TrackingRepository();
+        var keyCounter = 0;
+        final cubit = CreateTravelGroupCubit(
+          repository: repository,
+          operationKeyFactory: () => 'key-${++keyCounter}',
+        );
+
+        // First submit fails with Trip A
+        await cubit.submit(name: 'Trip A', itineraryId: 10);
+        expect(repository.calls, hasLength(1));
+        expect(repository.calls[0].idempotencyKey, 'key-1');
+
+        // User changes form to Trip B and submits again -> generates key-2
+        await cubit.submit(name: 'Trip B', itineraryId: 10);
+        expect(repository.calls, hasLength(2));
+        expect(repository.calls[1].idempotencyKey, 'key-2');
+        expect(keyCounter, 2);
+
+        await cubit.close();
+      },
+    );
+
+    test(
+      'changing itineraryId after failure generates a new idempotency key',
+      () async {
+        final repository = _TrackingRepository();
+        var keyCounter = 0;
+        final cubit = CreateTravelGroupCubit(
+          repository: repository,
+          operationKeyFactory: () => 'key-${++keyCounter}',
+        );
+
+        // First submit fails with itinerary 10
+        await cubit.submit(name: 'Trip A', itineraryId: 10);
+        expect(repository.calls, hasLength(1));
+        expect(repository.calls[0].idempotencyKey, 'key-1');
+
+        // User changes itinerary to 20 -> generates key-2
+        await cubit.submit(name: 'Trip A', itineraryId: 20);
+        expect(repository.calls, hasLength(2));
+        expect(repository.calls[1].idempotencyKey, 'key-2');
+        expect(keyCounter, 2);
+
+        await cubit.close();
+      },
+    );
+
+    test(
+      'success clears the pending operation so next submission uses new key',
+      () async {
+        final repository = _TrackingRepository()..shouldFail = false;
+        var keyCounter = 0;
+        final cubit = CreateTravelGroupCubit(
+          repository: repository,
+          operationKeyFactory: () => 'key-${++keyCounter}',
+        );
+
+        // First submit succeeds
+        await cubit.submit(name: 'Trip A', itineraryId: 10);
+        expect(repository.calls, hasLength(1));
+        expect(repository.calls[0].idempotencyKey, 'key-1');
+        expect(cubit.state.status, CreateTravelGroupStatus.success);
+
+        // Next submit (even with same name and itinerary) generates new key
+        await cubit.submit(name: 'Trip A', itineraryId: 10);
+        expect(repository.calls, hasLength(2));
+        expect(repository.calls[1].idempotencyKey, 'key-2');
+        expect(keyCounter, 2);
+
+        await cubit.close();
+      },
+    );
+
+    test(
+      'concurrent or double submit cannot create a second in-flight operation',
+      () async {
+        final repository = _TrackingRepository()
+          ..slowCompleter = Completer<TravelGroup>();
+        var keyCounter = 0;
+        final cubit = CreateTravelGroupCubit(
+          repository: repository,
+          operationKeyFactory: () => 'key-${++keyCounter}',
+        );
+
+        // Start first submit (remains in-flight due to slowCompleter)
+        final firstSubmitFuture = cubit.submit(name: 'Trip A', itineraryId: 10);
+        expect(cubit.state.status, CreateTravelGroupStatus.submitting);
+        expect(repository.calls, hasLength(1));
+
+        // Second submit while in-flight should be ignored
+        final secondSubmitFuture = cubit.submit(
+          name: 'Trip A',
+          itineraryId: 10,
+        );
+        expect(repository.calls, hasLength(1));
+
+        // Complete the in-flight operation
+        repository.slowCompleter!.complete(
+          const TravelGroup(id: 1, name: 'Trip A'),
+        );
+        await firstSubmitFuture;
+        await secondSubmitFuture;
+
+        expect(repository.calls, hasLength(1));
+        expect(cubit.state.status, CreateTravelGroupStatus.success);
+
+        await cubit.close();
+      },
     );
   });
 }

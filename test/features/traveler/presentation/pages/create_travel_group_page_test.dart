@@ -15,10 +15,11 @@ final class _MockRepository implements TravelGroupRepository {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async {
     lastSubmittedName = name;
     lastSubmittedItineraryId = itineraryId;
-    return TravelGroup(id: 1, name: name, inviteCode: 'ABC12345');
+    return TravelGroup(id: 1, name: name);
   }
 }
 
@@ -97,4 +98,23 @@ void main() {
     expect(repository.lastSubmittedName, 'Da Nang Trip 2026');
     expect(repository.lastSubmittedItineraryId, 10);
   });
+
+  testWidgets(
+    'shows itinerary error in SnackBar and under itinerary field without polluting group name',
+    (tester) async {
+      await tester.pumpWidget(buildSubject(itineraryId: 0, itineraryTitle: ''));
+      await tester.pumpAndSettle();
+
+      final textFields = find.byType(TextFormField);
+      await tester.enterText(textFields.at(0), 'Da Nang Trip 2026');
+
+      await tester.tap(find.text('Create Group'));
+      await tester.pumpAndSettle();
+
+      // Error message should appear in SnackBar and under Itinerary, not under Group Name
+      expect(find.text('Please select an itinerary.'), findsWidgets);
+      // Group name input should not have an error
+      expect(find.text('This field is required.'), findsNothing);
+    },
+  );
 }
