@@ -30,7 +30,13 @@ final class PermissionFailure extends Failure {
 }
 
 final class ValidationFailure extends Failure {
-  const ValidationFailure(super.message);
+  const ValidationFailure([super.message = 'The input provided is invalid.']);
+}
+
+final class ConflictFailure extends Failure {
+  const ConflictFailure([
+    super.message = 'Conflict occurred. Please try again.',
+  ]);
 }
 
 final class UnknownFailure extends Failure {

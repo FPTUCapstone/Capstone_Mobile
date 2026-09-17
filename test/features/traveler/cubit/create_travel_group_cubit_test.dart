@@ -17,6 +17,12 @@ final class _SuccessRepository implements TravelGroupRepository {
     required String name,
     required int itineraryId,
   }) async => _result;
+
+  @override
+  Future<TravelGroup> joinTravelGroup({
+    required String invitationCode,
+    required String idempotencyKey,
+  }) async => _result;
 }
 
 final class _FailureRepository implements TravelGroupRepository {
@@ -26,6 +32,12 @@ final class _FailureRepository implements TravelGroupRepository {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+  }) async => throw Exception('server error');
+
+  @override
+  Future<TravelGroup> joinTravelGroup({
+    required String invitationCode,
+    required String idempotencyKey,
   }) async => throw Exception('server error');
 }
 
@@ -37,6 +49,12 @@ final class _TypedFailureRepository implements TravelGroupRepository {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+  }) async => throw failure;
+
+  @override
+  Future<TravelGroup> joinTravelGroup({
+    required String invitationCode,
+    required String idempotencyKey,
   }) async => throw failure;
 }
 
