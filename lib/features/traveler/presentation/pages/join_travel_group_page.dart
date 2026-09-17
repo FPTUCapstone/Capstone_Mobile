@@ -79,8 +79,29 @@ class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
       listener: (context, state) {
         switch (state.status) {
           case JoinTravelGroupStatus.validationFailure:
-          case JoinTravelGroupStatus.failure:
             setState(() => _inlineError = state.errorMessage);
+          case JoinTravelGroupStatus.failure:
+            if (state.existingGroupId != null) {
+              setState(() => _inlineError = null);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    state.errorMessage ??
+                        'You are already a member of this travel group.',
+                  ),
+                  backgroundColor: AppColors.primary,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+              final router = GoRouter.maybeOf(context);
+              if (router != null) {
+                router.go(
+                  '${AppRoutes.travelerTravelGroups}/${state.existingGroupId}',
+                );
+              }
+            } else {
+              setState(() => _inlineError = state.errorMessage);
+            }
           case JoinTravelGroupStatus.success:
             setState(() => _inlineError = null);
             final group = state.result;

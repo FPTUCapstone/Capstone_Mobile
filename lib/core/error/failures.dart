@@ -36,7 +36,13 @@ final class ValidationFailure extends Failure {
 final class ConflictFailure extends Failure {
   const ConflictFailure([
     super.message = 'Conflict occurred. Please try again.',
+    this.groupId,
   ]);
+
+  final int? groupId;
+
+  @override
+  List<Object?> get props => [message, groupId];
 }
 
 final class UnknownFailure extends Failure {

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_state.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/join_travel_group_page.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
@@ -121,5 +122,25 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('B2M4X7Q9'), findsOneWidget);
+  });
+
+  testWidgets('failure with existingGroupId shows MSG57 snackbar', (
+    tester,
+  ) async {
+    await tester.pumpWidget(buildSubject());
+    await tester.pumpAndSettle();
+
+    cubit.emit(
+      const JoinTravelGroupState.failure(
+        'You are already a member of this travel group.',
+        42,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('You are already a member of this travel group.'),
+      findsOneWidget,
+    );
   });
 }

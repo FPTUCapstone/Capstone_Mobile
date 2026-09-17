@@ -22,6 +22,8 @@ final class JoinTravelGroupCubit extends Cubit<JoinTravelGroupState> {
 
   /// Submits an invitation code or raw QR data to join a travel group.
   Future<void> submit(String? rawInput) async {
+    if (state.isSubmitting) return;
+
     final trimmed = rawInput?.trim() ?? '';
 
     if (trimmed.isEmpty) {
@@ -66,7 +68,10 @@ final class JoinTravelGroupCubit extends Cubit<JoinTravelGroupState> {
         _ =>
           'TripMate is temporarily unable to process your request. Please check your connection and try again.',
       };
-      emit(JoinTravelGroupState.failure(message));
+      final existingGroupId = failure is ConflictFailure
+          ? failure.groupId
+          : null;
+      emit(JoinTravelGroupState.failure(message, existingGroupId));
     } catch (_) {
       emit(
         const JoinTravelGroupState.failure(

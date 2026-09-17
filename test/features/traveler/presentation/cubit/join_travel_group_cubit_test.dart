@@ -143,11 +143,12 @@ void main() {
     );
 
     blocTest<JoinTravelGroupCubit, JoinTravelGroupState>(
-      'maps ConflictFailure to MSG57 when already member',
+      'maps ConflictFailure to MSG57 and preserves existingGroupId',
       build: () => JoinTravelGroupCubit(
         repository: _MockTravelGroupRepository(
           failure: const ConflictFailure(
             'You are already a member of this travel group.',
+            99,
           ),
         ),
       ),
@@ -156,9 +157,21 @@ void main() {
         const JoinTravelGroupState.submitting(),
         const JoinTravelGroupState.failure(
           'You are already a member of this travel group.',
+          99,
         ),
       ],
     );
+
+    test('ignores concurrent submit calls while in-flight', () async {
+      final repository = _MockTravelGroupRepository(joinResult: testGroup);
+      final cubit = JoinTravelGroupCubit(repository: repository);
+
+      final first = cubit.submit('A7K4P2QX');
+      final second = cubit.submit('A7K4P2QX');
+      await Future.wait([first, second]);
+
+      expect(repository.recordedCalls.length, 1);
+    });
 
     blocTest<JoinTravelGroupCubit, JoinTravelGroupState>(
       'maps ServerFailure to MSG127',
