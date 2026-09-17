@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
@@ -87,5 +88,38 @@ void main() {
 
     expect(repository.lastCode, 'A7K4P2QX');
     expect(repository.lastKey, isNotNull);
+  });
+
+  testWidgets(
+    'typing lowercase characters converts them to uppercase and limits to 8',
+    (tester) async {
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(AppTextField), 'hoian8kpxyz');
+      await tester.pumpAndSettle();
+
+      expect(find.text('HOIAN8KP'), findsOneWidget);
+    },
+  );
+
+  testWidgets('tapping paste button populates code from clipboard', (
+    tester,
+  ) async {
+    TestWidgetsFlutterBinding.ensureInitialized().defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (methodCall) async {
+          if (methodCall.method == 'Clipboard.getData') {
+            return {'text': 'tripmate://groups/join?code=B2M4X7Q9'};
+          }
+          return null;
+        });
+
+    await tester.pumpWidget(buildSubject());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.content_paste_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('B2M4X7Q9'), findsOneWidget);
   });
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
@@ -7,6 +8,7 @@ import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_state.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/qr_scanner_dialog.dart';
+import 'package:trip_mate_mobile/features/traveler/utils/qr_invitation_parser.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
@@ -51,6 +53,24 @@ class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
       _codeController.text = scannedData;
       await context.read<JoinTravelGroupCubit>().submit(scannedData);
     }
+  }
+
+  Future<void> _handlePasteFromClipboard() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = data?.text?.trim();
+    if (text == null || text.isEmpty) return;
+
+    final parsedCode = QrInvitationParser.parse(text);
+    final codeToUse =
+        parsedCode ??
+        (text.length <= 8
+            ? text.toUpperCase()
+            : text.substring(0, 8).toUpperCase());
+
+    _codeController.text = codeToUse;
+    _codeController.selection = TextSelection.fromPosition(
+      TextPosition(offset: _codeController.text.length),
+    );
   }
 
   @override
@@ -121,6 +141,17 @@ class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
               enabled: !isSubmitting,
               helperText: 'Enter 8-character code (e.g. HOIAN8KP)',
               keyboardType: TextInputType.text,
+              textCapitalization: TextCapitalization.characters,
+              inputFormatters: [
+                LengthLimitingTextInputFormatter(8),
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+                _UpperCaseTextFormatter(),
+              ],
+              suffix: IconButton(
+                tooltip: 'Paste from clipboard',
+                icon: const Icon(Icons.content_paste_rounded, size: 20),
+                onPressed: isSubmitting ? null : _handlePasteFromClipboard,
+              ),
               textInputAction: TextInputAction.done,
             ),
             const SizedBox(height: AppSpacing.md),
@@ -174,6 +205,19 @@ class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
           ],
         );
       },
+    );
+  }
+}
+
+class _UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
     );
   }
 }
