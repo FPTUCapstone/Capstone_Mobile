@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:trip_mate_mobile/core/error/exceptions.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/features/auth/data/models/login_request.dart';
@@ -45,13 +44,13 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
 
       return RegisterTravelerResponse.fromJson(_unwrap(response.data));
-    } on FormatException catch (error) {
-      throw ServerException(error.message);
+    } on FormatException {
+      throw const ServerException('Something went wrong. Please try again.');
     } on DioException catch (e) {
       throw _handleDioError(e);
-    } catch (e) {
-      if (e is AppException) rethrow;
-      throw ServerException(e.toString());
+    } catch (error) {
+      if (error is AppException) rethrow;
+      throw const ServerException('Something went wrong. Please try again.');
     }
   }
 
@@ -62,16 +61,13 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         '/api/v1/auth/verify-email',
         options: Options(headers: {'Authorization': 'Bearer $firebaseIdToken'}),
       );
-      if (kDebugMode) {
-        debugPrint(
-          '[AUTH-VERIFY] endpoint=/api/v1/auth/verify-email status=${response.statusCode}',
-        );
-      }
       return SessionResponseDto.fromJson(_unwrap(response.data));
-    } on FormatException catch (error) {
-      throw ServerException(error.message);
+    } on FormatException {
+      throw const ServerException(
+        'Unable to complete sign in. Please try again.',
+      );
     } on DioException catch (error) {
-      throw _mapAndLogAuthError(error);
+      throw _handleDioError(error);
     }
   }
 
@@ -84,8 +80,10 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         options: Options(headers: {'Authorization': 'Bearer $firebaseIdToken'}),
       );
       return SessionResponseDto.fromJson(_unwrap(response.data));
-    } on FormatException catch (error) {
-      throw ServerException(error.message);
+    } on FormatException {
+      throw const ServerException(
+        'Unable to complete sign in. Please try again.',
+      );
     } on DioException catch (error) {
       throw _handleDioError(error);
     }
@@ -104,18 +102,14 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             ? null
             : Options(headers: {'Authorization': 'Bearer $firebaseIdToken'}),
       );
-      if (kDebugMode) {
-        debugPrint(
-          '[AUTH-VERIFY] endpoint=/api/v1/auth/login status=${response.statusCode}',
-        );
-      }
       final data = _unwrap(response.data);
-      _logSanitizedAuthenticatedResponse('/api/v1/auth/login', data);
       return SessionResponseDto.fromJson(data);
-    } on FormatException catch (error) {
-      throw ServerException(error.message);
+    } on FormatException {
+      throw const ServerException(
+        'Unable to complete sign in. Please try again.',
+      );
     } on DioException catch (error) {
-      throw _mapAndLogAuthError(error);
+      throw _handleDioError(error);
     }
   }
 
@@ -144,16 +138,12 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         return ServerException(knownMessage, responseCode, statusCode);
       }
 
-      if (statusCode == 400 && errors is Map<String, dynamic>) {
-        final messages = <String>[];
-        for (final entry in errors.entries) {
-          if (entry.value is List && (entry.value as List).isNotEmpty) {
-            messages.add((entry.value as List).first.toString());
-          }
-        }
-        if (messages.isNotEmpty) {
-          return ServerException(messages.join(' '), responseCode, statusCode);
-        }
+      if (statusCode == 400) {
+        return ServerException(
+          'Unable to complete this request. Please try again.',
+          responseCode,
+          statusCode,
+        );
       }
     }
 
@@ -188,32 +178,6 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     };
   }
 
-  AppException _mapAndLogAuthError(DioException error) {
-    final mappedError = _handleDioError(error);
-    if (kDebugMode) {
-      final code = mappedError is ServerException ? mappedError.code : null;
-      debugPrint(
-        '[AUTH-VERIFY] endpoint=${error.requestOptions.path} status=${error.response?.statusCode} code=$code',
-      );
-    }
-    return mappedError;
-  }
-
-  void _logSanitizedAuthenticatedResponse(
-    String endpoint,
-    Map<String, dynamic> data,
-  ) {
-    if (!kDebugMode) return;
-    debugPrint(
-      '[AUTH-RESPONSE] endpoint=$endpoint '
-      'keys=${data.keys.toList()} '
-      'userId=${data['userId']} '
-      'role=${data['role']} status=${data['status']} '
-      'accessTokenPresent=${data['accessToken'] is String && (data['accessToken'] as String).isNotEmpty} '
-      'refreshTokenPresent=${data['refreshToken'] is String && (data['refreshToken'] as String).isNotEmpty}',
-    );
-  }
-
   String? _messageForCode(String? code) => switch (code) {
     'AUTH_HEADER_MISSING' =>
       'Unable to register because Firebase authentication is unavailable.',
@@ -230,6 +194,12 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     'auth.account_locked' => 'Your account is locked. Please contact support.',
     'auth.account_inactive' =>
       'Your account is inactive. Please contact support.',
+    'auth.account_state_unresolved' =>
+      'We could not confirm your account status. Please contact TripMate support.',
+    'auth.admin_google_sign_in_disabled' =>
+      'Administrator accounts are supported on Web only.',
+    'auth.admin_mobile_sign_in_disabled' =>
+      'Administrator accounts are supported on Web only.',
     'MSG_EMAIL_NOT_VERIFIED' => 'Please verify your email before continuing.',
     'MSG_USER_NOT_FOUND' => 'Account not found. Please register first.',
     'MSG14' =>

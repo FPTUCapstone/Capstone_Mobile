@@ -8,12 +8,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trip_mate_mobile/app/config/app_config.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/core/network/network_info.dart';
+import 'package:trip_mate_mobile/core/network/session_coordinator.dart';
 import 'package:trip_mate_mobile/core/storage/preferences_service.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:trip_mate_mobile/features/auth/data/services/firebase_auth_service.dart';
 import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_repository.dart';
+import 'package:trip_mate_mobile/features/auth/domain/services/auth_identity_service.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/data/datasources/poi_remote_data_source.dart';
@@ -47,7 +49,7 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerLazySingleton<Connectivity>(Connectivity.new)
     ..registerLazySingleton<GoogleSignIn>(() => GoogleSignIn.instance)
-    ..registerLazySingleton<FirebaseAuthService>(
+    ..registerLazySingleton<AuthIdentityService>(
       () => Firebase.apps.isEmpty
           ? const UnavailableFirebaseAuthService()
           : FirebaseAuthServiceImpl(FirebaseAuth.instance, serviceLocator()),
@@ -55,9 +57,13 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerLazySingleton<NetworkInfo>(
       () => ConnectivityNetworkInfo(serviceLocator()),
     )
+    ..registerLazySingleton<SessionCoordinator>(SessionCoordinator.new)
     ..registerLazySingleton<DioClient>(
-      () =>
-          DioClient(config: serviceLocator(), secureStorage: serviceLocator()),
+      () => DioClient(
+        config: serviceLocator(),
+        secureStorage: serviceLocator(),
+        coordinator: serviceLocator(),
+      ),
     )
     ..registerLazySingleton<PoiRemoteDataSource>(
       () => DioPoiRemoteDataSource(serviceLocator()),

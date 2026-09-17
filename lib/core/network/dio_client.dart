@@ -3,12 +3,14 @@ import 'package:trip_mate_mobile/app/config/app_config.dart';
 import 'package:trip_mate_mobile/core/constants/api_constants.dart';
 import 'package:trip_mate_mobile/core/network/interceptors/auth_interceptor.dart';
 import 'package:trip_mate_mobile/core/network/interceptors/logging_interceptor.dart';
+import 'package:trip_mate_mobile/core/network/session_coordinator.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 
 final class DioClient {
   DioClient({
     required AppConfig config,
     required SecureStorageService secureStorage,
+    SessionCoordinator? coordinator,
   }) : _dio = Dio(
          BaseOptions(
            baseUrl: config.apiBaseUrl.toString(),
@@ -21,7 +23,9 @@ final class DioClient {
            },
          ),
        ) {
-    _dio.interceptors.add(AuthInterceptor(secureStorage));
+    _dio.interceptors.add(
+      AuthInterceptor(secureStorage, coordinator: coordinator),
+    );
     if (config.enableNetworkLogs) {
       _dio.interceptors.add(AppLoggingInterceptor());
     }

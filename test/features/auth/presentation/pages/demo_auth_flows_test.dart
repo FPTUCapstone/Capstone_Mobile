@@ -5,8 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trip_mate_mobile/app/config/app_config.dart';
 import 'package:trip_mate_mobile/app/config/environment.dart';
 import 'package:trip_mate_mobile/app/theme/app_theme.dart';
+import 'package:trip_mate_mobile/core/constants/app_constants.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
-import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
+import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_application_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/operator_application_page.dart';
@@ -48,8 +49,17 @@ void main() {
   testWidgets('sign out asks for confirmation before clearing the session', (
     tester,
   ) async {
-    final session = AuthSessionCubit()..authenticateSession(UserRole.traveler);
+    final session = AuthSessionCubit(
+      null,
+      _MemoryStorage({
+        AppConstants.accessTokenKey: 'access',
+        AppConstants.refreshTokenKey: 'refresh',
+        AppConstants.sessionRoleKey: 'traveler',
+        AppConstants.keepSignedInKey: 'true',
+      }),
+    );
     addTearDown(session.close);
+    await session.restoreSession();
     await tester.pumpWidget(
       BlocProvider<AuthSessionCubit>.value(
         value: session,
@@ -156,4 +166,22 @@ Future<void> _tapVisible(WidgetTester tester, Finder finder) async {
     scrollable: find.byType(Scrollable).first,
   );
   await tester.tap(finder);
+}
+
+final class _MemoryStorage implements SecureStorageService {
+  _MemoryStorage(this.values);
+
+  final Map<String, String> values;
+
+  @override
+  Future<void> delete(String key) async => values.remove(key);
+
+  @override
+  Future<void> deleteAll() async => values.clear();
+
+  @override
+  Future<String?> read(String key) async => values[key];
+
+  @override
+  Future<void> write(String key, String value) async => values[key] = value;
 }
