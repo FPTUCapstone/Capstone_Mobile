@@ -16,7 +16,9 @@ import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
 
 /// Screen for UC-23: Join Shared Group Trip.
 class JoinTravelGroupPage extends StatefulWidget {
-  const JoinTravelGroupPage({super.key});
+  const JoinTravelGroupPage({super.key, this.scannerLauncher});
+
+  final Future<String?> Function(BuildContext)? scannerLauncher;
 
   @override
   State<JoinTravelGroupPage> createState() => _JoinTravelGroupPageState();
@@ -48,10 +50,21 @@ class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
   }
 
   Future<void> _handleScanQr() async {
-    final scannedData = await QrScannerDialog.show(context);
-    if (scannedData != null && mounted) {
+    final cubit = context.read<JoinTravelGroupCubit>();
+    if (cubit.state.isSubmitting) return;
+
+    final String? scannedData;
+    if (widget.scannerLauncher != null) {
+      scannedData = await widget.scannerLauncher!(context);
+    } else {
+      scannedData = await QrScannerDialog.show(context);
+    }
+
+    if (!mounted) return;
+    if (scannedData != null) {
+      if (cubit.state.isSubmitting) return;
       _codeController.text = scannedData;
-      await context.read<JoinTravelGroupCubit>().submit(scannedData);
+      await cubit.submit(scannedData);
     }
   }
 

@@ -143,4 +143,59 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets(
+    'camera permission granted -> QR decoded -> join request submitted',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BlocProvider<JoinTravelGroupCubit>.value(
+            value: cubit,
+            child: JoinTravelGroupPage(
+              scannerLauncher: (context) async => 'QRJOIN99',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Scan QR Invitation'));
+      await tester.pumpAndSettle();
+
+      expect(repository.lastCode, 'QRJOIN99');
+      expect(repository.lastKey, isNotNull);
+    },
+  );
+
+  testWidgets('no second join request while scanning or submitting', (
+    tester,
+  ) async {
+    int scanLaunchCount = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider<JoinTravelGroupCubit>.value(
+          value: cubit,
+          child: JoinTravelGroupPage(
+            scannerLauncher: (context) async {
+              scanLaunchCount++;
+              return 'CODE1111';
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Put cubit into submitting state
+    cubit.emit(const JoinTravelGroupState.submitting());
+    await tester.pump();
+
+    // Tap Scan QR button while submitting
+    await tester.tap(find.text('Scan QR Invitation'), warnIfMissed: false);
+    await tester.pump();
+
+    expect(scanLaunchCount, 0);
+    expect(repository.lastCode, isNull);
+  });
 }
