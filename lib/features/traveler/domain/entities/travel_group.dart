@@ -8,13 +8,15 @@ final class TravelGroup extends Equatable {
   const TravelGroup({
     required this.id,
     required this.name,
-    required this.inviteCode,
+    this.inviteCode,
+    this.itineraryId,
   });
 
   final int id;
   final String name;
-  final String inviteCode;
+  final String? inviteCode;
+  final int? itineraryId;
 
   @override
-  List<Object?> get props => [id, name, inviteCode];
+  List<Object?> get props => [id, name, inviteCode, itineraryId];
 }

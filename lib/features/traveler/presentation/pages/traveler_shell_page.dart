@@ -99,6 +99,15 @@ class _TravelerSection extends StatelessWidget {
                 label: const Text('Account settings'),
               ),
             ],
+            if (destination.label == 'Home' ||
+                destination.label == 'Trips') ...[
+              const SizedBox(height: AppSpacing.sm),
+              OutlinedButton.icon(
+                onPressed: () => context.push(AppRoutes.joinTravelGroup),
+                icon: const Icon(Icons.group_add_outlined),
+                label: const Text('Join travel group'),
+              ),
+            ],
           ],
         ),
       ),

@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:trip_mate_mobile/core/error/error_mapper.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/features/traveler/data/models/travel_group_model.dart';
@@ -15,6 +16,7 @@ final class TravelGroupRepositoryImpl implements TravelGroupRepository {
   final DioClient _dioClient;
 
   static const _path = '/api/v1/travel-groups';
+  static const _joinPath = '/api/v1/travel-groups/join';
 
   @override
   Future<TravelGroup> createTravelGroup({
@@ -25,6 +27,27 @@ final class TravelGroupRepositoryImpl implements TravelGroupRepository {
       final response = await _dioClient.dio.post<Map<String, dynamic>>(
         _path,
         data: {'groupName': name, 'itineraryId': itineraryId},
+      );
+      final data = response.data;
+      if (data == null) {
+        throw const FormatException('Empty travel group response.');
+      }
+      return TravelGroupModel.fromJson(data).toEntity();
+    } catch (error) {
+      throw ErrorMapper.toFailure(error);
+    }
+  }
+
+  @override
+  Future<TravelGroup> joinTravelGroup({
+    required String invitationCode,
+    required String idempotencyKey,
+  }) async {
+    try {
+      final response = await _dioClient.dio.post<Map<String, dynamic>>(
+        _joinPath,
+        data: {'invitationCode': invitationCode.trim().toUpperCase()},
+        options: Options(headers: {'Idempotency-Key': idempotencyKey}),
       );
       final data = response.data;
       if (data == null) {
