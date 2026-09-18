@@ -10,7 +10,12 @@ enum AuthSessionStatus {
   failure,
 }
 
-enum AuthSessionOperation { none, verifyEmail, resendVerificationEmail }
+enum AuthSessionOperation {
+  none,
+  verifyEmail,
+  resendVerificationEmail,
+  signOut,
+}
 
 final class AuthSessionState extends Equatable {
   const AuthSessionState._({
@@ -27,10 +32,14 @@ final class AuthSessionState extends Equatable {
     UserRole role, {
     TourOperatorApplicationStatus applicationStatus =
         TourOperatorApplicationStatus.unresolved,
+    AuthSessionOperation operation = AuthSessionOperation.none,
+    String? errorMessage,
   }) : this._(
          status: AuthSessionStatus.authenticated,
          role: role,
          applicationStatus: applicationStatus,
+         operation: operation,
+         errorMessage: errorMessage,
        );
 
   const AuthSessionState.failure(
@@ -53,8 +62,14 @@ final class AuthSessionState extends Equatable {
         successMessage: message,
       );
 
-  const AuthSessionState.unauthenticated()
-    : this._(status: AuthSessionStatus.unauthenticated);
+  /// The session is unauthenticated. An optional [errorMessage] carries a
+  /// one-shot notice produced by a completed local sign-out, so the login
+  /// screen can present it without a separate notice store.
+  const AuthSessionState.unauthenticated({String? errorMessage})
+    : this._(
+        status: AuthSessionStatus.unauthenticated,
+        errorMessage: errorMessage,
+      );
 
   final String? errorMessage;
   final AuthSessionOperation operation;

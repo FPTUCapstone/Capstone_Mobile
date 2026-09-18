@@ -43,6 +43,11 @@ class MockAuthRepository implements AuthRepository {
   Future<AuthSession> verifyEmail(String firebaseIdToken) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<void> logout(String? refreshToken) {
+    throw UnimplementedError();
+  }
 }
 
 class MockFirebaseAuthService implements AuthIdentityService {

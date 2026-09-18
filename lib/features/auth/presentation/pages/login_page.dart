@@ -92,7 +92,11 @@ class _LoginPageState extends State<LoginPage> {
                 const Expanded(child: Text('Keep me signed in')),
               ],
             ),
-            if (session.status == AuthSessionStatus.failure) ...[
+            // A completed local sign-out that could not reach the server
+            // arrives as an unauthenticated state carrying the approved notice.
+            if (session.status == AuthSessionStatus.failure ||
+                (session.status == AuthSessionStatus.unauthenticated &&
+                    session.errorMessage != null)) ...[
               const SizedBox(height: AppSpacing.sm),
               AppAlert(
                 message: session.errorMessage ?? 'Unable to sign in.',

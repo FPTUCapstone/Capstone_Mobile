@@ -7,16 +7,28 @@ import 'package:trip_mate_mobile/app/config/environment.dart';
 import 'package:trip_mate_mobile/app/theme/app_theme.dart';
 import 'package:trip_mate_mobile/core/constants/app_constants.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/core/error/exceptions.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/auth_credentials.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/auth_session.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/traveler_registration.dart';
+import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_application_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/pages/login_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/operator_application_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/traveler_registration_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_preferences_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_settings_page.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
+
+const _remoteFailureCopy =
+    'You\'re signed out on this device, but we couldn\'t '
+    'complete server-side sign-out.';
+const _rawTransportDetail = 'raw transport detail';
 
 void main() {
   setUp(() async {
@@ -155,6 +167,61 @@ void main() {
     expect(find.text('PENDING APPROVAL'), findsOneWidget);
     expect(find.text('Application submitted'), findsOneWidget);
   });
+
+  // --- UC-05 T04: the approved M3 notice renders on the login screen when a
+  // completed local sign-out could not reach the server.
+
+  testWidgets('login renders the approved sign-out notice exactly once', (
+    tester,
+  ) async {
+    final session = AuthSessionCubit(
+      const _FailingLogoutRepository(),
+      _MemoryStorage({
+        AppConstants.accessTokenKey: 'access',
+        AppConstants.refreshTokenKey: 'refresh',
+        AppConstants.sessionRoleKey: 'traveler',
+        AppConstants.keepSignedInKey: 'true',
+      }),
+    );
+    addTearDown(session.close);
+    await session.restoreSession();
+    // The presentation contract is independent of the remote-failure boundary;
+    // after T04 this call completes normally instead of throwing.
+    await session.signOut().catchError((Object _) {});
+
+    await tester.pumpWidget(
+      _page(
+        BlocProvider<AuthSessionCubit>.value(
+          value: session,
+          child: const LoginPage(),
+        ),
+      ),
+    );
+
+    expect(find.byType(AppAlert), findsOneWidget);
+    expect(find.text(_remoteFailureCopy), findsOneWidget);
+    // Only the approved copy is rendered — never raw transport detail.
+    expect(find.textContaining(_rawTransportDetail), findsNothing);
+  });
+
+  testWidgets('login renders no notice for a clean unauthenticated state', (
+    tester,
+  ) async {
+    final session = AuthSessionCubit();
+    addTearDown(session.close);
+
+    await tester.pumpWidget(
+      _page(
+        BlocProvider<AuthSessionCubit>.value(
+          value: session,
+          child: const LoginPage(),
+        ),
+      ),
+    );
+
+    expect(find.text(_remoteFailureCopy), findsNothing);
+    expect(find.byType(AppAlert), findsNothing);
+  });
 }
 
 Widget _page(Widget child) => MaterialApp(theme: AppTheme.light, home: child);
@@ -184,4 +251,34 @@ final class _MemoryStorage implements SecureStorageService {
 
   @override
   Future<void> write(String key, String value) async => values[key] = value;
+}
+
+/// Fails only the logout call so a completed local sign-out whose remote
+/// revocation failed can be presented on the login screen.
+final class _FailingLogoutRepository implements AuthRepository {
+  const _FailingLogoutRepository();
+
+  @override
+  Future<void> logout(String? refreshToken) =>
+      throw const NetworkException(_rawTransportDetail);
+
+  @override
+  Future<AuthSession> googleAuth(String firebaseIdToken) =>
+      throw UnimplementedError();
+
+  @override
+  Future<AuthSession> login(
+    AuthCredentials credentials, [
+    String? firebaseIdToken,
+  ]) => throw UnimplementedError();
+
+  @override
+  Future<TravelerRegistrationResult> registerTraveler(
+    TravelerRegistration registration,
+    String firebaseIdToken,
+  ) => throw UnimplementedError();
+
+  @override
+  Future<AuthSession> verifyEmail(String firebaseIdToken) =>
+      throw UnimplementedError();
 }

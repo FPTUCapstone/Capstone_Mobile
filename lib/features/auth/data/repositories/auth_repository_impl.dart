@@ -35,6 +35,10 @@ final class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> logout(String? refreshToken) =>
+      _remoteDataSource.logout(refreshToken);
+
+  @override
   Future<AuthSession> login(
     AuthCredentials credentials, [
     String? firebaseIdToken,

@@ -16,4 +16,6 @@ abstract interface class AuthRepository {
     AuthCredentials credentials, [
     String? firebaseIdToken,
   ]);
+
+  Future<void> logout(String? refreshToken);
 }
