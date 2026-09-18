@@ -129,7 +129,10 @@ class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
 
               final router = GoRouter.maybeOf(context);
               if (router != null) {
-                router.go('${AppRoutes.travelerTravelGroups}/${group.id}');
+                router.go(
+                  '${AppRoutes.travelerTravelGroups}/${group.id}',
+                  extra: group,
+                );
               }
             }
           case JoinTravelGroupStatus.initial:

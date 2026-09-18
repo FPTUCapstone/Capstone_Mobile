@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_cubit.dart';
@@ -198,4 +200,47 @@ void main() {
     expect(scanLaunchCount, 0);
     expect(repository.lastCode, isNull);
   });
+
+  testWidgets(
+    'successful join navigates to travel group details page with extra preserved',
+    (tester) async {
+      TravelGroup? capturedExtra;
+      final router = GoRouter(
+        initialLocation: '/join',
+        routes: [
+          GoRoute(
+            path: '/join',
+            builder: (_, _) => BlocProvider<JoinTravelGroupCubit>.value(
+              value: cubit,
+              child: const JoinTravelGroupPage(),
+            ),
+          ),
+          GoRoute(
+            path: '${AppRoutes.travelerTravelGroups}/:groupId',
+            builder: (_, state) {
+              capturedExtra = state.extra as TravelGroup?;
+              return Scaffold(
+                body: Text(
+                  'Group details for ${state.pathParameters['groupId']}',
+                ),
+              );
+            },
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(AppTextField), 'A7K4P2QX');
+      await tester.tap(find.widgetWithText(AppButton, 'Join Group'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Group details for 42'), findsOneWidget);
+      expect(capturedExtra, isNotNull);
+      expect(capturedExtra!.id, 42);
+      expect(capturedExtra!.name, 'Joined Group');
+      expect(capturedExtra!.itineraryId, 10);
+    },
+  );
 }
