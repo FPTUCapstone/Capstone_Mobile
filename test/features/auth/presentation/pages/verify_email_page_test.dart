@@ -21,13 +21,15 @@ void main() {
       'does not render a stale sign-in error after registration navigation',
       (tester) async {
         final cubit = AuthSessionCubit(
-          FakeAuthRepository(),
-          FakeSecureStorageService(),
-          FakeFirebaseAuthService(
-            signInError: const AuthIdentityException(
-              AuthIdentityFailure.invalidCredentials,
+          FakeAuthRepository(
+            loginError: const ServerException(
+              'Invalid email or password. Please try again.',
+              'auth.invalid_credentials',
+              401,
             ),
           ),
+          FakeSecureStorageService(),
+          FakeFirebaseAuthService(),
         );
         await cubit.signIn(email: 'old@example.com', password: 'wrong');
 
@@ -434,13 +436,15 @@ void main() {
     tester,
   ) async {
     final cubit = AuthSessionCubit(
-      FakeAuthRepository(),
-      FakeSecureStorageService(),
-      FakeFirebaseAuthService(
-        signInError: const AuthIdentityException(
-          AuthIdentityFailure.invalidCredentials,
+      FakeAuthRepository(
+        loginError: const ServerException(
+          'Invalid email or password. Please try again.',
+          'auth.invalid_credentials',
+          401,
         ),
       ),
+      FakeSecureStorageService(),
+      FakeFirebaseAuthService(),
     );
     await cubit.signIn(email: 'traveler@example.com', password: 'wrong');
 
@@ -491,8 +495,9 @@ Widget _routerTestApp(AuthSessionCubit cubit) {
 }
 
 final class FakeAuthRepository implements AuthRepository {
-  FakeAuthRepository({this.verifyEmailError});
+  FakeAuthRepository({this.loginError, this.verifyEmailError});
 
+  final AppException? loginError;
   final AppException? verifyEmailError;
   var verifyEmailCalls = 0;
 
@@ -511,7 +516,10 @@ final class FakeAuthRepository implements AuthRepository {
   Future<AuthSession> login(
     AuthCredentials request, [
     String? firebaseIdToken,
-  ]) => throw UnimplementedError();
+  ]) async {
+    if (loginError != null) throw loginError!;
+    return _session;
+  }
 
   @override
   Future<TravelerRegistrationResult> registerTraveler(
@@ -544,7 +552,6 @@ final class FakeFirebaseAuthService implements AuthIdentityService {
     this.refreshToken,
     this.sendEmailVerificationCompleter,
     this.sendEmailVerificationError,
-    this.signInError,
   });
 
   final String? firebaseEmail;
@@ -553,7 +560,6 @@ final class FakeFirebaseAuthService implements AuthIdentityService {
   final String? refreshToken;
   final Completer<void>? sendEmailVerificationCompleter;
   final Object? sendEmailVerificationError;
-  final Object? signInError;
   var sendEmailVerificationCalls = 0;
 
   @override
@@ -583,15 +589,6 @@ final class FakeFirebaseAuthService implements AuthIdentityService {
     required String email,
     required String password,
   }) => throw UnimplementedError();
-
-  @override
-  Future<String> signInWithEmail({
-    required String email,
-    required String password,
-  }) async {
-    if (signInError != null) throw signInError!;
-    return 'firebase-sign-in-token';
-  }
 
   @override
   Future<String> signInWithGoogle() => throw UnimplementedError();
