@@ -38,7 +38,7 @@ void main() {
     ) async {
       repository = FakeAuthRepository(session: _session);
       storage = FakeSecureStorageService();
-      firebase = FakeFirebaseAuthService(signInToken: 'firebase-id-token');
+      firebase = FakeFirebaseAuthService();
       final cubit = AuthSessionCubit(repository, storage, firebase);
       addTearDown(cubit.close);
 
@@ -52,7 +52,10 @@ void main() {
         const AuthSessionState.authenticated(UserRole.traveler),
       );
       expect(repository.lastLoginCredentials?.email, 'traveler@example.com');
-      expect(repository.loginFirebaseIdToken, 'firebase-id-token');
+      // Backend is the sole password authority: the password is forwarded to
+      // POST /api/v1/auth/login without any Firebase intermediary.
+      expect(repository.loginFirebaseIdToken, isNull);
+      expect(firebase.signInWithEmailCalls, 0);
       expect(storage.values[AppConstants.accessTokenKey], _session.accessToken);
       expect(
         await _resolveAuthenticatedRoute(tester, cubit.state),
@@ -144,39 +147,17 @@ void main() {
     );
 
     blocTest<AuthSessionCubit, AuthSessionState>(
-      'rejects an unverified Firebase user without calling backend login',
+      'maps invalid Backend credentials to a safe actionable error',
       build: () {
-        repository = FakeAuthRepository();
-        storage = FakeSecureStorageService();
-        firebase = FakeFirebaseAuthService(
-          signInError: const AuthIdentityException(
-            AuthIdentityFailure.emailUnverified,
+        repository = FakeAuthRepository(
+          loginError: const ServerException(
+            'Invalid email or password. Please try again.',
+            'auth.invalid_credentials',
+            401,
           ),
         );
-        return AuthSessionCubit(repository, storage, firebase);
-      },
-      act: (cubit) =>
-          cubit.signIn(email: 'traveler@example.com', password: 'Password123!'),
-      expect: () => const [
-        AuthSessionState.loading(),
-        AuthSessionState.failure('Please verify your email before continuing.'),
-      ],
-      verify: (_) {
-        expect(repository.loginCalls, 0);
-        expect(storage.values, isEmpty);
-      },
-    );
-
-    blocTest<AuthSessionCubit, AuthSessionState>(
-      'maps invalid Firebase credentials to a safe actionable error',
-      build: () {
-        repository = FakeAuthRepository();
         storage = FakeSecureStorageService();
-        firebase = FakeFirebaseAuthService(
-          signInError: const AuthIdentityException(
-            AuthIdentityFailure.invalidCredentials,
-          ),
-        );
+        firebase = FakeFirebaseAuthService();
         return AuthSessionCubit(repository, storage, firebase);
       },
       act: (cubit) =>
@@ -188,23 +169,28 @@ void main() {
         ),
       ],
       verify: (_) {
-        expect(repository.loginCalls, 0);
+        expect(repository.loginCalls, 1);
+        expect(firebase.signInWithEmailCalls, 0);
+        expect(repository.loginFirebaseIdToken, isNull);
         expect(storage.values, isEmpty);
       },
     );
 
     blocTest<AuthSessionCubit, AuthSessionState>(
-      'maps a Firebase network failure to the existing connection error',
+      'maps a Backend network failure to the existing connection error',
       build: () {
-        repository = FakeAuthRepository();
-        storage = FakeSecureStorageService();
-        firebase = FakeFirebaseAuthService(
-          signInError: const AuthIdentityException(AuthIdentityFailure.network),
+        repository = FakeAuthRepository(
+          loginError: const NetworkException(
+            'TripMate is temporarily unable to process your request. '
+            'Please check your connection and try again.',
+          ),
         );
+        storage = FakeSecureStorageService();
+        firebase = FakeFirebaseAuthService();
         return AuthSessionCubit(repository, storage, firebase);
       },
       act: (cubit) =>
-          cubit.signIn(email: 'traveler@example.com', password: 'not-logged'),
+          cubit.signIn(email: 'traveler@example.com', password: 'Password123!'),
       expect: () => const [
         AuthSessionState.loading(),
         AuthSessionState.failure(
@@ -212,48 +198,10 @@ void main() {
         ),
       ],
       verify: (_) {
-        expect(repository.loginCalls, 0);
-        expect(storage.values, isEmpty);
-      },
-    );
-
-    blocTest<AuthSessionCubit, AuthSessionState>(
-      'verified Firebase user synchronizes an unverified backend account and signs in',
-      build: () {
-        repository = FakeAuthRepository(
-          loginError: const ServerException(
-            'Please verify your email before signing in.',
-            'MSG_UNVERIFIED',
-            403,
-          ),
-        );
-        storage = FakeSecureStorageService();
-        firebase = FakeFirebaseAuthService(
-          signInToken: 'refreshed-firebase-token',
-        );
-        return AuthSessionCubit(repository, storage, firebase);
-      },
-      act: (cubit) =>
-          cubit.signIn(email: 'traveler@example.com', password: 'Password123!'),
-      expect: () => const [
-        AuthSessionState.loading(),
-        AuthSessionState.authenticated(UserRole.traveler),
-      ],
-      verify: (_) {
-        expect(repository.loginFirebaseIdToken, 'refreshed-firebase-token');
         expect(repository.loginCalls, 1);
-        expect(
-          repository.verifyEmailFirebaseIdToken,
-          'refreshed-firebase-token',
-        );
-        expect(repository.verifyEmailCalls, 1);
-        expect(firebase.signOutCalls, 0);
-        expect(storage.values, {
-          AppConstants.accessTokenKey: 'backend-access-token',
-          AppConstants.refreshTokenKey: 'backend-refresh-token',
-          AppConstants.sessionRoleKey: 'traveler',
-          AppConstants.keepSignedInKey: 'true',
-        });
+        expect(firebase.signInWithEmailCalls, 0);
+        expect(repository.loginFirebaseIdToken, isNull);
+        expect(storage.values, isEmpty);
       },
     );
 
@@ -523,7 +471,7 @@ void main() {
       build: () {
         repository = FakeAuthRepository(session: _administratorSession);
         storage = FakeSecureStorageService();
-        firebase = FakeFirebaseAuthService(signInToken: 'fb-token');
+        firebase = FakeFirebaseAuthService();
         return AuthSessionCubit(repository, storage, firebase);
       },
       act: (cubit) =>
@@ -537,6 +485,10 @@ void main() {
       verify: (_) {
         expect(storage.values, isEmpty);
         expect(firebase.signOutCalls, 1);
+        // The password is verified by the Backend directly; no Firebase
+        // authentication step is required or used.
+        expect(firebase.signInWithEmailCalls, 0);
+        expect(repository.loginFirebaseIdToken, isNull);
       },
     );
 
@@ -603,29 +555,6 @@ void main() {
     );
 
     blocTest<AuthSessionCubit, AuthSessionState>(
-      'Firebase configuration detail is never displayed during sign in',
-      build: () {
-        repository = FakeAuthRepository();
-        storage = FakeSecureStorageService();
-        firebase = FakeFirebaseAuthService(
-          signInError: const AuthIdentityException(
-            AuthIdentityFailure.unavailable,
-          ),
-        );
-        return AuthSessionCubit(repository, storage, firebase);
-      },
-      act: (cubit) =>
-          cubit.signIn(email: 'traveler@example.com', password: 'Password123!'),
-      expect: () => const [
-        AuthSessionState.loading(),
-        AuthSessionState.failure(
-          'Sign in is unavailable. Please try again later.',
-        ),
-      ],
-      verify: (_) => expect(storage.values, isEmpty),
-    );
-
-    blocTest<AuthSessionCubit, AuthSessionState>(
       'Administrator password refusal survives provider sign-out failure',
       build: () {
         repository = FakeAuthRepository(session: _administratorSession);
@@ -645,6 +574,8 @@ void main() {
         ),
       ],
       verify: (_) {
+        expect(repository.loginFirebaseIdToken, isNull);
+        expect(firebase.signInWithEmailCalls, 0);
         expect(storage.values, isEmpty);
         expect(firebase.signOutCalls, 1);
       },
@@ -992,7 +923,7 @@ final class FakeAuthRepository implements AuthRepository {
   }) : session = session ?? _session,
        verifyEmailSession = verifyEmailSession ?? _session;
 
-  final ServerException? loginError;
+  final AppException? loginError;
   final AppException? verifyEmailError;
   final ServerException? googleError;
   final AuthSession session;
@@ -1058,7 +989,6 @@ final class FakeSecureStorageService implements SecureStorageService {
 
 final class FakeFirebaseAuthService implements AuthIdentityService {
   FakeFirebaseAuthService({
-    this.signInError,
     this.signInToken,
     this.refreshError,
     this.refreshToken,
@@ -1071,7 +1001,6 @@ final class FakeFirebaseAuthService implements AuthIdentityService {
     this.signOutError,
   });
 
-  final Object? signInError;
   final String? signInToken;
   final Object? refreshError;
   final String? refreshToken;
@@ -1085,16 +1014,19 @@ final class FakeFirebaseAuthService implements AuthIdentityService {
   var sendEmailVerificationCalls = 0;
   var refreshIdTokenCalls = 0;
   var signOutCalls = 0;
+  var signInWithEmailCalls = 0;
 
   @override
   Future<String?> get currentUserEmail async => firebaseEmail;
 
-  @override
+  /// Canary: [AuthIdentityService] no longer declares this method, so a
+  /// non-zero [signInWithEmailCalls] count means a Firebase password sign-in
+  /// path was reintroduced into production code.
   Future<String> signInWithEmail({
     required String email,
     required String password,
   }) async {
-    if (signInError != null) throw signInError!;
+    signInWithEmailCalls += 1;
     return signInToken!;
   }
 

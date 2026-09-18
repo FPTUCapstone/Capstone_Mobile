@@ -15,12 +15,6 @@ final class UnavailableFirebaseAuthService implements AuthIdentityService {
   }) => _unavailable();
 
   @override
-  Future<String> signInWithEmail({
-    required String email,
-    required String password,
-  }) => _unavailable();
-
-  @override
   Future<String> signInWithGoogle() => _unavailable();
 
   @override
@@ -60,22 +54,6 @@ final class FirebaseAuthServiceImpl implements AuthIdentityService {
       password: password,
     );
     return _requireToken(await credential.user?.getIdToken());
-  });
-
-  @override
-  Future<String> signInWithEmail({
-    required String email,
-    required String password,
-  }) => _mapProviderErrors(() async {
-    final credential = await _firebaseAuth.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-    final token = await _reloadVerifiedUserAndRefreshToken(credential.user);
-    if (token == null) {
-      throw const AuthIdentityException(AuthIdentityFailure.emailUnverified);
-    }
-    return token;
   });
 
   @override
