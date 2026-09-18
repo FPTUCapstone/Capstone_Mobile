@@ -5,6 +5,7 @@ import 'package:trip_mate_mobile/features/auth/data/models/login_request.dart';
 import 'package:trip_mate_mobile/features/auth/data/models/register_traveler_request.dart';
 import 'package:trip_mate_mobile/features/auth/data/models/register_traveler_response.dart';
 import 'package:trip_mate_mobile/features/auth/data/models/session_response_dto.dart';
+import 'package:trip_mate_mobile/features/auth/data/models/sign_out_request.dart';
 
 abstract interface class AuthRemoteDataSource {
   Future<RegisterTravelerResponse> registerTraveler(
@@ -20,6 +21,8 @@ abstract interface class AuthRemoteDataSource {
     LoginRequest request, [
     String? firebaseIdToken,
   ]);
+
+  Future<void> logout(String? refreshToken);
 }
 
 final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -110,6 +113,24 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
     } on DioException catch (error) {
       throw _handleDioError(error);
+    }
+  }
+
+  /// UC-05 sign-out. The backend answers a direct DTO (`{"message": ...}`)
+  /// instead of the `{success, data}` envelope, so success comes from the HTTP
+  /// status alone and the response body is deliberately not unwrapped.
+  @override
+  Future<void> logout(String? refreshToken) async {
+    try {
+      await _dioClient.dio.post<void>(
+        '/api/v1/auth/logout',
+        data: SignOutRequest(refreshToken: refreshToken).toJson(),
+      );
+    } on DioException catch (error) {
+      throw _handleDioError(error);
+    } catch (error) {
+      if (error is AppException) rethrow;
+      throw const ServerException('Something went wrong. Please try again.');
     }
   }
 

@@ -5,6 +5,8 @@ import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
 
@@ -20,9 +22,22 @@ class _TravelerSettingsPageState extends State<TravelerSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<AuthSessionCubit>();
+    final state = session.state;
+    // Only the approved local-cleanup notice is surfaced here; unrelated auth
+    // errors are not this screen's concern.
+    final localCleanupFailure =
+        state.status == AuthSessionStatus.authenticated &&
+        state.errorMessage ==
+            AuthSessionCubit.signOutLocalCleanupFailureMessage;
+
     return AppPageScaffold(
       title: 'Settings',
       content: [
+        if (localCleanupFailure) ...[
+          AppAlert(message: state.errorMessage!, type: AppAlertType.error),
+          const SizedBox(height: AppSpacing.md),
+        ],
         Card(
           child: Column(
             children: [
@@ -61,7 +76,11 @@ class _TravelerSettingsPageState extends State<TravelerSettingsPage> {
         ),
       ],
       footer: OutlinedButton.icon(
-        onPressed: _confirmSignOut,
+        // Busy state comes from the Cubit's own sign-out marker, so the
+        // confirmation cannot be opened again while one is in flight.
+        onPressed: state.operation == AuthSessionOperation.signOut
+            ? null
+            : _confirmSignOut,
         icon: const Icon(Icons.logout),
         label: const Text('Sign out'),
         style: OutlinedButton.styleFrom(
@@ -95,7 +114,7 @@ class _TravelerSettingsPageState extends State<TravelerSettingsPage> {
       ),
     );
     if (confirmed == true && mounted) {
-      await context.read<AuthSessionCubit>().clearSession();
+      await context.read<AuthSessionCubit>().signOut();
     }
   }
 }

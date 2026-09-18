@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 
 class OperatorShellPage extends StatefulWidget {
   const OperatorShellPage({super.key});
@@ -23,22 +25,51 @@ class _OperatorShellPageState extends State<OperatorShellPage> {
 
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<AuthSessionCubit>();
+    final state = session.state;
+    // Only the approved local-cleanup notice is surfaced here; unrelated auth
+    // errors are not this screen's concern.
+    final localCleanupFailure =
+        state.status == AuthSessionStatus.authenticated &&
+        state.errorMessage ==
+            AuthSessionCubit.signOutLocalCleanupFailureMessage;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Operator · ${_destinations[_selectedIndex].label}'),
         actions: [
           IconButton(
-            onPressed: context.read<AuthSessionCubit>().clearSession,
+            // Busy state comes from the Cubit's own sign-out marker, so a
+            // second intent cannot be started while one is in flight.
+            onPressed: state.operation == AuthSessionOperation.signOut
+                ? null
+                : session.signOut,
             tooltip: 'Sign out',
             icon: const Icon(Icons.logout),
           ),
         ],
       ),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _destinations
-            .map((destination) => _OperatorSection(destination: destination))
-            .toList(growable: false),
+      body: Column(
+        children: [
+          if (localCleanupFailure)
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: AppAlert(
+                message: state.errorMessage!,
+                type: AppAlertType.error,
+              ),
+            ),
+          Expanded(
+            child: IndexedStack(
+              index: _selectedIndex,
+              children: _destinations
+                  .map(
+                    (destination) => _OperatorSection(destination: destination),
+                  )
+                  .toList(growable: false),
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,

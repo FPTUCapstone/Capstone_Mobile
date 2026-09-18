@@ -121,4 +121,21 @@ void main() {
       AppRoutes.traveler,
     );
   });
+
+  // UC-05 T09: the post-sign-out direction — an unauthenticated session on a
+  // protected route must be sent to the sign-in screen by the guard alone.
+  testWidgets(
+    'an unauthenticated session is sent from protected routes to Sign In',
+    (tester) async {
+      const session = AuthSessionState.unauthenticated();
+      expect(
+        await resolve(tester, session, AppRoutes.traveler),
+        AppRoutes.login,
+      );
+      expect(
+        await resolve(tester, session, AppRoutes.operator),
+        AppRoutes.login,
+      );
+    },
+  );
 }

@@ -10,6 +10,7 @@ import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/auth/data/models/login_request.dart';
 import 'package:trip_mate_mobile/features/auth/data/models/register_traveler_request.dart';
+import 'package:trip_mate_mobile/features/auth/data/models/sign_out_request.dart';
 
 class MockSecureStorageService implements SecureStorageService {
   MockSecureStorageService([this.value]);
@@ -487,5 +488,105 @@ void main() {
         },
       );
     }
+
+    // --- UC-05 T01: sign-out request model + remote data-source contract.
+    // The logout endpoint returns a DIRECT DTO (`{"message": ...}`), so success
+    // must come from the HTTP status and never from envelope parsing.
+
+    group('logout', () {
+      RecordingHttpClientAdapter logoutAdapter({int statusCode = 200}) {
+        final adapter = RecordingHttpClientAdapter(
+          statusCode: statusCode,
+          body: '{"message":"Signed out successfully."}',
+        );
+        dioClient.dio.httpClientAdapter = adapter;
+        return adapter;
+      }
+
+      test('serialises a refresh token value', () {
+        expect(const SignOutRequest(refreshToken: 'refresh-value').toJson(), {
+          'refreshToken': 'refresh-value',
+        });
+      });
+
+      test('serialises an explicit null refresh token', () {
+        expect(const SignOutRequest(refreshToken: null).toJson(), {
+          'refreshToken': null,
+        });
+      });
+
+      test('posts the refresh token to the approved logout route', () async {
+        final adapter = logoutAdapter();
+
+        await dataSource.logout('refresh-value');
+
+        expect(adapter.request?.path, '/api/v1/auth/logout');
+        expect(adapter.request?.method, 'POST');
+        expect(adapter.request?.data, {'refreshToken': 'refresh-value'});
+      });
+
+      test('a missing token still sends an explicit JSON body', () async {
+        final adapter = logoutAdapter();
+
+        await dataSource.logout(null);
+
+        expect(adapter.request?.data, isNotNull);
+        expect(adapter.request?.data, {'refreshToken': null});
+      });
+
+      test('accepts the direct non-envelope 200 DTO', () async {
+        logoutAdapter();
+
+        // A 200 body without `success`/`data` proves _unwrap() is not used.
+        await expectLater(dataSource.logout('refresh-value'), completes);
+      });
+
+      test('a 500 maps through the existing server error mapping', () async {
+        final adapter = RecordingHttpClientAdapter(
+          statusCode: 500,
+          body: '{"title":"A system error occurred.","status":500}',
+        );
+        dioClient.dio.httpClientAdapter = adapter;
+
+        await expectLater(
+          () => dataSource.logout('refresh-value'),
+          throwsA(
+            isA<ServerException>()
+                .having((error) => error.statusCode, 'statusCode', 500)
+                .having((error) => error.message, 'message', unavailableCopy),
+          ),
+        );
+      });
+
+      test(
+        'a transport failure maps to the recoverable network copy',
+        () async {
+          dioClient.dio.httpClientAdapter = FailingHttpClientAdapter(
+            DioExceptionType.connectionError,
+          );
+
+          await expectLater(
+            () => dataSource.logout('refresh-value'),
+            throwsA(
+              isA<NetworkException>().having(
+                (error) => error.message,
+                'message',
+                unavailableCopy,
+              ),
+            ),
+          );
+        },
+      );
+
+      test('adds no logout-specific Authorization requirement', () async {
+        final adapter = logoutAdapter();
+
+        await dataSource.logout('refresh-value');
+
+        // Any Bearer would come only from the shared interceptor when secure
+        // storage holds an access token; logout must not attach or require one.
+        expect(adapter.request?.headers.containsKey('Authorization'), isFalse);
+      });
+    });
   });
 }
