@@ -1,5 +1,19 @@
 import 'package:equatable/equatable.dart';
 
+String formatPlanningDateTime(DateTime value) {
+  final vietnamTime = DateTime.utc(
+    value.year,
+    value.month,
+    value.day,
+    value.hour,
+    value.minute,
+    value.second,
+    value.millisecond,
+    value.microsecond,
+  );
+  return '${vietnamTime.toIso8601String().replaceFirst('Z', '')}+07:00';
+}
+
 enum TransportMode { walking, motorbike, car, publicTransit }
 
 enum RestPreference { auto, none, frequent }

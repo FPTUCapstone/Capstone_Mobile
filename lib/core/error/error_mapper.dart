@@ -53,7 +53,11 @@ abstract final class ErrorMapper {
       );
     }
     if (statusCode == 422) return const ConstraintFailure();
-    if (statusCode == 429) return const DailyLimitFailure();
+    if (statusCode == 429) {
+      return const ServerFailure(
+        'The routing service is temporarily unavailable. Please try again later.',
+      );
+    }
     if (statusCode != null && statusCode >= 500) return const ServerFailure();
 
     return switch (error.type) {

@@ -17,9 +17,15 @@ final class CreateItineraryCubit extends Cubit<CreateItineraryState> {
   final ItineraryRepository _repository;
   final String Function() _operationKeyFactory;
   String? _operationKey;
+  ItineraryGenerationRequest? _lastAttemptRequest;
 
   Future<void> generate(ItineraryGenerationRequest request) async {
+    if (_lastAttemptRequest != null && _lastAttemptRequest != request) {
+      _operationKey = null;
+    }
+
     final key = _operationKey ??= _operationKeyFactory();
+    _lastAttemptRequest = request;
     emit(const CreateItineraryState.generating());
     try {
       final result = await _repository.generate(
@@ -27,6 +33,7 @@ final class CreateItineraryCubit extends Cubit<CreateItineraryState> {
         idempotencyKey: key,
       );
       _operationKey = null;
+      _lastAttemptRequest = null;
       emit(CreateItineraryState.success(result));
     } catch (error) {
       final message = switch (error) {
@@ -37,7 +44,6 @@ final class CreateItineraryCubit extends Cubit<CreateItineraryState> {
         ConflictFailure() =>
           'This request was already used with different details. Start a new itinerary request.',
         ConstraintFailure failure => failure.message,
-        DailyLimitFailure failure => failure.message,
         ValidationFailure failure => failure.message,
         _ =>
           'TripMate is temporarily unable to generate your itinerary. Please try again.',

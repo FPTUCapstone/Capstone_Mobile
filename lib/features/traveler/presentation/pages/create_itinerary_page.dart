@@ -261,7 +261,7 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
 
     context.read<CreateItineraryCubit>().generate(
       ItineraryGenerationRequest(
-        startAt: _startAt.toIso8601String(),
+        startAt: formatPlanningDateTime(_startAt),
         timeZoneId: _planningTimeZone,
         startLatitude: startLocation.latitude,
         startLongitude: startLocation.longitude,

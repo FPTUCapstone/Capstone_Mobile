@@ -241,6 +241,6 @@ void main() {
 
     expect(failureFor(409), isA<ConflictFailure>());
     expect(failureFor(422), isA<ConstraintFailure>());
-    expect(failureFor(429), isA<DailyLimitFailure>());
+    expect(failureFor(429), isA<ServerFailure>());
   });
 }

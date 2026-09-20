@@ -54,6 +54,55 @@ void main() {
       expect(repository.keys.toSet(), hasLength(1));
     },
   );
+
+  blocTest<CreateItineraryCubit, CreateItineraryState>(
+    'creates a new idempotency key when the request changes after a failure',
+    build: () {
+      repository = _FailingRepository();
+      var keyNumber = 0;
+      return CreateItineraryCubit(
+        repository: repository,
+        operationKeyFactory: () => 'operation-${++keyNumber}',
+      );
+    },
+    act: (cubit) async {
+      await cubit.generate(request);
+      await cubit.generate(
+        const ItineraryGenerationRequest(
+          startAt: '2026-10-20T08:00:00+07:00',
+          timeZoneId: 'Asia/Ho_Chi_Minh',
+          startLatitude: 16.0544,
+          startLongitude: 108.2022,
+          explorationLatitude: 16.0471,
+          explorationLongitude: 108.2068,
+          returnToStart: true,
+          availableMinutes: 360,
+          transportMode: TransportMode.motorbike,
+          searchRadiusKm: 10,
+          mandatoryPoiIds: [],
+          restPreference: RestPreference.auto,
+        ),
+      );
+    },
+    expect: () => [
+      const CreateItineraryState.generating(),
+      isA<CreateItineraryState>().having(
+        (state) => state.status,
+        'status',
+        CreateItineraryStatus.failure,
+      ),
+      const CreateItineraryState.generating(),
+      isA<CreateItineraryState>().having(
+        (state) => state.status,
+        'status',
+        CreateItineraryStatus.failure,
+      ),
+    ],
+    verify: (cubit) {
+      expect(repository.keys, hasLength(2));
+      expect(repository.keys.toSet(), hasLength(2));
+    },
+  );
 }
 
 final class _FailingRepository implements ItineraryRepository {

@@ -85,13 +85,6 @@ final class ConstraintFailure extends Failure {
   ]);
 }
 
-final class DailyLimitFailure extends Failure {
-  const DailyLimitFailure([
-    super.message =
-        'You can generate up to 3 itineraries per day. Please try again tomorrow.',
-  ]);
-}
-
 final class UnknownFailure extends Failure {
   const UnknownFailure([
     super.message = 'Something went wrong. Please try again.',
