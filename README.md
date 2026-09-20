@@ -194,6 +194,8 @@ flutter run \
   --dart-define=API_BASE_URL=https://api.example.invalid
 ```
 
+The UC-12 category chips are disabled in production until Backend publishes an approved public category catalogue. `--dart-define=POI_CATEGORY_PREVIEW=true` is only for development preview and cannot enable production category filtering.
+
 Do not place tokens or secrets in Dart defines or source control.
 
 ## Storage and Networking
