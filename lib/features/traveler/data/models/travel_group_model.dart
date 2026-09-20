@@ -8,13 +8,15 @@ final class TravelGroupModel {
   const TravelGroupModel({
     required this.id,
     required this.name,
-    required this.inviteCode,
+    this.inviteCode,
+    this.itineraryId,
   });
 
   factory TravelGroupModel.fromJson(Map<String, dynamic> json) {
     final id = json['groupId'];
     final name = json['groupName'];
     final inviteCode = json['inviteCode'];
+    final itineraryId = json['itineraryId'];
     if (id is! int || id <= 0) {
       throw const FormatException(
         'Travel group response has an invalid groupId.',
@@ -25,24 +27,25 @@ final class TravelGroupModel {
         'Travel group response has an invalid groupName.',
       );
     }
-    if (inviteCode is! String || inviteCode.trim().isEmpty) {
-      throw const FormatException(
-        'Travel group response has an invalid inviteCode.',
-      );
-    }
 
     return TravelGroupModel(
       id: id,
       name: name.trim(),
-      inviteCode: inviteCode.trim(),
+      inviteCode: inviteCode is String ? inviteCode.trim() : null,
+      itineraryId: itineraryId is int ? itineraryId : null,
     );
   }
 
   final int id;
   final String name;
-  final String inviteCode;
+  final String? inviteCode;
+  final int? itineraryId;
 
   /// Converts this model to the domain entity.
-  TravelGroup toEntity() =>
-      TravelGroup(id: id, name: name, inviteCode: inviteCode);
+  TravelGroup toEntity() => TravelGroup(
+    id: id,
+    name: name,
+    inviteCode: inviteCode,
+    itineraryId: itineraryId,
+  );
 }

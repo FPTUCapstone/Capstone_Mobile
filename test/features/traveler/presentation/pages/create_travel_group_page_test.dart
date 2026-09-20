@@ -20,6 +20,14 @@ final class _MockRepository implements TravelGroupRepository {
     lastSubmittedItineraryId = itineraryId;
     return TravelGroup(id: 1, name: name, inviteCode: 'ABC12345');
   }
+
+  @override
+  Future<TravelGroup> joinTravelGroup({
+    required String invitationCode,
+    required String idempotencyKey,
+  }) async {
+    return const TravelGroup(id: 1, name: 'Test Group', inviteCode: 'ABC12345');
+  }
 }
 
 void main() {

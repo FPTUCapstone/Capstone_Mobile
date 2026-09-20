@@ -12,6 +12,8 @@ abstract final class AppRoutes {
   static const travelerProfile = '/traveler/profile';
   static const travelerPreferences = '/traveler/preferences';
   static const createTravelGroup = '/traveler/groups/create';
+  static const joinTravelGroup = '/traveler/groups/join';
+  static const travelerTravelGroups = '/traveler/groups';
   static const travelGroupDetails = '/traveler/groups/:groupId';
   static const operator = '/operator';
   static const operatorApplication = '/operator/application';
@@ -35,6 +37,7 @@ abstract final class AppRouteNames {
   static const travelerProfile = 'traveler-profile';
   static const travelerPreferences = 'traveler-preferences';
   static const createTravelGroup = 'create-travel-group';
+  static const joinTravelGroup = 'join-travel-group';
   static const travelGroupDetails = 'travel-group-details';
   static const operator = 'operator';
   static const operatorApplication = 'operator-application';

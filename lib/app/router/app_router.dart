@@ -22,8 +22,10 @@ import 'package:trip_mate_mobile/features/poi/presentation/pages/poi_detail_page
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_travel_group_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/join_travel_group_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_details_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_preferences_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_profile_page.dart';
@@ -127,6 +129,14 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
             ),
           );
         },
+      ),
+      GoRoute(
+        path: AppRoutes.joinTravelGroup,
+        name: AppRouteNames.joinTravelGroup,
+        builder: (_, _) => BlocProvider(
+          create: (_) => JoinTravelGroupCubit(repository: serviceLocator()),
+          child: const JoinTravelGroupPage(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.travelGroupDetails,
