@@ -14,12 +14,17 @@ enum _MobileRoleSupport { supported, administratorUnsupported, unknown }
 
 final class AuthSessionCubit extends Cubit<AuthSessionState> {
   AuthSessionCubit([
-    this._authRepository,
+    AuthRepository? authRepository,
     this._secureStorage,
     this._firebaseAuthService,
-  ]) : super(const AuthSessionState.unauthenticated());
+  ]) : _authRepository = authRepository,
+       _logoutAllRepository = authRepository is LogoutAllRepository
+           ? authRepository as LogoutAllRepository
+           : null,
+       super(const AuthSessionState.unauthenticated());
 
   final AuthRepository? _authRepository;
+  final LogoutAllRepository? _logoutAllRepository;
   final SecureStorageService? _secureStorage;
   final AuthIdentityService? _firebaseAuthService;
   bool _verificationActionInProgress = false;
@@ -45,9 +50,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
 
   /// UC-05 backend-integrated sign-out. The session deliberately stays
   /// `authenticated` while the remote request is in flight so the router guard
-  /// never redirects early; the existing centralized cleanup then ends it.
-  /// Remote-failure policy (M1/M3) and the local-cleanup safety rule (M7)
-  /// belong to later tasks.
+  /// never redirects early. Local cleanup starts only after backend success.
   Future<void> signOut() async {
     if (!state.isAuthenticated) return;
     // The state's own operation marker is the duplicate guard: it is set
@@ -65,20 +68,42 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     );
 
     final storage = _secureStorage;
+    final repository = _authRepository;
     final refreshToken = storage == null
         ? null
         : await _readRefreshTokenQuietly(storage);
 
-    var remoteFailed = false;
+    if (repository == null) {
+      emit(
+        AuthSessionState.authenticated(
+          role,
+          applicationStatus: applicationStatus,
+          errorMessage: signOutFailureMessage,
+        ),
+      );
+      return;
+    }
+
     try {
-      await _authRepository?.logout(refreshToken);
+      await repository.logout(refreshToken);
     } on NetworkException {
-      // M1: a transport failure may leave the server session active, but the
-      // user's local sign-out still completes.
-      remoteFailed = true;
+      emit(
+        AuthSessionState.authenticated(
+          role,
+          applicationStatus: applicationStatus,
+          errorMessage: signOutFailureMessage,
+        ),
+      );
+      return;
     } on ServerException {
-      // An infrastructure/server failure behaves identically for the local user.
-      remoteFailed = true;
+      emit(
+        AuthSessionState.authenticated(
+          role,
+          applicationStatus: applicationStatus,
+          errorMessage: signOutFailureMessage,
+        ),
+      );
+      return;
     } catch (_) {
       // Unexpected non-remote error: keep the pre-T04 fail-safe (never leave the
       // in-flight marker set) and let it surface.
@@ -114,13 +139,56 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     // is proven non-restorable; a provider failure must not change that.
     await _bestEffortProviderSignOut();
 
+    emit(const AuthSessionState.unauthenticated());
+  }
+
+  Future<bool> signOutAllDevices() async {
+    if (!state.isAuthenticated) return false;
+    if (state.operation == AuthSessionOperation.signOut) return false;
+
+    final role = state.role!;
+    final applicationStatus = state.applicationStatus;
     emit(
-      remoteFailed
-          ? const AuthSessionState.unauthenticated(
-              errorMessage: signOutRemoteFailureMessage,
-            )
-          : const AuthSessionState.unauthenticated(),
+      AuthSessionState.authenticated(
+        role,
+        applicationStatus: applicationStatus,
+        operation: AuthSessionOperation.signOut,
+      ),
     );
+
+    final storage = _secureStorage;
+    final repository = _logoutAllRepository;
+    final refreshToken = storage == null
+        ? null
+        : await _readRefreshTokenQuietly(storage);
+    if (storage == null || repository == null || refreshToken == null) {
+      emit(
+        AuthSessionState.authenticated(
+          role,
+          applicationStatus: applicationStatus,
+          errorMessage: signOutFailureMessage,
+        ),
+      );
+      return false;
+    }
+
+    try {
+      await repository.logoutAll(refreshToken);
+    } catch (_) {
+      emit(
+        AuthSessionState.authenticated(
+          role,
+          applicationStatus: applicationStatus,
+          errorMessage: signOutFailureMessage,
+        ),
+      );
+      return false;
+    }
+
+    await _clearStoredSessionBestEffort(storage);
+    await _bestEffortProviderSignOut();
+    emit(const AuthSessionState.unauthenticated());
+    return true;
   }
 
   /// Reads the stored refresh token for sign-out. A missing, blank or
@@ -511,16 +579,16 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
   static const administratorWebOnlyMessage =
       'Administrator accounts are supported on Web only.';
 
-  /// Approved M3 copy — the single source of truth for the notice shown when a
-  /// completed local sign-out could not reach the server. Never interpolated,
-  /// never accompanied by raw transport, HTTP or provider detail.
-  static const signOutRemoteFailureMessage =
-      'You\'re signed out on this device, but we couldn\'t '
-      'complete server-side sign-out.';
+  static const signOutFailureMessage =
+      'We couldn\'t complete sign out. Please try again.';
+
+  // Compatibility alias for existing views/tests while the retry copy remains
+  // centralized in [signOutFailureMessage].
+  static const signOutRemoteFailureMessage = signOutFailureMessage;
 
   /// Approved local-cleanup-failure copy — shown only when the persisted
   /// session could not be proven non-restorable, so no local sign-out may be
-  /// claimed. Never used together with [signOutRemoteFailureMessage].
+  /// claimed.
   static const signOutLocalCleanupFailureMessage =
       'We couldn\'t complete sign out on this device. Please try again.';
 

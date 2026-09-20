@@ -25,9 +25,7 @@ import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
 
-const _remoteFailureCopy =
-    'You\'re signed out on this device, but we couldn\'t '
-    'complete server-side sign-out.';
+const _remoteFailureCopy = AuthSessionCubit.signOutFailureMessage;
 const _rawTransportDetail = 'raw transport detail';
 
 void main() {
@@ -168,10 +166,9 @@ void main() {
     expect(find.text('Application submitted'), findsOneWidget);
   });
 
-  // --- UC-05 T04: the approved M3 notice renders on the login screen when a
-  // completed local sign-out could not reach the server.
+  // --- UC-05: failed backend revocation keeps the authenticated session.
 
-  testWidgets('login renders the approved sign-out notice exactly once', (
+  testWidgets('failed sign-out does not create a stale login-screen notice', (
     tester,
   ) async {
     final session = AuthSessionCubit(
@@ -185,9 +182,10 @@ void main() {
     );
     addTearDown(session.close);
     await session.restoreSession();
-    // The presentation contract is independent of the remote-failure boundary;
-    // after T04 this call completes normally instead of throwing.
-    await session.signOut().catchError((Object _) {});
+    await session.signOut();
+
+    expect(session.state.isAuthenticated, isTrue);
+    expect(session.state.errorMessage, _remoteFailureCopy);
 
     await tester.pumpWidget(
       _page(
@@ -198,8 +196,8 @@ void main() {
       ),
     );
 
-    expect(find.byType(AppAlert), findsOneWidget);
-    expect(find.text(_remoteFailureCopy), findsOneWidget);
+    expect(find.byType(AppAlert), findsNothing);
+    expect(find.text(_remoteFailureCopy), findsNothing);
     // Only the approved copy is rendered — never raw transport detail.
     expect(find.textContaining(_rawTransportDetail), findsNothing);
   });
@@ -253,8 +251,7 @@ final class _MemoryStorage implements SecureStorageService {
   Future<void> write(String key, String value) async => values[key] = value;
 }
 
-/// Fails only the logout call so a completed local sign-out whose remote
-/// revocation failed can be presented on the login screen.
+/// Fails only the logout call so session-preserving retry behavior is covered.
 final class _FailingLogoutRepository implements AuthRepository {
   const _FailingLogoutRepository();
 

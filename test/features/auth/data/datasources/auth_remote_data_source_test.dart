@@ -489,15 +489,17 @@ void main() {
       );
     }
 
-    // --- UC-05 T01: sign-out request model + remote data-source contract.
-    // The logout endpoint returns a DIRECT DTO (`{"message": ...}`), so success
-    // must come from the HTTP status and never from envelope parsing.
+    // --- UC-05: sign-out request model + remote data-source contract.
 
     group('logout', () {
-      RecordingHttpClientAdapter logoutAdapter({int statusCode = 200}) {
+      RecordingHttpClientAdapter logoutAdapter({
+        int statusCode = 200,
+        String body =
+            '{"success":true,"statusCode":200,"message":"Signed out successfully.","data":true,"errors":null}',
+      }) {
         final adapter = RecordingHttpClientAdapter(
           statusCode: statusCode,
-          body: '{"message":"Signed out successfully."}',
+          body: body,
         );
         dioClient.dio.httpClientAdapter = adapter;
         return adapter;
@@ -515,15 +517,19 @@ void main() {
         });
       });
 
-      test('posts the refresh token to the approved logout route', () async {
-        final adapter = logoutAdapter();
+      test(
+        'posts the raw refresh token to the approved logout route',
+        () async {
+          final adapter = logoutAdapter();
+          const rawToken = 'raw%2F+token/with=padding';
 
-        await dataSource.logout('refresh-value');
+          await dataSource.logout(rawToken);
 
-        expect(adapter.request?.path, '/api/v1/auth/logout');
-        expect(adapter.request?.method, 'POST');
-        expect(adapter.request?.data, {'refreshToken': 'refresh-value'});
-      });
+          expect(adapter.request?.path, '/api/v1/auth/logout');
+          expect(adapter.request?.method, 'POST');
+          expect(adapter.request?.data, {'refreshToken': rawToken});
+        },
+      );
 
       test('a missing token still sends an explicit JSON body', () async {
         final adapter = logoutAdapter();
@@ -534,12 +540,29 @@ void main() {
         expect(adapter.request?.data, {'refreshToken': null});
       });
 
-      test('accepts the direct non-envelope 200 DTO', () async {
+      test('accepts a valid success envelope', () async {
         logoutAdapter();
 
-        // A 200 body without `success`/`data` proves _unwrap() is not used.
         await expectLater(dataSource.logout('refresh-value'), completes);
       });
+
+      test(
+        'rejects a malformed 200 response as a safe server failure',
+        () async {
+          logoutAdapter(body: '{"message":"Signed out successfully."}');
+
+          await expectLater(
+            () => dataSource.logout('refresh-value'),
+            throwsA(
+              isA<ServerException>().having(
+                (error) => error.message,
+                'message',
+                'Something went wrong. Please try again.',
+              ),
+            ),
+          );
+        },
+      );
 
       test('a 500 maps through the existing server error mapping', () async {
         final adapter = RecordingHttpClientAdapter(
@@ -586,6 +609,60 @@ void main() {
         // Any Bearer would come only from the shared interceptor when secure
         // storage holds an access token; logout must not attach or require one.
         expect(adapter.request?.headers.containsKey('Authorization'), isFalse);
+      });
+    });
+
+    group('logoutAll', () {
+      RecordingHttpClientAdapter logoutAllAdapter({
+        int statusCode = 200,
+        String body =
+            '{"success":true,"statusCode":200,"message":"Signed out from all devices.","data":true,"errors":null}',
+      }) {
+        final adapter = RecordingHttpClientAdapter(
+          statusCode: statusCode,
+          body: body,
+        );
+        dioClient.dio.httpClientAdapter = adapter;
+        return adapter;
+      }
+
+      test('posts the unmodified raw refresh token to logout-all', () async {
+        final adapter = logoutAllAdapter();
+        const rawToken = 'raw%2F+token/with=padding';
+
+        await dataSource.logoutAll(rawToken);
+
+        expect(adapter.request?.path, '/api/v1/auth/logout-all');
+        expect(adapter.request?.method, 'POST');
+        expect(adapter.request?.data, {'refreshToken': rawToken});
+      });
+
+      test('accepts only a valid success envelope', () async {
+        logoutAllAdapter();
+
+        await expectLater(dataSource.logoutAll('refresh-value'), completes);
+      });
+
+      test('maps a 500 to safe copy without leaking internal detail', () async {
+        logoutAllAdapter(
+          statusCode: 500,
+          body:
+              '{"title":"SqlException: database tripmate_prod failed","status":500}',
+        );
+
+        await expectLater(
+          () => dataSource.logoutAll('refresh-value'),
+          throwsA(
+            isA<ServerException>()
+                .having((error) => error.statusCode, 'statusCode', 500)
+                .having((error) => error.message, 'message', unavailableCopy)
+                .having(
+                  (error) => error.message,
+                  'does not leak internal detail',
+                  isNot(contains('SqlException')),
+                ),
+          ),
+        );
       });
     });
   });

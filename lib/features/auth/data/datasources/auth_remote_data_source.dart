@@ -23,6 +23,8 @@ abstract interface class AuthRemoteDataSource {
   ]);
 
   Future<void> logout(String? refreshToken);
+
+  Future<void> logoutAll(String refreshToken);
 }
 
 final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -116,21 +118,34 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
   }
 
-  /// UC-05 sign-out. The backend answers a direct DTO (`{"message": ...}`)
-  /// instead of the `{success, data}` envelope, so success comes from the HTTP
-  /// status alone and the response body is deliberately not unwrapped.
   @override
-  Future<void> logout(String? refreshToken) async {
+  Future<void> logout(String? refreshToken) =>
+      _signOut('/api/v1/auth/logout', refreshToken);
+
+  @override
+  Future<void> logoutAll(String refreshToken) =>
+      _signOut('/api/v1/auth/logout-all', refreshToken);
+
+  Future<void> _signOut(String path, String? refreshToken) async {
     try {
-      await _dioClient.dio.post<void>(
-        '/api/v1/auth/logout',
+      final response = await _dioClient.dio.post<Map<String, dynamic>>(
+        path,
         data: SignOutRequest(refreshToken: refreshToken).toJson(),
       );
+      _unwrapSignOut(response.data);
+    } on FormatException {
+      throw const ServerException('Something went wrong. Please try again.');
     } on DioException catch (error) {
       throw _handleDioError(error);
     } catch (error) {
       if (error is AppException) rethrow;
       throw const ServerException('Something went wrong. Please try again.');
+    }
+  }
+
+  void _unwrapSignOut(Map<String, dynamic>? response) {
+    if (response?['success'] != true || response?['data'] != true) {
+      throw const FormatException('Invalid sign-out response envelope.');
     }
   }
 

@@ -19,3 +19,7 @@ abstract interface class AuthRepository {
 
   Future<void> logout(String? refreshToken);
 }
+
+abstract interface class LogoutAllRepository {
+  Future<void> logoutAll(String refreshToken);
+}
