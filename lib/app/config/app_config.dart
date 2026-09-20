@@ -31,6 +31,8 @@ final class AppConfig {
   final bool poiCategoryPreview;
 
   bool get enableNetworkLogs => environment != Environment.production;
+  bool get categoryPreviewEnabled =>
+      poiCategoryPreview && environment != Environment.production;
 
   static String _defaultApiBaseUrl() {
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {

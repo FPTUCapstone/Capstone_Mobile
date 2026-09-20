@@ -85,4 +85,28 @@ void main() {
     expect(detail.photos.single.id, 8);
     expect(detail.tags.single.name, 'Sunrise');
   });
+
+  test('accepts a null detail description', () {
+    final detail = PoiDetailModel.fromJson({
+      'id': 1,
+      'name': 'POI',
+      'description': null,
+      'status': 'Active',
+      'categoryId': 1,
+      'categoryName': 'Attraction',
+      'latitude': 1,
+      'longitude': 1,
+      'indoorOutdoor': 'Outdoor',
+      'averageVisitDurationMinutes': 60,
+      'hasShelter': false,
+      'reviewCount': 0,
+      'isOpenNow': true,
+      'openingHours': [],
+      'photos': [],
+      'tags': [],
+      'createdAtUtc': '2026-01-01T00:00:00Z',
+      'updatedAtUtc': '2026-01-01T00:00:00Z',
+    }).toEntity();
+    expect(detail.description, isNull);
+  });
 }

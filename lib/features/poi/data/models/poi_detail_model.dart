@@ -30,7 +30,7 @@ final class PoiDetailModel {
     return PoiDetailModel(
       id: _int(json, 'id'),
       name: _string(json, 'name'),
-      description: _string(json, 'description'),
+      description: _nullableString(json['description']),
       status: _string(json, 'status'),
       categoryId: _int(json, 'categoryId'),
       categoryName: _string(json, 'categoryName'),
@@ -58,7 +58,7 @@ final class PoiDetailModel {
 
   final int id;
   final String name;
-  final String description;
+  final String? description;
   final String status;
   final int categoryId;
   final String categoryName;

@@ -28,7 +28,7 @@ final class PoiDetail extends Equatable {
 
   final int id;
   final String name;
-  final String description;
+  final String? description;
   final String status;
   final int categoryId;
   final String categoryName;

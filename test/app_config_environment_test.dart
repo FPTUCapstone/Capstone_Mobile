@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/app/config/app_config.dart';
+import 'package:trip_mate_mobile/app/config/environment.dart';
 
 void main() {
   tearDown(() => debugDefaultTargetPlatformOverride = null);
@@ -24,5 +25,15 @@ void main() {
       AppConfig.fromEnvironment().apiBaseUrl,
       Uri.parse('https://api.example.invalid'),
     );
+  });
+
+  test('does not enable category preview in production', () {
+    final config = AppConfig(
+      environment: Environment.production,
+      apiBaseUrl: Uri.parse('https://api.example.invalid'),
+      poiCategoryPreview: true,
+    );
+
+    expect(config.categoryPreviewEnabled, isFalse);
   });
 }

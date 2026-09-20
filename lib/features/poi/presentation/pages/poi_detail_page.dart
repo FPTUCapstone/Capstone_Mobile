@@ -165,15 +165,16 @@ class _PoiDetailContent extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _SectionCard(
-                        title: 'Giới thiệu',
-                        child: Text(
-                          detail.description,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyLarge?.copyWith(height: 1.55),
+                      if (detail.description case final description?)
+                        _SectionCard(
+                          title: 'Giới thiệu',
+                          child: Text(
+                            description,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodyLarge?.copyWith(height: 1.55),
+                          ),
                         ),
-                      ),
                       if (detail.tags.isNotEmpty) ...[
                         const SizedBox(height: 16),
                         _SectionCard(

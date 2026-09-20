@@ -107,7 +107,7 @@ class _ExplorePoiPageState extends State<ExplorePoiPage> {
 
   bool _categoryPreviewEnabled() {
     if (!serviceLocator.isRegistered<AppConfig>()) return false;
-    return serviceLocator<AppConfig>().poiCategoryPreview;
+    return serviceLocator<AppConfig>().categoryPreviewEnabled;
   }
 }
 
