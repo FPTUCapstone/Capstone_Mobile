@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
-import 'package:trip_mate_mobile/app/router/travel_group_details_route_args.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_cubit.dart';
@@ -132,10 +131,7 @@ class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
               if (router != null) {
                 router.go(
                   '${AppRoutes.travelerTravelGroups}/${group.id}',
-                  extra: TravelGroupDetailsRouteArgs(
-                    group: group,
-                    isHost: false,
-                  ),
+                  extra: group,
                 );
               }
             }
