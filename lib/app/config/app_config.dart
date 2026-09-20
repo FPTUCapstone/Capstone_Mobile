@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:trip_mate_mobile/app/config/environment.dart';
 
 final class AppConfig {
@@ -8,14 +9,14 @@ final class AppConfig {
       'APP_ENV',
       defaultValue: 'development',
     );
-    const apiBaseUrlValue = String.fromEnvironment(
-      'API_BASE_URL',
-      defaultValue: 'https://api.example.invalid',
-    );
+    const apiBaseUrlValue = String.fromEnvironment('API_BASE_URL');
+    final resolvedApiBaseUrl = apiBaseUrlValue.isNotEmpty
+        ? apiBaseUrlValue
+        : _defaultApiBaseUrl();
 
     return AppConfig(
       environment: Environment.fromValue(environmentValue),
-      apiBaseUrl: _parseBaseUrl(apiBaseUrlValue),
+      apiBaseUrl: _parseBaseUrl(resolvedApiBaseUrl),
     );
   }
 
@@ -23,6 +24,13 @@ final class AppConfig {
   final Uri apiBaseUrl;
 
   bool get enableNetworkLogs => environment != Environment.production;
+
+  static String _defaultApiBaseUrl() {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:5000';
+    }
+    return 'https://api.example.invalid';
+  }
 
   static Uri _parseBaseUrl(String value) {
     final uri = Uri.tryParse(value);

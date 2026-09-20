@@ -4,81 +4,36 @@ import 'package:trip_mate_mobile/core/error/error_mapper.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 
 void main() {
+  DioException responseError({
+    required int statusCode,
+    dynamic data,
+    String path = '/travel-groups',
+  }) => DioException(
+    requestOptions: RequestOptions(path: path),
+    response: Response(
+      requestOptions: RequestOptions(path: path),
+      statusCode: statusCode,
+      data: data,
+    ),
+  );
+
   test('maps HTTP 401 to AuthenticationFailure', () {
-    final failure = ErrorMapper.toFailure(
-      DioException(
-        requestOptions: RequestOptions(path: '/travel-groups'),
-        response: Response(
-          requestOptions: RequestOptions(path: '/travel-groups'),
-          statusCode: 401,
-        ),
-      ),
-    );
+    final failure = ErrorMapper.toFailure(responseError(statusCode: 401));
 
     expect(failure, isA<AuthenticationFailure>());
   });
 
   test('maps HTTP 403 to PermissionFailure', () {
-    final failure = ErrorMapper.toFailure(
-      DioException(
-        requestOptions: RequestOptions(path: '/travel-groups'),
-        response: Response(
-          requestOptions: RequestOptions(path: '/travel-groups'),
-          statusCode: 403,
-        ),
-      ),
-    );
+    final failure = ErrorMapper.toFailure(responseError(statusCode: 403));
 
     expect(failure, isA<PermissionFailure>());
   });
 
   test(
-    'maps HTTP 400 with ProblemDetails title to ValidationFailure with custom message',
+    'maps validation errors to ValidationFailure with the field message',
     () {
       final failure = ErrorMapper.toFailure(
-        DioException(
-          requestOptions: RequestOptions(path: '/travel-groups'),
-          response: Response(
-            requestOptions: RequestOptions(path: '/travel-groups'),
-            statusCode: 400,
-            data: {'title': 'A valid Idempotency-Key header is required.'},
-          ),
-        ),
-      );
-
-      expect(failure, isA<ValidationFailure>());
-      expect(failure.message, 'A valid Idempotency-Key header is required.');
-    },
-  );
-
-  test(
-    'maps HTTP 400 with ProblemDetails detail to ValidationFailure with detail',
-    () {
-      final failure = ErrorMapper.toFailure(
-        DioException(
-          requestOptions: RequestOptions(path: '/travel-groups'),
-          response: Response(
-            requestOptions: RequestOptions(path: '/travel-groups'),
-            statusCode: 400,
-            data: {
-              'title': 'Bad Request',
-              'detail': 'Group name cannot be blank.',
-            },
-          ),
-        ),
-      );
-
-      expect(failure, isA<ValidationFailure>());
-      expect(failure.message, 'Group name cannot be blank.');
-    },
-  );
-
-  test('maps HTTP 400 with validation errors map to ValidationFailure', () {
-    final failure = ErrorMapper.toFailure(
-      DioException(
-        requestOptions: RequestOptions(path: '/travel-groups'),
-        response: Response(
-          requestOptions: RequestOptions(path: '/travel-groups'),
+        responseError(
           statusCode: 400,
           data: {
             'errors': {
@@ -86,75 +41,101 @@ void main() {
             },
           },
         ),
-      ),
-    );
-
-    expect(failure, isA<ValidationFailure>());
-    expect(failure.message, 'Group name is required.');
-  });
-
-  test('maps HTTP 400 without body to default ValidationFailure', () {
-    final failure = ErrorMapper.toFailure(
-      DioException(
-        requestOptions: RequestOptions(path: '/travel-groups'),
-        response: Response(
-          requestOptions: RequestOptions(path: '/travel-groups'),
-          statusCode: 400,
-        ),
-      ),
-    );
-
-    expect(failure, isA<ValidationFailure>());
-    expect(failure.message, 'The provided data is invalid.');
-  });
-
-  test(
-    'maps HTTP 409 with ProblemDetails to ConflictFailure with custom message',
-    () {
-      final failure = ErrorMapper.toFailure(
-        DioException(
-          requestOptions: RequestOptions(path: '/travel-groups'),
-          response: Response(
-            requestOptions: RequestOptions(path: '/travel-groups'),
-            statusCode: 409,
-            data: {'title': 'Idempotency key payload mismatch.'},
-          ),
-        ),
       );
 
-      expect(failure, isA<ConflictFailure>());
-      expect(failure.message, 'Idempotency key payload mismatch.');
+      expect(failure, isA<ValidationFailure>());
+      expect(failure.message, 'Group name is required.');
     },
   );
 
-  test('maps HTTP 409 without body to default ConflictFailure', () {
+  test('maps an idempotency payload mismatch to a safe validation message', () {
     final failure = ErrorMapper.toFailure(
-      DioException(
-        requestOptions: RequestOptions(path: '/travel-groups'),
-        response: Response(
-          requestOptions: RequestOptions(path: '/travel-groups'),
-          statusCode: 409,
-        ),
+      responseError(
+        statusCode: 400,
+        data: {'errorCode': 'travel_group.idempotency_key_payload_mismatch'},
+      ),
+    );
+
+    expect(failure, isA<ValidationFailure>());
+    expect(
+      failure.message,
+      'A conflicting request with different request data is already in progress. Please try again.',
+    );
+  });
+
+  test(
+    'maps HTTP 400 without a supported message to default ValidationFailure',
+    () {
+      final failure = ErrorMapper.toFailure(responseError(statusCode: 400));
+
+      expect(failure, isA<ValidationFailure>());
+      expect(failure.message, 'The input provided is invalid.');
+    },
+  );
+
+  test('does not expose an unmapped technical HTTP 400 detail', () {
+    final failure = ErrorMapper.toFailure(
+      responseError(
+        statusCode: 400,
+        path: '/travel-groups/join',
+        data: {'detail': 'SqlException: Table not found'},
+      ),
+    );
+
+    expect(failure, isA<ValidationFailure>());
+    expect(failure.message, 'The input provided is invalid.');
+  });
+
+  test('maps an active membership conflict with its group id', () {
+    final failure = ErrorMapper.toFailure(
+      responseError(
+        statusCode: 409,
+        path: '/travel-groups/join',
+        data: {
+          'errorCode': 'travel_group.already_active_member',
+          'extensions': {'groupId': 42},
+        },
+      ),
+    );
+
+    expect(failure, isA<ConflictFailure>());
+    final conflict = failure as ConflictFailure;
+    expect(conflict.message, 'You are already a member of this travel group.');
+    expect(conflict.groupId, 42);
+  });
+
+  test('maps an idempotency payload conflict to a safe message', () {
+    final failure = ErrorMapper.toFailure(
+      responseError(
+        statusCode: 409,
+        data: {'errorCode': 'travel_group.idempotency_key_payload_mismatch'},
       ),
     );
 
     expect(failure, isA<ConflictFailure>());
     expect(
       failure.message,
-      'The operation is in conflict or already being processed.',
+      'A conflicting request with different request data is already in progress. Please try again.',
     );
   });
 
-  test('maps HTTP >= 500 to ServerFailure', () {
+  test('does not expose an unknown HTTP 409 detail', () {
     final failure = ErrorMapper.toFailure(
-      DioException(
-        requestOptions: RequestOptions(path: '/travel-groups'),
-        response: Response(
-          requestOptions: RequestOptions(path: '/travel-groups'),
-          statusCode: 500,
-        ),
+      responseError(
+        statusCode: 409,
+        data: {
+          'title': 'Internal SQL violation',
+          'detail': 'Deadlock victim process 54',
+        },
       ),
     );
+
+    expect(failure, isA<ConflictFailure>());
+    expect(failure.message, 'Conflict occurred. Please try again.');
+  });
+
+  test('maps HTTP >= 500 to ServerFailure', () {
+    final failure = ErrorMapper.toFailure(responseError(statusCode: 500));
 
     expect(failure, isA<ServerFailure>());
   });

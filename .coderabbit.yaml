@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://storage.googleapis.com/coderabbit_public_assets/schema.v2.json
+language: "en-US"
+
+tone_instructions: >
+  Group feedback into 3 buckets: Bug (correctness, unhandled Futures), Security (tokens outside
+  secure storage, exposed stack traces/HTTP info), Architecture (violates AGENTS.md:
+  Page->Cubit->UseCase->Repo->DataSource, raw Dio in widgets). Label each.
+
+reviews:
+  profile: assertive
+  request_changes_workflow: false # human reviewer gives the real approval, not CodeRabbit
+  auto_review:
+    enabled: true
+    base_branches:
+      - "develop"
+  path_filters:
+    - "!**/build/**"
+    - "!**/.dart_tool/**"
+  path_instructions:
+    - path: "lib/features/**"
+      instructions: >
+        Enforce Page -> Bloc/Cubit -> Use Case -> Repository contract -> Repository
+        implementation -> Data Source; flag Pages/Cubits issuing raw Dio requests directly.
+        Domain must not depend on Flutter, Dio, JSON DTOs, or platform storage. Flag tokens or
+        credentials stored anywhere other than the SecureStorageService abstraction.
+    - path: "lib/core/**"
+      instructions: >
+        Flag feature-specific logic placed here instead of under lib/features/<feature>/.

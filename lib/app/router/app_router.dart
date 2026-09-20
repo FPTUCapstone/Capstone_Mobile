@@ -1,27 +1,27 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/router/create_travel_group_route_args.dart';
 import 'package:trip_mate_mobile/app/router/route_guards.dart';
+import 'package:trip_mate_mobile/app/router/travel_group_details_route_args.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/tour_operator_application_status.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_application_cubit.dart';
-import 'package:trip_mate_mobile/features/auth/presentation/cubit/password_demo_cubit.dart';
-import 'package:trip_mate_mobile/features/auth/presentation/pages/change_password_page.dart';
-import 'package:trip_mate_mobile/features/auth/presentation/pages/demo_screen_index_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/login_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/operator_application_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/operator_registration_page.dart';
-import 'package:trip_mate_mobile/features/auth/presentation/pages/reset_password_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/splash_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/traveler_registration_page.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/pages/verify_email_page.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_travel_group_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/join_travel_group_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_details_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_preferences_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_profile_page.dart';
@@ -50,6 +50,13 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         builder: (_, _) => const TravelerRegistrationPage(),
       ),
       GoRoute(
+        path: AppRoutes.verifyEmail,
+        name: AppRouteNames.verifyEmail,
+        builder: (_, state) => VerifyEmailPage(
+          email: state.extra is String ? state.extra as String : null,
+        ),
+      ),
+      GoRoute(
         path: AppRoutes.operatorRegistration,
         name: AppRouteNames.operatorRegistration,
         builder: (_, _) => BlocProvider(
@@ -57,14 +64,6 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
             initialStatus: OperatorApplicationStatus.draft,
           ),
           child: const OperatorRegistrationPage(),
-        ),
-      ),
-      GoRoute(
-        path: AppRoutes.resetPassword,
-        name: AppRouteNames.resetPassword,
-        builder: (_, _) => BlocProvider(
-          create: (_) => PasswordDemoCubit(),
-          child: const ResetPasswordPage(),
         ),
       ),
       GoRoute(
@@ -91,14 +90,6 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         ),
       ),
       GoRoute(
-        path: AppRoutes.travelerChangePassword,
-        name: AppRouteNames.travelerChangePassword,
-        builder: (_, _) => BlocProvider(
-          create: (_) => PasswordDemoCubit(),
-          child: const ChangePasswordPage(),
-        ),
-      ),
-      GoRoute(
         path: AppRoutes.createTravelGroup,
         name: AppRouteNames.createTravelGroup,
         builder: (_, state) {
@@ -116,6 +107,14 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         },
       ),
       GoRoute(
+        path: AppRoutes.joinTravelGroup,
+        name: AppRouteNames.joinTravelGroup,
+        builder: (_, _) => BlocProvider(
+          create: (_) => JoinTravelGroupCubit(repository: serviceLocator()),
+          child: const JoinTravelGroupPage(),
+        ),
+      ),
+      GoRoute(
         path: AppRoutes.travelGroupDetails,
         name: AppRouteNames.travelGroupDetails,
         builder: (_, state) {
@@ -123,11 +122,15 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
           if (groupId == null || groupId <= 0) {
             return const ErrorView(message: 'Page not found.');
           }
+          final args = state.extra;
           return TravelGroupDetailsPage(
             groupId: groupId,
-            group: state.extra is TravelGroup
-                ? state.extra as TravelGroup
+            group: args is TravelGroupDetailsRouteArgs
+                ? args.group
+                : args is TravelGroup
+                ? args
                 : null,
+            isHost: args is TravelGroupDetailsRouteArgs ? args.isHost : false,
           );
         },
       ),
@@ -141,88 +144,21 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         name: AppRouteNames.operatorApplication,
         builder: (_, state) => BlocProvider(
           create: (_) => OperatorApplicationCubit(
-            initialStatus:
-                state.extra as OperatorApplicationStatus? ??
+            initialStatus: switch (sessionCubit.state.applicationStatus) {
+              TourOperatorApplicationStatus.pendingApproval =>
+                OperatorApplicationStatus.pending,
+              TourOperatorApplicationStatus.rejected =>
                 OperatorApplicationStatus.rejected,
+              _ => OperatorApplicationStatus.unresolved,
+            },
           ),
           child: const OperatorApplicationPage(),
         ),
       ),
-      if (kDebugMode) ..._demoRoutes,
     ],
     errorBuilder: (_, state) => Scaffold(
       appBar: AppBar(title: const Text('Page not found')),
-      body: ErrorView(message: state.error?.toString() ?? 'Page not found.'),
+      body: const ErrorView(message: 'Page not found.'),
     ),
   );
 }
-
-final _demoRoutes = <RouteBase>[
-  GoRoute(
-    path: AppRoutes.demoIndex,
-    name: AppRouteNames.demoIndex,
-    builder: (_, _) => const DemoScreenIndexPage(),
-  ),
-  GoRoute(
-    path: AppRoutes.demoUc01,
-    builder: (_, _) => const TravelerRegistrationPage(),
-  ),
-  GoRoute(
-    path: AppRoutes.demoUc02,
-    builder: (_, _) => BlocProvider(
-      create: (_) => OperatorApplicationCubit(
-        initialStatus: OperatorApplicationStatus.draft,
-      ),
-      child: const OperatorRegistrationPage(),
-    ),
-  ),
-  GoRoute(
-    path: AppRoutes.demoUc03,
-    builder: (_, _) => BlocProvider(
-      create: (_) => OperatorApplicationCubit(),
-      child: const OperatorApplicationPage(),
-    ),
-  ),
-  GoRoute(path: AppRoutes.demoUc04, builder: (_, _) => const LoginPage()),
-  GoRoute(
-    path: AppRoutes.demoUc05,
-    builder: (_, _) => const TravelerSettingsPage(),
-  ),
-  GoRoute(
-    path: AppRoutes.demoUc06,
-    builder: (_, _) => BlocProvider(
-      create: (_) => PasswordDemoCubit(),
-      child: const ResetPasswordPage(),
-    ),
-  ),
-  GoRoute(
-    path: AppRoutes.demoUc07,
-    builder: (_, _) => BlocProvider(
-      create: (_) => PasswordDemoCubit(),
-      child: const ChangePasswordPage(),
-    ),
-  ),
-  GoRoute(
-    path: AppRoutes.demoUc08,
-    builder: (_, _) => const TravelerProfilePage(),
-  ),
-  GoRoute(
-    path: AppRoutes.demoUc09,
-    builder: (_, _) => BlocProvider(
-      create: (_) => TravelPreferencesCubit(),
-      child: const TravelPreferencesPage(),
-    ),
-  ),
-  GoRoute(
-    path: AppRoutes.demoUc17,
-    builder: (_, state) {
-      return BlocProvider(
-        create: (_) => CreateTravelGroupCubit(repository: serviceLocator()),
-        child: CreateTravelGroupPage(
-          itineraryId: 1,
-          itineraryTitle: 'Demo itinerary (development only)',
-        ),
-      );
-    },
-  ),
-];

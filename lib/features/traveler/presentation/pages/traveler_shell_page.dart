@@ -30,8 +30,8 @@ class _TravelerShellPageState extends State<TravelerShellPage> {
         title: Text('Traveler · ${_destinations[_selectedIndex].label}'),
         actions: [
           IconButton(
-            onPressed: context.read<AuthSessionCubit>().clearPreviewSession,
-            tooltip: 'Exit preview',
+            onPressed: context.read<AuthSessionCubit>().clearSession,
+            tooltip: 'Sign out',
             icon: const Icon(Icons.logout),
           ),
         ],
@@ -97,6 +97,15 @@ class _TravelerSection extends StatelessWidget {
                 onPressed: () => context.push(AppRoutes.travelerSettings),
                 icon: const Icon(Icons.manage_accounts_outlined),
                 label: const Text('Account settings'),
+              ),
+            ],
+            if (destination.label == 'Home' ||
+                destination.label == 'Trips') ...[
+              const SizedBox(height: AppSpacing.sm),
+              OutlinedButton.icon(
+                onPressed: () => context.push(AppRoutes.joinTravelGroup),
+                icon: const Icon(Icons.group_add_outlined),
+                label: const Text('Join travel group'),
               ),
             ],
           ],

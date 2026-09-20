@@ -13,4 +13,12 @@ abstract interface class TravelGroupRepository {
     required int itineraryId,
     required String idempotencyKey,
   });
+
+  /// Joins an existing travel group with [invitationCode] and [idempotencyKey].
+  ///
+  /// Throws [Failure] subclasses on errors.
+  Future<TravelGroup> joinTravelGroup({
+    required String invitationCode,
+    required String idempotencyKey,
+  });
 }

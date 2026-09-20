@@ -30,13 +30,19 @@ final class PermissionFailure extends Failure {
 }
 
 final class ValidationFailure extends Failure {
-  const ValidationFailure([super.message = 'The provided data is invalid.']);
+  const ValidationFailure([super.message = 'The input provided is invalid.']);
 }
 
 final class ConflictFailure extends Failure {
   const ConflictFailure([
-    super.message = 'The operation is in conflict or already being processed.',
+    super.message = 'Conflict occurred. Please try again.',
+    this.groupId,
   ]);
+
+  final int? groupId;
+
+  @override
+  List<Object?> get props => [message, groupId];
 }
 
 final class UnknownFailure extends Failure {

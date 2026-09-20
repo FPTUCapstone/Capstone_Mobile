@@ -4,7 +4,6 @@ import 'package:trip_mate_mobile/core/utils/validators.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
-import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
 class TravelerProfilePage extends StatefulWidget {
   const TravelerProfilePage({super.key});
@@ -100,15 +99,8 @@ class _TravelerProfilePageState extends State<TravelerProfilePage> {
               const SizedBox(height: AppSpacing.md),
               const AppTextField(
                 enabled: false,
-                initialValue: 'traveler@tripmate.demo',
+                initialValue: 'Email unavailable',
                 label: 'Email address',
-                suffix: Padding(
-                  padding: EdgeInsets.all(12),
-                  child: StatusBadge(
-                    label: 'Verified',
-                    type: StatusBadgeType.success,
-                  ),
-                ),
               ),
               const SizedBox(height: AppSpacing.md),
               AppTextField(
