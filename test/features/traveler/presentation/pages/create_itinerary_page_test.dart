@@ -100,6 +100,25 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('rejects a non-positive budget instead of omitting it', (
+    tester,
+  ) async {
+    await tester.pumpWidget(buildPage());
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Budget (VND, optional)'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.enterText(find.byType(TextField), '0');
+    await tester.pump();
+
+    expect(
+      find.text('Enter a positive budget or leave this field blank.'),
+      findsOneWidget,
+    );
+  });
 }
 
 final class _ItineraryRepository implements ItineraryRepository {

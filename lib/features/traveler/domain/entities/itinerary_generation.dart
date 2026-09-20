@@ -61,6 +61,7 @@ final class GeneratedItineraryItem extends Equatable {
     required this.isMandatory,
     this.poiId,
     this.poiName,
+    this.travelDurationToNextMinutes,
     this.estimatedCost,
     this.recommendationReason,
   });
@@ -68,6 +69,7 @@ final class GeneratedItineraryItem extends Equatable {
   final int sequenceNo;
   final int? poiId;
   final String? poiName;
+  final int? travelDurationToNextMinutes;
   final ItineraryItemKind itemKind;
   final DateTime plannedArrival;
   final DateTime plannedDeparture;
@@ -81,6 +83,7 @@ final class GeneratedItineraryItem extends Equatable {
     sequenceNo,
     poiId,
     poiName,
+    travelDurationToNextMinutes,
     itemKind,
     plannedArrival,
     plannedDeparture,

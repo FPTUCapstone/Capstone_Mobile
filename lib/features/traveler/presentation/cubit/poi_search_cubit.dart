@@ -13,6 +13,7 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
 
   final DeviceLocationService _locationService;
   final PointOfInterestRepository _repository;
+  int _searchGeneration = 0;
 
   Future<void> useCurrentLocation() async {
     emit(const PoiSearchState.locating());
@@ -40,17 +41,24 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
     }
   }
 
-  Future<void> search({String? query, DeviceLocation? near}) async {
+  Future<void> search({
+    String? query,
+    DeviceLocation? near,
+    int? radiusKm,
+  }) async {
+    final generation = ++_searchGeneration;
     emit(const PoiSearchState.searching());
     try {
       final results = await _repository.search(
         query: query,
         latitude: near?.latitude,
         longitude: near?.longitude,
-        radiusKm: near == null ? null : 50,
+        radiusKm: near == null ? null : radiusKm ?? 50,
       );
+      if (generation != _searchGeneration || isClosed) return;
       emit(PoiSearchState.resultsReady(results));
     } catch (_) {
+      if (generation != _searchGeneration || isClosed) return;
       emit(
         const PoiSearchState.failure(
           'Places are unavailable right now. Please try again.',

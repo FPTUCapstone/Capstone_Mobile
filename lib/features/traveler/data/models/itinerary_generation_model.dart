@@ -8,6 +8,7 @@ final class ItineraryGenerationModel {
         json['itineraryId'] is! int ||
         json['title'] is! String ||
         json['status'] is! String ||
+        json['totalEstimatedCost'] is! num ||
         json['totalDurationMinutes'] is! int ||
         json['items'] is! List) {
       throw const FormatException('Invalid itinerary generation response.');
@@ -22,7 +23,7 @@ final class ItineraryGenerationModel {
     itineraryId: _json['itineraryId'] as int,
     title: _json['title'] as String,
     status: _json['status'] as String,
-    totalEstimatedCost: (_json['totalEstimatedCost'] as num?)?.toDouble() ?? 0,
+    totalEstimatedCost: (_json['totalEstimatedCost'] as num).toDouble(),
     totalDurationMinutes: _json['totalDurationMinutes'] as int,
     items: (_json['items'] as List)
         .map((item) => _itemFromJson(item as Map<String, dynamic>))
@@ -37,6 +38,8 @@ final class ItineraryGenerationModel {
     );
     if (json['sequenceNo'] is! int ||
         json['stayDurationMinutes'] is! int ||
+        (json['travelDurationToNextMinutes'] != null &&
+            json['travelDurationToNextMinutes'] is! int) ||
         json['isMandatory'] is! bool ||
         arrival == null ||
         departure == null ||
@@ -58,6 +61,7 @@ final class ItineraryGenerationModel {
       plannedArrival: arrival.toUtc(),
       plannedDeparture: departure.toUtc(),
       stayDurationMinutes: json['stayDurationMinutes'] as int,
+      travelDurationToNextMinutes: json['travelDurationToNextMinutes'] as int?,
       estimatedCost: (json['estimatedCost'] as num?)?.toDouble(),
       isMandatory: json['isMandatory'] as bool,
       recommendationReason: json['recommendationReason'] as String?,

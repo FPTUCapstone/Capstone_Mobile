@@ -1,12 +1,13 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_state.dart';
 
 void main() {
-  late _FailingRepository repository;
+  late ItineraryRepository repository;
   const request = ItineraryGenerationRequest(
     startAt: '2026-10-20T08:00:00+07:00',
     timeZoneId: 'Asia/Ho_Chi_Minh',
@@ -50,8 +51,44 @@ void main() {
       ),
     ],
     verify: (cubit) {
-      expect(repository.keys, hasLength(2));
-      expect(repository.keys.toSet(), hasLength(1));
+      final failing = repository as _FailingRepository;
+      expect(failing.keys, hasLength(2));
+      expect(failing.keys.toSet(), hasLength(1));
+    },
+  );
+
+  blocTest<CreateItineraryCubit, CreateItineraryState>(
+    'rotates the key after a conflict before retrying the same form',
+    build: () {
+      repository = _ConflictRepository();
+      var keyNumber = 0;
+      return CreateItineraryCubit(
+        repository: repository,
+        operationKeyFactory: () => 'operation-${++keyNumber}',
+      );
+    },
+    act: (cubit) async {
+      await cubit.generate(request);
+      await cubit.generate(request);
+    },
+    expect: () => [
+      const CreateItineraryState.generating(),
+      isA<CreateItineraryState>().having(
+        (state) => state.status,
+        'status',
+        CreateItineraryStatus.failure,
+      ),
+      const CreateItineraryState.generating(),
+      isA<CreateItineraryState>().having(
+        (state) => state.status,
+        'status',
+        CreateItineraryStatus.failure,
+      ),
+    ],
+    verify: (_) {
+      final conflict = repository as _ConflictRepository;
+      expect(conflict.keys, hasLength(2));
+      expect(conflict.keys.toSet(), hasLength(2));
     },
   );
 
@@ -99,8 +136,9 @@ void main() {
       ),
     ],
     verify: (cubit) {
-      expect(repository.keys, hasLength(2));
-      expect(repository.keys.toSet(), hasLength(2));
+      final failing = repository as _FailingRepository;
+      expect(failing.keys, hasLength(2));
+      expect(failing.keys.toSet(), hasLength(2));
     },
   );
 }
@@ -115,5 +153,18 @@ final class _FailingRepository implements ItineraryRepository {
   }) async {
     keys.add(idempotencyKey);
     throw Exception('offline');
+  }
+}
+
+final class _ConflictRepository implements ItineraryRepository {
+  final keys = <String>[];
+
+  @override
+  Future<GeneratedItinerary> generate({
+    required ItineraryGenerationRequest request,
+    required String idempotencyKey,
+  }) async {
+    keys.add(idempotencyKey);
+    throw ConflictFailure();
   }
 }

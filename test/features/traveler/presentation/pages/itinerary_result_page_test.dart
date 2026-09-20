@@ -118,4 +118,66 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('shows a zero estimated cost and travel time between stops', (
+    tester,
+  ) async {
+    final itinerary = _makeItinerary(
+      totalEstimatedCost: 0,
+      items: [
+        GeneratedItineraryItem(
+          sequenceNo: 1,
+          itemKind: ItineraryItemKind.visit,
+          plannedArrival: DateTime.utc(2026, 10, 20, 5),
+          plannedDeparture: DateTime.utc(2026, 10, 20, 6),
+          stayDurationMinutes: 60,
+          travelDurationToNextMinutes: 15,
+          isMandatory: false,
+          poiName: 'First stop',
+        ),
+        GeneratedItineraryItem(
+          sequenceNo: 2,
+          itemKind: ItineraryItemKind.visit,
+          plannedArrival: DateTime.utc(2026, 10, 20, 6, 15),
+          plannedDeparture: DateTime.utc(2026, 10, 20, 7),
+          stayDurationMinutes: 45,
+          isMandatory: false,
+          poiName: 'Second stop',
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: ItineraryResultPage(itinerary: itinerary)),
+    );
+
+    expect(find.textContaining('Est.'), findsOneWidget);
+    expect(find.textContaining('Travel: 15 min'), findsOneWidget);
+    expect(find.text('Create another itinerary'), findsOneWidget);
+  });
+
+  testWidgets('renders itinerary times in Vietnam planning time', (
+    tester,
+  ) async {
+    final itinerary = _makeItinerary(
+      items: [
+        GeneratedItineraryItem(
+          sequenceNo: 1,
+          itemKind: ItineraryItemKind.visit,
+          plannedArrival: DateTime.utc(2026, 10, 20, 5),
+          plannedDeparture: DateTime.utc(2026, 10, 20, 6),
+          stayDurationMinutes: 60,
+          isMandatory: false,
+          poiName: 'Da Nang Museum',
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: ItineraryResultPage(itinerary: itinerary)),
+    );
+
+    expect(find.text('12:00'), findsOneWidget);
+    expect(find.text('13:00'), findsOneWidget);
+  });
 }

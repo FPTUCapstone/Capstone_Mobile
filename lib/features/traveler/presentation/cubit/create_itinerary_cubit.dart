@@ -41,8 +41,8 @@ final class CreateItineraryCubit extends Cubit<CreateItineraryState> {
           'Your session has expired. Please sign in again to continue.',
         PermissionFailure() =>
           'You do not have permission to create an itinerary.',
-        ConflictFailure() =>
-          'This request was already used with different details. Start a new itinerary request.',
+        ConflictFailure() => _handleConflict(),
+        RoutingProviderFailure failure => failure.message,
         ConstraintFailure failure => failure.message,
         ValidationFailure failure => failure.message,
         _ =>
@@ -50,6 +50,12 @@ final class CreateItineraryCubit extends Cubit<CreateItineraryState> {
       };
       emit(CreateItineraryState.failure(message));
     }
+  }
+
+  String _handleConflict() {
+    _operationKey = null;
+    _lastAttemptRequest = null;
+    return 'This request was already used with different details. Start a new itinerary request.';
   }
 
   static String _createUuidV4() {

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:trip_mate_mobile/core/error/error_mapper.dart';
+import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/features/traveler/data/models/itinerary_generation_model.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
@@ -29,6 +30,9 @@ final class ItineraryRepositoryImpl implements ItineraryRepository {
       }
       return ItineraryGenerationModel.fromJson(data).toEntity();
     } catch (error) {
+      if (error is DioException && error.response?.statusCode == 429) {
+        throw RoutingProviderFailure();
+      }
       throw ErrorMapper.toFailure(error);
     }
   }

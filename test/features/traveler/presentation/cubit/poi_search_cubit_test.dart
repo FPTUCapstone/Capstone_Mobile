@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/location/device_location_service.dart';
@@ -20,6 +22,47 @@ void main() {
         DeviceLocation(latitude: 16.0544, longitude: 108.2022),
       ),
     ],
+  );
+
+  test(
+    'ignores an older search result that completes after the latest query',
+    () async {
+      final repository = _ControlledPoiRepository();
+      final cubit = PoiSearchCubit(
+        locationService: _LocationService(),
+        repository: repository,
+      );
+
+      final first = cubit.search(query: 'first');
+      final second = cubit.search(query: 'second');
+      repository.complete('second', [
+        const SelectablePoi(
+          id: 2,
+          name: 'Second result',
+          latitude: 16,
+          longitude: 108,
+          averageVisitDurationMinutes: 30,
+          openingHoursKnown: true,
+          hasShelter: true,
+        ),
+      ]);
+      await second;
+      repository.complete('first', [
+        const SelectablePoi(
+          id: 1,
+          name: 'Stale result',
+          latitude: 16,
+          longitude: 108,
+          averageVisitDurationMinutes: 30,
+          openingHoursKnown: true,
+          hasShelter: true,
+        ),
+      ]);
+      await first;
+
+      expect(cubit.state.results.single.name, 'Second result');
+      await cubit.close();
+    },
   );
 
   blocTest<PoiSearchCubit, PoiSearchState>(
@@ -62,4 +105,20 @@ final class _PoiRepository implements PointOfInterestRepository {
       hasShelter: true,
     ),
   ];
+}
+
+final class _ControlledPoiRepository implements PointOfInterestRepository {
+  final _completers = <String, Completer<List<SelectablePoi>>>{};
+
+  @override
+  Future<List<SelectablePoi>> search({
+    double? latitude,
+    double? longitude,
+    int? radiusKm,
+    String? query,
+  }) => (_completers[query ?? ''] ??= Completer<List<SelectablePoi>>()).future;
+
+  void complete(String query, List<SelectablePoi> results) {
+    _completers[query]!.complete(results);
+  }
 }

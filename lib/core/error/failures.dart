@@ -19,6 +19,13 @@ final class ServerFailure extends Failure {
   ]);
 }
 
+final class RoutingProviderFailure extends Failure {
+  const RoutingProviderFailure([
+    super.message =
+        'The routing service is temporarily unavailable. Please try again later.',
+  ]);
+}
+
 final class AuthenticationFailure extends Failure {
   const AuthenticationFailure([super.message = 'Please sign in to continue.']);
 }

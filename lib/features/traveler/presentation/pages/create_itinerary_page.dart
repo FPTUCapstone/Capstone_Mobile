@@ -36,6 +36,7 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
   var _returnToStart = true;
   var _searchRadiusKm = 10.0;
   double? _budgetVnd;
+  String? _budgetError;
   final _budgetController = TextEditingController();
   String? _formError;
   bool _waitingForCurrentLocation = false;
@@ -148,15 +149,18 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
               restPreference: _restPreference,
               searchRadiusKm: _searchRadiusKm,
               budgetController: _budgetController,
+              budgetError: _budgetError,
               onStartAtChanged: _pickStartTime,
               onDurationChanged: (value) =>
                   setState(() => _availableMinutes = value),
               onTransportChanged: (value) =>
                   setState(() => _transportMode = value),
               onRestChanged: (value) => setState(() => _restPreference = value),
-              onRadiusChanged: (value) =>
-                  setState(() => _searchRadiusKm = value),
-              onBudgetChanged: (value) => setState(() => _budgetVnd = value),
+              onRadiusChanged: (value) => setState(() {
+                _searchRadiusKm = value;
+                _mandatoryPois.clear();
+              }),
+              onBudgetChanged: _updateBudget,
             ),
             const SizedBox(height: AppSpacing.md),
             _MandatoryPois(
@@ -185,6 +189,27 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
       _waitingForCurrentLocation = true;
     });
     context.read<PoiSearchCubit>().useCurrentLocation();
+  }
+
+  void _updateBudget(String text) {
+    final normalized = text.replaceAll(',', '').trim();
+    if (normalized.isEmpty) {
+      setState(() {
+        _budgetVnd = null;
+        _budgetError = null;
+      });
+      return;
+    }
+
+    final parsed = double.tryParse(normalized);
+    setState(() {
+      _budgetVnd = parsed != null && parsed.isFinite && parsed > 0
+          ? parsed
+          : null;
+      _budgetError = _budgetVnd == null
+          ? 'Enter a positive budget or leave this field blank.'
+          : null;
+    });
   }
 
   Future<void> _pickStartTime() async {
@@ -216,7 +241,17 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
       context: context,
       isScrollControlled: true,
       builder: (_) => _PoiPickerSheet(
-        near: target == _PoiTarget.start ? null : _startLocation,
+        near: switch (target) {
+          _PoiTarget.start => null,
+          _PoiTarget.mandatory when _explorationPoi != null => DeviceLocation(
+            latitude: _explorationPoi!.latitude,
+            longitude: _explorationPoi!.longitude,
+          ),
+          _ => _startLocation,
+        },
+        radiusKm: target == _PoiTarget.mandatory
+            ? _searchRadiusKm.round()
+            : null,
       ),
     );
     if (selected == null || !mounted) return;
@@ -224,6 +259,7 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
       _formError = null;
       switch (target) {
         case _PoiTarget.start:
+          _waitingForCurrentLocation = false;
           _startLocation = DeviceLocation(
             latitude: selected.latitude,
             longitude: selected.longitude,
@@ -231,6 +267,7 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
           _startLabel = selected.name;
         case _PoiTarget.exploration:
           _explorationPoi = selected;
+          _mandatoryPois.clear();
         case _PoiTarget.end:
           _endPoi = selected;
         case _PoiTarget.mandatory:
@@ -256,6 +293,11 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
         _formError =
             'Choose a finishing location or enable "Return to starting point".';
       });
+      return;
+    }
+
+    if (_budgetError != null) {
+      setState(() => _formError = _budgetError);
       return;
     }
 
@@ -355,6 +397,7 @@ final class _SettingsCard extends StatelessWidget {
     required this.restPreference,
     required this.searchRadiusKm,
     required this.budgetController,
+    required this.budgetError,
     required this.onStartAtChanged,
     required this.onDurationChanged,
     required this.onTransportChanged,
@@ -369,12 +412,13 @@ final class _SettingsCard extends StatelessWidget {
   final RestPreference restPreference;
   final double searchRadiusKm;
   final TextEditingController budgetController;
+  final String? budgetError;
   final VoidCallback onStartAtChanged;
   final ValueChanged<int> onDurationChanged;
   final ValueChanged<TransportMode> onTransportChanged;
   final ValueChanged<RestPreference> onRestChanged;
   final ValueChanged<double> onRadiusChanged;
-  final ValueChanged<double?> onBudgetChanged;
+  final ValueChanged<String> onBudgetChanged;
 
   static const _supportedTransportModes = [
     TransportMode.walking,
@@ -418,9 +462,7 @@ final class _SettingsCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           DropdownButtonFormField<TransportMode>(
             initialValue: transportMode,
-            decoration: const InputDecoration(
-              labelText: 'How are you travelling?',
-            ),
+            decoration: InputDecoration(labelText: 'How are you travelling?'),
             items: _supportedTransportModes
                 .map(
                   (mode) => DropdownMenuItem(
@@ -469,16 +511,14 @@ final class _SettingsCard extends StatelessWidget {
           TextField(
             controller: budgetController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Budget (VND, optional)',
               helperText:
                   'POI entry fees only. Food and transport not included.',
+              errorText: budgetError,
               prefixText: '₫ ',
             ),
-            onChanged: (text) {
-              final parsed = double.tryParse(text.replaceAll(',', ''));
-              onBudgetChanged(parsed != null && parsed > 0 ? parsed : null);
-            },
+            onChanged: onBudgetChanged,
           ),
         ],
       ),
@@ -535,9 +575,10 @@ final class _MandatoryPois extends StatelessWidget {
 }
 
 final class _PoiPickerSheet extends StatefulWidget {
-  const _PoiPickerSheet({this.near});
+  const _PoiPickerSheet({this.near, this.radiusKm});
 
   final DeviceLocation? near;
+  final int? radiusKm;
 
   @override
   State<_PoiPickerSheet> createState() => _PoiPickerSheetState();
@@ -627,6 +668,7 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
   void _search() => context.read<PoiSearchCubit>().search(
     query: _queryController.text,
     near: widget.near,
+    radiusKm: widget.radiusKm,
   );
 }
 
@@ -639,6 +681,6 @@ String _transportLabel(TransportMode mode) => switch (mode) {
 
 String _restLabel(RestPreference preference) => switch (preference) {
   RestPreference.auto => 'Suggest breaks when useful',
-  RestPreference.none => 'Do not add breaks',
+  RestPreference.none => 'No named rest stops',
   RestPreference.frequent => 'Prefer more breaks',
 };

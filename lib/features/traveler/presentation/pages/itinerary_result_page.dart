@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
@@ -12,7 +14,7 @@ final class ItineraryResultPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final totalCost = itinerary.totalEstimatedCost;
-    final hasKnownCost = totalCost > 0;
+    final hasKnownCost = totalCost >= 0;
 
     return AppPageScaffold(
       title: 'Your itinerary',
@@ -31,13 +33,28 @@ final class ItineraryResultPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
-        ...itinerary.items.map(
-          (item) => Padding(
+        for (var index = 0; index < itinerary.items.length; index++) ...[
+          if (index > 0 &&
+              itinerary.items[index - 1].travelDurationToNextMinutes != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+              child: Text(
+                'Travel: ${itinerary.items[index - 1].travelDurationToNextMinutes} min',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: _ItineraryItemCard(item: item),
+            child: _ItineraryItemCard(item: itinerary.items[index]),
           ),
-        ),
+        ],
       ],
+      footer: FilledButton.tonal(
+        onPressed: () => context.go(AppRoutes.createItinerary),
+        child: const Text('Create another itinerary'),
+      ),
     );
   }
 }
@@ -67,9 +84,9 @@ String _formatVnd(double amount) {
 
 /// Formats a local-time [DateTime] as "HH:mm".
 String _formatTime(DateTime utc) {
-  final local = utc.toLocal();
-  final h = local.hour.toString().padLeft(2, '0');
-  final m = local.minute.toString().padLeft(2, '0');
+  final vietnamTime = utc.toUtc().add(const Duration(hours: 7));
+  final h = vietnamTime.hour.toString().padLeft(2, '0');
+  final m = vietnamTime.minute.toString().padLeft(2, '0');
   return '$h:$m';
 }
 
