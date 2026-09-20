@@ -72,12 +72,6 @@ final class ConflictFailure extends Failure {
   ];
 }
 
-final class ConflictFailure extends Failure {
-  const ConflictFailure([
-    super.message = 'This request conflicts with an existing operation.',
-  ]);
-}
-
 final class ConstraintFailure extends Failure {
   const ConstraintFailure([
     super.message =
