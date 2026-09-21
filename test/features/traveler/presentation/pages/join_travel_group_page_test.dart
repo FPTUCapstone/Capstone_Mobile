@@ -23,6 +23,7 @@ final class _MockTravelGroupRepository implements TravelGroupRepository {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) => throw UnimplementedError();
 
   @override

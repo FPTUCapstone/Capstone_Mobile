@@ -12,6 +12,7 @@ abstract interface class TravelGroupRepository {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   });
 
   /// Retrieves the current invitation, creating one only when the group has none usable.

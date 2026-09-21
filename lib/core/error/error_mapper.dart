@@ -3,22 +3,18 @@ import 'package:trip_mate_mobile/core/error/exceptions.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 
 abstract final class ErrorMapper {
+  static const _safeValidationTitles = {
+    'One or more validation errors occurred.',
+  };
+
   static Failure toFailure(Object error) {
-    if (error is Failure) {
-      return error;
-    }
+    if (error is Failure) return error;
     if (error is AuthenticationException) {
       return AuthenticationFailure(error.message);
     }
-    if (error is NetworkException) {
-      return NetworkFailure(error.message);
-    }
-    if (error is ServerException) {
-      return ServerFailure(error.message);
-    }
-    if (error is DioException) {
-      return _mapDioException(error);
-    }
+    if (error is NetworkException) return NetworkFailure(error.message);
+    if (error is ServerException) return ServerFailure(error.message);
+    if (error is DioException) return _mapDioException(error);
     return const UnknownFailure();
   }
 
@@ -33,12 +29,17 @@ abstract final class ErrorMapper {
         fieldErrors: _fieldErrors(responseData),
       );
     }
-    if (statusCode == 404 &&
-        const {
-          'Poi.NotFound',
-          'travel_group.group_not_found',
-        }.contains(_extractErrorCode(responseData))) {
-      return const NotFoundFailure();
+    if (statusCode == 404) {
+      final errorCode = _extractErrorCode(responseData);
+      if (errorCode == 'Poi.NotFound') return const NotFoundFailure();
+      if (errorCode == 'travel_group.group_not_found') {
+        return const NotFoundFailure();
+      }
+      if (errorCode == 'travel_group.itinerary_not_found') {
+        return const NotFoundFailure(
+          'The selected itinerary was not found. Please choose another itinerary.',
+        );
+      }
     }
     if (statusCode == 401) return const AuthenticationFailure();
     if (statusCode == 403) return const PermissionFailure();
@@ -47,6 +48,8 @@ abstract final class ErrorMapper {
       return ConflictFailure(
         message ?? 'Conflict occurred. Please try again.',
         groupId,
+        _extractErrorCode(responseData) ==
+            'travel_group.idempotency_key_payload_mismatch',
       );
     }
     if (statusCode != null && statusCode >= 500) return const ServerFailure();
@@ -62,13 +65,15 @@ abstract final class ErrorMapper {
 
   static String? _extractValidationMessage(Object? data) {
     if (data is! Map) return null;
+
     final errorCode = _extractErrorCode(data);
     if (errorCode == 'travel_group.invitation_unavailable') {
       return 'This invitation is invalid, expired, or no longer available. Please check the invitation and try again.';
     }
     if (errorCode == 'travel_group.idempotency_key_payload_mismatch') {
-      return 'A conflicting request with a different invitation code is already in progress. Please try again.';
+      return 'A conflicting request with different request data is already in progress. Please try again.';
     }
+
     final errors = data['errors'];
     if (errors is! Map) return null;
     for (final value in errors.values) {
@@ -83,6 +88,7 @@ abstract final class ErrorMapper {
 
   static (String?, int?) _extractConflictDetails(Object? data) {
     if (data is! Map) return (null, null);
+
     final errorCode = _extractErrorCode(data);
     final groupId = _extractGroupId(data);
     if (errorCode == 'travel_group.already_active_member') {
@@ -90,7 +96,7 @@ abstract final class ErrorMapper {
     }
     if (errorCode == 'travel_group.idempotency_key_payload_mismatch') {
       return (
-        'A conflicting request with a different invitation code is already in progress. Please try again.',
+        'A conflicting request with different request data is already in progress. Please try again.',
         groupId,
       );
     }
@@ -117,7 +123,9 @@ abstract final class ErrorMapper {
   static String? _safeTitle(Object? data) {
     if (data is! Map) return null;
     final title = data['title'];
-    return title is String && title.trim().isNotEmpty ? title.trim() : null;
+    if (title is! String) return null;
+    final normalized = title.trim();
+    return _safeValidationTitles.contains(normalized) ? normalized : null;
   }
 
   static Map<String, List<String>> _fieldErrors(Object? data) {

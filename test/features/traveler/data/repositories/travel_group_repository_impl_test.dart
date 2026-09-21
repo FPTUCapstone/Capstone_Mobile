@@ -158,6 +158,7 @@ void main() {
         final group = await repository.createTravelGroup(
           name: 'Hue Weekend',
           itineraryId: 13,
+          idempotencyKey: '6ecb4e4f-4a33-4dc3-93d4-49d8bb8ec9e7',
         );
 
         expect(adapter.request?.method, 'POST');
@@ -166,6 +167,10 @@ void main() {
           'groupName': 'Hue Weekend',
           'itineraryId': 13,
         });
+        expect(
+          adapter.request?.headers['Idempotency-Key'],
+          '6ecb4e4f-4a33-4dc3-93d4-49d8bb8ec9e7',
+        );
         expect(group.id, 7);
         expect(group.name, 'Hue Weekend');
         expect(group.itineraryId, 13);

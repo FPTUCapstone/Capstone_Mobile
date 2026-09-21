@@ -33,6 +33,7 @@ final class _MockRepository implements TravelGroupRepository {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async => const TravelGroup(id: 1, name: 'Group');
 
   @override

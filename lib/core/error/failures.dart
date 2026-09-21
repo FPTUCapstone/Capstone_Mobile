@@ -58,12 +58,18 @@ final class ConflictFailure extends Failure {
   const ConflictFailure([
     super.message = 'Conflict occurred. Please try again.',
     this.groupId,
+    this.isIdempotencyKeyPayloadMismatch = false,
   ]);
 
   final int? groupId;
+  final bool isIdempotencyKeyPayloadMismatch;
 
   @override
-  List<Object?> get props => [message, groupId];
+  List<Object?> get props => [
+    message,
+    groupId,
+    isIdempotencyKeyPayloadMismatch,
+  ];
 }
 
 final class UnknownFailure extends Failure {

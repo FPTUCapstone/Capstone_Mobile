@@ -19,6 +19,7 @@ final class _MockRepository implements TravelGroupRepository {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async {
     lastSubmittedName = name;
     lastSubmittedItineraryId = itineraryId;
@@ -103,6 +104,29 @@ void main() {
 
     expect(find.text('This field is required.'), findsOneWidget);
     expect(repository.lastSubmittedName, isNull);
+  });
+
+  testWidgets('binds an invalid itinerary error to the itinerary field only', (
+    tester,
+  ) async {
+    await tester.pumpWidget(buildSubject(itineraryId: 0));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField).first, 'Da Nang Trip');
+    await tester.tap(find.text('Create Group'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    final decorators = find.byType(InputDecorator);
+    expect(decorators, findsNWidgets(2));
+    expect(
+      tester.widget<InputDecorator>(decorators.at(0)).decoration.errorText,
+      isNull,
+    );
+    expect(
+      tester.widget<InputDecorator>(decorators.at(1)).decoration.errorText,
+      'Please select an itinerary.',
+    );
   });
 
   testWidgets('submits with the selected itinerary id when the name is valid', (

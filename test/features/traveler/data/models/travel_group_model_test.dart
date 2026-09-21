@@ -21,4 +21,33 @@ void main() {
       throwsA(isA<FormatException>()),
     );
   });
+
+  test('rejects a response with a missing itineraryId', () {
+    expect(
+      () => TravelGroupModel.fromJson({
+        'groupId': 42,
+        'groupName': 'Summer Trip',
+      }),
+      throwsA(isA<FormatException>()),
+    );
+  });
+
+  test('rejects a response with a non-positive or non-integer itineraryId', () {
+    expect(
+      () => TravelGroupModel.fromJson({
+        'groupId': 42,
+        'groupName': 'Summer Trip',
+        'itineraryId': 0,
+      }),
+      throwsA(isA<FormatException>()),
+    );
+    expect(
+      () => TravelGroupModel.fromJson({
+        'groupId': 42,
+        'groupName': 'Summer Trip',
+        'itineraryId': '1001',
+      }),
+      throwsA(isA<FormatException>()),
+    );
+  });
 }

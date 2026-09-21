@@ -34,11 +34,17 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
   final _nameController = TextEditingController();
   late final TextEditingController _itineraryController;
   String? _nameError;
+  String? _itineraryError;
 
   @override
   void initState() {
     super.initState();
     _itineraryController = TextEditingController(text: widget.itineraryTitle);
+    _nameController.addListener(() {
+      if (_nameError != null) {
+        setState(() => _nameError = null);
+      }
+    });
   }
 
   @override
@@ -54,12 +60,33 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
       listener: (context, state) {
         switch (state.status) {
           case CreateTravelGroupStatus.validationFailure:
-            setState(() => _nameError = state.errorMessage);
+            final error = state.errorMessage;
+            if (error == 'Please select an itinerary.') {
+              setState(() {
+                _itineraryError = error;
+                _nameError = null;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(error ?? 'Please select an itinerary.'),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                ),
+              );
+            } else {
+              setState(() {
+                _nameError = error;
+                _itineraryError = null;
+              });
+            }
+            _formKey.currentState?.validate();
           case CreateTravelGroupStatus.initial:
             // returned from validationFailure; error already shown
             break;
           case CreateTravelGroupStatus.success:
-            setState(() => _nameError = null);
+            setState(() {
+              _nameError = null;
+              _itineraryError = null;
+            });
             final group = state.result;
             final router = GoRouter.maybeOf(context);
             if (group != null && router != null) {
@@ -83,9 +110,15 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
               });
             }
           case CreateTravelGroupStatus.failure:
-            setState(() => _nameError = null);
+            setState(() {
+              _nameError = null;
+              _itineraryError = null;
+            });
           case CreateTravelGroupStatus.submitting:
-            setState(() => _nameError = null);
+            setState(() {
+              _nameError = null;
+              _itineraryError = null;
+            });
         }
       },
       builder: (context, state) {
@@ -146,6 +179,7 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
                         controller: _itineraryController,
                         enabled: !isDisabled,
                         readOnly: true,
+                        validator: (_) => _itineraryError,
                         helperText: 'Selected eligible itinerary',
                       ),
                       const SizedBox(height: AppSpacing.md),
