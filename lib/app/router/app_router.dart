@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/router/create_travel_group_route_args.dart';
 import 'package:trip_mate_mobile/app/router/route_guards.dart';
+import 'package:trip_mate_mobile/app/router/travel_group_details_route_args.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/tour_operator_application_status.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
@@ -22,9 +23,11 @@ import 'package:trip_mate_mobile/features/poi/presentation/pages/poi_detail_page
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/invite_group_members_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_travel_group_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/invite_group_members_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/join_travel_group_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_details_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_preferences_page.dart';
@@ -146,11 +149,30 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
           if (groupId == null || groupId <= 0) {
             return const ErrorView(message: 'Page not found.');
           }
+          final args = state.extra;
           return TravelGroupDetailsPage(
             groupId: groupId,
-            group: state.extra is TravelGroup
-                ? state.extra as TravelGroup
-                : null,
+            group: switch (args) {
+              TravelGroupDetailsRouteArgs(:final group) => group,
+              TravelGroup group => group,
+              _ => null,
+            },
+            isHost: args is TravelGroupDetailsRouteArgs && args.isHost,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.inviteGroupMembers,
+        name: AppRouteNames.inviteGroupMembers,
+        builder: (_, state) {
+          final groupId = int.tryParse(state.pathParameters['groupId'] ?? '');
+          if (groupId == null || groupId <= 0) {
+            return const ErrorView(message: 'Page not found.');
+          }
+          return BlocProvider(
+            create: (_) =>
+                InviteGroupMembersCubit(repository: serviceLocator()),
+            child: InviteGroupMembersPage(groupId: groupId),
           );
         },
       ),

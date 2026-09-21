@@ -1,6 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
@@ -17,6 +18,17 @@ final class _SuccessRepository implements TravelGroupRepository {
     required String name,
     required int itineraryId,
   }) async => _result;
+  @override
+  Future<GroupInvitation> getOrCreateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<GroupInvitation> regenerateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
 
   @override
   Future<TravelGroup> joinTravelGroup({
@@ -33,6 +45,18 @@ final class _FailureRepository implements TravelGroupRepository {
     required String name,
     required int itineraryId,
   }) async => throw Exception('server error');
+
+  @override
+  Future<GroupInvitation> getOrCreateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<GroupInvitation> regenerateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
 
   @override
   Future<TravelGroup> joinTravelGroup({
@@ -52,6 +76,18 @@ final class _TypedFailureRepository implements TravelGroupRepository {
   }) async => throw failure;
 
   @override
+  Future<GroupInvitation> getOrCreateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<GroupInvitation> regenerateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+
+  @override
   Future<TravelGroup> joinTravelGroup({
     required String invitationCode,
     required String idempotencyKey,
@@ -64,11 +100,7 @@ void main() {
   const validName = 'My Trip Group';
   final tooLongName = 'A' * 151;
   const testItineraryId = 10;
-  const travelGroup = TravelGroup(
-    id: 1,
-    name: validName,
-    inviteCode: 'ABCD1234',
-  );
+  const travelGroup = TravelGroup(id: 1, name: validName);
 
   group('CreateTravelGroupCubit', () {
     test('initial state is CreateTravelGroupStatus.initial', () {
