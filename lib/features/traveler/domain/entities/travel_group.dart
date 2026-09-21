@@ -5,11 +5,12 @@ import 'package:equatable/equatable.dart';
 /// Input: primitive fields from API response.
 /// Output: strongly-typed value object used across domain and presentation.
 final class TravelGroup extends Equatable {
-  const TravelGroup({required this.id, required this.name});
+  const TravelGroup({required this.id, required this.name, this.itineraryId});
 
   final int id;
   final String name;
+  final int? itineraryId;
 
   @override
-  List<Object?> get props => [id, name];
+  List<Object?> get props => [id, name, itineraryId];
 }

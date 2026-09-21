@@ -9,7 +9,28 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_tra
 
 // -- Fakes ------------------------------------------------------------------
 
-final class _SuccessRepository implements TravelGroupRepository {
+mixin _InvitationStub {
+  Future<GroupInvitation> getOrCreateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+
+  Future<GroupInvitation> regenerateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+}
+
+mixin _JoinStub {
+  Future<TravelGroup> joinTravelGroup({
+    required String invitationCode,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+}
+
+final class _SuccessRepository
+    with _InvitationStub, _JoinStub
+    implements TravelGroupRepository {
   const _SuccessRepository(this._result);
   final TravelGroup _result;
 
@@ -18,20 +39,11 @@ final class _SuccessRepository implements TravelGroupRepository {
     required String name,
     required int itineraryId,
   }) async => _result;
-  @override
-  Future<GroupInvitation> getOrCreateGroupInvitation({
-    required int groupId,
-    required String idempotencyKey,
-  }) async => throw UnimplementedError();
-
-  @override
-  Future<GroupInvitation> regenerateGroupInvitation({
-    required int groupId,
-    required String idempotencyKey,
-  }) async => throw UnimplementedError();
 }
 
-final class _FailureRepository implements TravelGroupRepository {
+final class _FailureRepository
+    with _InvitationStub, _JoinStub
+    implements TravelGroupRepository {
   const _FailureRepository();
 
   @override
@@ -39,21 +51,11 @@ final class _FailureRepository implements TravelGroupRepository {
     required String name,
     required int itineraryId,
   }) async => throw Exception('server error');
-
-  @override
-  Future<GroupInvitation> getOrCreateGroupInvitation({
-    required int groupId,
-    required String idempotencyKey,
-  }) async => throw UnimplementedError();
-
-  @override
-  Future<GroupInvitation> regenerateGroupInvitation({
-    required int groupId,
-    required String idempotencyKey,
-  }) async => throw UnimplementedError();
 }
 
-final class _TypedFailureRepository implements TravelGroupRepository {
+final class _TypedFailureRepository
+    with _InvitationStub, _JoinStub
+    implements TravelGroupRepository {
   const _TypedFailureRepository(this.failure);
   final Failure failure;
 
@@ -62,18 +64,6 @@ final class _TypedFailureRepository implements TravelGroupRepository {
     required String name,
     required int itineraryId,
   }) async => throw failure;
-
-  @override
-  Future<GroupInvitation> getOrCreateGroupInvitation({
-    required int groupId,
-    required String idempotencyKey,
-  }) async => throw UnimplementedError();
-
-  @override
-  Future<GroupInvitation> regenerateGroupInvitation({
-    required int groupId,
-    required String idempotencyKey,
-  }) async => throw UnimplementedError();
 }
 
 // --------------------------------------------------------------------------

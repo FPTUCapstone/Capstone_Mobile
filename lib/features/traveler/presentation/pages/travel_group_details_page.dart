@@ -4,10 +4,16 @@ import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 
 final class TravelGroupDetailsPage extends StatelessWidget {
-  const TravelGroupDetailsPage({super.key, required this.groupId, this.group});
+  const TravelGroupDetailsPage({
+    super.key,
+    required this.groupId,
+    this.group,
+    required this.isHost,
+  });
 
   final int groupId;
   final TravelGroup? group;
+  final bool isHost;
 
   @override
   Widget build(BuildContext context) {
@@ -22,16 +28,18 @@ final class TravelGroupDetailsPage extends StatelessWidget {
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 16),
-          const Text('You are the Group Host.'),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: () => context.goNamed(
-              AppRouteNames.inviteGroupMembers,
-              pathParameters: {'groupId': groupId.toString()},
+          Text(isHost ? 'You are the Group Host.' : 'You are a Group Member.'),
+          if (isHost) ...[
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: () => context.goNamed(
+                AppRouteNames.inviteGroupMembers,
+                pathParameters: {'groupId': groupId.toString()},
+              ),
+              icon: const Icon(Icons.person_add_alt_1_outlined),
+              label: const Text('Invite Members'),
             ),
-            icon: const Icon(Icons.person_add_alt_1_outlined),
-            label: const Text('Invite Members'),
-          ),
+          ],
         ],
       ),
     );

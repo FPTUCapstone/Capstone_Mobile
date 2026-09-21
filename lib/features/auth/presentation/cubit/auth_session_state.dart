@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/tour_operator_application_status.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
 
 enum AuthSessionStatus {
@@ -16,13 +17,21 @@ final class AuthSessionState extends Equatable {
     required this.status,
     this.errorMessage,
     this.role,
+    this.applicationStatus = TourOperatorApplicationStatus.unresolved,
     this.operation = AuthSessionOperation.none,
     this.startResendCooldown = false,
     this.successMessage,
   });
 
-  const AuthSessionState.authenticated(UserRole role)
-    : this._(status: AuthSessionStatus.authenticated, role: role);
+  const AuthSessionState.authenticated(
+    UserRole role, {
+    TourOperatorApplicationStatus applicationStatus =
+        TourOperatorApplicationStatus.unresolved,
+  }) : this._(
+         status: AuthSessionStatus.authenticated,
+         role: role,
+         applicationStatus: applicationStatus,
+       );
 
   const AuthSessionState.failure(
     String message, {
@@ -50,6 +59,10 @@ final class AuthSessionState extends Equatable {
   final String? errorMessage;
   final AuthSessionOperation operation;
   final UserRole? role;
+
+  /// Backend-issued Tour Operator application status mapped by Data. Unknown
+  /// and non-operator values remain explicitly unresolved.
+  final TourOperatorApplicationStatus applicationStatus;
   final bool startResendCooldown;
   final AuthSessionStatus status;
   final String? successMessage;
@@ -63,6 +76,7 @@ final class AuthSessionState extends Equatable {
   List<Object?> get props => [
     status,
     role,
+    applicationStatus,
     errorMessage,
     operation,
     startResendCooldown,

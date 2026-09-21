@@ -9,7 +9,16 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/invite_gro
 
 // -- Fakes ------------------------------------------------------------------
 
-final class _SuccessRepository implements TravelGroupRepository {
+mixin _JoinGroupStub {
+  Future<TravelGroup> joinTravelGroup({
+    required String invitationCode,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+}
+
+final class _SuccessRepository
+    with _JoinGroupStub
+    implements TravelGroupRepository {
   const _SuccessRepository(this._invitation);
   final GroupInvitation _invitation;
 
@@ -32,7 +41,9 @@ final class _SuccessRepository implements TravelGroupRepository {
   }) async => _invitation;
 }
 
-final class _FailureRepository implements TravelGroupRepository {
+final class _FailureRepository
+    with _JoinGroupStub
+    implements TravelGroupRepository {
   const _FailureRepository();
 
   @override
@@ -54,7 +65,9 @@ final class _FailureRepository implements TravelGroupRepository {
   }) async => throw Exception('server error');
 }
 
-final class _AuthenticationFailureRepository implements TravelGroupRepository {
+final class _AuthenticationFailureRepository
+    with _JoinGroupStub
+    implements TravelGroupRepository {
   const _AuthenticationFailureRepository();
 
   @override
@@ -76,7 +89,9 @@ final class _AuthenticationFailureRepository implements TravelGroupRepository {
   }) async => throw const AuthenticationFailure();
 }
 
-final class _PermissionFailureRepository implements TravelGroupRepository {
+final class _PermissionFailureRepository
+    with _JoinGroupStub
+    implements TravelGroupRepository {
   const _PermissionFailureRepository();
 
   @override
@@ -98,7 +113,9 @@ final class _PermissionFailureRepository implements TravelGroupRepository {
   }) async => throw const PermissionFailure();
 }
 
-final class _RegenerateRepository implements TravelGroupRepository {
+final class _RegenerateRepository
+    with _JoinGroupStub
+    implements TravelGroupRepository {
   _RegenerateRepository({required this.initial, required this.replacement});
 
   final GroupInvitation initial;

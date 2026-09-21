@@ -9,7 +9,16 @@ import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_gr
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/invite_group_members_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/invite_group_members_page.dart';
 
-final class _MockRepository implements TravelGroupRepository {
+mixin _JoinGroupStub {
+  Future<TravelGroup> joinTravelGroup({
+    required String invitationCode,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+}
+
+final class _MockRepository
+    with _JoinGroupStub
+    implements TravelGroupRepository {
   bool shouldFail = false;
   int getInvitationCallCount = 0;
 

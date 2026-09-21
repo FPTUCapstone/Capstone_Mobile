@@ -8,7 +8,28 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_tra
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_travel_group_page.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
 
-final class _MockRepository implements TravelGroupRepository {
+mixin _InvitationStub {
+  Future<GroupInvitation> getOrCreateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+
+  Future<GroupInvitation> regenerateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+}
+
+mixin _JoinStub {
+  Future<TravelGroup> joinTravelGroup({
+    required String invitationCode,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+}
+
+final class _MockRepository
+    with _InvitationStub, _JoinStub
+    implements TravelGroupRepository {
   String? lastSubmittedName;
   int? lastSubmittedItineraryId;
 
@@ -21,18 +42,6 @@ final class _MockRepository implements TravelGroupRepository {
     lastSubmittedItineraryId = itineraryId;
     return TravelGroup(id: 1, name: name);
   }
-
-  @override
-  Future<GroupInvitation> getOrCreateGroupInvitation({
-    required int groupId,
-    required String idempotencyKey,
-  }) async => throw UnimplementedError();
-
-  @override
-  Future<GroupInvitation> regenerateGroupInvitation({
-    required int groupId,
-    required String idempotencyKey,
-  }) async => throw UnimplementedError();
 }
 
 void main() {

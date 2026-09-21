@@ -1,20 +1,19 @@
-import 'package:trip_mate_mobile/features/auth/data/models/login_request.dart';
-import 'package:trip_mate_mobile/features/auth/data/models/register_traveler_request.dart';
-import 'package:trip_mate_mobile/features/auth/data/models/register_traveler_response.dart';
-import 'package:trip_mate_mobile/features/auth/data/models/session_response_dto.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/auth_credentials.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/auth_session.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/traveler_registration.dart';
 
 abstract interface class AuthRepository {
-  Future<RegisterTravelerResponse> registerTraveler(
-    RegisterTravelerRequest request,
+  Future<TravelerRegistrationResult> registerTraveler(
+    TravelerRegistration registration,
     String firebaseIdToken,
   );
 
-  Future<SessionResponseDto> verifyEmail(String firebaseIdToken);
+  Future<AuthSession> verifyEmail(String firebaseIdToken);
 
-  Future<SessionResponseDto> googleAuth(String firebaseIdToken);
+  Future<AuthSession> googleAuth(String firebaseIdToken);
 
-  Future<SessionResponseDto> login(
-    LoginRequest request, [
+  Future<AuthSession> login(
+    AuthCredentials credentials, [
     String? firebaseIdToken,
   ]);
 }

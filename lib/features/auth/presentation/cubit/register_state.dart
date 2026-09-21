@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:trip_mate_mobile/features/auth/data/models/register_traveler_response.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/traveler_registration.dart';
 
 sealed class RegisterState extends Equatable {
   const RegisterState();
@@ -19,7 +19,7 @@ final class RegisterLoading extends RegisterState {
 final class RegisterSuccess extends RegisterState {
   const RegisterSuccess(this.response);
 
-  final RegisterTravelerResponse response;
+  final TravelerRegistrationResult response;
 
   @override
   List<Object?> get props => [response];
