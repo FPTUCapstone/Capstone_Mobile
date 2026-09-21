@@ -5,8 +5,8 @@ import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/utils/validators.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
-import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_application_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/pages/operator_application_page.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_password_field.dart';
@@ -41,19 +41,11 @@ class _OperatorRegistrationPageState extends State<OperatorRegistrationPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<OperatorApplicationCubit, OperatorApplicationState>(
-      listener: (context, state) {
-        if (state.status == OperatorApplicationStatus.pending) {
-          context.read<AuthSessionCubit>().authenticateSession(
-            UserRole.tourOperator,
-          );
-          context.go(
-            AppRoutes.operatorApplication,
-            extra: OperatorApplicationStatus.pending,
-          );
-        }
-      },
+    return BlocBuilder<OperatorApplicationCubit, OperatorApplicationState>(
       builder: (context, state) {
+        if (state.status == OperatorApplicationStatus.pending) {
+          return const OperatorApplicationPage();
+        }
         return AppPageScaffold(
           title: 'Business Account',
           content: [

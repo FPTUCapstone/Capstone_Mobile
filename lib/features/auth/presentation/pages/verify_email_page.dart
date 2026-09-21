@@ -21,6 +21,8 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
   Timer? _resendTimer;
   int _resendSecondsLeft = 0;
   String? _maskedEmail;
+  String? _verificationErrorMessage;
+  bool _verificationActionPending = false;
 
   @override
   void initState() {
@@ -61,6 +63,14 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
     });
   }
 
+  void _runVerificationAction(Future<void> Function() action) {
+    setState(() {
+      _verificationActionPending = true;
+      _verificationErrorMessage = null;
+    });
+    unawaited(action());
+  }
+
   @override
   void dispose() {
     _resendTimer?.cancel();
@@ -73,7 +83,18 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
       listener: (context, state) {
         if (state.isAuthenticated) {
           context.go(AppRoutes.traveler);
+        } else if (state.status == AuthSessionStatus.failure &&
+            _verificationActionPending) {
+          setState(() {
+            _verificationActionPending = false;
+            _verificationErrorMessage =
+                state.errorMessage ?? 'Verification failed.';
+          });
+          if (state.startResendCooldown) {
+            _startResendCooldown();
+          }
         } else if (state.startResendCooldown) {
+          _verificationActionPending = false;
           _startResendCooldown();
         }
       },
@@ -119,10 +140,10 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                         ),
                       ),
                     ],
-                    if (state.status == AuthSessionStatus.failure) ...[
+                    if (_verificationErrorMessage != null) ...[
                       const SizedBox(height: 16),
                       Text(
-                        state.errorMessage ?? 'Verification failed.',
+                        _verificationErrorMessage!,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.error,
@@ -137,9 +158,11 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                           : 'Resend Verification Email',
                       onPressed: state.isLoading || _resendSecondsLeft > 0
                           ? null
-                          : () => context
-                                .read<AuthSessionCubit>()
-                                .resendVerificationEmail(),
+                          : () => _runVerificationAction(
+                              context
+                                  .read<AuthSessionCubit>()
+                                  .resendVerificationEmail,
+                            ),
                     ),
                     const SizedBox(height: 12),
                     AppButton(
@@ -149,8 +172,9 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                       label: 'I verified my email',
                       onPressed: state.isLoading
                           ? null
-                          : () =>
-                                context.read<AuthSessionCubit>().verifyEmail(),
+                          : () => _runVerificationAction(
+                              context.read<AuthSessionCubit>().verifyEmail,
+                            ),
                     ),
                     TextButton(
                       onPressed: state.isLoading

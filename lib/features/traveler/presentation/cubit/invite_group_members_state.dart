@@ -5,6 +5,7 @@ enum InviteGroupMembersStatus {
   initial,
   loading,
   regenerating,
+  regenerationUncertain,
   success,
   failure,
 }
@@ -23,10 +24,16 @@ final class InviteGroupMembersState extends Equatable {
   const InviteGroupMembersState.loading()
     : this(status: InviteGroupMembersStatus.loading);
 
-  const InviteGroupMembersState.regenerating(GroupInvitation invitation)
+  const InviteGroupMembersState.regenerating([GroupInvitation? invitation])
     : this(
         status: InviteGroupMembersStatus.regenerating,
         invitation: invitation,
+      );
+
+  const InviteGroupMembersState.regenerationUncertain(String errorMessage)
+    : this(
+        status: InviteGroupMembersStatus.regenerationUncertain,
+        errorMessage: errorMessage,
       );
 
   const InviteGroupMembersState.success(GroupInvitation invitation)

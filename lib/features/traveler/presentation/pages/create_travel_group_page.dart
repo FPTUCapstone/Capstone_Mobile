@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/app/router/travel_group_details_route_args.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_state.dart';
@@ -65,7 +66,7 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text(
-                    'Travel group created! You are the Group Host. Share the invite code to add members.',
+                    'Travel group created! You are the Group Host. Open Invite Members to share an invitation.',
                   ),
                 ),
               );
@@ -74,7 +75,10 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
                 router.goNamed(
                   AppRouteNames.travelGroupDetails,
                   pathParameters: {'groupId': group.id.toString()},
-                  extra: group,
+                  extra: TravelGroupDetailsRouteArgs(
+                    group: group,
+                    isHost: true,
+                  ),
                 );
               });
             }
@@ -108,7 +112,7 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
                 if (isSuccess) ...[
                   const AppAlert(
                     message:
-                        'Travel group created! You are the Group Host. Share the invite code to add members.',
+                        'Travel group created! You are the Group Host. Open Invite Members to share an invitation.',
                     type: AppAlertType.success,
                   ),
                   const SizedBox(height: AppSpacing.md),

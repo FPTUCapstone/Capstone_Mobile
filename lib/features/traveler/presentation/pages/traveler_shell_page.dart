@@ -3,7 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
+import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
+import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
 
 class TravelerShellPage extends StatefulWidget {
   const TravelerShellPage({super.key});
@@ -14,37 +17,64 @@ class TravelerShellPage extends StatefulWidget {
 
 class _TravelerShellPageState extends State<TravelerShellPage> {
   static const _destinations = <_TravelerDestination>[
-    _TravelerDestination('Home', Icons.home_outlined),
-    _TravelerDestination('Trips', Icons.map_outlined),
-    _TravelerDestination('Explore', Icons.explore_outlined),
-    _TravelerDestination('Bookings', Icons.confirmation_number_outlined),
-    _TravelerDestination('Profile', Icons.person_outline),
+    _TravelerDestination('Trang chủ', Icons.home_outlined),
+    _TravelerDestination('Chuyến đi', Icons.map_outlined),
+    _TravelerDestination('Khám phá', Icons.explore_outlined),
+    _TravelerDestination('Đặt chỗ', Icons.confirmation_number_outlined),
+    _TravelerDestination('Hồ sơ', Icons.person_outline),
   ];
 
   var _selectedIndex = 0;
+  late final PoiListCubit _exploreCubit;
+  var _exploreLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _exploreCubit = serviceLocator<PoiListCubit>();
+  }
+
+  @override
+  void dispose() {
+    _exploreCubit.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Traveler · ${_destinations[_selectedIndex].label}'),
-        actions: [
-          IconButton(
-            onPressed: context.read<AuthSessionCubit>().clearSession,
-            tooltip: 'Sign out',
-            icon: const Icon(Icons.logout),
-          ),
-        ],
-      ),
+      appBar: _selectedIndex == 2
+          ? null
+          : AppBar(
+              title: Text('Traveler · ${_destinations[_selectedIndex].label}'),
+              actions: [
+                IconButton(
+                  onPressed: context.read<AuthSessionCubit>().clearSession,
+                  tooltip: 'Sign out',
+                  icon: const Icon(Icons.logout),
+                ),
+              ],
+            ),
       body: IndexedStack(
         index: _selectedIndex,
-        children: _destinations
-            .map((destination) => _TravelerSection(destination: destination))
-            .toList(growable: false),
+        children: [
+          _TravelerSection(destination: _destinations[0]),
+          _TravelerSection(destination: _destinations[1]),
+          BlocProvider.value(
+            value: _exploreCubit,
+            child: const ExplorePoiPage(isTraveler: true),
+          ),
+          _TravelerSection(destination: _destinations[3]),
+          _TravelerSection(destination: _destinations[4]),
+        ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
+          if (index == 2 && !_exploreLoaded) {
+            _exploreLoaded = true;
+            _exploreCubit.loadInitial();
+          }
           setState(() => _selectedIndex = index);
         },
         destinations: _destinations
@@ -85,18 +115,27 @@ class _TravelerSection extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              destination.label == 'Home'
+              destination.label == 'Trang chủ'
                   ? 'Your next adventure starts here.'
                   : 'Feature placeholder',
               textAlign: TextAlign.center,
             ),
-            if (destination.label == 'Home' ||
-                destination.label == 'Profile') ...[
+            if (destination.label == 'Trang chủ' ||
+                destination.label == 'Hồ sơ') ...[
               const SizedBox(height: AppSpacing.lg),
               FilledButton.icon(
                 onPressed: () => context.push(AppRoutes.travelerSettings),
                 icon: const Icon(Icons.manage_accounts_outlined),
                 label: const Text('Account settings'),
+              ),
+            ],
+            if (destination.label == 'Home' ||
+                destination.label == 'Trips') ...[
+              const SizedBox(height: AppSpacing.sm),
+              OutlinedButton.icon(
+                onPressed: () => context.push(AppRoutes.joinTravelGroup),
+                icon: const Icon(Icons.group_add_outlined),
+                label: const Text('Join travel group'),
               ),
             ],
           ],

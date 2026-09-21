@@ -27,22 +27,32 @@ final class GroupInvitationModel {
 
     final parsedExpiresAt = DateTime.tryParse(expiresAt);
     final normalizedGroupName = groupName.trim();
+    final normalizedInviteCode = inviteCode.trim();
+    final normalizedQrData = qrData.trim();
     if (groupId <= 0 ||
         normalizedGroupName.isEmpty ||
-        inviteCode.isEmpty ||
-        qrData.isEmpty ||
-        parsedExpiresAt == null) {
+        !_inviteCodePattern.hasMatch(normalizedInviteCode) ||
+        normalizedQrData !=
+            'tripmate://groups/join?code=$normalizedInviteCode' ||
+        !_utcTimestampSuffix.hasMatch(expiresAt) ||
+        parsedExpiresAt == null ||
+        !parsedExpiresAt.isUtc) {
       throw const FormatException('Invalid group invitation response.');
     }
 
     return GroupInvitationModel(
       groupId: groupId,
       groupName: normalizedGroupName,
-      inviteCode: inviteCode,
-      qrData: qrData,
+      inviteCode: normalizedInviteCode,
+      qrData: normalizedQrData,
       expiresAt: parsedExpiresAt,
     );
   }
+
+  static final _inviteCodePattern = RegExp(
+    r'^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$',
+  );
+  static final _utcTimestampSuffix = RegExp(r'(?:Z|\+00:00)$');
 
   final int groupId;
   final String groupName;

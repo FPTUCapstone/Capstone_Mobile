@@ -25,4 +25,10 @@ abstract interface class TravelGroupRepository {
     required int groupId,
     required String idempotencyKey,
   });
+
+  /// Joins an existing travel group with [invitationCode] and [idempotencyKey].
+  Future<TravelGroup> joinTravelGroup({
+    required String invitationCode,
+    required String idempotencyKey,
+  });
 }

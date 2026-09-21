@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/invite_group_members_cubit.dart';
@@ -16,9 +18,14 @@ import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
 /// [UC-18] Page for inviting group members via QR code and invite code.
 class InviteGroupMembersPage extends StatefulWidget {
-  const InviteGroupMembersPage({super.key, required this.groupId});
+  const InviteGroupMembersPage({
+    super.key,
+    required this.groupId,
+    this.shareOperation,
+  });
 
   final int groupId;
+  final Future<void> Function(String payload)? shareOperation;
 
   @override
   State<InviteGroupMembersPage> createState() => _InviteGroupMembersPageState();
@@ -30,6 +37,21 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
     super.initState();
     context.read<InviteGroupMembersCubit>().loadInvitation(widget.groupId);
   }
+
+  void _close() {
+    final router = GoRouter.maybeOf(context);
+    if (router == null) {
+      Navigator.of(context).maybePop();
+    } else if (router.canPop()) {
+      router.pop();
+    } else {
+      router.go(AppRoutes.traveler);
+    }
+  }
+
+  List<Widget> get _closeAction => [
+    TextButton(onPressed: _close, child: const Text('Close')),
+  ];
 
   Future<void> _copyInviteCode(String code) async {
     try {
@@ -55,7 +77,12 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
 
   Future<void> _shareInvitation(String deepLink) async {
     try {
-      await SharePlus.instance.share(ShareParams(text: deepLink));
+      final operation = widget.shareOperation;
+      if (operation != null) {
+        await operation(deepLink);
+      } else {
+        await SharePlus.instance.share(ShareParams(text: deepLink));
+      }
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -111,9 +138,12 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
     return BlocBuilder<InviteGroupMembersCubit, InviteGroupMembersState>(
       builder: (context, state) {
         if (state.status == InviteGroupMembersStatus.loading ||
-            state.status == InviteGroupMembersStatus.initial) {
-          return const AppPageScaffold(
+            state.status == InviteGroupMembersStatus.initial ||
+            (state.status == InviteGroupMembersStatus.regenerating &&
+                state.invitation == null)) {
+          return AppPageScaffold(
             title: 'Invite Members',
+            actions: _closeAction,
             content: [
               Center(
                 child: Padding(
@@ -125,10 +155,33 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
           );
         }
 
+        if (state.status == InviteGroupMembersStatus.regenerationUncertain) {
+          return AppPageScaffold(
+            title: 'Invite Members',
+            actions: _closeAction,
+            content: [
+              AppAlert(
+                message:
+                    state.errorMessage ??
+                    'The invitation may have changed. Retry to confirm the current code.',
+                type: AppAlertType.error,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              AppButton(
+                label: 'Retry',
+                onPressed: () => context
+                    .read<InviteGroupMembersCubit>()
+                    .regenerateInvitation(widget.groupId),
+              ),
+            ],
+          );
+        }
+
         if (state.status == InviteGroupMembersStatus.failure &&
             state.invitation == null) {
           return AppPageScaffold(
             title: 'Invite Members',
+            actions: _closeAction,
             content: [
               AppAlert(
                 message:
@@ -152,6 +205,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
             state.status == InviteGroupMembersStatus.regenerating;
         return AppPageScaffold(
           title: 'Invite Members',
+          actions: _closeAction,
           content: [
             if (state.status == InviteGroupMembersStatus.failure) ...[
               AppAlert(

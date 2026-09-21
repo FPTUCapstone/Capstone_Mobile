@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/app/router/travel_group_details_route_args.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
@@ -33,6 +36,14 @@ final class _MockRepository implements TravelGroupRepository {
     required int groupId,
     required String idempotencyKey,
   }) async => throw UnimplementedError();
+
+  @override
+  Future<TravelGroup> joinTravelGroup({
+    required String invitationCode,
+    required String idempotencyKey,
+  }) async {
+    return const TravelGroup(id: 1, name: 'Test Group', inviteCode: 'ABC12345');
+  }
 }
 
 void main() {
@@ -110,4 +121,42 @@ void main() {
     expect(repository.lastSubmittedName, 'Da Nang Trip 2026');
     expect(repository.lastSubmittedItineraryId, 10);
   });
+  testWidgets(
+    'successful creation routes to details with trusted Host context',
+    (tester) async {
+      final router = GoRouter(
+        initialLocation: '/create',
+        routes: [
+          GoRoute(
+            path: '/create',
+            builder: (_, _) => BlocProvider<CreateTravelGroupCubit>.value(
+              value: cubit,
+              child: const CreateTravelGroupPage(
+                itineraryId: 10,
+                itineraryTitle: 'Summer trip',
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/groups/:groupId',
+            name: AppRouteNames.travelGroupDetails,
+            builder: (_, state) {
+              final args = state.extra! as TravelGroupDetailsRouteArgs;
+              return Text('${args.group.id}:${args.isHost}');
+            },
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.enterText(find.byType(TextFormField).first, 'Da Nang Trip');
+      await tester.tap(find.text('Create Group'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 900));
+      await tester.pumpAndSettle();
+
+      expect(find.text('1:true'), findsOneWidget);
+    },
+  );
 }
