@@ -149,10 +149,18 @@ class _TravelerSection extends StatelessWidget {
                   : 'Feature placeholder',
               textAlign: TextAlign.center,
             ),
-            if (destination.label == 'Trang chủ' ||
-                destination.label == 'Hồ sơ') ...[
+            if (destination.label == 'Trang chủ') ...[
               const SizedBox(height: AppSpacing.lg),
               FilledButton.icon(
+                onPressed: () => context.push(AppRoutes.tourSearch),
+                icon: const Icon(Icons.tour_outlined),
+                label: const Text('Tìm kiếm Tour'),
+              ),
+            ],
+            if (destination.label == 'Trang chủ' ||
+                destination.label == 'Hồ sơ') ...[
+              const SizedBox(height: AppSpacing.sm),
+              OutlinedButton.icon(
                 onPressed: () => context.push(AppRoutes.travelerSettings),
                 icon: const Icon(Icons.manage_accounts_outlined),
                 label: const Text('Account settings'),

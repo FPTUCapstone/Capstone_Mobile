@@ -7,6 +7,7 @@ abstract final class AppRoutes {
   static const operatorRegistration = '/auth/register/operator';
   static const explore = '/explore';
   static const poiDetailPattern = '/explore/poi/:id';
+  static const tourSearch = '/explore/tours';
   static const traveler = '/traveler';
   static const travelerSettings = '/traveler/settings';
   static const travelerProfile = '/traveler/profile';
@@ -35,6 +36,7 @@ abstract final class AppRouteNames {
   static const operatorRegistration = 'operator-registration';
   static const explore = 'explore';
   static const poiDetail = 'poi-detail';
+  static const tourSearch = 'tour-search';
   static const traveler = 'traveler';
   static const travelerSettings = 'traveler-settings';
   static const travelerProfile = 'traveler-profile';

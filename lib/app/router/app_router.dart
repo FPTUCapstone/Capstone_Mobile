@@ -22,6 +22,8 @@ import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_pag
 import 'package:trip_mate_mobile/features/poi/presentation/pages/poi_detail_page.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
+import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
+import 'package:trip_mate_mobile/features/tour_search/presentation/pages/tour_search_page.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
@@ -96,6 +98,16 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
               serviceLocator<PoiDetailCubit>()
                 ..load(state.pathParameters['id'] ?? ''),
           child: const PoiDetailPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.tourSearch,
+        name: AppRouteNames.tourSearch,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<TourSearchCubit>()..loadInitial(),
+          child: TourSearchPage(
+            isTraveler: sessionCubit.state.role == UserRole.traveler,
+          ),
         ),
       ),
       GoRoute(
