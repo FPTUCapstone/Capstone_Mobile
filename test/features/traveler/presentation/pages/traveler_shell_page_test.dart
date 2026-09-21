@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/app/theme/app_theme.dart';
 import 'package:trip_mate_mobile/core/constants/app_constants.dart';
+import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/auth_credentials.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/auth_session.dart';
@@ -12,6 +13,12 @@ import 'package:trip_mate_mobile/features/auth/domain/entities/traveler_registra
 import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
+import 'package:trip_mate_mobile/features/poi/domain/entities/paged_poi_result.dart';
+import 'package:trip_mate_mobile/features/poi/domain/entities/poi_detail.dart';
+import 'package:trip_mate_mobile/features/poi/domain/entities/poi_query.dart';
+import 'package:trip_mate_mobile/features/poi/domain/repositories/poi_repository.dart';
+import 'package:trip_mate_mobile/features/poi/domain/usecases/get_pois_use_case.dart';
+import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_shell_page.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 
@@ -47,6 +54,15 @@ Future<void> _pumpShell(WidgetTester tester, AuthSessionCubit cubit) async {
 }
 
 void main() {
+  setUp(() async {
+    await serviceLocator.reset();
+    serviceLocator.registerFactory<PoiListCubit>(
+      () => PoiListCubit(getPois: GetPoisUseCase(_EmptyPoiRepository())),
+    );
+  });
+
+  tearDown(serviceLocator.reset);
+
   testWidgets('traveler shell sign-out uses the backend-integrated flow once', (
     tester,
   ) async {
@@ -131,6 +147,20 @@ void main() {
       );
     },
   );
+}
+
+final class _EmptyPoiRepository implements PoiRepository {
+  @override
+  Future<PagedPoiResult> getPois(PoiQuery query) async => const PagedPoiResult(
+    page: 1,
+    pageSize: 20,
+    totalCount: 0,
+    totalPages: 0,
+    items: [],
+  );
+
+  @override
+  Future<PoiDetail> getPoiDetail(int id) => throw UnimplementedError();
 }
 
 final class _RecordingAuthRepository implements AuthRepository {

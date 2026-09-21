@@ -138,4 +138,80 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'expired session restores the invitation after Traveler sign in',
+    (tester) async {
+      const invitation = '/traveler/groups/42/invitation?source=notification';
+      var session = const AuthSessionState.authenticated(UserRole.traveler);
+      final router = GoRouter(
+        initialLocation: invitation,
+        redirect: (_, state) => RouteGuards.redirect(session, state),
+        routes: [
+          GoRoute(
+            path: AppRoutes.login,
+            builder: (_, _) => const Text('Sign In'),
+          ),
+          GoRoute(
+            path: AppRoutes.traveler,
+            builder: (_, _) => const Text('Traveler area'),
+          ),
+          GoRoute(
+            path: AppRoutes.inviteGroupMembers,
+            builder: (_, _) => const Text('Invitation'),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+      expect(find.text('Invitation'), findsOneWidget);
+
+      session = const AuthSessionState.unauthenticated();
+      router.refresh();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sign In'), findsOneWidget);
+      expect(
+        router.routeInformationProvider.value.uri.queryParameters['from'],
+        invitation,
+      );
+
+      session = const AuthSessionState.authenticated(UserRole.traveler);
+      router.refresh();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Invitation'), findsOneWidget);
+      expect(router.routeInformationProvider.value.uri.toString(), invitation);
+    },
+  );
+
+  testWidgets('operator cannot restore a Traveler invitation after sign in', (
+    tester,
+  ) async {
+    const session = AuthSessionState.authenticated(
+      UserRole.tourOperator,
+      applicationStatus: TourOperatorApplicationStatus.approved,
+    );
+    final login = Uri(
+      path: AppRoutes.login,
+      queryParameters: {'from': '/traveler/groups/42/invitation'},
+    ).toString();
+
+    expect(await resolve(tester, session, login), AppRoutes.operator);
+  });
+
+  testWidgets('external return targets fall back to the Traveler home', (
+    tester,
+  ) async {
+    const session = AuthSessionState.authenticated(UserRole.traveler);
+    for (final target in ['https://example.com', '//example.com/traveler']) {
+      final login = Uri(
+        path: AppRoutes.login,
+        queryParameters: {'from': target},
+      ).toString();
+      expect(await resolve(tester, session, login), AppRoutes.traveler);
+    }
+  });
 }

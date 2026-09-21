@@ -19,6 +19,10 @@ final class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    if (options.extra['skipAuth'] == true) {
+      handler.next(options);
+      return;
+    }
     final explicitAuthorization = options.headers['Authorization'];
     if (explicitAuthorization is String &&
         explicitAuthorization.trim().isNotEmpty) {

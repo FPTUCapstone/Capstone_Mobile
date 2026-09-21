@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/app/router/travel_group_details_route_args.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
@@ -15,10 +19,31 @@ final class _MockRepository implements TravelGroupRepository {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async {
     lastSubmittedName = name;
     lastSubmittedItineraryId = itineraryId;
-    return TravelGroup(id: 1, name: name, inviteCode: 'ABC12345');
+    return TravelGroup(id: 1, name: name);
+  }
+
+  @override
+  Future<GroupInvitation> getOrCreateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<GroupInvitation> regenerateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<TravelGroup> joinTravelGroup({
+    required String invitationCode,
+    required String idempotencyKey,
+  }) async {
+    return const TravelGroup(id: 1, name: 'Test Group', inviteCode: 'ABC12345');
   }
 }
 
@@ -81,6 +106,29 @@ void main() {
     expect(repository.lastSubmittedName, isNull);
   });
 
+  testWidgets('binds an invalid itinerary error to the itinerary field only', (
+    tester,
+  ) async {
+    await tester.pumpWidget(buildSubject(itineraryId: 0));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField).first, 'Da Nang Trip');
+    await tester.tap(find.text('Create Group'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    final decorators = find.byType(InputDecorator);
+    expect(decorators, findsNWidgets(2));
+    expect(
+      tester.widget<InputDecorator>(decorators.at(0)).decoration.errorText,
+      isNull,
+    );
+    expect(
+      tester.widget<InputDecorator>(decorators.at(1)).decoration.errorText,
+      'Please select an itinerary.',
+    );
+  });
+
   testWidgets('submits with the selected itinerary id when the name is valid', (
     tester,
   ) async {
@@ -97,4 +145,42 @@ void main() {
     expect(repository.lastSubmittedName, 'Da Nang Trip 2026');
     expect(repository.lastSubmittedItineraryId, 10);
   });
+  testWidgets(
+    'successful creation routes to details with trusted Host context',
+    (tester) async {
+      final router = GoRouter(
+        initialLocation: '/create',
+        routes: [
+          GoRoute(
+            path: '/create',
+            builder: (_, _) => BlocProvider<CreateTravelGroupCubit>.value(
+              value: cubit,
+              child: const CreateTravelGroupPage(
+                itineraryId: 10,
+                itineraryTitle: 'Summer trip',
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/groups/:groupId',
+            name: AppRouteNames.travelGroupDetails,
+            builder: (_, state) {
+              final args = state.extra! as TravelGroupDetailsRouteArgs;
+              return Text('${args.group.id}:${args.isHost}');
+            },
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.enterText(find.byType(TextFormField).first, 'Da Nang Trip');
+      await tester.tap(find.text('Create Group'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 900));
+      await tester.pumpAndSettle();
+
+      expect(find.text('1:true'), findsOneWidget);
+    },
+  );
 }

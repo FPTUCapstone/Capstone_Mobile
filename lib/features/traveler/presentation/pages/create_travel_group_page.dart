@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/app/router/travel_group_details_route_args.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_state.dart';
@@ -33,11 +34,17 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
   final _nameController = TextEditingController();
   late final TextEditingController _itineraryController;
   String? _nameError;
+  String? _itineraryError;
 
   @override
   void initState() {
     super.initState();
     _itineraryController = TextEditingController(text: widget.itineraryTitle);
+    _nameController.addListener(() {
+      if (_nameError != null) {
+        setState(() => _nameError = null);
+      }
+    });
   }
 
   @override
@@ -53,19 +60,40 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
       listener: (context, state) {
         switch (state.status) {
           case CreateTravelGroupStatus.validationFailure:
-            setState(() => _nameError = state.errorMessage);
+            final error = state.errorMessage;
+            if (error == 'Please select an itinerary.') {
+              setState(() {
+                _itineraryError = error;
+                _nameError = null;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(error ?? 'Please select an itinerary.'),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                ),
+              );
+            } else {
+              setState(() {
+                _nameError = error;
+                _itineraryError = null;
+              });
+            }
+            _formKey.currentState?.validate();
           case CreateTravelGroupStatus.initial:
             // returned from validationFailure; error already shown
             break;
           case CreateTravelGroupStatus.success:
-            setState(() => _nameError = null);
+            setState(() {
+              _nameError = null;
+              _itineraryError = null;
+            });
             final group = state.result;
             final router = GoRouter.maybeOf(context);
             if (group != null && router != null) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text(
-                    'Travel group created! You are the Group Host. Share the invite code to add members.',
+                    'Travel group created! You are the Group Host. Open Invite Members to share an invitation.',
                   ),
                 ),
               );
@@ -74,14 +102,23 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
                 router.goNamed(
                   AppRouteNames.travelGroupDetails,
                   pathParameters: {'groupId': group.id.toString()},
-                  extra: group,
+                  extra: TravelGroupDetailsRouteArgs(
+                    group: group,
+                    isHost: true,
+                  ),
                 );
               });
             }
           case CreateTravelGroupStatus.failure:
-            setState(() => _nameError = null);
+            setState(() {
+              _nameError = null;
+              _itineraryError = null;
+            });
           case CreateTravelGroupStatus.submitting:
-            setState(() => _nameError = null);
+            setState(() {
+              _nameError = null;
+              _itineraryError = null;
+            });
         }
       },
       builder: (context, state) {
@@ -108,7 +145,7 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
                 if (isSuccess) ...[
                   const AppAlert(
                     message:
-                        'Travel group created! You are the Group Host. Share the invite code to add members.',
+                        'Travel group created! You are the Group Host. Open Invite Members to share an invitation.',
                     type: AppAlertType.success,
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -142,6 +179,7 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
                         controller: _itineraryController,
                         enabled: !isDisabled,
                         readOnly: true,
+                        validator: (_) => _itineraryError,
                         helperText: 'Selected eligible itinerary',
                       ),
                       const SizedBox(height: AppSpacing.md),
