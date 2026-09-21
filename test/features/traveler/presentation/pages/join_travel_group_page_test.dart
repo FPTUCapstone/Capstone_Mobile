@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_cubit.dart';
@@ -20,6 +23,18 @@ final class _MockTravelGroupRepository implements TravelGroupRepository {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<GroupInvitation> getOrCreateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<GroupInvitation> regenerateGroupInvitation({
+    required int groupId,
     required String idempotencyKey,
   }) => throw UnimplementedError();
 
@@ -170,11 +185,40 @@ void main() {
     },
   );
 
-  testWidgets('no second join request while scanning or submitting', (
-    tester,
-  ) async {
+  testWidgets('rapid taps launch only one scanner', (tester) async {
     int scanLaunchCount = 0;
+    final scanResult = Completer<String?>();
 
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider<JoinTravelGroupCubit>.value(
+          value: cubit,
+          child: JoinTravelGroupPage(
+            scannerLauncher: (context) async {
+              scanLaunchCount++;
+              return scanResult.future;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Scan QR Invitation'));
+    await tester.pump();
+    await tester.tap(find.text('Scan QR Invitation'), warnIfMissed: false);
+    await tester.pump();
+
+    expect(scanLaunchCount, 1);
+    expect(repository.lastCode, isNull);
+
+    scanResult.complete('CODE1111');
+    await tester.pumpAndSettle();
+    expect(repository.lastCode, 'CODE1111');
+  });
+
+  testWidgets('scan action is disabled while submitting', (tester) async {
+    int scanLaunchCount = 0;
     await tester.pumpWidget(
       MaterialApp(
         home: BlocProvider<JoinTravelGroupCubit>.value(
@@ -190,11 +234,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Put cubit into submitting state
     cubit.emit(const JoinTravelGroupState.submitting());
     await tester.pump();
-
-    // Tap Scan QR button while submitting
     await tester.tap(find.text('Scan QR Invitation'), warnIfMissed: false);
     await tester.pump();
 

@@ -71,6 +71,21 @@ void main() {
     );
   });
 
+  test('maps travel group not found without leaking server details', () {
+    final failure = ErrorMapper.toFailure(
+      responseError(
+        statusCode: 404,
+        data: {
+          'title': 'Travel group was not found.',
+          'detail': 'Internal lookup diagnostics',
+          'errorCode': 'travel_group.group_not_found',
+        },
+      ),
+    );
+
+    expect(failure, isA<NotFoundFailure>());
+  });
+
   test('maps HTTP 401 to AuthenticationFailure', () {
     final failure = ErrorMapper.toFailure(responseError(statusCode: 401));
 

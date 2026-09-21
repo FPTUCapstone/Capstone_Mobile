@@ -27,6 +27,7 @@ class JoinTravelGroupPage extends StatefulWidget {
 class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
   final _codeController = TextEditingController();
   String? _inlineError;
+  bool _isScanning = false;
 
   @override
   void initState() {
@@ -51,20 +52,26 @@ class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
 
   Future<void> _handleScanQr() async {
     final cubit = context.read<JoinTravelGroupCubit>();
-    if (cubit.state.isSubmitting) return;
+    if (cubit.state.isSubmitting || _isScanning) return;
 
-    final String? scannedData;
-    if (widget.scannerLauncher != null) {
-      scannedData = await widget.scannerLauncher!(context);
-    } else {
-      scannedData = await QrScannerDialog.show(context);
-    }
+    setState(() => _isScanning = true);
 
-    if (!mounted) return;
-    if (scannedData != null) {
-      if (cubit.state.isSubmitting) return;
-      _codeController.text = scannedData;
-      await cubit.submit(scannedData);
+    try {
+      final String? scannedData;
+      if (widget.scannerLauncher != null) {
+        scannedData = await widget.scannerLauncher!(context);
+      } else {
+        scannedData = await QrScannerDialog.show(context);
+      }
+
+      if (!mounted) return;
+      if (scannedData != null) {
+        if (cubit.state.isSubmitting) return;
+        _codeController.text = scannedData;
+        await cubit.submit(scannedData);
+      }
+    } finally {
+      if (mounted) setState(() => _isScanning = false);
     }
   }
 
@@ -223,13 +230,15 @@ class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
 
             // Secondary Scan QR Action Card
             OutlinedButton.icon(
-              onPressed: isSubmitting ? null : _handleScanQr,
+              onPressed: isSubmitting || _isScanning ? null : _handleScanQr,
               icon: const Icon(Icons.qr_code_scanner_rounded),
               label: const Text('Scan QR Invitation'),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                 side: BorderSide(
-                  color: isSubmitting ? AppColors.line : AppColors.primary,
+                  color: isSubmitting || _isScanning
+                      ? AppColors.line
+                      : AppColors.primary,
                 ),
               ),
             ),

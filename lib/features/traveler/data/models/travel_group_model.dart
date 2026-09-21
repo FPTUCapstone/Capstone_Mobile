@@ -32,7 +32,6 @@ final class TravelGroupModel {
         'Travel group response has an invalid itineraryId.',
       );
     }
-
     return TravelGroupModel(
       id: id,
       name: name.trim(),

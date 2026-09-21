@@ -28,6 +28,9 @@ abstract final class ErrorMapper {
     if (statusCode == 404) {
       final errorCode = _extractErrorCode(responseData);
       if (errorCode == 'Poi.NotFound') return const NotFoundFailure();
+      if (errorCode == 'travel_group.group_not_found') {
+        return const NotFoundFailure();
+      }
       if (errorCode == 'travel_group.itinerary_not_found') {
         return const NotFoundFailure(
           'The selected itinerary was not found. Please choose another itinerary.',
