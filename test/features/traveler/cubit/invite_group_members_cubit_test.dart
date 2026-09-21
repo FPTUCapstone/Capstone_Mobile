@@ -29,6 +29,7 @@ final class _SuccessRepository extends _TravelGroupRepositoryFake {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async => const TravelGroup(id: 1, name: 'Group');
 
   @override
@@ -51,6 +52,7 @@ final class _FailureRepository extends _TravelGroupRepositoryFake {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async => throw Exception('server error');
 
   @override
@@ -74,6 +76,7 @@ final class _AuthenticationFailureRepository
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async => throw UnimplementedError();
 
   @override
@@ -96,6 +99,7 @@ final class _PermissionFailureRepository extends _TravelGroupRepositoryFake {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async => throw UnimplementedError();
 
   @override
@@ -122,6 +126,7 @@ final class _RegenerateRepository extends _TravelGroupRepositoryFake {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async => const TravelGroup(id: 1, name: 'Group');
 
   @override
@@ -161,6 +166,7 @@ final class _UncertainRegenerationRepository
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async => throw UnimplementedError();
 
   @override
@@ -196,6 +202,7 @@ final class _DefinitiveRegenerationFailureRepository
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async => throw UnimplementedError();
 
   @override
@@ -227,6 +234,7 @@ final class _DelayedInvitationRepository extends _TravelGroupRepositoryFake {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async => throw UnimplementedError();
 
   @override

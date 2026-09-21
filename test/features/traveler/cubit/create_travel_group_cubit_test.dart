@@ -104,6 +104,7 @@ final class _TrackingRepository implements TravelGroupRepository {
   bool shouldFail = true;
   Failure? failure;
   Completer<TravelGroup>? slowCompleter;
+  Completer<TravelGroup>? slowFailureCompleter;
 
   @override
   Future<TravelGroup> createTravelGroup({
@@ -122,11 +123,26 @@ final class _TrackingRepository implements TravelGroupRepository {
     if (slowCompleter != null) {
       return slowCompleter!.future;
     }
+    if (slowFailureCompleter != null) {
+      return slowFailureCompleter!.future;
+    }
     if (shouldFail) {
       throw Exception('network error');
     }
     return TravelGroup(id: 1, name: name);
   }
+
+  @override
+  Future<GroupInvitation> getOrCreateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<GroupInvitation> regenerateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
 
   @override
   Future<TravelGroup> joinTravelGroup({
@@ -557,5 +573,65 @@ void main() {
         await cubit.close();
       },
     );
+
+    test(
+      'default idempotency key is a UUID v4 with RFC 4122 variant',
+      () async {
+        final repository = _TrackingRepository()..shouldFail = false;
+        final cubit = CreateTravelGroupCubit(repository: repository);
+
+        await cubit.submit(name: validName, itineraryId: testItineraryId);
+
+        final key = repository.calls.single.idempotencyKey;
+        expect(
+          key,
+          matches(
+            RegExp(
+              r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+            ),
+          ),
+        );
+        expect(key[14], '4');
+        expect(RegExp(r'^[89ab]$').hasMatch(key[19]), isTrue);
+
+        await cubit.close();
+      },
+    );
+
+    test('does not emit delayed success after the cubit is closed', () async {
+      final repository = _TrackingRepository()
+        ..slowCompleter = Completer<TravelGroup>();
+      final cubit = CreateTravelGroupCubit(repository: repository);
+
+      final submit = cubit.submit(
+        name: validName,
+        itineraryId: testItineraryId,
+      );
+      expect(cubit.state.status, CreateTravelGroupStatus.submitting);
+
+      await cubit.close();
+      repository.slowCompleter!.complete(travelGroup);
+      await submit;
+
+      expect(cubit.state.status, CreateTravelGroupStatus.submitting);
+    });
+
+    test('does not emit delayed failure after the cubit is closed', () async {
+      final repository = _TrackingRepository()
+        ..slowFailureCompleter = Completer<TravelGroup>();
+      final cubit = CreateTravelGroupCubit(repository: repository);
+
+      final submit = cubit.submit(
+        name: validName,
+        itineraryId: testItineraryId,
+      );
+      expect(cubit.state.status, CreateTravelGroupStatus.submitting);
+
+      await cubit.close();
+      repository.slowFailureCompleter!.completeError(const NetworkFailure());
+      await submit;
+
+      expect(cubit.state.status, CreateTravelGroupStatus.submitting);
+    });
   });
 }

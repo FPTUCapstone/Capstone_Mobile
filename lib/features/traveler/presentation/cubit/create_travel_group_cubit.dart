@@ -43,7 +43,7 @@ final class CreateTravelGroupCubit extends Cubit<CreateTravelGroupState> {
   /// Emits [validationFailure] → [initial] for client-side errors.
   /// Emits [submitting] → [success] or [failure] for API calls.
   Future<void> submit({required String name, required int itineraryId}) async {
-    if (state.status == CreateTravelGroupStatus.submitting) {
+    if (isClosed || state.status == CreateTravelGroupStatus.submitting) {
       return;
     }
 
@@ -99,9 +99,11 @@ final class CreateTravelGroupCubit extends Cubit<CreateTravelGroupState> {
         itineraryId: itineraryId,
         idempotencyKey: idempotencyKey,
       );
+      if (isClosed) return;
       _pendingOperation = null;
       emit(CreateTravelGroupState.success(group));
     } catch (error) {
+      if (isClosed) return;
       final message = switch (error) {
         AuthenticationFailure() =>
           'Your session has expired. Please sign in again to continue.',

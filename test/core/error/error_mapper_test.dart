@@ -147,12 +147,27 @@ void main() {
       responseError(
         statusCode: 400,
         path: '/travel-groups/join',
-        data: {'detail': 'SqlException: Table not found'},
+        data: {
+          'title': 'SqlException: Table not found',
+          'detail': 'SqlException: Table not found',
+        },
       ),
     );
 
     expect(failure, isA<ValidationFailure>());
     expect(failure.message, 'The input provided is invalid.');
+  });
+
+  test('maps a connection failure to NetworkFailure', () {
+    final request = RequestOptions(path: '/travel-groups');
+    final failure = ErrorMapper.toFailure(
+      DioException.connectionError(
+        requestOptions: request,
+        reason: 'Connection interrupted.',
+      ),
+    );
+
+    expect(failure, isA<NetworkFailure>());
   });
 
   test('maps an active membership conflict with its group id', () {

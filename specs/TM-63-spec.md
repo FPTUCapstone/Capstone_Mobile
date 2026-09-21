@@ -22,7 +22,6 @@ because the auth token integration is not yet wired).
 | Main success | Group created → MSG54 shown → open the new Travel Group Details screen |
 | Alt: validation | Inline field error before submit |
 | Alt: server error | Error banner shown; form remains editable |
-| Alt: offline | Offline banner shown; submit disabled |
 
 ---
 
@@ -42,7 +41,6 @@ Based on `Capstone_Docs/ux/screen-specifications/create-travel-group-screen-spec
   - Success → MSG54 shown as a `SnackBar`, then open the created Travel Group Details screen
   - Validation error → inline error under field (MSG01)
   - Server error → error `AppAlert` (MSG127)
-  - Offline → warning `AppAlert` (MSG126), button disabled
 
 ### Messages
 
@@ -176,3 +174,4 @@ Response 201:
 
 - Auth token injection into ApiClient
 - Loading group details from the backend on direct deep links
+- Offline detection, offline warning UI, and disabling submit while offline

@@ -3,6 +3,10 @@ import 'package:trip_mate_mobile/core/error/exceptions.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 
 abstract final class ErrorMapper {
+  static const _safeValidationTitles = {
+    'One or more validation errors occurred.',
+  };
+
   static Failure toFailure(Object error) {
     if (error is Failure) return error;
     if (error is AuthenticationException) {
@@ -119,7 +123,9 @@ abstract final class ErrorMapper {
   static String? _safeTitle(Object? data) {
     if (data is! Map) return null;
     final title = data['title'];
-    return title is String && title.trim().isNotEmpty ? title.trim() : null;
+    if (title is! String) return null;
+    final normalized = title.trim();
+    return _safeValidationTitles.contains(normalized) ? normalized : null;
   }
 
   static Map<String, List<String>> _fieldErrors(Object? data) {
