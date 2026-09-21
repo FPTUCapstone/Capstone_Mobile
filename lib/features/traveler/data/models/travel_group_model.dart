@@ -8,8 +8,8 @@ final class TravelGroupModel {
   const TravelGroupModel({
     required this.id,
     required this.name,
+    required this.itineraryId,
     this.inviteCode,
-    this.itineraryId,
   });
 
   factory TravelGroupModel.fromJson(Map<String, dynamic> json) {
@@ -27,19 +27,24 @@ final class TravelGroupModel {
         'Travel group response has an invalid groupName.',
       );
     }
+    if (itineraryId is! int || itineraryId <= 0) {
+      throw const FormatException(
+        'Travel group response has an invalid itineraryId.',
+      );
+    }
 
     return TravelGroupModel(
       id: id,
       name: name.trim(),
       inviteCode: inviteCode is String ? inviteCode.trim() : null,
-      itineraryId: itineraryId is int ? itineraryId : null,
+      itineraryId: itineraryId,
     );
   }
 
   final int id;
   final String name;
+  final int itineraryId;
   final String? inviteCode;
-  final int? itineraryId;
 
   /// Converts this model to the domain entity.
   TravelGroup toEntity() => TravelGroup(

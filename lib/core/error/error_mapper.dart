@@ -25,9 +25,14 @@ abstract final class ErrorMapper {
         fieldErrors: _fieldErrors(responseData),
       );
     }
-    if (statusCode == 404 &&
-        _extractErrorCode(responseData) == 'Poi.NotFound') {
-      return const NotFoundFailure();
+    if (statusCode == 404) {
+      final errorCode = _extractErrorCode(responseData);
+      if (errorCode == 'Poi.NotFound') return const NotFoundFailure();
+      if (errorCode == 'travel_group.itinerary_not_found') {
+        return const NotFoundFailure(
+          'The selected itinerary was not found. Please choose another itinerary.',
+        );
+      }
     }
     if (statusCode == 401) return const AuthenticationFailure();
     if (statusCode == 403) return const PermissionFailure();
@@ -36,6 +41,8 @@ abstract final class ErrorMapper {
       return ConflictFailure(
         message ?? 'Conflict occurred. Please try again.',
         groupId,
+        _extractErrorCode(responseData) ==
+            'travel_group.idempotency_key_payload_mismatch',
       );
     }
     if (statusCode != null && statusCode >= 500) return const ServerFailure();

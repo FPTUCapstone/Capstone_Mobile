@@ -66,6 +66,7 @@ final class _TypedFailureRepository implements TravelGroupRepository {
 final class _TrackingRepository implements TravelGroupRepository {
   final calls = <({String name, int itineraryId, String idempotencyKey})>[];
   bool shouldFail = true;
+  Failure? failure;
   Completer<TravelGroup>? slowCompleter;
 
   @override
@@ -79,6 +80,9 @@ final class _TrackingRepository implements TravelGroupRepository {
       itineraryId: itineraryId,
       idempotencyKey: idempotencyKey,
     ));
+    if (failure != null) {
+      throw failure!;
+    }
     if (slowCompleter != null) {
       return slowCompleter!.future;
     }
@@ -135,6 +139,33 @@ void main() {
           'status',
           CreateTravelGroupStatus.initial,
         ),
+      ],
+    );
+
+    blocTest<CreateTravelGroupCubit, CreateTravelGroupState>(
+      'maps itinerary not found to a user-facing failure',
+      build: () => CreateTravelGroupCubit(
+        repository: const _TypedFailureRepository(
+          NotFoundFailure(
+            'The selected itinerary was not found. Please choose another itinerary.',
+          ),
+        ),
+      ),
+      act: (cubit) =>
+          cubit.submit(name: validName, itineraryId: testItineraryId),
+      expect: () => [
+        isA<CreateTravelGroupState>().having(
+          (s) => s.status,
+          'status',
+          CreateTravelGroupStatus.submitting,
+        ),
+        isA<CreateTravelGroupState>()
+            .having((s) => s.status, 'status', CreateTravelGroupStatus.failure)
+            .having(
+              (s) => s.errorMessage,
+              'errorMessage',
+              'The selected itinerary was not found. Please choose another itinerary.',
+            ),
       ],
     );
 
@@ -327,6 +358,33 @@ void main() {
     );
 
     // -- Idempotency contract tests (P1 & P2) --------------------------------
+
+    test(
+      'idempotency payload mismatch clears the rejected key before retry',
+      () async {
+        final repository = _TrackingRepository()
+          ..failure = const ConflictFailure(
+            'A conflicting request with different request data is already in progress. Please try again.',
+            null,
+            true,
+          );
+        var keyCounter = 0;
+        final cubit = CreateTravelGroupCubit(
+          repository: repository,
+          operationKeyFactory: () => 'key-${++keyCounter}',
+        );
+
+        await cubit.submit(name: 'Trip A', itineraryId: 10);
+        await cubit.submit(name: 'Trip A', itineraryId: 10);
+
+        expect(repository.calls, hasLength(2));
+        expect(repository.calls[0].idempotencyKey, 'key-1');
+        expect(repository.calls[1].idempotencyKey, 'key-2');
+        expect(keyCounter, 2);
+
+        await cubit.close();
+      },
+    );
 
     test('exact retry reuses the same idempotency key after failure', () async {
       final repository = _TrackingRepository();

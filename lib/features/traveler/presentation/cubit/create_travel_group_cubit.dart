@@ -107,11 +107,15 @@ final class CreateTravelGroupCubit extends Cubit<CreateTravelGroupState> {
           'Your session has expired. Please sign in again to continue.',
         PermissionFailure() =>
           'You do not have permission to access this function.',
+        NotFoundFailure(:final message) => message,
         ValidationFailure(:final message) => message,
         ConflictFailure(:final message) => message,
         _ =>
           'TripMate is temporarily unable to process your request. Please check your connection and try again.',
       };
+      if (error is ConflictFailure && error.isIdempotencyKeyPayloadMismatch) {
+        _pendingOperation = null;
+      }
       emit(CreateTravelGroupState.failure(message));
     }
   }

@@ -56,6 +56,21 @@ void main() {
     expect(failure.message, const NotFoundFailure().message);
   });
 
+  test('maps a missing travel group itinerary to a safe not-found failure', () {
+    final failure = ErrorMapper.toFailure(
+      responseError(
+        statusCode: 404,
+        data: {'errorCode': 'travel_group.itinerary_not_found'},
+      ),
+    );
+
+    expect(failure, isA<NotFoundFailure>());
+    expect(
+      failure.message,
+      'The selected itinerary was not found. Please choose another itinerary.',
+    );
+  });
+
   test('maps HTTP 401 to AuthenticationFailure', () {
     final failure = ErrorMapper.toFailure(responseError(statusCode: 401));
 
@@ -155,6 +170,10 @@ void main() {
     expect(
       failure.message,
       'A conflicting request with different request data is already in progress. Please try again.',
+    );
+    expect(
+      (failure as ConflictFailure).isIdempotencyKeyPayloadMismatch,
+      isTrue,
     );
   });
 
