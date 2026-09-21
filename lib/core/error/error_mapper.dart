@@ -34,7 +34,10 @@ abstract final class ErrorMapper {
       );
     }
     if (statusCode == 404 &&
-        _extractErrorCode(responseData) == 'Poi.NotFound') {
+        const {
+          'Poi.NotFound',
+          'travel_group.group_not_found',
+        }.contains(_extractErrorCode(responseData))) {
       return const NotFoundFailure();
     }
     if (statusCode == 401) return const AuthenticationFailure();

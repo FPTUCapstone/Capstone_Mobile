@@ -45,6 +45,18 @@ void main() {
     expect(failure.message, 'Địa điểm không tồn tại hoặc đã đóng.');
   });
 
+  test('maps travel group not found without leaking server details', () {
+    final failure = ErrorMapper.toFailure(
+      responseError(404, {
+        'title': 'Travel group was not found.',
+        'detail': 'Internal lookup diagnostics',
+        'errorCode': 'travel_group.group_not_found',
+      }),
+    );
+
+    expect(failure, isA<NotFoundFailure>());
+  });
+
   test('maps HTTP 401 to AuthenticationFailure', () {
     final failure = ErrorMapper.toFailure(
       DioException(

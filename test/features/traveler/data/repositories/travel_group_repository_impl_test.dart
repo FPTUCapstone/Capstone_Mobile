@@ -8,6 +8,8 @@ import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_group_repository_impl.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/invite_group_members_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/invite_group_members_state.dart';
 
 void main() {
   group('TravelGroupRepositoryImpl invitation requests', () {
@@ -106,6 +108,37 @@ void main() {
         ),
       );
     });
+
+    test('404 after an uncertain regeneration exits reconciliation', () async {
+      final cubit = InviteGroupMembersCubit(repository: repository);
+      addTearDown(cubit.close);
+      await cubit.loadInvitation(42);
+
+      final networkAdapter = _NetworkFailureHttpClientAdapter();
+      dioClient.dio.httpClientAdapter = networkAdapter;
+      await cubit.regenerateInvitation(42);
+      expect(
+        cubit.state.status,
+        InviteGroupMembersStatus.regenerationUncertain,
+      );
+
+      final notFoundAdapter = _RecordingHttpClientAdapter(
+        statusCode: 404,
+        body:
+            '{"title":"Travel group was not found.",'
+            '"status":404,'
+            '"errorCode":"travel_group.group_not_found"}',
+      );
+      dioClient.dio.httpClientAdapter = notFoundAdapter;
+      await cubit.regenerateInvitation(42);
+
+      expect(cubit.state.status, InviteGroupMembersStatus.failure);
+      expect(cubit.state.invitation, isNull);
+      expect(
+        notFoundAdapter.request?.headers['Idempotency-Key'],
+        networkAdapter.request?.headers['Idempotency-Key'],
+      );
+    });
   });
 
   group('TravelGroupRepositoryImpl existing operations', () {
@@ -200,6 +233,26 @@ final class _RecordingHttpClientAdapter implements HttpClientAdapter {
       headers: {
         Headers.contentTypeHeader: [Headers.jsonContentType],
       },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+final class _NetworkFailureHttpClientAdapter implements HttpClientAdapter {
+  RequestOptions? request;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    request = options;
+    throw DioException.connectionError(
+      requestOptions: options,
+      reason: 'Connection interrupted after request transmission.',
     );
   }
 
