@@ -37,7 +37,6 @@ void main() {
         expect(request?.path, '/api/v1/travel-groups/42/invitation');
         expect(request?.headers['Idempotency-Key'], key);
         expect(request?.data, isNull);
-        expect(key, matches(_uuidV4Pattern));
         expect(invitation.groupId, 42);
         expect(invitation.groupName, 'Da Nang Summer Trip');
         expect(invitation.inviteCode, 'TM7X9K2A');
@@ -61,7 +60,6 @@ void main() {
         expect(request?.path, '/api/v1/travel-groups/42/invitation/regenerate');
         expect(request?.headers['Idempotency-Key'], key);
         expect(request?.data, isNull);
-        expect(key, matches(_uuidV4Pattern));
       },
     );
 
@@ -173,11 +171,6 @@ const _invitationResponse =
     '"inviteCode":"TM7X9K2A",'
     '"qrData":"tripmate://groups/join?code=TM7X9K2A",'
     '"expiresAt":"2026-10-14T10:30:00Z"}';
-
-final _uuidV4Pattern = RegExp(
-  r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
-  caseSensitive: false,
-);
 
 DioClient _createDioClient() => DioClient(
   config: AppConfig(

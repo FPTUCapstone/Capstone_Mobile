@@ -50,6 +50,21 @@ void main() {
     expect(find.text('Invite Members'), findsNothing);
   });
 
+  testWidgets('mismatched Host route data does not expose Host controls', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: TravelGroupDetailsPage(groupId: 99, group: group, isHost: true),
+      ),
+    );
+
+    expect(find.text('Travel Group #99'), findsOneWidget);
+    expect(find.text('You are the Group Host.'), findsNothing);
+    expect(find.textContaining('Invite code:'), findsNothing);
+    expect(find.text('Invite Members'), findsNothing);
+  });
+
   testWidgets('Host opens correct group invitation and returns to details', (
     tester,
   ) async {

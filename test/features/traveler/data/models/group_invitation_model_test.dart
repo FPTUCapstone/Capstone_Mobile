@@ -90,6 +90,7 @@ void main() {
         '2026-10-08T10:30:00',
         '2026-10-08T17:30:00+07:00',
         'not-a-date',
+        '2026-02-31T10:30:00Z',
       ]) {
         expect(
           () => GroupInvitationModel.fromJson({

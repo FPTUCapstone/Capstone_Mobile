@@ -82,7 +82,7 @@ void main() {
 
   Widget buildSubject({
     int groupId = 42,
-    Future<void> Function(String)? shareOperation,
+    Future<void> Function(String, Rect?)? shareOperation,
   }) {
     return MaterialApp(
       home: BlocProvider<InviteGroupMembersCubit>.value(
@@ -321,8 +321,14 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
     String? sharedPayload;
+    Rect? sharedOrigin;
     await tester.pumpWidget(
-      buildSubject(shareOperation: (payload) async => sharedPayload = payload),
+      buildSubject(
+        shareOperation: (payload, origin) async {
+          sharedPayload = payload;
+          sharedOrigin = origin;
+        },
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -330,5 +336,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(sharedPayload, 'tripmate://groups/join?code=TM7X9K2A');
+    expect(sharedOrigin, isNotNull);
+    expect(sharedOrigin!.isEmpty, isFalse);
   });
 }

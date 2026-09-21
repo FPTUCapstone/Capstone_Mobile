@@ -72,13 +72,15 @@ final class InviteGroupMembersCubit extends Cubit<InviteGroupMembersState> {
       emit(InviteGroupMembersState.success(invitation));
     } catch (error) {
       if (isClosed) return;
-      if (!isReconciling && _isDefinitiveRegenerationFailure(error)) {
+      if (_isDefinitiveRegenerationFailure(error)) {
         _pendingRegenerationKey = null;
         _pendingRegenerationInvitation = null;
         emit(
           InviteGroupMembersState.failure(
             _errorMessage(error),
-            invitation: currentInvitation,
+            invitation: !isReconciling && _canRetainInvitation(error)
+                ? currentInvitation
+                : null,
           ),
         );
       } else {
@@ -99,6 +101,9 @@ final class InviteGroupMembersCubit extends Cubit<InviteGroupMembersState> {
       error is ValidationFailure ||
       error is NotFoundFailure ||
       error is ConflictFailure;
+
+  bool _canRetainInvitation(Object error) =>
+      error is ValidationFailure || error is ConflictFailure;
 
   String _errorMessage(Object error) {
     if (error is AuthenticationFailure) {

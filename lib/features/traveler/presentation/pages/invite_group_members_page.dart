@@ -25,13 +25,16 @@ class InviteGroupMembersPage extends StatefulWidget {
   });
 
   final int groupId;
-  final Future<void> Function(String payload)? shareOperation;
+  final Future<void> Function(String payload, Rect? shareOrigin)?
+  shareOperation;
 
   @override
   State<InviteGroupMembersPage> createState() => _InviteGroupMembersPageState();
 }
 
 class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
+  final _shareButtonKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -77,11 +80,18 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
 
   Future<void> _shareInvitation(String deepLink) async {
     try {
+      final renderBox =
+          _shareButtonKey.currentContext?.findRenderObject() as RenderBox?;
+      final shareOrigin = renderBox == null
+          ? null
+          : renderBox.localToGlobal(Offset.zero) & renderBox.size;
       final operation = widget.shareOperation;
       if (operation != null) {
-        await operation(deepLink);
+        await operation(deepLink, shareOrigin);
       } else {
-        await SharePlus.instance.share(ShareParams(text: deepLink));
+        await SharePlus.instance.share(
+          ShareParams(text: deepLink, sharePositionOrigin: shareOrigin),
+        );
       }
     } catch (_) {
       if (!mounted) return;
@@ -359,6 +369,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
 
             // Action buttons
             AppButton(
+              key: _shareButtonKey,
               label: 'Share Invitation',
               onPressed: isRegenerating
                   ? null

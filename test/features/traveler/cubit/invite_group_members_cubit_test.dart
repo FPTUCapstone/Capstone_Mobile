@@ -148,10 +148,12 @@ final class _UncertainRegenerationRepository
   _UncertainRegenerationRepository({
     required this.initial,
     required this.replacement,
+    this.replayFailure,
   });
 
   final GroupInvitation initial;
   final GroupInvitation replacement;
+  final Failure? replayFailure;
   final List<String> regenerationKeys = [];
   bool replacementCommitted = false;
 
@@ -177,15 +179,17 @@ final class _UncertainRegenerationRepository
       replacementCommitted = true;
       throw const NetworkFailure();
     }
+    if (replayFailure case final failure?) throw failure;
     return replacement;
   }
 }
 
 final class _DefinitiveRegenerationFailureRepository
     extends _TravelGroupRepositoryFake {
-  _DefinitiveRegenerationFailureRepository(this.initial);
+  _DefinitiveRegenerationFailureRepository(this.initial, this.failure);
 
   final GroupInvitation initial;
+  final Failure failure;
   final List<String> regenerationKeys = [];
 
   @override
@@ -206,7 +210,7 @@ final class _DefinitiveRegenerationFailureRepository
     required String idempotencyKey,
   }) async {
     regenerationKeys.add(idempotencyKey);
-    throw const PermissionFailure();
+    throw failure;
   }
 }
 
@@ -460,23 +464,60 @@ void main() {
       },
     );
 
-    test(
-      'definitive regeneration rejection preserves the current invitation',
-      () async {
-        final repository = _DefinitiveRegenerationFailureRepository(
-          testInvitation,
-        );
-        final cubit = InviteGroupMembersCubit(repository: repository);
-        addTearDown(cubit.close);
+    test('validation rejection preserves the current invitation', () async {
+      final repository = _DefinitiveRegenerationFailureRepository(
+        testInvitation,
+        const ValidationFailure('Request rejected.'),
+      );
+      final cubit = InviteGroupMembersCubit(repository: repository);
+      addTearDown(cubit.close);
 
-        await cubit.loadInvitation(1);
-        await cubit.regenerateInvitation(1);
+      await cubit.loadInvitation(1);
+      await cubit.regenerateInvitation(1);
 
-        expect(cubit.state.status, InviteGroupMembersStatus.failure);
-        expect(cubit.state.invitation, testInvitation);
-        expect(cubit.state.errorMessage, contains('permission'));
-      },
-    );
+      expect(cubit.state.status, InviteGroupMembersStatus.failure);
+      expect(cubit.state.invitation, testInvitation);
+      expect(cubit.state.errorMessage, contains('temporarily unable'));
+    });
+
+    test('definitive retry failure exits uncertain regeneration', () async {
+      final repository = _UncertainRegenerationRepository(
+        initial: testInvitation,
+        replacement: replacementInvitation,
+        replayFailure: const PermissionFailure(),
+      );
+      final cubit = InviteGroupMembersCubit(repository: repository);
+      addTearDown(cubit.close);
+
+      await cubit.loadInvitation(1);
+      await cubit.regenerateInvitation(1);
+      await cubit.regenerateInvitation(1);
+
+      expect(repository.regenerationKeys, hasLength(2));
+      expect(repository.regenerationKeys[1], repository.regenerationKeys[0]);
+      expect(cubit.state.status, InviteGroupMembersStatus.failure);
+      expect(cubit.state.invitation, isNull);
+      expect(cubit.state.errorMessage, contains('permission'));
+
+      await cubit.regenerateInvitation(1);
+      expect(repository.regenerationKeys, hasLength(2));
+    });
+
+    test('permission rejection removes Host-only invitation actions', () async {
+      final repository = _DefinitiveRegenerationFailureRepository(
+        testInvitation,
+        const PermissionFailure(),
+      );
+      final cubit = InviteGroupMembersCubit(repository: repository);
+      addTearDown(cubit.close);
+
+      await cubit.loadInvitation(1);
+      await cubit.regenerateInvitation(1);
+
+      expect(cubit.state.status, InviteGroupMembersStatus.failure);
+      expect(cubit.state.invitation, isNull);
+      expect(cubit.state.errorMessage, contains('permission'));
+    });
 
     test('late initial load completion does not emit after close', () async {
       final repository = _DelayedInvitationRepository(testInvitation);

@@ -25,7 +25,7 @@ final class GroupInvitationModel {
       throw const FormatException('Invalid group invitation response.');
     }
 
-    final parsedExpiresAt = DateTime.tryParse(expiresAt);
+    final parsedExpiresAt = _parseUtcTimestamp(expiresAt);
     final normalizedGroupName = groupName.trim();
     final normalizedInviteCode = inviteCode.trim();
     final normalizedQrData = qrData.trim();
@@ -34,9 +34,7 @@ final class GroupInvitationModel {
         !_inviteCodePattern.hasMatch(normalizedInviteCode) ||
         normalizedQrData !=
             'tripmate://groups/join?code=$normalizedInviteCode' ||
-        !_utcTimestampSuffix.hasMatch(expiresAt) ||
-        parsedExpiresAt == null ||
-        !parsedExpiresAt.isUtc) {
+        parsedExpiresAt == null) {
       throw const FormatException('Invalid group invitation response.');
     }
 
@@ -52,7 +50,29 @@ final class GroupInvitationModel {
   static final _inviteCodePattern = RegExp(
     r'^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$',
   );
-  static final _utcTimestampSuffix = RegExp(r'(?:Z|\+00:00)$');
+  static final _utcTimestampPattern = RegExp(
+    r'^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})'
+    r'(?:\.\d{1,7})?(?:Z|\+00:00)$',
+  );
+
+  static DateTime? _parseUtcTimestamp(String value) {
+    final match = _utcTimestampPattern.firstMatch(value);
+    final parsed = DateTime.tryParse(value);
+    if (match == null || parsed == null || !parsed.isUtc) return null;
+
+    final components = [
+      parsed.year,
+      parsed.month,
+      parsed.day,
+      parsed.hour,
+      parsed.minute,
+      parsed.second,
+    ];
+    for (var index = 0; index < components.length; index++) {
+      if (components[index] != int.parse(match.group(index + 1)!)) return null;
+    }
+    return parsed;
+  }
 
   final int groupId;
   final String groupName;
