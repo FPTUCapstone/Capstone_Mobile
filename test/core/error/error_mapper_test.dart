@@ -6,16 +6,55 @@ import 'package:trip_mate_mobile/core/error/failures.dart';
 void main() {
   DioException responseError({
     required int statusCode,
-    dynamic data,
+    Object? data,
     String path = '/travel-groups',
-  }) => DioException(
-    requestOptions: RequestOptions(path: path),
-    response: Response(
-      requestOptions: RequestOptions(path: path),
-      statusCode: statusCode,
-      data: data,
-    ),
-  );
+  }) {
+    final request = RequestOptions(path: path);
+    return DioException(
+      requestOptions: request,
+      response: Response<Object?>(
+        requestOptions: request,
+        statusCode: statusCode,
+        data: data,
+      ),
+      type: DioExceptionType.badResponse,
+    );
+  }
+
+  test('maps ValidationProblemDetails field errors', () {
+    final failure = ErrorMapper.toFailure(
+      responseError(
+        statusCode: 400,
+        data: {
+          'title': 'One or more validation errors occurred.',
+          'errors': {
+            'search': ['Search cannot exceed 200 characters.'],
+          },
+        },
+      ),
+    );
+
+    expect(failure, isA<ValidationFailure>());
+    expect((failure as ValidationFailure).fieldErrors['search'], [
+      'Search cannot exceed 200 characters.',
+    ]);
+  });
+
+  test('maps Poi.NotFound without leaking server details', () {
+    final failure = ErrorMapper.toFailure(
+      responseError(
+        statusCode: 404,
+        path: '/api/v1/pois',
+        data: {
+          'title': 'The requested point of interest was not found.',
+          'errorCode': 'Poi.NotFound',
+        },
+      ),
+    );
+
+    expect(failure, isA<NotFoundFailure>());
+    expect(failure.message, const NotFoundFailure().message);
+  });
 
   test('maps HTTP 401 to AuthenticationFailure', () {
     final failure = ErrorMapper.toFailure(responseError(statusCode: 401));

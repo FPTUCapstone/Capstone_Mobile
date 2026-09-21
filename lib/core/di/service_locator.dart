@@ -18,6 +18,16 @@ import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_reposito
 import 'package:trip_mate_mobile/features/auth/domain/services/auth_identity_service.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_cubit.dart';
+import 'package:trip_mate_mobile/features/poi/data/datasources/poi_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/poi/data/repositories/poi_repository_impl.dart';
+import 'package:trip_mate_mobile/features/poi/data/services/geolocator_poi_location_service.dart';
+import 'package:trip_mate_mobile/features/poi/domain/repositories/poi_location_service.dart';
+import 'package:trip_mate_mobile/features/poi/domain/repositories/poi_repository.dart';
+import 'package:trip_mate_mobile/features/poi/domain/usecases/get_poi_detail_use_case.dart';
+import 'package:trip_mate_mobile/features/poi/domain/usecases/get_poi_location_use_case.dart';
+import 'package:trip_mate_mobile/features/poi/domain/usecases/get_pois_use_case.dart';
+import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
+import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_group_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 
@@ -55,6 +65,29 @@ Future<void> configureDependencies({AppConfig? config}) async {
         coordinator: serviceLocator(),
       ),
     )
+    ..registerLazySingleton<PoiRemoteDataSource>(
+      () => DioPoiRemoteDataSource(serviceLocator()),
+    )
+    ..registerLazySingleton<PoiRepository>(
+      () => PoiRepositoryImpl(serviceLocator()),
+    )
+    ..registerLazySingleton<PoiLocationService>(
+      GeolocatorPoiLocationService.new,
+    )
+    ..registerFactory<GetPoisUseCase>(() => GetPoisUseCase(serviceLocator()))
+    ..registerFactory<GetPoiDetailUseCase>(
+      () => GetPoiDetailUseCase(serviceLocator()),
+    )
+    ..registerFactory<GetPoiLocationUseCase>(
+      () => GetPoiLocationUseCase(serviceLocator()),
+    )
+    ..registerFactory<PoiListCubit>(
+      () => PoiListCubit(
+        getPois: serviceLocator(),
+        getLocation: serviceLocator(),
+      ),
+    )
+    ..registerFactory<PoiDetailCubit>(() => PoiDetailCubit(serviceLocator()))
     ..registerLazySingleton<AuthRemoteDataSource>(
       () => AuthRemoteDataSourceImpl(serviceLocator()),
     )
