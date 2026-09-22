@@ -14,17 +14,12 @@ enum _MobileRoleSupport { supported, administratorUnsupported, unknown }
 
 final class AuthSessionCubit extends Cubit<AuthSessionState> {
   AuthSessionCubit([
-    AuthRepository? authRepository,
+    this._authRepository,
     this._secureStorage,
     this._firebaseAuthService,
-  ]) : _authRepository = authRepository,
-       _logoutAllRepository = authRepository is LogoutAllRepository
-           ? authRepository as LogoutAllRepository
-           : null,
-       super(const AuthSessionState.unauthenticated());
+  ]) : super(const AuthSessionState.unauthenticated());
 
   final AuthRepository? _authRepository;
-  final LogoutAllRepository? _logoutAllRepository;
   final SecureStorageService? _secureStorage;
   final AuthIdentityService? _firebaseAuthService;
   bool _verificationActionInProgress = false;
@@ -140,55 +135,6 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     await _bestEffortProviderSignOut();
 
     emit(const AuthSessionState.unauthenticated());
-  }
-
-  Future<bool> signOutAllDevices() async {
-    if (!state.isAuthenticated) return false;
-    if (state.operation == AuthSessionOperation.signOut) return false;
-
-    final role = state.role!;
-    final applicationStatus = state.applicationStatus;
-    emit(
-      AuthSessionState.authenticated(
-        role,
-        applicationStatus: applicationStatus,
-        operation: AuthSessionOperation.signOut,
-      ),
-    );
-
-    final storage = _secureStorage;
-    final repository = _logoutAllRepository;
-    final refreshToken = storage == null
-        ? null
-        : await _readRefreshTokenQuietly(storage);
-    if (storage == null || repository == null || refreshToken == null) {
-      emit(
-        AuthSessionState.authenticated(
-          role,
-          applicationStatus: applicationStatus,
-          errorMessage: signOutFailureMessage,
-        ),
-      );
-      return false;
-    }
-
-    try {
-      await repository.logoutAll(refreshToken);
-    } catch (_) {
-      emit(
-        AuthSessionState.authenticated(
-          role,
-          applicationStatus: applicationStatus,
-          errorMessage: signOutFailureMessage,
-        ),
-      );
-      return false;
-    }
-
-    await _clearStoredSessionBestEffort(storage);
-    await _bestEffortProviderSignOut();
-    emit(const AuthSessionState.unauthenticated());
-    return true;
   }
 
   /// Reads the stored refresh token for sign-out. A missing, blank or

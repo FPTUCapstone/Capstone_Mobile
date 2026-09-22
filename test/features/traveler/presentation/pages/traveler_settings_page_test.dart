@@ -19,9 +19,6 @@ import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 const _dialogTitle = 'Sign out of TripMate?';
 const _dialogBody =
     'Your session on this device will end. Downloaded offline trips stay on the device.';
-const _logoutAllDialogTitle = 'Sign out on all devices?';
-const _logoutAllDialogBody =
-    'You will need to sign in again on every device using this account.';
 
 Future<AuthSessionCubit> _authenticatedCubit({
   _RecordingAuthRepository? repository,
@@ -60,6 +57,17 @@ Future<void> _openDialog(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('settings exposes a single current-session sign-out', (
+    tester,
+  ) async {
+    final cubit = await _authenticatedCubit();
+    addTearDown(cubit.close);
+    await _pumpSettings(tester, cubit);
+
+    expect(find.widgetWithText(OutlinedButton, 'Sign out'), findsOneWidget);
+    expect(find.byType(OutlinedButton), findsOneWidget);
+  });
+
   testWidgets('settings keeps the existing sign-out confirmation dialog', (
     tester,
   ) async {
@@ -108,83 +116,6 @@ void main() {
     expect(cubit.state.status, AuthSessionStatus.unauthenticated);
     expect(find.text(_dialogTitle), findsNothing);
     expect(find.byType(AlertDialog), findsNothing);
-  });
-
-  testWidgets(
-    'logout-all confirms, blocks duplicate submission, and succeeds once',
-    (tester) async {
-      final completer = Completer<void>();
-      final repository = _RecordingAuthRepository(
-        logoutAllCompleter: completer,
-      );
-      final cubit = await _authenticatedCubit(repository: repository);
-      addTearDown(cubit.close);
-      await _pumpSettings(tester, cubit);
-
-      await tester.tap(
-        find.widgetWithText(OutlinedButton, 'Sign out all devices'),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text(_logoutAllDialogTitle), findsOneWidget);
-      expect(find.text(_logoutAllDialogBody), findsOneWidget);
-      await tester.tap(find.widgetWithText(AppButton, 'Sign out all devices'));
-      await tester.pump();
-
-      expect(repository.logoutAllCalls, 1);
-      expect(cubit.state.isAuthenticated, isTrue);
-      expect(
-        tester
-            .widget<OutlinedButton>(
-              find.widgetWithText(OutlinedButton, 'Sign out all devices'),
-            )
-            .onPressed,
-        isNull,
-      );
-
-      completer.complete();
-      await tester.pumpAndSettle();
-
-      expect(cubit.state.status, AuthSessionStatus.unauthenticated);
-      expect(repository.logoutAllTokens, ['refresh']);
-    },
-  );
-
-  testWidgets('logout-all failure keeps authenticated UI and allows retry', (
-    tester,
-  ) async {
-    final repository = _RecordingAuthRepository(logoutAllFailures: 1);
-    final cubit = await _authenticatedCubit(repository: repository);
-    addTearDown(cubit.close);
-    await _pumpSettings(tester, cubit);
-
-    Future<void> confirmLogoutAll() async {
-      await tester.tap(
-        find.widgetWithText(OutlinedButton, 'Sign out all devices'),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(AppButton, 'Sign out all devices'));
-      await tester.pumpAndSettle();
-    }
-
-    await confirmLogoutAll();
-
-    expect(repository.logoutAllCalls, 1);
-    expect(cubit.state.isAuthenticated, isTrue);
-    expect(find.text(AuthSessionCubit.signOutFailureMessage), findsOneWidget);
-    expect(
-      tester
-          .widget<OutlinedButton>(
-            find.widgetWithText(OutlinedButton, 'Sign out all devices'),
-          )
-          .onPressed,
-      isNotNull,
-    );
-
-    await confirmLogoutAll();
-
-    expect(repository.logoutAllCalls, 2);
-    expect(cubit.state.status, AuthSessionStatus.unauthenticated);
   });
 
   testWidgets('settings sign-out control is disabled while in flight', (
@@ -261,39 +192,17 @@ void main() {
   );
 }
 
-final class _RecordingAuthRepository
-    implements AuthRepository, LogoutAllRepository {
-  _RecordingAuthRepository({
-    this.logoutCompleter,
-    this.logoutAllCompleter,
-    this.logoutAllFailures = 0,
-  });
+final class _RecordingAuthRepository implements AuthRepository {
+  _RecordingAuthRepository({this.logoutCompleter});
 
   final Completer<void>? logoutCompleter;
-  final Completer<void>? logoutAllCompleter;
-  int logoutAllFailures;
   var logoutCalls = 0;
-  var logoutAllCalls = 0;
-  final logoutAllTokens = <String>[];
 
   @override
   Future<void> logout(String? refreshToken) async {
     logoutCalls += 1;
     if (logoutCompleter != null) {
       await logoutCompleter!.future;
-    }
-  }
-
-  @override
-  Future<void> logoutAll(String refreshToken) async {
-    logoutAllCalls += 1;
-    logoutAllTokens.add(refreshToken);
-    if (logoutAllCompleter != null) {
-      await logoutAllCompleter!.future;
-    }
-    if (logoutAllFailures > 0) {
-      logoutAllFailures -= 1;
-      throw StateError('backend failed');
     }
   }
 

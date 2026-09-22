@@ -5,7 +5,7 @@ import 'package:trip_mate_mobile/features/auth/domain/entities/auth_session.dart
 import 'package:trip_mate_mobile/features/auth/domain/entities/traveler_registration.dart';
 import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_repository.dart';
 
-final class AuthRepositoryImpl implements AuthRepository, LogoutAllRepository {
+final class AuthRepositoryImpl implements AuthRepository {
   const AuthRepositoryImpl(this._remoteDataSource);
 
   final AuthRemoteDataSource _remoteDataSource;
@@ -37,10 +37,6 @@ final class AuthRepositoryImpl implements AuthRepository, LogoutAllRepository {
   @override
   Future<void> logout(String? refreshToken) =>
       _remoteDataSource.logout(refreshToken);
-
-  @override
-  Future<void> logoutAll(String refreshToken) =>
-      _remoteDataSource.logoutAll(refreshToken);
 
   @override
   Future<AuthSession> login(

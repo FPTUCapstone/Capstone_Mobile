@@ -76,29 +76,15 @@ class _TravelerSettingsPageState extends State<TravelerSettingsPage> {
           child: ListTile(title: Text('App version'), trailing: Text('1.0.0')),
         ),
       ],
-      footer: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          OutlinedButton.icon(
-            // Busy state comes from the Cubit's own sign-out marker, so no
-            // confirmation can be opened again while either action is active.
-            onPressed: state.operation == AuthSessionOperation.signOut
-                ? null
-                : _confirmSignOut,
-            icon: const Icon(Icons.logout),
-            label: const Text('Sign out'),
-            style: _signOutButtonStyle(),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          OutlinedButton.icon(
-            onPressed: state.operation == AuthSessionOperation.signOut
-                ? null
-                : _confirmSignOutAllDevices,
-            icon: const Icon(Icons.phonelink_erase),
-            label: const Text('Sign out all devices'),
-            style: _signOutButtonStyle(),
-          ),
-        ],
+      footer: OutlinedButton.icon(
+        // Busy state comes from the Cubit's own sign-out marker, so no
+        // confirmation can be opened again while the action is active.
+        onPressed: state.operation == AuthSessionOperation.signOut
+            ? null
+            : _confirmSignOut,
+        icon: const Icon(Icons.logout),
+        label: const Text('Sign out'),
+        style: _signOutButtonStyle(),
       ),
     );
   }
@@ -126,32 +112,6 @@ class _TravelerSettingsPageState extends State<TravelerSettingsPage> {
     );
     if (confirmed == true && mounted) {
       await context.read<AuthSessionCubit>().signOut();
-    }
-  }
-
-  Future<void> _confirmSignOutAllDevices() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        icon: const Icon(Icons.phonelink_erase, color: AppColors.error),
-        title: const Text('Sign out on all devices?'),
-        content: const Text(
-          'You will need to sign in again on every device using this account.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          AppButton(
-            label: 'Sign out all devices',
-            onPressed: () => Navigator.pop(dialogContext, true),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true && mounted) {
-      await context.read<AuthSessionCubit>().signOutAllDevices();
     }
   }
 

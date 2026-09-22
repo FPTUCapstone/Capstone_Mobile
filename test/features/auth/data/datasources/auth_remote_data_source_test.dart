@@ -611,59 +611,5 @@ void main() {
         expect(adapter.request?.headers.containsKey('Authorization'), isFalse);
       });
     });
-
-    group('logoutAll', () {
-      RecordingHttpClientAdapter logoutAllAdapter({
-        int statusCode = 200,
-        String body =
-            '{"success":true,"statusCode":200,"message":"Signed out from all devices.","data":true,"errors":null}',
-      }) {
-        final adapter = RecordingHttpClientAdapter(
-          statusCode: statusCode,
-          body: body,
-        );
-        dioClient.dio.httpClientAdapter = adapter;
-        return adapter;
-      }
-
-      test('posts the unmodified raw refresh token to logout-all', () async {
-        final adapter = logoutAllAdapter();
-        const rawToken = 'raw%2F+token/with=padding';
-
-        await dataSource.logoutAll(rawToken);
-
-        expect(adapter.request?.path, '/api/v1/auth/logout-all');
-        expect(adapter.request?.method, 'POST');
-        expect(adapter.request?.data, {'refreshToken': rawToken});
-      });
-
-      test('accepts only a valid success envelope', () async {
-        logoutAllAdapter();
-
-        await expectLater(dataSource.logoutAll('refresh-value'), completes);
-      });
-
-      test('maps a 500 to safe copy without leaking internal detail', () async {
-        logoutAllAdapter(
-          statusCode: 500,
-          body:
-              '{"title":"SqlException: database tripmate_prod failed","status":500}',
-        );
-
-        await expectLater(
-          () => dataSource.logoutAll('refresh-value'),
-          throwsA(
-            isA<ServerException>()
-                .having((error) => error.statusCode, 'statusCode', 500)
-                .having((error) => error.message, 'message', unavailableCopy)
-                .having(
-                  (error) => error.message,
-                  'does not leak internal detail',
-                  isNot(contains('SqlException')),
-                ),
-          ),
-        );
-      });
-    });
   });
 }

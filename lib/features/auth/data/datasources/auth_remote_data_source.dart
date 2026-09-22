@@ -23,8 +23,6 @@ abstract interface class AuthRemoteDataSource {
   ]);
 
   Future<void> logout(String? refreshToken);
-
-  Future<void> logoutAll(String refreshToken);
 }
 
 final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -121,10 +119,6 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> logout(String? refreshToken) =>
       _signOut('/api/v1/auth/logout', refreshToken);
-
-  @override
-  Future<void> logoutAll(String refreshToken) =>
-      _signOut('/api/v1/auth/logout-all', refreshToken);
 
   Future<void> _signOut(String path, String? refreshToken) async {
     try {
