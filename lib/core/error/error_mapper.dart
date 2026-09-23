@@ -3,37 +3,53 @@ import 'package:trip_mate_mobile/core/error/exceptions.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 
 abstract final class ErrorMapper {
+  static const _safeValidationTitles = {
+    'One or more validation errors occurred.',
+  };
+
   static Failure toFailure(Object error) {
+    if (error is Failure) return error;
     if (error is AuthenticationException) {
       return AuthenticationFailure(error.message);
     }
-    if (error is NetworkException) {
-      return NetworkFailure(error.message);
-    }
-    if (error is ServerException) {
-      return ServerFailure(error.message);
-    }
-    if (error is DioException) {
-      return _mapDioException(error);
-    }
+    if (error is NetworkException) return NetworkFailure(error.message);
+    if (error is ServerException) return ServerFailure(error.message);
+    if (error is DioException) return _mapDioException(error);
     return const UnknownFailure();
   }
 
   static Failure _mapDioException(DioException error) {
     final statusCode = error.response?.statusCode;
+    final responseData = error.response?.data;
     if (statusCode == 400) {
-      final message = _extractValidationMessage(error.response?.data);
-      return message != null
-          ? ValidationFailure(message)
-          : const ValidationFailure();
+      return ValidationFailure(
+        _extractValidationMessage(responseData) ??
+            _safeTitle(responseData) ??
+            'The input provided is invalid.',
+        fieldErrors: _fieldErrors(responseData),
+      );
+    }
+    if (statusCode == 404) {
+      final errorCode = _extractErrorCode(responseData);
+      if (errorCode == 'Poi.NotFound') return const NotFoundFailure();
+      if (errorCode == 'travel_group.group_not_found') {
+        return const NotFoundFailure();
+      }
+      if (errorCode == 'travel_group.itinerary_not_found') {
+        return const NotFoundFailure(
+          'The selected itinerary was not found. Please choose another itinerary.',
+        );
+      }
     }
     if (statusCode == 401) return const AuthenticationFailure();
     if (statusCode == 403) return const PermissionFailure();
     if (statusCode == 409) {
-      final (message, groupId) = _extractConflictDetails(error.response?.data);
+      final (message, groupId) = _extractConflictDetails(responseData);
       return ConflictFailure(
         message ?? 'Conflict occurred. Please try again.',
         groupId,
+        _extractErrorCode(responseData) ==
+            'travel_group.idempotency_key_payload_mismatch',
       );
     }
     if (statusCode != null && statusCode >= 500) return const ServerFailure();
@@ -47,7 +63,7 @@ abstract final class ErrorMapper {
     };
   }
 
-  static String? _extractValidationMessage(dynamic data) {
+  static String? _extractValidationMessage(Object? data) {
     if (data is! Map) return null;
 
     final errorCode = _extractErrorCode(data);
@@ -55,46 +71,41 @@ abstract final class ErrorMapper {
       return 'This invitation is invalid, expired, or no longer available. Please check the invitation and try again.';
     }
     if (errorCode == 'travel_group.idempotency_key_payload_mismatch') {
-      return 'A conflicting request with a different invitation code is already in progress. Please try again.';
+      return 'A conflicting request with different request data is already in progress. Please try again.';
     }
 
     final errors = data['errors'];
-    if (errors is Map) {
-      for (final value in errors.values) {
-        if (value is List && value.isNotEmpty && value.first is String) {
-          final first = (value.first as String).trim();
-          if (first.isNotEmpty) return first;
-        }
-        if (value is String && value.trim().isNotEmpty) {
-          return value.trim();
-        }
+    if (errors is! Map) return null;
+    for (final value in errors.values) {
+      if (value is List && value.isNotEmpty && value.first is String) {
+        final first = (value.first as String).trim();
+        if (first.isNotEmpty) return first;
       }
+      if (value is String && value.trim().isNotEmpty) return value.trim();
     }
-
     return null;
   }
 
-  static (String?, int?) _extractConflictDetails(dynamic data) {
+  static (String?, int?) _extractConflictDetails(Object? data) {
     if (data is! Map) return (null, null);
 
     final errorCode = _extractErrorCode(data);
     final groupId = _extractGroupId(data);
-
     if (errorCode == 'travel_group.already_active_member') {
       return ('You are already a member of this travel group.', groupId);
     }
     if (errorCode == 'travel_group.idempotency_key_payload_mismatch') {
       return (
-        'A conflicting request with a different invitation code is already in progress. Please try again.',
+        'A conflicting request with different request data is already in progress. Please try again.',
         groupId,
       );
     }
-
     return (null, groupId);
   }
 
-  static String? _extractErrorCode(Map data) {
-    final dynamic code =
+  static String? _extractErrorCode(Object? data) {
+    if (data is! Map) return null;
+    final code =
         data['errorCode'] ??
         (data['extensions'] is Map ? data['extensions']['errorCode'] : null);
     return code is String ? code : null;
@@ -102,14 +113,33 @@ abstract final class ErrorMapper {
 
   static int? _extractGroupId(Map data) {
     final extensions = data['extensions'];
-    final dynamic rawGroupId =
+    final rawGroupId =
         (extensions is Map ? extensions['groupId'] : null) ?? data['groupId'];
-    if (rawGroupId is num) {
-      return rawGroupId.toInt();
-    }
-    if (rawGroupId is String) {
-      return int.tryParse(rawGroupId);
-    }
+    if (rawGroupId is num) return rawGroupId.toInt();
+    if (rawGroupId is String) return int.tryParse(rawGroupId);
     return null;
+  }
+
+  static String? _safeTitle(Object? data) {
+    if (data is! Map) return null;
+    final title = data['title'];
+    if (title is! String) return null;
+    final normalized = title.trim();
+    return _safeValidationTitles.contains(normalized) ? normalized : null;
+  }
+
+  static Map<String, List<String>> _fieldErrors(Object? data) {
+    if (data is! Map) return const {};
+    final errors = data['errors'];
+    if (errors is! Map) return const {};
+    return {
+      for (final entry in errors.entries)
+        if (entry.key is String)
+          entry.key as String: switch (entry.value) {
+            final List values => values.whereType<String>().toList(),
+            final String value => [value],
+            _ => const <String>[],
+          },
+    };
   }
 }

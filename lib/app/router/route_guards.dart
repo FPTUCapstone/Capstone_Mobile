@@ -8,12 +8,18 @@ abstract final class RouteGuards {
   static String? redirect(AuthSessionState session, GoRouterState routerState) {
     final location = routerState.matchedLocation;
     final isAuthRoute = location.startsWith(AppRoutes.authPrefix);
-    final isTravelerRoute = location.startsWith(AppRoutes.travelerPrefix);
-    final isOperatorRoute = location.startsWith(AppRoutes.operatorPrefix);
+    final isTravelerRoute = _isInScope(location, AppRoutes.travelerPrefix);
+    final isOperatorRoute = _isInScope(location, AppRoutes.operatorPrefix);
     final isProtectedRoute = isTravelerRoute || isOperatorRoute;
 
     if (!session.isAuthenticated) {
-      if (location == AppRoutes.splash || isProtectedRoute) {
+      if (isProtectedRoute) {
+        return Uri(
+          path: AppRoutes.login,
+          queryParameters: {'from': routerState.uri.toString()},
+        ).toString();
+      }
+      if (location == AppRoutes.splash) {
         return AppRoutes.login;
       }
       return null;
@@ -32,6 +38,9 @@ abstract final class RouteGuards {
         ? AppRoutes.traveler
         : operatorHome;
 
+    if (location == AppRoutes.login) {
+      return _safeReturnLocation(session, routerState.uri) ?? home;
+    }
     if (location == AppRoutes.splash || isAuthRoute) {
       return home;
     }
@@ -47,6 +56,33 @@ abstract final class RouteGuards {
           session.applicationStatus != TourOperatorApplicationStatus.approved) {
         return AppRoutes.operatorApplication;
       }
+    }
+    return null;
+  }
+
+  static bool _isInScope(String path, String prefix) =>
+      path == prefix || path.startsWith('$prefix/');
+
+  static String? _safeReturnLocation(AuthSessionState session, Uri loginUri) {
+    final rawTarget = loginUri.queryParameters['from'];
+    if (rawTarget == null) return null;
+    final target = Uri.tryParse(rawTarget);
+    if (target == null ||
+        target.hasScheme ||
+        target.hasAuthority ||
+        !target.path.startsWith('/')) {
+      return null;
+    }
+
+    if (session.role == UserRole.traveler &&
+        _isInScope(target.path, AppRoutes.travelerPrefix)) {
+      return target.toString();
+    }
+    if (session.role == UserRole.tourOperator &&
+        _isInScope(target.path, AppRoutes.operatorPrefix) &&
+        (session.applicationStatus == TourOperatorApplicationStatus.approved ||
+            target.path == AppRoutes.operatorApplication)) {
+      return target.toString();
     }
     return null;
   }

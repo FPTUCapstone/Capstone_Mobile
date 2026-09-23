@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
@@ -16,7 +19,19 @@ final class _SuccessRepository implements TravelGroupRepository {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async => _result;
+  @override
+  Future<GroupInvitation> getOrCreateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<GroupInvitation> regenerateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
 
   @override
   Future<TravelGroup> joinTravelGroup({
@@ -32,7 +47,20 @@ final class _FailureRepository implements TravelGroupRepository {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async => throw Exception('server error');
+
+  @override
+  Future<GroupInvitation> getOrCreateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<GroupInvitation> regenerateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
 
   @override
   Future<TravelGroup> joinTravelGroup({
@@ -49,7 +77,20 @@ final class _TypedFailureRepository implements TravelGroupRepository {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
   }) async => throw failure;
+
+  @override
+  Future<GroupInvitation> getOrCreateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<GroupInvitation> regenerateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
 
   @override
   Future<TravelGroup> joinTravelGroup({
@@ -58,17 +99,65 @@ final class _TypedFailureRepository implements TravelGroupRepository {
   }) async => throw failure;
 }
 
+final class _TrackingRepository implements TravelGroupRepository {
+  final calls = <({String name, int itineraryId, String idempotencyKey})>[];
+  bool shouldFail = true;
+  Failure? failure;
+  Completer<TravelGroup>? slowCompleter;
+  Completer<TravelGroup>? slowFailureCompleter;
+
+  @override
+  Future<TravelGroup> createTravelGroup({
+    required String name,
+    required int itineraryId,
+    required String idempotencyKey,
+  }) async {
+    calls.add((
+      name: name,
+      itineraryId: itineraryId,
+      idempotencyKey: idempotencyKey,
+    ));
+    if (failure != null) {
+      throw failure!;
+    }
+    if (slowCompleter != null) {
+      return slowCompleter!.future;
+    }
+    if (slowFailureCompleter != null) {
+      return slowFailureCompleter!.future;
+    }
+    if (shouldFail) {
+      throw Exception('network error');
+    }
+    return TravelGroup(id: 1, name: name);
+  }
+
+  @override
+  Future<GroupInvitation> getOrCreateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<GroupInvitation> regenerateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<TravelGroup> joinTravelGroup({
+    required String invitationCode,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+}
+
 // --------------------------------------------------------------------------
 
 void main() {
   const validName = 'My Trip Group';
   final tooLongName = 'A' * 151;
   const testItineraryId = 10;
-  const travelGroup = TravelGroup(
-    id: 1,
-    name: validName,
-    inviteCode: 'ABCD1234',
-  );
+  const travelGroup = TravelGroup(id: 1, name: validName);
 
   group('CreateTravelGroupCubit', () {
     test('initial state is CreateTravelGroupStatus.initial', () {
@@ -102,6 +191,33 @@ void main() {
           'status',
           CreateTravelGroupStatus.initial,
         ),
+      ],
+    );
+
+    blocTest<CreateTravelGroupCubit, CreateTravelGroupState>(
+      'maps itinerary not found to a user-facing failure',
+      build: () => CreateTravelGroupCubit(
+        repository: const _TypedFailureRepository(
+          NotFoundFailure(
+            'The selected itinerary was not found. Please choose another itinerary.',
+          ),
+        ),
+      ),
+      act: (cubit) =>
+          cubit.submit(name: validName, itineraryId: testItineraryId),
+      expect: () => [
+        isA<CreateTravelGroupState>().having(
+          (s) => s.status,
+          'status',
+          CreateTravelGroupStatus.submitting,
+        ),
+        isA<CreateTravelGroupState>()
+            .having((s) => s.status, 'status', CreateTravelGroupStatus.failure)
+            .having(
+              (s) => s.errorMessage,
+              'errorMessage',
+              'The selected itinerary was not found. Please choose another itinerary.',
+            ),
       ],
     );
 
@@ -242,5 +358,280 @@ void main() {
             ),
       ],
     );
+
+    blocTest<CreateTravelGroupCubit, CreateTravelGroupState>(
+      'validation failure from backend emits failure with backend message',
+      build: () => CreateTravelGroupCubit(
+        repository: const _TypedFailureRepository(
+          ValidationFailure('A valid Idempotency-Key header is required.'),
+        ),
+      ),
+      act: (cubit) =>
+          cubit.submit(name: validName, itineraryId: testItineraryId),
+      expect: () => [
+        isA<CreateTravelGroupState>().having(
+          (s) => s.status,
+          'status',
+          CreateTravelGroupStatus.submitting,
+        ),
+        isA<CreateTravelGroupState>()
+            .having((s) => s.status, 'status', CreateTravelGroupStatus.failure)
+            .having(
+              (s) => s.errorMessage,
+              'errorMessage',
+              'A valid Idempotency-Key header is required.',
+            ),
+      ],
+    );
+
+    blocTest<CreateTravelGroupCubit, CreateTravelGroupState>(
+      'conflict failure from backend emits failure with conflict message',
+      build: () => CreateTravelGroupCubit(
+        repository: const _TypedFailureRepository(
+          ConflictFailure('Idempotency key payload mismatch.'),
+        ),
+      ),
+      act: (cubit) =>
+          cubit.submit(name: validName, itineraryId: testItineraryId),
+      expect: () => [
+        isA<CreateTravelGroupState>().having(
+          (s) => s.status,
+          'status',
+          CreateTravelGroupStatus.submitting,
+        ),
+        isA<CreateTravelGroupState>()
+            .having((s) => s.status, 'status', CreateTravelGroupStatus.failure)
+            .having(
+              (s) => s.errorMessage,
+              'errorMessage',
+              'Idempotency key payload mismatch.',
+            ),
+      ],
+    );
+
+    // -- Idempotency contract tests (P1 & P2) --------------------------------
+
+    test(
+      'idempotency payload mismatch clears the rejected key before retry',
+      () async {
+        final repository = _TrackingRepository()
+          ..failure = const ConflictFailure(
+            'A conflicting request with different request data is already in progress. Please try again.',
+            null,
+            true,
+          );
+        var keyCounter = 0;
+        final cubit = CreateTravelGroupCubit(
+          repository: repository,
+          operationKeyFactory: () => 'key-${++keyCounter}',
+        );
+
+        await cubit.submit(name: 'Trip A', itineraryId: 10);
+        await cubit.submit(name: 'Trip A', itineraryId: 10);
+
+        expect(repository.calls, hasLength(2));
+        expect(repository.calls[0].idempotencyKey, 'key-1');
+        expect(repository.calls[1].idempotencyKey, 'key-2');
+        expect(keyCounter, 2);
+
+        await cubit.close();
+      },
+    );
+
+    test('exact retry reuses the same idempotency key after failure', () async {
+      final repository = _TrackingRepository();
+      var keyCounter = 0;
+      final cubit = CreateTravelGroupCubit(
+        repository: repository,
+        operationKeyFactory: () => 'key-${++keyCounter}',
+      );
+
+      // First submit fails
+      await cubit.submit(name: 'Trip A', itineraryId: 10);
+      expect(repository.calls, hasLength(1));
+      expect(repository.calls[0].idempotencyKey, 'key-1');
+      expect(cubit.state.status, CreateTravelGroupStatus.failure);
+
+      // Exact retry with same normalized payload reuses key-1
+      await cubit.submit(name: '  Trip A  ', itineraryId: 10);
+      expect(repository.calls, hasLength(2));
+      expect(repository.calls[1].idempotencyKey, 'key-1');
+      expect(keyCounter, 1);
+
+      await cubit.close();
+    });
+
+    test(
+      'changing group name after failure generates a new idempotency key',
+      () async {
+        final repository = _TrackingRepository();
+        var keyCounter = 0;
+        final cubit = CreateTravelGroupCubit(
+          repository: repository,
+          operationKeyFactory: () => 'key-${++keyCounter}',
+        );
+
+        // First submit fails with Trip A
+        await cubit.submit(name: 'Trip A', itineraryId: 10);
+        expect(repository.calls, hasLength(1));
+        expect(repository.calls[0].idempotencyKey, 'key-1');
+
+        // User changes form to Trip B and submits again -> generates key-2
+        await cubit.submit(name: 'Trip B', itineraryId: 10);
+        expect(repository.calls, hasLength(2));
+        expect(repository.calls[1].idempotencyKey, 'key-2');
+        expect(keyCounter, 2);
+
+        await cubit.close();
+      },
+    );
+
+    test(
+      'changing itineraryId after failure generates a new idempotency key',
+      () async {
+        final repository = _TrackingRepository();
+        var keyCounter = 0;
+        final cubit = CreateTravelGroupCubit(
+          repository: repository,
+          operationKeyFactory: () => 'key-${++keyCounter}',
+        );
+
+        // First submit fails with itinerary 10
+        await cubit.submit(name: 'Trip A', itineraryId: 10);
+        expect(repository.calls, hasLength(1));
+        expect(repository.calls[0].idempotencyKey, 'key-1');
+
+        // User changes itinerary to 20 -> generates key-2
+        await cubit.submit(name: 'Trip A', itineraryId: 20);
+        expect(repository.calls, hasLength(2));
+        expect(repository.calls[1].idempotencyKey, 'key-2');
+        expect(keyCounter, 2);
+
+        await cubit.close();
+      },
+    );
+
+    test(
+      'success clears the pending operation so next submission uses new key',
+      () async {
+        final repository = _TrackingRepository()..shouldFail = false;
+        var keyCounter = 0;
+        final cubit = CreateTravelGroupCubit(
+          repository: repository,
+          operationKeyFactory: () => 'key-${++keyCounter}',
+        );
+
+        // First submit succeeds
+        await cubit.submit(name: 'Trip A', itineraryId: 10);
+        expect(repository.calls, hasLength(1));
+        expect(repository.calls[0].idempotencyKey, 'key-1');
+        expect(cubit.state.status, CreateTravelGroupStatus.success);
+
+        // Next submit (even with same name and itinerary) generates new key
+        await cubit.submit(name: 'Trip A', itineraryId: 10);
+        expect(repository.calls, hasLength(2));
+        expect(repository.calls[1].idempotencyKey, 'key-2');
+        expect(keyCounter, 2);
+
+        await cubit.close();
+      },
+    );
+
+    test(
+      'concurrent or double submit cannot create a second in-flight operation',
+      () async {
+        final repository = _TrackingRepository()
+          ..slowCompleter = Completer<TravelGroup>();
+        var keyCounter = 0;
+        final cubit = CreateTravelGroupCubit(
+          repository: repository,
+          operationKeyFactory: () => 'key-${++keyCounter}',
+        );
+
+        // Start first submit (remains in-flight due to slowCompleter)
+        final firstSubmitFuture = cubit.submit(name: 'Trip A', itineraryId: 10);
+        expect(cubit.state.status, CreateTravelGroupStatus.submitting);
+        expect(repository.calls, hasLength(1));
+
+        // Second submit while in-flight should be ignored
+        final secondSubmitFuture = cubit.submit(
+          name: 'Trip A',
+          itineraryId: 10,
+        );
+        expect(repository.calls, hasLength(1));
+
+        // Complete the in-flight operation
+        repository.slowCompleter!.complete(
+          const TravelGroup(id: 1, name: 'Trip A'),
+        );
+        await firstSubmitFuture;
+        await secondSubmitFuture;
+
+        expect(repository.calls, hasLength(1));
+        expect(cubit.state.status, CreateTravelGroupStatus.success);
+
+        await cubit.close();
+      },
+    );
+
+    test(
+      'default idempotency key is a UUID v4 with RFC 4122 variant',
+      () async {
+        final repository = _TrackingRepository()..shouldFail = false;
+        final cubit = CreateTravelGroupCubit(repository: repository);
+
+        await cubit.submit(name: validName, itineraryId: testItineraryId);
+
+        final key = repository.calls.single.idempotencyKey;
+        expect(
+          key,
+          matches(
+            RegExp(
+              r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+            ),
+          ),
+        );
+        expect(key[14], '4');
+        expect(RegExp(r'^[89ab]$').hasMatch(key[19]), isTrue);
+
+        await cubit.close();
+      },
+    );
+
+    test('does not emit delayed success after the cubit is closed', () async {
+      final repository = _TrackingRepository()
+        ..slowCompleter = Completer<TravelGroup>();
+      final cubit = CreateTravelGroupCubit(repository: repository);
+
+      final submit = cubit.submit(
+        name: validName,
+        itineraryId: testItineraryId,
+      );
+      expect(cubit.state.status, CreateTravelGroupStatus.submitting);
+
+      await cubit.close();
+      repository.slowCompleter!.complete(travelGroup);
+      await submit;
+
+      expect(cubit.state.status, CreateTravelGroupStatus.submitting);
+    });
+
+    test('does not emit delayed failure after the cubit is closed', () async {
+      final repository = _TrackingRepository()
+        ..slowFailureCompleter = Completer<TravelGroup>();
+      final cubit = CreateTravelGroupCubit(repository: repository);
+
+      final submit = cubit.submit(
+        name: validName,
+        itineraryId: testItineraryId,
+      );
+      expect(cubit.state.status, CreateTravelGroupStatus.submitting);
+
+      await cubit.close();
+      repository.slowFailureCompleter!.completeError(const NetworkFailure());
+      await submit;
+
+      expect(cubit.state.status, CreateTravelGroupStatus.submitting);
+    });
   });
 }

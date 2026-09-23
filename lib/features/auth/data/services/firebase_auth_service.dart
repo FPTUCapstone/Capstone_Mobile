@@ -131,8 +131,6 @@ final class FirebaseAuthServiceImpl implements AuthIdentityService {
 
   AuthIdentityFailure _firebaseFailure(String code) => switch (code) {
     'invalid-credential' ||
-    'wrong-password' ||
-    'user-not-found' ||
     'invalid-email' => AuthIdentityFailure.invalidCredentials,
     'email-already-in-use' => AuthIdentityFailure.emailAlreadyInUse,
     'network-request-failed' => AuthIdentityFailure.network,

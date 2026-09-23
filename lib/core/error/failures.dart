@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-sealed class Failure extends Equatable {
+sealed class Failure extends Equatable implements Exception {
   const Failure(this.message);
 
   final String message;
@@ -30,19 +30,46 @@ final class PermissionFailure extends Failure {
 }
 
 final class ValidationFailure extends Failure {
-  const ValidationFailure([super.message = 'The input provided is invalid.']);
+  const ValidationFailure(
+    super.message, {
+    this.fieldErrors = const <String, List<String>>{},
+  });
+
+  final Map<String, List<String>> fieldErrors;
+
+  @override
+  List<Object?> get props => [message, fieldErrors];
+}
+
+final class NotFoundFailure extends Failure {
+  const NotFoundFailure([
+    super.message = 'Địa điểm không tồn tại hoặc đã đóng.',
+  ]);
+}
+
+final class LocationPermissionFailure extends Failure {
+  const LocationPermissionFailure([
+    super.message =
+        'Không thể dùng vị trí. Bạn vẫn có thể khám phá các địa điểm.',
+  ]);
 }
 
 final class ConflictFailure extends Failure {
   const ConflictFailure([
     super.message = 'Conflict occurred. Please try again.',
     this.groupId,
+    this.isIdempotencyKeyPayloadMismatch = false,
   ]);
 
   final int? groupId;
+  final bool isIdempotencyKeyPayloadMismatch;
 
   @override
-  List<Object?> get props => [message, groupId];
+  List<Object?> get props => [
+    message,
+    groupId,
+    isIdempotencyKeyPayloadMismatch,
+  ];
 }
 
 final class UnknownFailure extends Failure {

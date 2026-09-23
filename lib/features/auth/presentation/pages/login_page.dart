@@ -92,7 +92,11 @@ class _LoginPageState extends State<LoginPage> {
                 const Expanded(child: Text('Keep me signed in')),
               ],
             ),
-            if (session.status == AuthSessionStatus.failure) ...[
+            // A completed local sign-out that could not reach the server
+            // arrives as an unauthenticated state carrying the approved notice.
+            if (session.status == AuthSessionStatus.failure ||
+                (session.status == AuthSessionStatus.unauthenticated &&
+                    session.errorMessage != null)) ...[
               const SizedBox(height: AppSpacing.sm),
               AppAlert(
                 message: session.errorMessage ?? 'Unable to sign in.',
@@ -136,8 +140,9 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
             const SizedBox(height: AppSpacing.md),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 const Text('New to TripMate?'),
                 TextButton(
@@ -145,6 +150,14 @@ class _LoginPageState extends State<LoginPage> {
                   child: const Text('Create an account'),
                 ),
               ],
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Center(
+              child: TextButton.icon(
+                onPressed: () => context.go(AppRoutes.explore),
+                icon: const Icon(Icons.travel_explore),
+                label: const Text('Duyệt khám phá không cần đăng nhập'),
+              ),
             ),
           ],
         );

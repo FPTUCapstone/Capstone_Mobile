@@ -1,3 +1,4 @@
+import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 
 /// Abstract contract for travel group data operations.
@@ -11,11 +12,22 @@ abstract interface class TravelGroupRepository {
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
+    required String idempotencyKey,
+  });
+
+  /// Retrieves the current invitation, creating one only when the group has none usable.
+  Future<GroupInvitation> getOrCreateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
+  });
+
+  /// Immediately invalidates the current invitation and returns its replacement.
+  Future<GroupInvitation> regenerateGroupInvitation({
+    required int groupId,
+    required String idempotencyKey,
   });
 
   /// Joins an existing travel group with [invitationCode] and [idempotencyKey].
-  ///
-  /// Throws [Failure] subclasses on errors.
   Future<TravelGroup> joinTravelGroup({
     required String invitationCode,
     required String idempotencyKey,
