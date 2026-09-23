@@ -71,12 +71,6 @@ class MockFirebaseAuthService implements AuthIdentityService {
   Future<String?> refreshIdToken() async => 'firebase-token';
 
   @override
-  Future<String> signInWithEmail({
-    required String email,
-    required String password,
-  }) async => 'firebase-token';
-
-  @override
   Future<String> signInWithGoogle() async => 'firebase-token';
 
   @override

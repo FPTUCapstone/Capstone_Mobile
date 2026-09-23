@@ -1,6 +1,5 @@
 enum AuthIdentityFailure {
   invalidCredentials,
-  emailUnverified,
   emailAlreadyInUse,
   network,
   tooManyRequests,
@@ -20,11 +19,6 @@ abstract interface class AuthIdentityService {
   Future<String?> get currentUserEmail;
 
   Future<String> registerWithEmail({
-    required String email,
-    required String password,
-  });
-
-  Future<String> signInWithEmail({
     required String email,
     required String password,
   });

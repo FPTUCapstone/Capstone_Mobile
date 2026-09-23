@@ -275,29 +275,22 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     emit(const AuthSessionState.loading());
     final repository = _authRepository;
     final storage = _secureStorage;
-    final firebaseAuth = _firebaseAuthService;
-    if (repository == null || storage == null || firebaseAuth == null) {
+    if (repository == null || storage == null) {
       emit(const AuthSessionState.failure('Sign in is unavailable.'));
       return;
     }
     try {
       final normalizedEmail = email.trim().toLowerCase();
-      final firebaseIdToken = await firebaseAuth.signInWithEmail(
-        email: normalizedEmail,
-        password: password,
-      );
       final credentials = AuthCredentials(
         email: normalizedEmail,
         password: password,
       );
-      final response = await _loginOrActivateVerifiedUser(
-        repository,
-        credentials,
-        firebaseIdToken,
-      );
+      // TripMate Backend is the sole password authority. The password is sent
+      // directly to POST /api/v1/auth/login; BE verifies dbo.Users.password_hash
+      // via IPasswordHasherService.Verify. Firebase password authentication is
+      // not used for normal email/password sign-in.
+      final response = await repository.login(credentials, null);
       await _establishSession(storage, response, keepSignedIn: keepSignedIn);
-    } on AuthIdentityException catch (error) {
-      emit(AuthSessionState.failure(_identitySignInMessage(error.failure)));
     } on ServerException catch (error) {
       if (error.statusCode == 403 &&
           error.code == 'auth.admin_mobile_sign_in_disabled') {
@@ -568,37 +561,8 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     }
   }
 
-  Future<AuthSession> _loginOrActivateVerifiedUser(
-    AuthRepository repository,
-    AuthCredentials credentials,
-    String firebaseIdToken,
-  ) async {
-    try {
-      return await repository.login(credentials, firebaseIdToken);
-    } on ServerException catch (error) {
-      if (error.statusCode != 403 || error.code != 'MSG_UNVERIFIED') {
-        rethrow;
-      }
-      return repository.verifyEmail(firebaseIdToken);
-    }
-  }
-
   // Role classification is handled by _establishSession/_classifyRole; there is
   // intentionally no fallback that maps an unknown role to Traveler.
-
-  String _identitySignInMessage(
-    AuthIdentityFailure failure,
-  ) => switch (failure) {
-    AuthIdentityFailure.emailUnverified =>
-      'Please verify your email before continuing.',
-    AuthIdentityFailure.invalidCredentials =>
-      'Invalid email or password. Please try again.',
-    AuthIdentityFailure.network =>
-      'TripMate is temporarily unable to process your request. Please check your connection and try again.',
-    AuthIdentityFailure.unavailable =>
-      'Sign in is unavailable. Please try again later.',
-    _ => 'Unable to sign in. Please try again later.',
-  };
 
   String _identityVerificationMessage(
     AuthIdentityFailure failure, {
