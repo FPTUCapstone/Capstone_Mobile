@@ -25,7 +25,7 @@ import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
 
-const _remoteFailureCopy = AuthSessionCubit.signOutFailureMessage;
+const _remoteFailureCopy = AuthSessionCubit.signOutRemoteFailureMessage;
 const _rawTransportDetail = 'raw transport detail';
 
 void main() {
@@ -166,26 +166,25 @@ void main() {
     expect(find.text('Application submitted'), findsOneWidget);
   });
 
-  // --- UC-05: failed backend revocation keeps the authenticated session.
+  // --- UC-05 BR-13: failed backend revocation still completes local logout.
 
-  testWidgets('failed sign-out does not create a stale login-screen notice', (
+  testWidgets('failed remote sign-out shows exactly one login-screen notice', (
     tester,
   ) async {
-    final session = AuthSessionCubit(
-      const _FailingLogoutRepository(),
-      _MemoryStorage({
-        AppConstants.accessTokenKey: 'access',
-        AppConstants.refreshTokenKey: 'refresh',
-        AppConstants.sessionRoleKey: 'traveler',
-        AppConstants.keepSignedInKey: 'true',
-      }),
-    );
+    final storage = _MemoryStorage({
+      AppConstants.accessTokenKey: 'access',
+      AppConstants.refreshTokenKey: 'refresh',
+      AppConstants.sessionRoleKey: 'traveler',
+      AppConstants.keepSignedInKey: 'true',
+    });
+    final session = AuthSessionCubit(const _FailingLogoutRepository(), storage);
     addTearDown(session.close);
     await session.restoreSession();
     await session.signOut();
 
-    expect(session.state.isAuthenticated, isTrue);
+    expect(session.state.isAuthenticated, isFalse);
     expect(session.state.errorMessage, _remoteFailureCopy);
+    expect(storage.values, isEmpty);
 
     await tester.pumpWidget(
       _page(
@@ -196,8 +195,8 @@ void main() {
       ),
     );
 
-    expect(find.byType(AppAlert), findsNothing);
-    expect(find.text(_remoteFailureCopy), findsNothing);
+    expect(find.byType(AppAlert), findsOneWidget);
+    expect(find.text(_remoteFailureCopy), findsOneWidget);
     // Only the approved copy is rendered — never raw transport detail.
     expect(find.textContaining(_rawTransportDetail), findsNothing);
   });

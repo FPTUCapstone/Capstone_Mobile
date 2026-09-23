@@ -86,7 +86,7 @@ const AuthSessionState.unauthenticated({String? errorMessage});
 | --- | --- |
 | Endpoint | `POST /api/v1/auth/logout` (`[AllowAnonymous]`) |
 | Request | `application/json` → `{"refreshToken": <value or null>}` (`RefreshToken`, `string?`) |
-| Success | HTTP 200, **direct** DTO `{"message":"Signed out successfully."}` → **no `_unwrap()`** |
+| Success | HTTP 200, `ApiResponse<bool>` with `success: true`, `statusCode: 200`, `message: "Signed out successfully."`, `data: true`, and `errors: null` → validate through `_unwrapSignOut()`; do not use the map-oriented `_unwrap()` helper |
 | Failure | Network/timeout → mapped `NetworkException`; non-2xx (e.g. 500 ProblemDetails) → mapped `ServerException` via the existing `_handleDioError` |
 | Idempotency | null/blank/unknown/already-revoked → 200 |
 | Authorization | Not required; `AuthInterceptor` may add a Bearer automatically; UC-05 must not depend on it |
@@ -346,7 +346,7 @@ Task types: **IMPLEMENTATION** (RED → confirm expected failure → GREEN → f
 | TC-MOB-07 | T02/T03 | cubit: terminal `unauthenticated`; no `loading` emission | — |
 | TC-MOB-08 | T04/T09 | router/guard: protected location → `/auth/login` after the terminal state | device walkthrough |
 | TC-MOB-09 | T03 | cubit: null/blank/read-throw → `refreshToken: null`, no error UX | — |
-| TC-MOB-10 | T01 (+T03) | data source: 200 direct DTO success; cubit: treated as success | Backend covers token states (BE TC-05/11/12) |
+| TC-MOB-10 | T01 (+T03) | data source: valid 200 `ApiResponse<bool>` success envelope; cubit: treated as success | Backend covers token states (BE TC-05/11/12) |
 | TC-MOB-11 | T04 (+T06) | cubit: local ends + exact M3 copy; widget: login notice once | airplane-mode device check |
 | TC-MOB-12 | T04 (+T06) | cubit: same for 500; widget: login renders no raw detail | optional failing-Backend check |
 | TC-MOB-13 | T02/T03 | cubit: gated fake, two taps → one call | rapid-tap device check |

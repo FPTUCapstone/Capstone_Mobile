@@ -5,6 +5,7 @@ import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/router/route_guards.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/tour_operator_application_status.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
 
 void main() {
@@ -136,6 +137,23 @@ void main() {
         await resolve(tester, session, AppRoutes.operator),
         AppRoutes.login,
       );
+    },
+  );
+
+  testWidgets(
+    'a local cleanup failure stays on the protected route for retry',
+    (tester) async {
+      const session = AuthSessionState.authenticated(
+        UserRole.traveler,
+        errorMessage: AuthSessionCubit.signOutLocalCleanupFailureMessage,
+      );
+
+      expect(
+        await resolve(tester, session, AppRoutes.traveler),
+        AppRoutes.traveler,
+      );
+      expect(find.text('Traveler area'), findsOneWidget);
+      expect(find.text('Sign In'), findsNothing);
     },
   );
 

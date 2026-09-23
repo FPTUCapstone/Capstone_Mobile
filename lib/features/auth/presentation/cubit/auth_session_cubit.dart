@@ -45,7 +45,8 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
 
   /// UC-05 backend-integrated sign-out. The session deliberately stays
   /// `authenticated` while the remote request is in flight so the router guard
-  /// never redirects early. Local cleanup starts only after backend success.
+  /// never redirects early. A remote failure is recorded but never prevents
+  /// the M7 local invalidation pipeline from running.
   Future<void> signOut() async {
     if (!state.isAuthenticated) return;
     // The state's own operation marker is the duplicate guard: it is set
@@ -68,49 +69,27 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
         ? null
         : await _readRefreshTokenQuietly(storage);
 
-    if (repository == null) {
-      emit(
-        AuthSessionState.authenticated(
-          role,
-          applicationStatus: applicationStatus,
-          errorMessage: signOutFailureMessage,
-        ),
-      );
-      return;
-    }
-
-    try {
-      await repository.logout(refreshToken);
-    } on NetworkException {
-      emit(
-        AuthSessionState.authenticated(
-          role,
-          applicationStatus: applicationStatus,
-          errorMessage: signOutFailureMessage,
-        ),
-      );
-      return;
-    } on ServerException {
-      emit(
-        AuthSessionState.authenticated(
-          role,
-          applicationStatus: applicationStatus,
-          errorMessage: signOutFailureMessage,
-        ),
-      );
-      return;
-    } catch (_) {
-      // Unexpected non-remote error: keep the pre-T04 fail-safe (never leave the
-      // in-flight marker set) and let it surface.
-      if (state.isAuthenticated) {
-        emit(
-          AuthSessionState.authenticated(
-            role,
-            applicationStatus: applicationStatus,
-          ),
-        );
+    var remoteFailed = repository == null;
+    if (repository != null) {
+      try {
+        await repository.logout(refreshToken);
+      } on NetworkException {
+        remoteFailed = true;
+      } on ServerException {
+        remoteFailed = true;
+      } catch (_) {
+        // Unexpected non-remote error: keep the fail-safe (never leave the
+        // in-flight marker set) and let it surface.
+        if (state.isAuthenticated) {
+          emit(
+            AuthSessionState.authenticated(
+              role,
+              applicationStatus: applicationStatus,
+            ),
+          );
+        }
+        rethrow;
       }
-      rethrow;
     }
 
     final localComplete = await _invalidateLocalSessionForSignOut();
@@ -134,7 +113,11 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     // is proven non-restorable; a provider failure must not change that.
     await _bestEffortProviderSignOut();
 
-    emit(const AuthSessionState.unauthenticated());
+    emit(
+      AuthSessionState.unauthenticated(
+        errorMessage: remoteFailed ? signOutRemoteFailureMessage : null,
+      ),
+    );
   }
 
   /// Reads the stored refresh token for sign-out. A missing, blank or
@@ -525,12 +508,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
   static const administratorWebOnlyMessage =
       'Administrator accounts are supported on Web only.';
 
-  static const signOutFailureMessage =
-      'We couldn\'t complete sign out. Please try again.';
-
-  // Compatibility alias for existing views/tests while the retry copy remains
-  // centralized in [signOutFailureMessage].
-  static const signOutRemoteFailureMessage = signOutFailureMessage;
+  static const signOutRemoteFailureMessage =
+      'You\'re signed out on this device, but we couldn\'t complete '
+      'server-side sign-out.';
 
   /// Approved local-cleanup-failure copy — shown only when the persisted
   /// session could not be proven non-restorable, so no local sign-out may be

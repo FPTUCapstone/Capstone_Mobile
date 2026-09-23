@@ -101,7 +101,7 @@ Verified against the actual Backend implementation and approved spec/plan. **Unc
 | Method | POST |
 | Authorization | Not required and not validated. The Mobile `AuthInterceptor` may attach a Bearer token automatically (the path is not excluded); the Backend ignores it. **UC-05 must not add an Authorization requirement, and no code may depend on the header.** |
 | Request body | `application/json`, `[FromBody] SignOutRequestDto` → `{ "refreshToken": "..." }`; property `RefreshToken` (`string?`, optional/nullable), binding from camelCase JSON. |
-| Success | `HTTP 200` with the **direct** DTO `{"message":"Signed out successfully."}` — **no** `{success, data, …}` envelope. Mobile must therefore **not** use the existing `_unwrap()` helper (it requires `success == true` and would convert a valid 200 into an error). |
+| Success | `HTTP 200` with `ApiResponse<bool>`: `{"success":true,"statusCode":200,"message":"Signed out successfully.","data":true,"errors":null}`. Mobile validates the sign-out envelope through `_unwrapSignOut()` (`success == true` and `data == true`); it does not use the map-oriented `_unwrap()` helper. |
 | Failure | Infrastructure/database failure → `HTTP 500` RFC-7807 `ProblemDetails` (existing global title). Never converted to a false 200. |
 | Idempotency | `null` / empty / whitespace refresh token → 200 with no DB access; unknown token → 200 no mutation; already-revoked token → 200 preserving the original `RevokedAtUtc`; active token → `RevokedAtUtc` stamped and saved. |
 | Scope of revocation | The matched refresh row only. Other sessions of the same user stay active (BR-15). No `Users`/`OperatorProfiles` mutation (BR-14). |
@@ -257,7 +257,7 @@ One owner: **`AuthSessionCubit`**. Cleanup must not move into a page/widget, the
 | Request model | `lib/features/auth/data/models/sign_out_request.dart` following the existing hand-written `LoginRequest` convention (`toJson()` → `{'refreshToken': refreshToken}`). No `json_serializable` code generation is introduced for it, matching the existing auth request models. |
 | Authorization header | Not added by UC-05. The shared `AuthInterceptor` may attach the stored access token automatically; the Backend ignores it and no code may depend on it. |
 | Refresh token source | Read from secure storage by `AuthSessionCubit` via `AppConstants.refreshTokenKey` and passed as a parameter. The API layer never reads storage. |
-| Success handling | HTTP 2xx = success. **Do not** call `_unwrap()`; the endpoint returns a direct DTO. The body is not required to be parsed for correctness. |
+| Success handling | HTTP 200 is accepted only when the `ApiResponse<bool>` envelope has `success == true` and `data == true`. Use `_unwrapSignOut()`; do not call the map-oriented `_unwrap()` helper. |
 | 500 / non-2xx handling | Propagate the existing safe `ServerException` shape from `_handleDioError` (message, status code, optional code). No retry loop, no silent success. |
 | Network error handling | Propagate the existing `NetworkException` with the app's standard connectivity copy. |
 | Timeouts | Shared `DioClient` configuration (`ApiConstants`: 20 s connect/send, 30 s receive). No logout-specific timeout unless the plan justifies it. |

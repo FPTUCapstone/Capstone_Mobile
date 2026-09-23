@@ -1134,15 +1134,16 @@ void main() {
       },
     );
 
-    // --- UC-05: a remote failure preserves the local session for retry.
+    // --- UC-05 BR-13: a remote failure still ends the local session when
+    // M7 cleanup can be proven safe.
 
-    const remoteFailureCopy = AuthSessionCubit.signOutFailureMessage;
+    const remoteFailureCopy = AuthSessionCubit.signOutRemoteFailureMessage;
     const rawTransportDetail =
         'SocketException: Connection refused (OS Error: errno = 10061) '
         'at localhost:5000';
 
     test(
-      'UC-05 signOut preserves the local session on a network failure',
+      'UC-05 network failure completes local logout and cannot restore',
       () async {
         final cubit = await buildAuthenticatedCubit(
           logoutError: const NetworkException(rawTransportDetail),
@@ -1151,28 +1152,42 @@ void main() {
         await expectLater(cubit.signOut(), completes);
 
         expect(repository.logoutCalls, 1);
-        expect(storage.values[AppConstants.refreshTokenKey], 'refresh-123');
-        expect(firebase.signOutCalls, 0);
-        expect(cubit.state.status, AuthSessionStatus.authenticated);
-        expect(cubit.state.isAuthenticated, isTrue);
+        expect(storage.values, isEmpty);
+        expect(firebase.signOutCalls, 1);
+        expect(cubit.state.status, AuthSessionStatus.unauthenticated);
+        expect(cubit.state.isAuthenticated, isFalse);
         expect(cubit.state.operation, AuthSessionOperation.none);
         expect(cubit.state.errorMessage, remoteFailureCopy);
+
+        final restored = AuthSessionCubit(null, storage);
+        addTearDown(restored.close);
+        await restored.restoreSession();
+        expect(restored.state.isAuthenticated, isFalse);
       },
     );
 
-    test('UC-05 signOut preserves the local session on a server 500', () async {
-      final cubit = await buildAuthenticatedCubit(
-        logoutError: const ServerException('raw 500 detail', 'MSG127', 500),
-      );
+    test(
+      'UC-05 server 500 completes local logout and cannot restore',
+      () async {
+        final cubit = await buildAuthenticatedCubit(
+          logoutError: const ServerException('raw 500 detail', 'MSG127', 500),
+        );
 
-      await expectLater(cubit.signOut(), completes);
+        await expectLater(cubit.signOut(), completes);
 
-      expect(repository.logoutCalls, 1);
-      expect(storage.values[AppConstants.refreshTokenKey], 'refresh-123');
-      expect(firebase.signOutCalls, 0);
-      expect(cubit.state.status, AuthSessionStatus.authenticated);
-      expect(cubit.state.errorMessage, remoteFailureCopy);
-    });
+        expect(repository.logoutCalls, 1);
+        expect(storage.values, isEmpty);
+        expect(firebase.signOutCalls, 1);
+        expect(cubit.state.status, AuthSessionStatus.unauthenticated);
+        expect(cubit.state.isAuthenticated, isFalse);
+        expect(cubit.state.errorMessage, remoteFailureCopy);
+
+        final restored = AuthSessionCubit(null, storage);
+        addTearDown(restored.close);
+        await restored.restoreSession();
+        expect(restored.state.isAuthenticated, isFalse);
+      },
+    );
 
     test('UC-05 signOut never surfaces raw remote detail', () async {
       final cubit = await buildAuthenticatedCubit(
@@ -1193,7 +1208,7 @@ void main() {
       expect(message, isNot(contains('refresh-123')));
     });
 
-    test('UC-05 signOut emits exactly one authenticated retry state', () async {
+    test('UC-05 signOut emits exactly one unauthenticated M3 state', () async {
       final cubit = await buildAuthenticatedCubit(
         logoutError: const NetworkException(rawTransportDetail),
       );
@@ -1208,7 +1223,7 @@ void main() {
           .where((state) => state.errorMessage != null)
           .toList();
       expect(withNotice, hasLength(1));
-      expect(withNotice.single.status, AuthSessionStatus.authenticated);
+      expect(withNotice.single.status, AuthSessionStatus.unauthenticated);
       expect(emissions.last.errorMessage, remoteFailureCopy);
       expect(
         emissions.any((state) => state.status == AuthSessionStatus.failure),
@@ -1371,23 +1386,24 @@ void main() {
       expect(firebase.signOutCalls, 0);
     });
 
-    test('M7-G remote failure does not begin local cleanup', () async {
+    test('M7-G remote failure completes proven local cleanup', () async {
       final cubit = await buildAuthenticatedCubit(
         logoutError: const NetworkException(rawTransportDetail),
       );
 
       await cubit.signOut();
 
-      expect(cubit.state.status, AuthSessionStatus.authenticated);
-      expect(cubit.state.isAuthenticated, isTrue);
+      expect(cubit.state.status, AuthSessionStatus.unauthenticated);
+      expect(cubit.state.isAuthenticated, isFalse);
       expect(cubit.state.errorMessage, remoteFailureCopy);
       expect(cubit.state.errorMessage, isNot(localCleanupFailureCopy));
-      expect(firebase.signOutCalls, 0);
-      expect(storage.values[AppConstants.refreshTokenKey], 'refresh-123');
+      expect(firebase.signOutCalls, 1);
+      expect(storage.values, isEmpty);
+      await expectNoRestore(storage);
     });
 
     test(
-      'M7-H remote failure returns before any unprovable local cleanup',
+      'M7-H remote failure plus unsafe cleanup keeps the session retryable',
       () async {
         final cubit = await buildAuthenticatedCubit(
           logoutError: const ServerException('raw 500 detail', 'MSG127', 500),
@@ -1404,8 +1420,8 @@ void main() {
 
         expect(cubit.state.status, AuthSessionStatus.authenticated);
         expect(cubit.state.operation, AuthSessionOperation.none);
-        expect(cubit.state.errorMessage, remoteFailureCopy);
-        expect(cubit.state.errorMessage, isNot(localCleanupFailureCopy));
+        expect(cubit.state.errorMessage, localCleanupFailureCopy);
+        expect(cubit.state.errorMessage, isNot(remoteFailureCopy));
         expect(cubit.state.errorMessage, isNot(contains('500')));
         expect(cubit.state.errorMessage, isNot(contains('MSG127')));
         expect(firebase.signOutCalls, 0);

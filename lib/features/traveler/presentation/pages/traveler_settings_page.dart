@@ -26,16 +26,15 @@ class _TravelerSettingsPageState extends State<TravelerSettingsPage> {
     final state = session.state;
     // Only the approved local-cleanup notice is surfaced here; unrelated auth
     // errors are not this screen's concern.
-    final signOutFailure =
+    final localCleanupFailure =
         state.status == AuthSessionStatus.authenticated &&
-        (state.errorMessage == AuthSessionCubit.signOutFailureMessage ||
-            state.errorMessage ==
-                AuthSessionCubit.signOutLocalCleanupFailureMessage);
+        state.errorMessage ==
+            AuthSessionCubit.signOutLocalCleanupFailureMessage;
 
     return AppPageScaffold(
       title: 'Settings',
       content: [
-        if (signOutFailure) ...[
+        if (localCleanupFailure) ...[
           AppAlert(message: state.errorMessage!, type: AppAlertType.error),
           const SizedBox(height: AppSpacing.md),
         ],
