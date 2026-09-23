@@ -178,7 +178,7 @@ Flow inside `AuthSessionCubit.signOut()`:
 | --- | --- |
 | `lib/features/auth/domain/repositories/auth_repository.dart` | Add `Future<void> logout(String? refreshToken);` |
 | `lib/features/auth/data/repositories/auth_repository_impl.dart` | Delegate `logout` to the data source |
-| `lib/features/auth/data/datasources/auth_remote_data_source.dart` | Add `Future<void> logout(String? refreshToken)` (interface + impl): POST, body via `SignOutRequest`, **no `_unwrap()`**, 2xx = success, `DioException` → existing `_handleDioError` |
+| `lib/features/auth/data/datasources/auth_remote_data_source.dart` | Add `Future<void> logout(String? refreshToken)` (interface + impl): POST, body via `SignOutRequest`, validate the `ApiResponse<bool>` through `_unwrapSignOut()`, `DioException` → existing `_handleDioError` |
 | `lib/features/auth/presentation/cubit/auth_session_state.dart` | Add `AuthSessionOperation.signOut`; allow `operation`/`errorMessage` on `authenticated(...)` and `errorMessage` on `unauthenticated(...)` (props unchanged; existing const usages keep compiling) |
 | `lib/features/auth/presentation/cubit/auth_session_cubit.dart` | Add `signOut()` orchestration + M7 gate invalidation/verification; add the two approved copy constants; keep the local-only cleanup as the internal primitive |
 | `lib/features/auth/presentation/pages/login_page.dart` | Render the carried notice (`AppAlert`) when the unauthenticated state carries the M3 copy — minimal condition extension of the existing block |
@@ -210,10 +210,10 @@ Task types: **IMPLEMENTATION** (RED → confirm expected failure → GREEN → f
 - **Production files**: `sign_out_request.dart` (new); `auth_remote_data_source.dart`.
 - **Tests**: `auth_remote_data_source_test.dart`.
 - **RED reason**: `SignOutRequest` and `logout` do not exist (focused test file cannot compile/pass).
-- **RED cases**: `toJson()` emits `{'refreshToken': <value>}` and `{'refreshToken': null}`; POST to `/api/v1/auth/logout` with that body (asserted via the existing `RecordingHttpClientAdapter`); a **200 with a non-envelope body succeeds** (proves `_unwrap()` is not used); a 500 maps to `ServerException`; a connection error maps to `NetworkException`.
-- **GREEN action**: add the model and the data-source method reusing `_handleDioError`, with no envelope parsing and no Authorization/timeout logic added.
+- **RED cases**: `toJson()` emits `{'refreshToken': <value>}` and `{'refreshToken': null}`; POST to `/api/v1/auth/logout` with that body (asserted via the existing `RecordingHttpClientAdapter`); a valid **200 `ApiResponse<bool>` envelope** succeeds; a malformed 200 is rejected safely; a 500 maps to `ServerException`; a connection error maps to `NetworkException`.
+- **GREEN action**: add the model and the data-source method reusing `_handleDioError`, with `_unwrapSignOut()` validating `success == true` and `data == true`, and no Authorization/timeout logic added.
 - **Focused command**: `flutter test test/features/auth/data/datasources/auth_remote_data_source_test.dart`.
-- **Review checklist**: no `_unwrap()`; no Authorization dependency; no blacklist logic; error mapping reuses the existing table; no body parsing requirement.
+- **Review checklist**: use `_unwrapSignOut()` rather than the map-oriented `_unwrap()`; no Authorization dependency; no blacklist logic; error mapping reuses the existing table; malformed envelopes fail safely.
 - **Matrix coverage**: TC-MOB-02, TC-MOB-10 (API level), parts of TC-MOB-15/16.
 - **DoD**: focused tests green; `dart format`/`flutter analyze` clean; no other file touched.
 

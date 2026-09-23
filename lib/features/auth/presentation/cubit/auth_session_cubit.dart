@@ -27,22 +27,6 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
   Future<String?> get currentFirebaseUserEmail async =>
       _firebaseAuthService?.currentUserEmail;
 
-  Future<void> clearSession() async {
-    await _clearLocalSession();
-    emit(const AuthSessionState.unauthenticated());
-  }
-
-  /// Local-only cleanup primitive: deletes the persisted session and ends the
-  /// provider identity without choosing the terminal state, so sign-out can
-  /// emit exactly one authoritative terminal state.
-  Future<void> _clearLocalSession() async {
-    final storage = _secureStorage;
-    if (storage != null) {
-      await _clearStoredSession(storage);
-    }
-    await _firebaseAuthService?.signOut();
-  }
-
   /// UC-05 backend-integrated sign-out. The session deliberately stays
   /// `authenticated` while the remote request is in flight so the router guard
   /// never redirects early. A remote failure is recorded but never prevents
@@ -195,27 +179,39 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
       final keepSignedIn = await storage.read(AppConstants.keepSignedInKey);
       final accessToken = await storage.read(AppConstants.accessTokenKey);
       final refreshToken = await storage.read(AppConstants.refreshTokenKey);
-      final role = _roleFromStorage(
-        await storage.read(AppConstants.sessionRoleKey),
+      final role = _restorableRole(
+        keepSignedIn: keepSignedIn,
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        storedRole: await storage.read(AppConstants.sessionRoleKey),
       );
-      return keepSignedIn == 'true' &&
-          accessToken != null &&
-          accessToken.isNotEmpty &&
-          refreshToken != null &&
-          refreshToken.isNotEmpty &&
-          role != null;
+      return role != null;
     } catch (_) {
       return null;
     }
   }
 
-  /// Mirrors the role mapping inside `restoreSession()`; that method is
-  /// intentionally left untouched.
-  UserRole? _roleFromStorage(String? value) => switch (value) {
-    'traveler' => UserRole.traveler,
-    'tourOperator' => UserRole.tourOperator,
-    _ => null,
-  };
+  /// Single source of truth for the persisted restore predicate. Returning a
+  /// role means the session is restorable; null means it is not.
+  UserRole? _restorableRole({
+    required String? keepSignedIn,
+    required String? accessToken,
+    required String? refreshToken,
+    required String? storedRole,
+  }) {
+    if (keepSignedIn != 'true' ||
+        accessToken == null ||
+        accessToken.isEmpty ||
+        refreshToken == null ||
+        refreshToken.isEmpty) {
+      return null;
+    }
+    return switch (storedRole) {
+      'traveler' => UserRole.traveler,
+      'tourOperator' => UserRole.tourOperator,
+      _ => null,
+    };
+  }
 
   Future<void> restoreSession() async {
     final storage = _secureStorage;
@@ -225,18 +221,14 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     final accessToken = await storage.read(AppConstants.accessTokenKey);
     final refreshToken = await storage.read(AppConstants.refreshTokenKey);
     final storedRole = await storage.read(AppConstants.sessionRoleKey);
-    final role = switch (storedRole) {
-      'traveler' => UserRole.traveler,
-      'tourOperator' => UserRole.tourOperator,
-      _ => null,
-    };
+    final role = _restorableRole(
+      keepSignedIn: keepSignedIn,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      storedRole: storedRole,
+    );
 
-    if (keepSignedIn == 'true' &&
-        accessToken != null &&
-        accessToken.isNotEmpty &&
-        refreshToken != null &&
-        refreshToken.isNotEmpty &&
-        role != null) {
+    if (role != null) {
       // Provisional restore: replays the backend-issued identity persisted at
       // sign-in. This is not proof the access token is still server-valid; a
       // later 401 clears it.

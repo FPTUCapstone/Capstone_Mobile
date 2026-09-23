@@ -168,37 +168,22 @@ void main() {
 
   // --- UC-05 BR-13: failed backend revocation still completes local logout.
 
-  testWidgets('failed remote sign-out shows exactly one login-screen notice', (
+  testWidgets('network sign-out failure shows one login-screen notice', (
     tester,
   ) async {
-    final storage = _MemoryStorage({
-      AppConstants.accessTokenKey: 'access',
-      AppConstants.refreshTokenKey: 'refresh',
-      AppConstants.sessionRoleKey: 'traveler',
-      AppConstants.keepSignedInKey: 'true',
-    });
-    final session = AuthSessionCubit(const _FailingLogoutRepository(), storage);
-    addTearDown(session.close);
-    await session.restoreSession();
-    await session.signOut();
-
-    expect(session.state.isAuthenticated, isFalse);
-    expect(session.state.errorMessage, _remoteFailureCopy);
-    expect(storage.values, isEmpty);
-
-    await tester.pumpWidget(
-      _page(
-        BlocProvider<AuthSessionCubit>.value(
-          value: session,
-          child: const LoginPage(),
-        ),
-      ),
+    await _expectRemoteFailureNotice(
+      tester,
+      const NetworkException(_rawTransportDetail),
     );
+  });
 
-    expect(find.byType(AppAlert), findsOneWidget);
-    expect(find.text(_remoteFailureCopy), findsOneWidget);
-    // Only the approved copy is rendered — never raw transport detail.
-    expect(find.textContaining(_rawTransportDetail), findsNothing);
+  testWidgets('HTTP 500 sign-out failure shows one safe login notice', (
+    tester,
+  ) async {
+    await _expectRemoteFailureNotice(
+      tester,
+      const ServerException(_rawTransportDetail, 'MSG127', 500),
+    );
   });
 
   testWidgets('login renders no notice for a clean unauthenticated state', (
@@ -219,6 +204,40 @@ void main() {
     expect(find.text(_remoteFailureCopy), findsNothing);
     expect(find.byType(AppAlert), findsNothing);
   });
+}
+
+Future<void> _expectRemoteFailureNotice(
+  WidgetTester tester,
+  AppException error,
+) async {
+  final storage = _MemoryStorage({
+    AppConstants.accessTokenKey: 'access',
+    AppConstants.refreshTokenKey: 'refresh',
+    AppConstants.sessionRoleKey: 'traveler',
+    AppConstants.keepSignedInKey: 'true',
+  });
+  final session = AuthSessionCubit(_FailingLogoutRepository(error), storage);
+  addTearDown(session.close);
+  await session.restoreSession();
+  await session.signOut();
+
+  expect(session.state.isAuthenticated, isFalse);
+  expect(session.state.errorMessage, _remoteFailureCopy);
+  expect(storage.values, isEmpty);
+
+  await tester.pumpWidget(
+    _page(
+      BlocProvider<AuthSessionCubit>.value(
+        value: session,
+        child: const LoginPage(),
+      ),
+    ),
+  );
+
+  expect(find.byType(AppAlert), findsOneWidget);
+  expect(find.text(_remoteFailureCopy), findsOneWidget);
+  // Only the approved copy is rendered — never raw transport detail.
+  expect(find.textContaining(_rawTransportDetail), findsNothing);
 }
 
 Widget _page(Widget child) => MaterialApp(theme: AppTheme.light, home: child);
@@ -250,13 +269,14 @@ final class _MemoryStorage implements SecureStorageService {
   Future<void> write(String key, String value) async => values[key] = value;
 }
 
-/// Fails only the logout call so session-preserving retry behavior is covered.
+/// Fails only the logout call so remote-failure presentation is covered.
 final class _FailingLogoutRepository implements AuthRepository {
-  const _FailingLogoutRepository();
+  const _FailingLogoutRepository(this.error);
+
+  final AppException error;
 
   @override
-  Future<void> logout(String? refreshToken) =>
-      throw const NetworkException(_rawTransportDetail);
+  Future<void> logout(String? refreshToken) => throw error;
 
   @override
   Future<AuthSession> googleAuth(String firebaseIdToken) =>

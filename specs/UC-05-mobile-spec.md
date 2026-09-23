@@ -100,7 +100,7 @@ Verified against the actual Backend implementation and approved spec/plan. **Unc
 | Endpoint | `POST /api/v1/auth/logout` (`AuthController.Logout`, `[HttpPost("logout")]`; class-level `[AllowAnonymous]`) |
 | Method | POST |
 | Authorization | Not required and not validated. The Mobile `AuthInterceptor` may attach a Bearer token automatically (the path is not excluded); the Backend ignores it. **UC-05 must not add an Authorization requirement, and no code may depend on the header.** |
-| Request body | `application/json`, `[FromBody] SignOutRequestDto` → `{ "refreshToken": "..." }`; property `RefreshToken` (`string?`, optional/nullable), binding from camelCase JSON. |
+| Request body | `application/json`, `[FromBody] LogoutRequest` → `{ "refreshToken": "..." }`; property `RefreshToken` (`string?`, optional/nullable), binding from camelCase JSON. |
 | Success | `HTTP 200` with `ApiResponse<bool>`: `{"success":true,"statusCode":200,"message":"Signed out successfully.","data":true,"errors":null}`. Mobile validates the sign-out envelope through `_unwrapSignOut()` (`success == true` and `data == true`); it does not use the map-oriented `_unwrap()` helper. |
 | Failure | Infrastructure/database failure → `HTTP 500` RFC-7807 `ProblemDetails` (existing global title). Never converted to a false 200. |
 | Idempotency | `null` / empty / whitespace refresh token → 200 with no DB access; unknown token → 200 no mutation; already-revoked token → 200 preserving the original `RevokedAtUtc`; active token → `RevokedAtUtc` stamped and saved. |

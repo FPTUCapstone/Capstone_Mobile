@@ -117,13 +117,12 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<void> logout(String? refreshToken) =>
-      _signOut('/api/v1/auth/logout', refreshToken);
+  Future<void> logout(String? refreshToken) => _signOut(refreshToken);
 
-  Future<void> _signOut(String path, String? refreshToken) async {
+  Future<void> _signOut(String? refreshToken) async {
     try {
       final response = await _dioClient.dio.post<Map<String, dynamic>>(
-        path,
+        '/api/v1/auth/logout',
         data: SignOutRequest(refreshToken: refreshToken).toJson(),
       );
       _unwrapSignOut(response.data);
