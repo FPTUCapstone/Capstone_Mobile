@@ -27,13 +27,190 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
   Future<String?> get currentFirebaseUserEmail async =>
       _firebaseAuthService?.currentUserEmail;
 
-  Future<void> clearSession() async {
+  /// UC-05 backend-integrated sign-out. The session deliberately stays
+  /// `authenticated` while the remote request is in flight so the router guard
+  /// never redirects early. A remote failure is recorded but never prevents
+  /// the M7 local invalidation pipeline from running.
+  Future<void> signOut() async {
+    if (!state.isAuthenticated) return;
+    // The state's own operation marker is the duplicate guard: it is set
+    // synchronously, before the first await, so a second intent cannot start.
+    if (state.operation == AuthSessionOperation.signOut) return;
+
+    final role = state.role!;
+    final applicationStatus = state.applicationStatus;
+    emit(
+      AuthSessionState.authenticated(
+        role,
+        applicationStatus: applicationStatus,
+        operation: AuthSessionOperation.signOut,
+      ),
+    );
+
     final storage = _secureStorage;
-    if (storage != null) {
-      await _clearStoredSession(storage);
+    final repository = _authRepository;
+    final refreshToken = storage == null
+        ? null
+        : await _readRefreshTokenQuietly(storage);
+
+    var remoteFailed = repository == null;
+    if (repository != null) {
+      try {
+        await repository.logout(refreshToken);
+      } on NetworkException {
+        remoteFailed = true;
+      } on ServerException {
+        remoteFailed = true;
+      } catch (_) {
+        // Unexpected non-remote error: keep the fail-safe (never leave the
+        // in-flight marker set) and let it surface.
+        if (state.isAuthenticated) {
+          emit(
+            AuthSessionState.authenticated(
+              role,
+              applicationStatus: applicationStatus,
+            ),
+          );
+        }
+        rethrow;
+      }
     }
-    await _firebaseAuthService?.signOut();
-    emit(const AuthSessionState.unauthenticated());
+
+    final localComplete = await _invalidateLocalSessionForSignOut();
+
+    if (!localComplete) {
+      // Fail closed: the persisted session could still satisfy the restore
+      // predicate, so no local sign-out may be claimed. The M3 copy would be
+      // false in this state, so only the local-cleanup copy is emitted and the
+      // user may retry; no storage or remote detail is exposed.
+      emit(
+        AuthSessionState.authenticated(
+          role,
+          applicationStatus: applicationStatus,
+          errorMessage: signOutLocalCleanupFailureMessage,
+        ),
+      );
+      return;
+    }
+
+    // Provider sign-out is best effort and runs only once the persisted session
+    // is proven non-restorable; a provider failure must not change that.
+    await _bestEffortProviderSignOut();
+
+    emit(
+      AuthSessionState.unauthenticated(
+        errorMessage: remoteFailed ? signOutRemoteFailureMessage : null,
+      ),
+    );
+  }
+
+  /// Reads the stored refresh token for sign-out. A missing, blank or
+  /// unreadable value is reported as "no credential", so a storage problem can
+  /// never block the user's sign-out or leak a storage error to the UI.
+  Future<String?> _readRefreshTokenQuietly(SecureStorageService storage) async {
+    try {
+      final token = await storage.read(AppConstants.refreshTokenKey);
+      if (token == null || token.trim().isEmpty) return null;
+      return token;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// M7: makes the persisted session non-restorable for sign-out, bounded to at
+  /// most two attempts. Returns true only when the ACTUAL restore predicate is
+  /// proven false; anything unproven fails closed.
+  Future<bool> _invalidateLocalSessionForSignOut() async {
+    final storage = _secureStorage;
+    if (storage == null) return false;
+
+    for (var attempt = 0; attempt < 2; attempt++) {
+      await _attemptLocalInvalidation(storage);
+      final restorable = await _isPersistedSessionRestorable(storage);
+      if (restorable == false) return true;
+    }
+    return false;
+  }
+
+  /// One invalidation attempt: invalidate the restore gate first, then clean
+  /// every session key independently — a failing key must never stop the
+  /// remaining best-effort deletions.
+  Future<void> _attemptLocalInvalidation(SecureStorageService storage) async {
+    await _invalidateRestoreGate(storage);
+    for (final key in [
+      AppConstants.accessTokenKey,
+      AppConstants.refreshTokenKey,
+      AppConstants.sessionRoleKey,
+      AppConstants.sessionApplicationStatusKey,
+      AppConstants.keepSignedInKey,
+    ]) {
+      try {
+        await storage.delete(key);
+      } catch (_) {
+        // Continue with the remaining keys; verification decides fail-closed.
+      }
+    }
+  }
+
+  /// Makes `keep_signed_in == 'true'` unsatisfiable using the existing storage
+  /// API and the existing representation: delete the key, or persist 'false'
+  /// when the delete did not take effect. No tombstone key is introduced.
+  Future<void> _invalidateRestoreGate(SecureStorageService storage) async {
+    try {
+      await storage.delete(AppConstants.keepSignedInKey);
+      return;
+    } catch (_) {
+      // Fall through to the explicit 'false' representation.
+    }
+    try {
+      await storage.write(AppConstants.keepSignedInKey, 'false');
+    } catch (_) {
+      // Unproven; the verification step decides fail-closed.
+    }
+  }
+
+  /// Evaluates the exact predicate `restoreSession()` uses, from persisted
+  /// state. Returns null when the state cannot be read — unproven, so the
+  /// caller must fail closed.
+  Future<bool?> _isPersistedSessionRestorable(
+    SecureStorageService storage,
+  ) async {
+    try {
+      final keepSignedIn = await storage.read(AppConstants.keepSignedInKey);
+      final accessToken = await storage.read(AppConstants.accessTokenKey);
+      final refreshToken = await storage.read(AppConstants.refreshTokenKey);
+      final role = _restorableRole(
+        keepSignedIn: keepSignedIn,
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        storedRole: await storage.read(AppConstants.sessionRoleKey),
+      );
+      return role != null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Single source of truth for the persisted restore predicate. Returning a
+  /// role means the session is restorable; null means it is not.
+  UserRole? _restorableRole({
+    required String? keepSignedIn,
+    required String? accessToken,
+    required String? refreshToken,
+    required String? storedRole,
+  }) {
+    if (keepSignedIn != 'true' ||
+        accessToken == null ||
+        accessToken.isEmpty ||
+        refreshToken == null ||
+        refreshToken.isEmpty) {
+      return null;
+    }
+    return switch (storedRole) {
+      'traveler' => UserRole.traveler,
+      'tourOperator' => UserRole.tourOperator,
+      _ => null,
+    };
   }
 
   Future<void> restoreSession() async {
@@ -44,18 +221,14 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     final accessToken = await storage.read(AppConstants.accessTokenKey);
     final refreshToken = await storage.read(AppConstants.refreshTokenKey);
     final storedRole = await storage.read(AppConstants.sessionRoleKey);
-    final role = switch (storedRole) {
-      'traveler' => UserRole.traveler,
-      'tourOperator' => UserRole.tourOperator,
-      _ => null,
-    };
+    final role = _restorableRole(
+      keepSignedIn: keepSignedIn,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      storedRole: storedRole,
+    );
 
-    if (keepSignedIn == 'true' &&
-        accessToken != null &&
-        accessToken.isNotEmpty &&
-        refreshToken != null &&
-        refreshToken.isNotEmpty &&
-        role != null) {
+    if (role != null) {
       // Provisional restore: replays the backend-issued identity persisted at
       // sign-in. This is not proof the access token is still server-valid; a
       // later 401 clears it.
@@ -326,6 +499,16 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
 
   static const administratorWebOnlyMessage =
       'Administrator accounts are supported on Web only.';
+
+  static const signOutRemoteFailureMessage =
+      'You\'re signed out on this device, but we couldn\'t complete '
+      'server-side sign-out.';
+
+  /// Approved local-cleanup-failure copy — shown only when the persisted
+  /// session could not be proven non-restorable, so no local sign-out may be
+  /// claimed.
+  static const signOutLocalCleanupFailureMessage =
+      'We couldn\'t complete sign out on this device. Please try again.';
 
   Future<void> _bestEffortProviderSignOut() async {
     try {

@@ -950,6 +950,483 @@ void main() {
       ],
       verify: (_) => expect(storage.values, isEmpty),
     );
+
+    // --- UC-05 T02: backend-integrated sign-out foundation.
+
+    const localCleanupFailureCopy =
+        'We couldn\'t complete sign out on this device. Please try again.';
+
+    Future<AuthSessionCubit> buildAuthenticatedCubit({
+      Completer<void>? logoutCompleter,
+      AppException? logoutError,
+      FakeSecureStorageService? storageOverride,
+    }) async {
+      repository = FakeAuthRepository(
+        logoutCompleter: logoutCompleter,
+        logoutError: logoutError,
+      );
+      storage =
+          storageOverride ??
+          (FakeSecureStorageService()
+            ..values.addAll({
+              AppConstants.accessTokenKey: 'access',
+              AppConstants.refreshTokenKey: 'refresh-123',
+              AppConstants.sessionRoleKey: 'traveler',
+              AppConstants.keepSignedInKey: 'true',
+            }));
+      firebase = FakeFirebaseAuthService();
+      final cubit = AuthSessionCubit(repository, storage, firebase);
+      addTearDown(cubit.close);
+      await cubit.restoreSession();
+      expect(cubit.state.isAuthenticated, isTrue);
+      return cubit;
+    }
+
+    test(
+      'UC-05 signOut forwards the stored refresh token and ends the session',
+      () async {
+        final cubit = await buildAuthenticatedCubit();
+
+        await cubit.signOut();
+
+        expect(repository.logoutCalls, 1);
+        expect(repository.lastLogoutRefreshToken, 'refresh-123');
+        expect(storage.values, isEmpty);
+        expect(firebase.signOutCalls, 1);
+        expect(cubit.state, const AuthSessionState.unauthenticated());
+        expect(cubit.state.isAuthenticated, isFalse);
+      },
+    );
+
+    test(
+      'UC-05 signOut stays authenticated while pending and blocks duplicates',
+      () async {
+        final completer = Completer<void>();
+        final cubit = await buildAuthenticatedCubit(logoutCompleter: completer);
+        final statuses = <AuthSessionStatus>[];
+        final subscription = cubit.stream.listen(
+          (state) => statuses.add(state.status),
+        );
+        addTearDown(subscription.cancel);
+
+        final pending = cubit.signOut();
+
+        expect(cubit.state.status, AuthSessionStatus.authenticated);
+        expect(cubit.state.operation, AuthSessionOperation.signOut);
+        expect(cubit.state.isAuthenticated, isTrue);
+        expect(cubit.state.isLoading, isFalse);
+
+        // The repository call is issued once the storage read resolves and then
+        // stays pending on the gated completer.
+        await pumpEventQueue();
+        expect(repository.logoutCalls, 1);
+
+        // A second intent while the first request is in flight must not issue
+        // another repository call.
+        await cubit.signOut();
+        expect(repository.logoutCalls, 1);
+
+        completer.complete();
+        await pending;
+        await pumpEventQueue();
+
+        expect(cubit.state, const AuthSessionState.unauthenticated());
+        // Exactly two emissions: the in-flight authenticated marker and the
+        // terminal state — never AuthSessionStatus.loading.
+        expect(statuses, [
+          AuthSessionStatus.authenticated,
+          AuthSessionStatus.unauthenticated,
+        ]);
+      },
+    );
+
+    test('UC-05 signOut sends null for a missing stored token', () async {
+      final cubit = await buildAuthenticatedCubit();
+      storage.values.remove(AppConstants.refreshTokenKey);
+
+      await cubit.signOut();
+
+      expect(repository.logoutCalls, 1);
+      expect(repository.lastLogoutRefreshToken, isNull);
+      expect(cubit.state, const AuthSessionState.unauthenticated());
+      expect(cubit.state.operation, AuthSessionOperation.none);
+    });
+
+    test('UC-05 signOut normalises an empty stored token to null', () async {
+      final cubit = await buildAuthenticatedCubit();
+      storage.values[AppConstants.refreshTokenKey] = '';
+
+      await cubit.signOut();
+
+      expect(repository.logoutCalls, 1);
+      expect(repository.lastLogoutRefreshToken, isNull);
+      expect(cubit.state, const AuthSessionState.unauthenticated());
+    });
+
+    test(
+      'UC-05 signOut normalises a whitespace stored token to null',
+      () async {
+        final cubit = await buildAuthenticatedCubit();
+        storage.values[AppConstants.refreshTokenKey] = '   ';
+
+        await cubit.signOut();
+
+        expect(repository.logoutCalls, 1);
+        expect(repository.lastLogoutRefreshToken, isNull);
+        expect(cubit.state, const AuthSessionState.unauthenticated());
+      },
+    );
+
+    test(
+      'UC-05 signOut sends null when the token read fails and fails closed when safety cannot be verified',
+      () async {
+        final cubit = await buildAuthenticatedCubit();
+        storage.readError = StateError('keystore unavailable');
+
+        // The storage failure must not escape, block logout or reach the UI.
+        await expectLater(cubit.signOut(), completes);
+
+        expect(repository.logoutCalls, 1);
+        expect(repository.lastLogoutRefreshToken, isNull);
+
+        // T05/M7 supersedes the earlier expectation for this case: when every
+        // read fails, non-restorability cannot be proven, so no local sign-out
+        // may be claimed. Only the approved local-cleanup copy is carried, and
+        // no storage detail is exposed.
+        expect(cubit.state.status, AuthSessionStatus.authenticated);
+        expect(cubit.state.operation, AuthSessionOperation.none);
+        expect(cubit.state.errorMessage, localCleanupFailureCopy);
+        expect(cubit.state.errorMessage, isNot(contains('keystore')));
+      },
+    );
+
+    test(
+      'UC-05 signOut clears every session key and the provider identity',
+      () async {
+        final cubit = await buildAuthenticatedCubit();
+        storage.values[AppConstants.sessionApplicationStatusKey] = 'approved';
+
+        await cubit.signOut();
+
+        expect(
+          storage.values.containsKey(AppConstants.accessTokenKey),
+          isFalse,
+        );
+        expect(
+          storage.values.containsKey(AppConstants.refreshTokenKey),
+          isFalse,
+        );
+        expect(
+          storage.values.containsKey(AppConstants.sessionRoleKey),
+          isFalse,
+        );
+        expect(
+          storage.values.containsKey(AppConstants.sessionApplicationStatusKey),
+          isFalse,
+        );
+        expect(
+          storage.values.containsKey(AppConstants.keepSignedInKey),
+          isFalse,
+        );
+        expect(firebase.signOutCalls, 1);
+        expect(cubit.state, const AuthSessionState.unauthenticated());
+        expect(cubit.state.isAuthenticated, isFalse);
+      },
+    );
+
+    // --- UC-05 BR-13: a remote failure still ends the local session when
+    // M7 cleanup can be proven safe.
+
+    const remoteFailureCopy = AuthSessionCubit.signOutRemoteFailureMessage;
+    const rawTransportDetail =
+        'SocketException: Connection refused (OS Error: errno = 10061) '
+        'at localhost:5000';
+
+    test(
+      'UC-05 network failure completes local logout and cannot restore',
+      () async {
+        final cubit = await buildAuthenticatedCubit(
+          logoutError: const NetworkException(rawTransportDetail),
+        );
+
+        await expectLater(cubit.signOut(), completes);
+
+        expect(repository.logoutCalls, 1);
+        expect(storage.values, isEmpty);
+        expect(firebase.signOutCalls, 1);
+        expect(cubit.state.status, AuthSessionStatus.unauthenticated);
+        expect(cubit.state.isAuthenticated, isFalse);
+        expect(cubit.state.operation, AuthSessionOperation.none);
+        expect(cubit.state.errorMessage, remoteFailureCopy);
+
+        final restored = AuthSessionCubit(null, storage);
+        addTearDown(restored.close);
+        await restored.restoreSession();
+        expect(restored.state.isAuthenticated, isFalse);
+      },
+    );
+
+    test(
+      'UC-05 server 500 completes local logout and cannot restore',
+      () async {
+        final cubit = await buildAuthenticatedCubit(
+          logoutError: const ServerException('raw 500 detail', 'MSG127', 500),
+        );
+
+        await expectLater(cubit.signOut(), completes);
+
+        expect(repository.logoutCalls, 1);
+        expect(storage.values, isEmpty);
+        expect(firebase.signOutCalls, 1);
+        expect(cubit.state.status, AuthSessionStatus.unauthenticated);
+        expect(cubit.state.isAuthenticated, isFalse);
+        expect(cubit.state.errorMessage, remoteFailureCopy);
+
+        final restored = AuthSessionCubit(null, storage);
+        addTearDown(restored.close);
+        await restored.restoreSession();
+        expect(restored.state.isAuthenticated, isFalse);
+      },
+    );
+
+    test('UC-05 signOut never surfaces raw remote detail', () async {
+      final cubit = await buildAuthenticatedCubit(
+        logoutError: const ServerException(
+          'System.NullReferenceException at AuthController.Logout',
+          'MSG127',
+          500,
+        ),
+      );
+
+      await cubit.signOut();
+
+      final message = cubit.state.errorMessage;
+      expect(message, remoteFailureCopy);
+      expect(message, isNot(contains('NullReferenceException')));
+      expect(message, isNot(contains('MSG127')));
+      expect(message, isNot(contains('500')));
+      expect(message, isNot(contains('refresh-123')));
+    });
+
+    test('UC-05 signOut emits exactly one unauthenticated M3 state', () async {
+      final cubit = await buildAuthenticatedCubit(
+        logoutError: const NetworkException(rawTransportDetail),
+      );
+      final emissions = <AuthSessionState>[];
+      final subscription = cubit.stream.listen(emissions.add);
+      addTearDown(subscription.cancel);
+
+      await cubit.signOut();
+      await pumpEventQueue();
+
+      final withNotice = emissions
+          .where((state) => state.errorMessage != null)
+          .toList();
+      expect(withNotice, hasLength(1));
+      expect(withNotice.single.status, AuthSessionStatus.unauthenticated);
+      expect(emissions.last.errorMessage, remoteFailureCopy);
+      expect(
+        emissions.any((state) => state.status == AuthSessionStatus.failure),
+        isFalse,
+      );
+    });
+
+    test(
+      'UC-05 signOut leaves no M3 notice on a clean remote success',
+      () async {
+        final cubit = await buildAuthenticatedCubit();
+
+        await cubit.signOut();
+
+        expect(cubit.state.status, AuthSessionStatus.unauthenticated);
+        expect(cubit.state.errorMessage, isNull);
+        expect(cubit.state.isAuthenticated, isFalse);
+      },
+    );
+
+    // --- UC-05 T05: M7 restore-safety. Local logout may only be reported as
+    // complete when the ACTUAL restoreSession() predicate is proven false; a
+    // cleanup that cannot be proven safe keeps the session and asks to retry.
+
+    FakeSecureStorageService restorableStorage() =>
+        FakeSecureStorageService()
+          ..values.addAll({
+            AppConstants.accessTokenKey: 'access',
+            AppConstants.refreshTokenKey: 'refresh-123',
+            AppConstants.sessionRoleKey: 'traveler',
+            AppConstants.sessionApplicationStatusKey: 'approved',
+            AppConstants.keepSignedInKey: 'true',
+          });
+
+    /// A fresh Cubit over the same persisted storage: proves the session cannot
+    /// be restored again. Never rely on the in-memory state alone.
+    Future<void> expectNoRestore(FakeSecureStorageService sameStorage) async {
+      final fresh = AuthSessionCubit(null, sameStorage);
+      addTearDown(fresh.close);
+      await fresh.restoreSession();
+      expect(fresh.state.isAuthenticated, isFalse);
+    }
+
+    test('M7-A normal invalidation is proven non-restorable', () async {
+      final cubit = await buildAuthenticatedCubit(
+        storageOverride: restorableStorage(),
+      );
+
+      await cubit.signOut();
+
+      expect(storage.values, isEmpty);
+      expect(cubit.state, const AuthSessionState.unauthenticated());
+      expect(firebase.signOutCalls, 1);
+      // A single attempt suffices: five distinct keys, no retry, no gate
+      // fallback write.
+      expect(storage.deleteCalls.length, 5);
+      expect(storage.writeCalls, isEmpty);
+      await expectNoRestore(storage);
+    });
+
+    test('M7-B leftover token bytes are safe once the gate is gone', () async {
+      final cubit = await buildAuthenticatedCubit(
+        storageOverride: restorableStorage(),
+      );
+      storage.permanentMutationFailures.addAll({
+        AppConstants.accessTokenKey,
+        AppConstants.refreshTokenKey,
+      });
+
+      await cubit.signOut();
+
+      // Physical leftovers remain, yet the persisted session is not restorable
+      // because the keep-signed-in gate is gone.
+      expect(storage.values.containsKey(AppConstants.accessTokenKey), isTrue);
+      expect(storage.values.containsKey(AppConstants.refreshTokenKey), isTrue);
+      expect(storage.values.containsKey(AppConstants.keepSignedInKey), isFalse);
+      expect(cubit.state.status, AuthSessionStatus.unauthenticated);
+      expect(cubit.state.isAuthenticated, isFalse);
+      expect(cubit.state.errorMessage, isNull);
+      await expectNoRestore(storage);
+    });
+
+    test('M7-C one bounded retry recovers a failing first attempt', () async {
+      final cubit = await buildAuthenticatedCubit(
+        storageOverride: restorableStorage(),
+      );
+      storage.blockMutationsUntilGateVerifyRead = true;
+      final gateReadsBefore =
+          storage.readCalls[AppConstants.keepSignedInKey] ?? 0;
+
+      await expectLater(cubit.signOut(), completes);
+
+      expect(storage.values, isEmpty);
+      expect(cubit.state.status, AuthSessionStatus.unauthenticated);
+      expect(cubit.state.errorMessage, isNull);
+      // At most one verification read per attempt → at most two attempts.
+      expect(
+        (storage.readCalls[AppConstants.keepSignedInKey] ?? 0) -
+            gateReadsBefore,
+        lessThanOrEqualTo(2),
+      );
+      await expectNoRestore(storage);
+    });
+
+    test(
+      'M7-D an unprovable cleanup keeps the session and asks to retry',
+      () async {
+        final cubit = await buildAuthenticatedCubit(
+          storageOverride: restorableStorage(),
+        );
+        final statuses = <AuthSessionStatus>[];
+        final subscription = cubit.stream.listen(
+          (state) => statuses.add(state.status),
+        );
+        addTearDown(subscription.cancel);
+        storage.permanentMutationFailures.addAll({
+          AppConstants.accessTokenKey,
+          AppConstants.refreshTokenKey,
+          AppConstants.sessionRoleKey,
+          AppConstants.sessionApplicationStatusKey,
+          AppConstants.keepSignedInKey,
+        });
+        final gateReadsBefore =
+            storage.readCalls[AppConstants.keepSignedInKey] ?? 0;
+
+        await expectLater(cubit.signOut(), completes);
+        await pumpEventQueue();
+
+        expect(cubit.state.status, AuthSessionStatus.authenticated);
+        expect(cubit.state.isAuthenticated, isTrue);
+        expect(cubit.state.operation, AuthSessionOperation.none);
+        expect(cubit.state.errorMessage, localCleanupFailureCopy);
+        expect(cubit.state.errorMessage, isNot(remoteFailureCopy));
+        // Provider sign-out must not run before local completion is proven, and
+        // no false success claim may be emitted.
+        expect(firebase.signOutCalls, 0);
+        expect(statuses, isNot(contains(AuthSessionStatus.loading)));
+        expect(statuses, isNot(contains(AuthSessionStatus.unauthenticated)));
+        expect(storage.values[AppConstants.keepSignedInKey], 'true');
+        // Bounded: one verification read per attempt, two attempts maximum.
+        expect(
+          (storage.readCalls[AppConstants.keepSignedInKey] ?? 0) -
+              gateReadsBefore,
+          lessThanOrEqualTo(2),
+        );
+      },
+    );
+
+    test('M7-E an unreadable verification fails closed', () async {
+      final cubit = await buildAuthenticatedCubit(
+        storageOverride: restorableStorage(),
+      );
+      storage.permanentReadFailures.add(AppConstants.accessTokenKey);
+
+      await expectLater(cubit.signOut(), completes);
+
+      expect(cubit.state.status, AuthSessionStatus.authenticated);
+      expect(cubit.state.operation, AuthSessionOperation.none);
+      expect(cubit.state.errorMessage, localCleanupFailureCopy);
+      expect(firebase.signOutCalls, 0);
+    });
+
+    test('M7-G remote failure completes proven local cleanup', () async {
+      final cubit = await buildAuthenticatedCubit(
+        logoutError: const NetworkException(rawTransportDetail),
+      );
+
+      await cubit.signOut();
+
+      expect(cubit.state.status, AuthSessionStatus.unauthenticated);
+      expect(cubit.state.isAuthenticated, isFalse);
+      expect(cubit.state.errorMessage, remoteFailureCopy);
+      expect(cubit.state.errorMessage, isNot(localCleanupFailureCopy));
+      expect(firebase.signOutCalls, 1);
+      expect(storage.values, isEmpty);
+      await expectNoRestore(storage);
+    });
+
+    test(
+      'M7-H remote failure plus unsafe cleanup keeps the session retryable',
+      () async {
+        final cubit = await buildAuthenticatedCubit(
+          logoutError: const ServerException('raw 500 detail', 'MSG127', 500),
+        );
+        storage.permanentMutationFailures.addAll({
+          AppConstants.accessTokenKey,
+          AppConstants.refreshTokenKey,
+          AppConstants.sessionRoleKey,
+          AppConstants.sessionApplicationStatusKey,
+          AppConstants.keepSignedInKey,
+        });
+
+        await expectLater(cubit.signOut(), completes);
+
+        expect(cubit.state.status, AuthSessionStatus.authenticated);
+        expect(cubit.state.operation, AuthSessionOperation.none);
+        expect(cubit.state.errorMessage, localCleanupFailureCopy);
+        expect(cubit.state.errorMessage, isNot(remoteFailureCopy));
+        expect(cubit.state.errorMessage, isNot(contains('500')));
+        expect(cubit.state.errorMessage, isNot(contains('MSG127')));
+        expect(firebase.signOutCalls, 0);
+      },
+    );
   });
 }
 
@@ -987,6 +1464,8 @@ final class FakeAuthRepository implements AuthRepository {
     this.loginError,
     this.verifyEmailError,
     this.googleError,
+    this.logoutError,
+    this.logoutCompleter,
     AuthSession? session,
     AuthSession? verifyEmailSession,
   }) : session = session ?? _session,
@@ -995,15 +1474,19 @@ final class FakeAuthRepository implements AuthRepository {
   final ServerException? loginError;
   final AppException? verifyEmailError;
   final ServerException? googleError;
+  final AppException? logoutError;
+  final Completer<void>? logoutCompleter;
   final AuthSession session;
   final AuthSession verifyEmailSession;
   var loginCalls = 0;
   var verifyEmailCalls = 0;
   var googleCalls = 0;
+  var logoutCalls = 0;
   AuthCredentials? lastLoginCredentials;
   String? loginFirebaseIdToken;
   String? verifyEmailFirebaseIdToken;
   String? googleFirebaseIdToken;
+  String? lastLogoutRefreshToken;
 
   @override
   Future<AuthSession> login(
@@ -1034,6 +1517,16 @@ final class FakeAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<void> logout(String? refreshToken) async {
+    logoutCalls += 1;
+    lastLogoutRefreshToken = refreshToken;
+    if (logoutCompleter != null) {
+      await logoutCompleter!.future;
+    }
+    if (logoutError != null) throw logoutError!;
+  }
+
+  @override
   Future<TravelerRegistrationResult> registerTraveler(
     TravelerRegistration request,
     String firebaseIdToken,
@@ -1043,17 +1536,64 @@ final class FakeAuthRepository implements AuthRepository {
 final class FakeSecureStorageService implements SecureStorageService {
   final values = <String, String>{};
 
+  /// When set, [read] throws instead of returning a value so the sign-out
+  /// read-failure path can be exercised without a real keystore.
+  Object? readError;
+
+  /// Keys whose mutation (delete or write) always throws.
+  final permanentMutationFailures = <String>{};
+
+  /// Keys whose read always throws.
+  final permanentReadFailures = <String>{};
+
+  /// When true, every mutation throws until the next read of
+  /// [AppConstants.keepSignedInKey]. Models "the first local invalidation
+  /// attempt fails and the bounded retry succeeds" deterministically, without
+  /// timing or internal-ordering assumptions.
+  bool blockMutationsUntilGateVerifyRead = false;
+
+  final deleteCalls = <String, int>{};
+  final writeCalls = <String, int>{};
+  final readCalls = <String, int>{};
+
+  int get mutationCalls =>
+      deleteCalls.values.fold(0, (sum, count) => sum + count) +
+      writeCalls.values.fold(0, (sum, count) => sum + count);
+
   @override
-  Future<void> delete(String key) async => values.remove(key);
+  Future<void> delete(String key) async {
+    deleteCalls[key] = (deleteCalls[key] ?? 0) + 1;
+    if (blockMutationsUntilGateVerifyRead ||
+        permanentMutationFailures.contains(key)) {
+      throw StateError('delete failed');
+    }
+    values.remove(key);
+  }
 
   @override
   Future<void> deleteAll() async => values.clear();
 
   @override
-  Future<String?> read(String key) async => values[key];
+  Future<String?> read(String key) async {
+    readCalls[key] = (readCalls[key] ?? 0) + 1;
+    if (readError != null) throw readError!;
+    if (permanentReadFailures.contains(key)) throw StateError('read failed');
+    if (blockMutationsUntilGateVerifyRead &&
+        key == AppConstants.keepSignedInKey) {
+      blockMutationsUntilGateVerifyRead = false;
+    }
+    return values[key];
+  }
 
   @override
-  Future<void> write(String key, String value) async => values[key] = value;
+  Future<void> write(String key, String value) async {
+    writeCalls[key] = (writeCalls[key] ?? 0) + 1;
+    if (blockMutationsUntilGateVerifyRead ||
+        permanentMutationFailures.contains(key)) {
+      throw StateError('write failed');
+    }
+    values[key] = value;
+  }
 }
 
 final class FakeFirebaseAuthService implements AuthIdentityService {

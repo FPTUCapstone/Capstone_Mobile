@@ -5,8 +5,10 @@ import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 
 class TravelerShellPage extends StatefulWidget {
   const TravelerShellPage({super.key});
@@ -42,6 +44,15 @@ class _TravelerShellPageState extends State<TravelerShellPage> {
 
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<AuthSessionCubit>();
+    final state = session.state;
+    // Only the approved local-cleanup notice is surfaced here; unrelated auth
+    // errors are not this screen's concern.
+    final localCleanupFailure =
+        state.status == AuthSessionStatus.authenticated &&
+        state.errorMessage ==
+            AuthSessionCubit.signOutLocalCleanupFailureMessage;
+
     return Scaffold(
       appBar: _selectedIndex == 2
           ? null
@@ -49,23 +60,41 @@ class _TravelerShellPageState extends State<TravelerShellPage> {
               title: Text('Traveler · ${_destinations[_selectedIndex].label}'),
               actions: [
                 IconButton(
-                  onPressed: context.read<AuthSessionCubit>().clearSession,
+                  // Busy state comes from the Cubit's own sign-out marker, so
+                  // a second intent cannot start while one is in flight.
+                  onPressed: state.operation == AuthSessionOperation.signOut
+                      ? null
+                      : session.signOut,
                   tooltip: 'Sign out',
                   icon: const Icon(Icons.logout),
                 ),
               ],
             ),
-      body: IndexedStack(
-        index: _selectedIndex,
+      body: Column(
         children: [
-          _TravelerSection(destination: _destinations[0]),
-          _TravelerSection(destination: _destinations[1]),
-          BlocProvider.value(
-            value: _exploreCubit,
-            child: const ExplorePoiPage(isTraveler: true),
+          if (localCleanupFailure)
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: AppAlert(
+                message: state.errorMessage!,
+                type: AppAlertType.error,
+              ),
+            ),
+          Expanded(
+            child: IndexedStack(
+              index: _selectedIndex,
+              children: [
+                _TravelerSection(destination: _destinations[0]),
+                _TravelerSection(destination: _destinations[1]),
+                BlocProvider.value(
+                  value: _exploreCubit,
+                  child: const ExplorePoiPage(isTraveler: true),
+                ),
+                _TravelerSection(destination: _destinations[3]),
+                _TravelerSection(destination: _destinations[4]),
+              ],
+            ),
           ),
-          _TravelerSection(destination: _destinations[3]),
-          _TravelerSection(destination: _destinations[4]),
         ],
       ),
       bottomNavigationBar: NavigationBar(

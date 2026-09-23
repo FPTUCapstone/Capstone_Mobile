@@ -5,6 +5,7 @@ import 'package:trip_mate_mobile/features/auth/data/models/login_request.dart';
 import 'package:trip_mate_mobile/features/auth/data/models/register_traveler_request.dart';
 import 'package:trip_mate_mobile/features/auth/data/models/register_traveler_response.dart';
 import 'package:trip_mate_mobile/features/auth/data/models/session_response_dto.dart';
+import 'package:trip_mate_mobile/features/auth/data/models/sign_out_request.dart';
 
 abstract interface class AuthRemoteDataSource {
   Future<RegisterTravelerResponse> registerTraveler(
@@ -20,6 +21,8 @@ abstract interface class AuthRemoteDataSource {
     LoginRequest request, [
     String? firebaseIdToken,
   ]);
+
+  Future<void> logout(String? refreshToken);
 }
 
 final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -110,6 +113,32 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
     } on DioException catch (error) {
       throw _handleDioError(error);
+    }
+  }
+
+  @override
+  Future<void> logout(String? refreshToken) => _signOut(refreshToken);
+
+  Future<void> _signOut(String? refreshToken) async {
+    try {
+      final response = await _dioClient.dio.post<Map<String, dynamic>>(
+        '/api/v1/auth/logout',
+        data: SignOutRequest(refreshToken: refreshToken).toJson(),
+      );
+      _unwrapSignOut(response.data);
+    } on FormatException {
+      throw const ServerException('Something went wrong. Please try again.');
+    } on DioException catch (error) {
+      throw _handleDioError(error);
+    } catch (error) {
+      if (error is AppException) rethrow;
+      throw const ServerException('Something went wrong. Please try again.');
+    }
+  }
+
+  void _unwrapSignOut(Map<String, dynamic>? response) {
+    if (response?['success'] != true || response?['data'] != true) {
+      throw const FormatException('Invalid sign-out response envelope.');
     }
   }
 

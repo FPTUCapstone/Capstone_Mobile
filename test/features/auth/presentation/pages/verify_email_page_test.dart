@@ -518,6 +518,9 @@ final class FakeAuthRepository implements AuthRepository {
     TravelerRegistration request,
     String firebaseIdToken,
   ) => throw UnimplementedError();
+
+  @override
+  Future<void> logout(String? refreshToken) => throw UnimplementedError();
 }
 
 final class FakeSecureStorageService implements SecureStorageService {
