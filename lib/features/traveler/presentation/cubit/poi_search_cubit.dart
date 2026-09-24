@@ -13,26 +13,32 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
 
   final DeviceLocationService _locationService;
   final PointOfInterestRepository _repository;
-  int _searchGeneration = 0;
+  int _operationGeneration = 0;
 
   Future<void> useCurrentLocation() async {
+    final generation = ++_operationGeneration;
+    if (isClosed) return;
     emit(const PoiSearchState.locating());
     try {
       final location = await _locationService.getCurrentLocation();
+      if (generation != _operationGeneration || isClosed) return;
       emit(PoiSearchState.locationReady(location));
     } on LocationServiceDisabledException {
+      if (generation != _operationGeneration || isClosed) return;
       emit(
         const PoiSearchState.failure(
           'Turn on Location Services or choose a place instead.',
         ),
       );
     } on LocationPermissionDeniedException {
+      if (generation != _operationGeneration || isClosed) return;
       emit(
         const PoiSearchState.failure(
           'Location permission was not granted. Choose a place instead.',
         ),
       );
     } catch (_) {
+      if (generation != _operationGeneration || isClosed) return;
       emit(
         const PoiSearchState.failure(
           'We could not get your current location. Choose a place instead.',
@@ -46,7 +52,8 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
     DeviceLocation? near,
     int? radiusKm,
   }) async {
-    final generation = ++_searchGeneration;
+    final generation = ++_operationGeneration;
+    if (isClosed) return;
     emit(const PoiSearchState.searching());
     try {
       final results = await _repository.search(
@@ -55,10 +62,10 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
         longitude: near?.longitude,
         radiusKm: near == null ? null : radiusKm ?? 50,
       );
-      if (generation != _searchGeneration || isClosed) return;
+      if (generation != _operationGeneration || isClosed) return;
       emit(PoiSearchState.resultsReady(results));
     } catch (_) {
-      if (generation != _searchGeneration || isClosed) return;
+      if (generation != _operationGeneration || isClosed) return;
       emit(
         const PoiSearchState.failure(
           'Places are unavailable right now. Please try again.',

@@ -18,24 +18,29 @@ final class CreateItineraryCubit extends Cubit<CreateItineraryState> {
   final String Function() _operationKeyFactory;
   String? _operationKey;
   ItineraryGenerationRequest? _lastAttemptRequest;
+  int _generation = 0;
 
   Future<void> generate(ItineraryGenerationRequest request) async {
+    final generation = ++_generation;
     if (_lastAttemptRequest != null && _lastAttemptRequest != request) {
       _operationKey = null;
     }
 
     final key = _operationKey ??= _operationKeyFactory();
     _lastAttemptRequest = request;
+    if (isClosed) return;
     emit(const CreateItineraryState.generating());
     try {
       final result = await _repository.generate(
         request: request,
         idempotencyKey: key,
       );
+      if (isClosed || generation != _generation) return;
       _operationKey = null;
       _lastAttemptRequest = null;
       emit(CreateItineraryState.success(result));
     } catch (error) {
+      if (isClosed || generation != _generation) return;
       final message = switch (error) {
         AuthenticationFailure() =>
           'Your session has expired. Please sign in again to continue.',

@@ -44,7 +44,7 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
   @override
   void initState() {
     super.initState();
-    _startAt = DateTime.now().add(const Duration(minutes: 30));
+    _startAt = planningWallClockNow().add(const Duration(minutes: 30));
   }
 
   @override
@@ -90,95 +90,96 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
         ),
       ],
       child: BlocBuilder<CreateItineraryCubit, CreateItineraryState>(
-        builder: (context, itineraryState) => AppPageScaffold(
-          title: 'Create itinerary',
-          content: [
-            const Text(
-              'Start with where you are, then choose the places that matter to you.',
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            if (_formError != null) ...[
-              AppAlert(message: _formError!, type: AppAlertType.error),
+        builder: (context, itineraryState) {
+          final isGenerating =
+              itineraryState.status == CreateItineraryStatus.generating;
+          return AppPageScaffold(
+            title: 'Create itinerary',
+            content: [
+              const Text(
+                'Start with where you are, then choose the places that matter to you.',
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              if (_formError != null) ...[
+                AppAlert(message: _formError!, type: AppAlertType.error),
+                const SizedBox(height: AppSpacing.md),
+              ],
+              _LocationCard(
+                title: 'Starting point',
+                value: _startLabel,
+                onCurrentLocation: isGenerating ? null : _useCurrentLocation,
+                onChoosePlace: isGenerating
+                    ? null
+                    : () => _showPoiPicker(_PoiTarget.start),
+              ),
               const SizedBox(height: AppSpacing.md),
+              _PoiField(
+                label: 'Explore around',
+                value: _explorationPoi?.name,
+                helper: 'Choose the area or attraction you want to explore.',
+                onTap: isGenerating || _startLocation == null
+                    ? null
+                    : () => _showPoiPicker(_PoiTarget.exploration),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              _PoiField(
+                label: 'Finish at',
+                value: _returnToStart
+                    ? 'Return to starting point'
+                    : _endPoi?.name,
+                helper: _returnToStart
+                    ? 'Your route will end where it starts.'
+                    : 'Optional final destination.',
+                onTap: isGenerating || _returnToStart || _startLocation == null
+                    ? null
+                    : () => _showPoiPicker(_PoiTarget.end),
+              ),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Return to starting point'),
+                value: _returnToStart,
+                onChanged: isGenerating
+                    ? null
+                    : (value) => setState(() => _returnToStart = value),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              _SettingsCard(
+                startAt: _startAt,
+                availableMinutes: _availableMinutes,
+                transportMode: _transportMode,
+                restPreference: _restPreference,
+                searchRadiusKm: _searchRadiusKm,
+                budgetController: _budgetController,
+                budgetError: _budgetError,
+                enabled: !isGenerating,
+                onStartAtChanged: _pickStartTime,
+                onDurationChanged: (value) =>
+                    setState(() => _availableMinutes = value),
+                onTransportChanged: (value) =>
+                    setState(() => _transportMode = value),
+                onRestChanged: (value) =>
+                    setState(() => _restPreference = value),
+                onRadiusChanged: (value) => setState(() {
+                  _searchRadiusKm = value;
+                  _mandatoryPois.clear();
+                }),
+                onBudgetChanged: _updateBudget,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              _MandatoryPois(
+                pois: _mandatoryPois,
+                enabled: !isGenerating && _startLocation != null,
+                onAdd: () => _showPoiPicker(_PoiTarget.mandatory),
+                onRemove: (poi) => setState(() => _mandatoryPois.remove(poi)),
+              ),
             ],
-            _LocationCard(
-              title: 'Starting point',
-              value: _startLabel,
-              onCurrentLocation:
-                  itineraryState.status == CreateItineraryStatus.generating
-                  ? null
-                  : _useCurrentLocation,
-              onChoosePlace:
-                  itineraryState.status == CreateItineraryStatus.generating
-                  ? null
-                  : () => _showPoiPicker(_PoiTarget.start),
+            footer: AppButton(
+              label: 'Generate itinerary',
+              isLoading: isGenerating,
+              onPressed: isGenerating ? null : _submit,
             ),
-            const SizedBox(height: AppSpacing.md),
-            _PoiField(
-              label: 'Explore around',
-              value: _explorationPoi?.name,
-              helper: 'Choose the area or attraction you want to explore.',
-              onTap: _startLocation == null
-                  ? null
-                  : () => _showPoiPicker(_PoiTarget.exploration),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _PoiField(
-              label: 'Finish at',
-              value: _returnToStart
-                  ? 'Return to starting point'
-                  : _endPoi?.name,
-              helper: _returnToStart
-                  ? 'Your route will end where it starts.'
-                  : 'Optional final destination.',
-              onTap: _returnToStart || _startLocation == null
-                  ? null
-                  : () => _showPoiPicker(_PoiTarget.end),
-            ),
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Return to starting point'),
-              value: _returnToStart,
-              onChanged: (value) => setState(() => _returnToStart = value),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _SettingsCard(
-              startAt: _startAt,
-              availableMinutes: _availableMinutes,
-              transportMode: _transportMode,
-              restPreference: _restPreference,
-              searchRadiusKm: _searchRadiusKm,
-              budgetController: _budgetController,
-              budgetError: _budgetError,
-              onStartAtChanged: _pickStartTime,
-              onDurationChanged: (value) =>
-                  setState(() => _availableMinutes = value),
-              onTransportChanged: (value) =>
-                  setState(() => _transportMode = value),
-              onRestChanged: (value) => setState(() => _restPreference = value),
-              onRadiusChanged: (value) => setState(() {
-                _searchRadiusKm = value;
-                _mandatoryPois.clear();
-              }),
-              onBudgetChanged: _updateBudget,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _MandatoryPois(
-              pois: _mandatoryPois,
-              enabled: _startLocation != null,
-              onAdd: () => _showPoiPicker(_PoiTarget.mandatory),
-              onRemove: (poi) => setState(() => _mandatoryPois.remove(poi)),
-            ),
-          ],
-          footer: AppButton(
-            label: 'Generate itinerary',
-            isLoading:
-                itineraryState.status == CreateItineraryStatus.generating,
-            onPressed: itineraryState.status == CreateItineraryStatus.generating
-                ? null
-                : _submit,
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -216,8 +217,8 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
     final date = await showDatePicker(
       context: context,
       initialDate: _startAt,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      firstDate: planningWallClockNow(),
+      lastDate: planningWallClockNow().add(const Duration(days: 365)),
     );
     if (date == null || !mounted) return;
     final time = await showTimePicker(
@@ -398,6 +399,7 @@ final class _SettingsCard extends StatelessWidget {
     required this.searchRadiusKm,
     required this.budgetController,
     required this.budgetError,
+    required this.enabled,
     required this.onStartAtChanged,
     required this.onDurationChanged,
     required this.onTransportChanged,
@@ -413,6 +415,7 @@ final class _SettingsCard extends StatelessWidget {
   final double searchRadiusKm;
   final TextEditingController budgetController;
   final String? budgetError;
+  final bool enabled;
   final VoidCallback onStartAtChanged;
   final ValueChanged<int> onDurationChanged;
   final ValueChanged<TransportMode> onTransportChanged;
@@ -442,7 +445,7 @@ final class _SettingsCard extends StatelessWidget {
               'at ${TimeOfDay.fromDateTime(startAt).format(context)}',
             ),
             trailing: const Icon(Icons.edit_calendar_outlined),
-            onTap: onStartAtChanged,
+            onTap: enabled ? onStartAtChanged : null,
           ),
           DropdownButtonFormField<int>(
             initialValue: availableMinutes,
@@ -455,9 +458,11 @@ final class _SettingsCard extends StatelessWidget {
                   ),
                 )
                 .toList(),
-            onChanged: (value) {
-              if (value != null) onDurationChanged(value);
-            },
+            onChanged: enabled
+                ? (value) {
+                    if (value != null) onDurationChanged(value);
+                  }
+                : null,
           ),
           const SizedBox(height: AppSpacing.sm),
           DropdownButtonFormField<TransportMode>(
@@ -471,9 +476,11 @@ final class _SettingsCard extends StatelessWidget {
                   ),
                 )
                 .toList(),
-            onChanged: (value) {
-              if (value != null) onTransportChanged(value);
-            },
+            onChanged: enabled
+                ? (value) {
+                    if (value != null) onTransportChanged(value);
+                  }
+                : null,
           ),
           const SizedBox(height: AppSpacing.sm),
           DropdownButtonFormField<RestPreference>(
@@ -487,9 +494,11 @@ final class _SettingsCard extends StatelessWidget {
                   ),
                 )
                 .toList(),
-            onChanged: (value) {
-              if (value != null) onRestChanged(value);
-            },
+            onChanged: enabled
+                ? (value) {
+                    if (value != null) onRestChanged(value);
+                  }
+                : null,
           ),
           const SizedBox(height: AppSpacing.sm),
           Row(
@@ -505,7 +514,7 @@ final class _SettingsCard extends StatelessWidget {
             max: 50,
             divisions: 49,
             label: '${searchRadiusKm.round()} km',
-            onChanged: onRadiusChanged,
+            onChanged: enabled ? onRadiusChanged : null,
           ),
           const SizedBox(height: AppSpacing.xs),
           TextField(
@@ -518,7 +527,7 @@ final class _SettingsCard extends StatelessWidget {
               errorText: budgetError,
               prefixText: '₫ ',
             ),
-            onChanged: onBudgetChanged,
+            onChanged: enabled ? onBudgetChanged : null,
           ),
         ],
       ),
@@ -558,7 +567,7 @@ final class _MandatoryPois extends StatelessWidget {
                 .map(
                   (poi) => InputChip(
                     label: Text(poi.name),
-                    onDeleted: () => onRemove(poi),
+                    onDeleted: enabled ? () => onRemove(poi) : null,
                   ),
                 )
                 .toList(),

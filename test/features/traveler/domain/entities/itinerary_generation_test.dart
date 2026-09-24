@@ -2,6 +2,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 
 void main() {
+  test('builds planning wall time from the actual instant in UTC+7', () {
+    final planning = planningWallClockNow(DateTime.utc(2026, 10, 20, 1, 30));
+
+    expect(planning, DateTime.utc(2026, 10, 20, 8, 30));
+    expect(formatPlanningDateTime(planning), '2026-10-20T08:30:00.000+07:00');
+  });
+
   test('formats a Vietnam planning time with its explicit UTC offset', () {
     final formatted = formatPlanningDateTime(DateTime(2026, 10, 20, 8, 0));
 

@@ -1,7 +1,23 @@
 import 'package:equatable/equatable.dart';
 
+const _planningTimeZoneOffset = Duration(hours: 7);
+
+DateTime planningWallClockNow([DateTime? now]) {
+  final planning = (now ?? DateTime.now()).toUtc().add(_planningTimeZoneOffset);
+  return DateTime.utc(
+    planning.year,
+    planning.month,
+    planning.day,
+    planning.hour,
+    planning.minute,
+    planning.second,
+    planning.millisecond,
+    planning.microsecond,
+  );
+}
+
 String formatPlanningDateTime(DateTime value) {
-  final vietnamTime = DateTime.utc(
+  final planningWallClock = DateTime.utc(
     value.year,
     value.month,
     value.day,
@@ -11,7 +27,7 @@ String formatPlanningDateTime(DateTime value) {
     value.millisecond,
     value.microsecond,
   );
-  return '${vietnamTime.toIso8601String().replaceFirst('Z', '')}+07:00';
+  return '${planningWallClock.toIso8601String().replaceFirst('Z', '')}+07:00';
 }
 
 enum TransportMode { walking, motorbike, car, publicTransit }

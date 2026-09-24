@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
@@ -141,7 +143,70 @@ void main() {
       expect(failing.keys.toSet(), hasLength(2));
     },
   );
+
+  test(
+    'does not emit a late generation result after the cubit is closed',
+    () async {
+      final repository = _DelayedRepository();
+      final cubit = CreateItineraryCubit(
+        repository: repository,
+        operationKeyFactory: () => 'operation',
+      );
+
+      final generation = cubit.generate(request);
+      await cubit.close();
+      repository.complete(request, _generatedItinerary);
+      await generation;
+
+      expect(cubit.state.status, CreateItineraryStatus.generating);
+    },
+  );
+
+  test(
+    'ignores a stale generation result after a newer request starts',
+    () async {
+      final repository = _DelayedRepository();
+      final cubit = CreateItineraryCubit(
+        repository: repository,
+        operationKeyFactory: () => 'operation-${repository.calls + 1}',
+      );
+      const newerRequest = ItineraryGenerationRequest(
+        startAt: '2026-10-20T08:00:00+07:00',
+        timeZoneId: 'Asia/Ho_Chi_Minh',
+        startLatitude: 16.0544,
+        startLongitude: 108.2022,
+        explorationLatitude: 16.0471,
+        explorationLongitude: 108.2068,
+        returnToStart: true,
+        availableMinutes: 360,
+        transportMode: TransportMode.motorbike,
+        searchRadiusKm: 10,
+        mandatoryPoiIds: [],
+        restPreference: RestPreference.auto,
+      );
+
+      final first = cubit.generate(request);
+      final second = cubit.generate(newerRequest);
+      repository.complete(newerRequest, _generatedItinerary);
+      await second;
+      repository.complete(request, _generatedItinerary);
+      await first;
+
+      expect(cubit.state.status, CreateItineraryStatus.success);
+      await cubit.close();
+    },
+  );
 }
+
+const _generatedItinerary = GeneratedItinerary(
+  schedulingRequestId: 1,
+  itineraryId: 2,
+  title: 'Generated itinerary',
+  status: 'Draft',
+  totalEstimatedCost: 0,
+  totalDurationMinutes: 120,
+  items: [],
+);
 
 final class _FailingRepository implements ItineraryRepository {
   final keys = <String>[];
@@ -166,5 +231,24 @@ final class _ConflictRepository implements ItineraryRepository {
   }) async {
     keys.add(idempotencyKey);
     throw ConflictFailure();
+  }
+}
+
+final class _DelayedRepository implements ItineraryRepository {
+  final requests = <String, Completer<GeneratedItinerary>>{};
+  var calls = 0;
+
+  @override
+  Future<GeneratedItinerary> generate({
+    required ItineraryGenerationRequest request,
+    required String idempotencyKey,
+  }) {
+    calls++;
+    final requestKey = request.availableMinutes.toString();
+    return (requests[requestKey] ??= Completer<GeneratedItinerary>()).future;
+  }
+
+  void complete(ItineraryGenerationRequest request, GeneratedItinerary result) {
+    requests[request.availableMinutes.toString()]!.complete(result);
   }
 }

@@ -24,6 +24,55 @@ void main() {
     ],
   );
 
+  test('does not emit a late GPS result after the cubit is closed', () async {
+    final locationService = _ControlledLocationService();
+    final cubit = PoiSearchCubit(
+      locationService: locationService,
+      repository: _PoiRepository(),
+    );
+
+    final locating = cubit.useCurrentLocation();
+    await cubit.close();
+    locationService.completer.complete(
+      const DeviceLocation(latitude: 16.0544, longitude: 108.2022),
+    );
+    await locating;
+
+    expect(cubit.state.status, PoiSearchStatus.locating);
+  });
+
+  test('ignores GPS completion after a newer POI search', () async {
+    final locationService = _ControlledLocationService();
+    final repository = _ControlledPoiRepository();
+    final cubit = PoiSearchCubit(
+      locationService: locationService,
+      repository: repository,
+    );
+
+    final locating = cubit.useCurrentLocation();
+    final search = cubit.search(query: 'newer');
+    repository.complete('newer', [
+      const SelectablePoi(
+        id: 2,
+        name: 'Newer result',
+        latitude: 16,
+        longitude: 108,
+        averageVisitDurationMinutes: 30,
+        openingHoursKnown: true,
+        hasShelter: true,
+      ),
+    ]);
+    await search;
+    locationService.completer.complete(
+      const DeviceLocation(latitude: 16.0544, longitude: 108.2022),
+    );
+    await locating;
+
+    expect(cubit.state.status, PoiSearchStatus.ready);
+    expect(cubit.state.results.single.name, 'Newer result');
+    await cubit.close();
+  });
+
   test(
     'ignores an older search result that completes after the latest query',
     () async {
@@ -85,6 +134,13 @@ final class _LocationService implements DeviceLocationService {
   @override
   Future<DeviceLocation> getCurrentLocation() async =>
       const DeviceLocation(latitude: 16.0544, longitude: 108.2022);
+}
+
+final class _ControlledLocationService implements DeviceLocationService {
+  final completer = Completer<DeviceLocation>();
+
+  @override
+  Future<DeviceLocation> getCurrentLocation() => completer.future;
 }
 
 final class _PoiRepository implements PointOfInterestRepository {
