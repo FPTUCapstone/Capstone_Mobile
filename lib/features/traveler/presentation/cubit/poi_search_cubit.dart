@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/core/location/device_location_service.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_poi_search_result.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/poi_search_state.dart';
 
@@ -14,6 +15,9 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
   final DeviceLocationService _locationService;
   final PointOfInterestRepository _repository;
   int _operationGeneration = 0;
+  _PoiSearchParameters? _activeSearch;
+  bool _isLoadingMore = false;
+  int _currentPage = 0;
 
   Future<void> useCurrentLocation() async {
     final generation = ++_operationGeneration;
@@ -53,17 +57,26 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
     int? radiusKm,
   }) async {
     final generation = ++_operationGeneration;
+    final parameters = _PoiSearchParameters(
+      query: query?.trim(),
+      near: near,
+      radiusKm: near == null ? null : radiusKm ?? 50,
+    );
+    _activeSearch = parameters;
+    _isLoadingMore = false;
+    _currentPage = 0;
     if (isClosed) return;
     emit(const PoiSearchState.searching());
     try {
-      final results = await _repository.search(
-        query: query,
-        latitude: near?.latitude,
-        longitude: near?.longitude,
-        radiusKm: near == null ? null : radiusKm ?? 50,
-      );
+      final results = await _search(parameters, page: 1);
       if (generation != _operationGeneration || isClosed) return;
-      emit(PoiSearchState.resultsReady(results));
+      _currentPage = 1;
+      emit(
+        PoiSearchState.resultsReady(
+          results.items,
+          totalCount: results.totalCount,
+        ),
+      );
     } catch (_) {
       if (generation != _operationGeneration || isClosed) return;
       emit(
@@ -73,4 +86,66 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
       );
     }
   }
+
+  Future<void> loadMore() async {
+    final parameters = _activeSearch;
+    if (parameters == null || _isLoadingMore || isClosed) return;
+    final current = state;
+    if (current.status != PoiSearchStatus.ready ||
+        current.results.length >= current.totalCount) {
+      return;
+    }
+
+    final generation = _operationGeneration;
+    _isLoadingMore = true;
+    emit(
+      PoiSearchState.resultsReady(
+        current.results,
+        totalCount: current.totalCount,
+        isLoadingMore: true,
+      ),
+    );
+    try {
+      final nextPage = _currentPage + 1;
+      final next = await _search(parameters, page: nextPage);
+      if (generation != _operationGeneration || isClosed) return;
+      final existingIds = current.results.map((poi) => poi.id).toSet();
+      final merged = [
+        ...current.results,
+        ...next.items.where((poi) => existingIds.add(poi.id)),
+      ];
+      _currentPage = nextPage;
+      emit(PoiSearchState.resultsReady(merged, totalCount: next.totalCount));
+    } catch (_) {
+      if (generation == _operationGeneration && !isClosed) {
+        emit(
+          PoiSearchState.resultsReady(
+            current.results,
+            totalCount: current.totalCount,
+          ),
+        );
+      }
+    } finally {
+      if (generation == _operationGeneration) _isLoadingMore = false;
+    }
+  }
+
+  Future<SelectablePoiSearchResult> _search(
+    _PoiSearchParameters parameters, {
+    required int page,
+  }) => _repository.search(
+    query: parameters.query,
+    latitude: parameters.near?.latitude,
+    longitude: parameters.near?.longitude,
+    radiusKm: parameters.radiusKm,
+    page: page,
+  );
+}
+
+final class _PoiSearchParameters {
+  const _PoiSearchParameters({this.query, this.near, this.radiusKm});
+
+  final String? query;
+  final DeviceLocation? near;
+  final int? radiusKm;
 }

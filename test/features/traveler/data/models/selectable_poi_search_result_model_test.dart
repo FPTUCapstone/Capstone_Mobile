@@ -25,5 +25,6 @@ void main() {
 
     expect(result.items, hasLength(1));
     expect(result.items.single.id, 12);
+    expect(result.totalCount, 1);
   });
 }

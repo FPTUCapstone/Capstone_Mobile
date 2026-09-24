@@ -4,6 +4,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/location/device_location_service.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_poi.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_poi_search_result.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/poi_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/poi_search_state.dart';
@@ -128,6 +129,25 @@ void main() {
           .having((state) => state.results, 'results', hasLength(1)),
     ],
   );
+
+  test(
+    'appends the next POI page without replacing the current results',
+    () async {
+      final repository = _PagedPoiRepository();
+      final cubit = PoiSearchCubit(
+        locationService: _LocationService(),
+        repository: repository,
+      );
+
+      await cubit.search(query: 'Da Nang');
+      await cubit.loadMore();
+
+      expect(repository.pages, [1, 2]);
+      expect(cubit.state.results.map((poi) => poi.id), [1, 2]);
+      expect(cubit.state.totalCount, 2);
+      await cubit.close();
+    },
+  );
 }
 
 final class _LocationService implements DeviceLocationService {
@@ -145,36 +165,76 @@ final class _ControlledLocationService implements DeviceLocationService {
 
 final class _PoiRepository implements PointOfInterestRepository {
   @override
-  Future<List<SelectablePoi>> search({
+  Future<SelectablePoiSearchResult> search({
     double? latitude,
     double? longitude,
     int? radiusKm,
     String? query,
-  }) async => [
-    const SelectablePoi(
-      id: 1,
-      name: 'Cham Museum',
-      latitude: 16.0,
-      longitude: 108.2,
-      averageVisitDurationMinutes: 90,
-      openingHoursKnown: true,
-      hasShelter: true,
-    ),
-  ];
+    int page = 1,
+    int pageSize = 50,
+  }) async => const SelectablePoiSearchResult(
+    items: [
+      SelectablePoi(
+        id: 1,
+        name: 'Cham Museum',
+        latitude: 16.0,
+        longitude: 108.2,
+        averageVisitDurationMinutes: 90,
+        openingHoursKnown: true,
+        hasShelter: true,
+      ),
+    ],
+    totalCount: 1,
+  );
 }
 
 final class _ControlledPoiRepository implements PointOfInterestRepository {
-  final _completers = <String, Completer<List<SelectablePoi>>>{};
+  final _completers = <String, Completer<SelectablePoiSearchResult>>{};
 
   @override
-  Future<List<SelectablePoi>> search({
+  Future<SelectablePoiSearchResult> search({
     double? latitude,
     double? longitude,
     int? radiusKm,
     String? query,
-  }) => (_completers[query ?? ''] ??= Completer<List<SelectablePoi>>()).future;
+    int page = 1,
+    int pageSize = 50,
+  }) => (_completers[query ?? ''] ??= Completer<SelectablePoiSearchResult>())
+      .future;
 
   void complete(String query, List<SelectablePoi> results) {
-    _completers[query]!.complete(results);
+    _completers[query]!.complete(
+      SelectablePoiSearchResult(items: results, totalCount: results.length),
+    );
+  }
+}
+
+final class _PagedPoiRepository implements PointOfInterestRepository {
+  final pages = <int>[];
+
+  @override
+  Future<SelectablePoiSearchResult> search({
+    double? latitude,
+    double? longitude,
+    int? radiusKm,
+    String? query,
+    int page = 1,
+    int pageSize = 50,
+  }) async {
+    pages.add(page);
+    return SelectablePoiSearchResult(
+      items: [
+        SelectablePoi(
+          id: page,
+          name: 'POI $page',
+          latitude: 16,
+          longitude: 108,
+          averageVisitDurationMinutes: 30,
+          openingHoursKnown: true,
+          hasShelter: true,
+        ),
+      ],
+      totalCount: 2,
+    );
   }
 }

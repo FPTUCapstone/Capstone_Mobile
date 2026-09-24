@@ -595,9 +595,19 @@ final class _PoiPickerSheet extends StatefulWidget {
 
 class _PoiPickerSheetState extends State<_PoiPickerSheet> {
   final _queryController = TextEditingController();
+  final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_loadMoreWhenNearEnd);
+  }
 
   @override
   void dispose() {
+    _scrollController
+      ..removeListener(_loadMoreWhenNearEnd)
+      ..dispose();
     _queryController.dispose();
     super.dispose();
   }
@@ -651,8 +661,16 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
                     );
                   }
                   return ListView.builder(
-                    itemCount: state.results.length,
+                    controller: _scrollController,
+                    itemCount:
+                        state.results.length + (state.isLoadingMore ? 1 : 0),
                     itemBuilder: (context, index) {
+                      if (index == state.results.length) {
+                        return const Padding(
+                          padding: EdgeInsets.all(AppSpacing.md),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
                       final poi = state.results[index];
                       return ListTile(
                         title: Text(poi.name),
@@ -679,6 +697,14 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
     near: widget.near,
     radiusKm: widget.radiusKm,
   );
+
+  void _loadMoreWhenNearEnd() {
+    if (!_scrollController.hasClients ||
+        _scrollController.position.extentAfter > 200) {
+      return;
+    }
+    context.read<PoiSearchCubit>().loadMore();
+  }
 }
 
 String _transportLabel(TransportMode mode) => switch (mode) {

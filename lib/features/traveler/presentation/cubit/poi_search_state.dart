@@ -9,6 +9,8 @@ final class PoiSearchState extends Equatable {
     required this.status,
     this.currentLocation,
     this.results = const [],
+    this.totalCount = 0,
+    this.isLoadingMore = false,
     this.message,
   });
 
@@ -17,16 +19,33 @@ final class PoiSearchState extends Equatable {
   const PoiSearchState.searching() : this._(status: PoiSearchStatus.searching);
   const PoiSearchState.locationReady(DeviceLocation location)
     : this._(status: PoiSearchStatus.ready, currentLocation: location);
-  const PoiSearchState.resultsReady(List<SelectablePoi> results)
-    : this._(status: PoiSearchStatus.ready, results: results);
+  const PoiSearchState.resultsReady(
+    List<SelectablePoi> results, {
+    required int totalCount,
+    bool isLoadingMore = false,
+  }) : this._(
+         status: PoiSearchStatus.ready,
+         results: results,
+         totalCount: totalCount,
+         isLoadingMore: isLoadingMore,
+       );
   const PoiSearchState.failure(String message)
     : this._(status: PoiSearchStatus.failure, message: message);
 
   final PoiSearchStatus status;
   final DeviceLocation? currentLocation;
   final List<SelectablePoi> results;
+  final int totalCount;
+  final bool isLoadingMore;
   final String? message;
 
   @override
-  List<Object?> get props => [status, currentLocation, results, message];
+  List<Object?> get props => [
+    status,
+    currentLocation,
+    results,
+    totalCount,
+    isLoadingMore,
+    message,
+  ];
 }

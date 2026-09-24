@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/location/device_location_service.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_poi.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_poi_search_result.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_cubit.dart';
@@ -137,10 +138,12 @@ final class _LocationService implements DeviceLocationService {
 
 final class _PoiRepository implements PointOfInterestRepository {
   @override
-  Future<List<SelectablePoi>> search({
+  Future<SelectablePoiSearchResult> search({
     double? latitude,
     double? longitude,
     int? radiusKm,
     String? query,
-  }) async => const [];
+    int page = 1,
+    int pageSize = 50,
+  }) async => const SelectablePoiSearchResult(items: [], totalCount: 0);
 }
