@@ -519,6 +519,7 @@ final class _SettingsCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.xs),
           TextField(
             controller: budgetController,
+            enabled: enabled,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
               labelText: 'Budget (VND, optional)',
@@ -601,6 +602,10 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
   void initState() {
     super.initState();
     _scrollController.addListener(_loadMoreWhenNearEnd);
+    context.read<PoiSearchCubit>().prepareScope(
+      near: widget.near,
+      radiusKm: widget.radiusKm,
+    );
   }
 
   @override
@@ -647,6 +652,16 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
             Expanded(
               child: BlocBuilder<PoiSearchCubit, PoiSearchState>(
                 builder: (context, state) {
+                  final activeScope = PoiSearchScope.fromLocation(
+                    near: widget.near,
+                    radiusKm: widget.radiusKm,
+                  );
+                  if (state.scope != activeScope &&
+                      state.status != PoiSearchStatus.searching) {
+                    return const Center(
+                      child: Text('Search by name to find a place.'),
+                    );
+                  }
                   if (state.status == PoiSearchStatus.searching) {
                     return const Center(child: CircularProgressIndicator());
                   }

@@ -51,6 +51,24 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
     }
   }
 
+  void reset({PoiSearchScope? scope}) {
+    _operationGeneration++;
+    _activeSearch = null;
+    _isLoadingMore = false;
+    _currentPage = 0;
+    emit(PoiSearchState.initial(scope: scope));
+  }
+
+  void prepareScope({DeviceLocation? near, int? radiusKm}) {
+    final targetScope = PoiSearchScope.fromLocation(
+      near: near,
+      radiusKm: radiusKm,
+    );
+    if (state.scope != targetScope || state.status != PoiSearchStatus.initial) {
+      reset(scope: targetScope);
+    }
+  }
+
   Future<void> search({
     String? query,
     DeviceLocation? near,
@@ -62,11 +80,12 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
       near: near,
       radiusKm: near == null ? null : radiusKm ?? 50,
     );
+    final scope = PoiSearchScope.fromLocation(near: near, radiusKm: radiusKm);
     _activeSearch = parameters;
     _isLoadingMore = false;
     _currentPage = 0;
     if (isClosed) return;
-    emit(const PoiSearchState.searching());
+    emit(PoiSearchState.searching(scope: scope));
     try {
       final results = await _search(parameters, page: 1);
       if (generation != _operationGeneration || isClosed) return;
@@ -75,13 +94,15 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
         PoiSearchState.resultsReady(
           results.items,
           totalCount: results.totalCount,
+          scope: scope,
         ),
       );
     } catch (_) {
       if (generation != _operationGeneration || isClosed) return;
       emit(
-        const PoiSearchState.failure(
+        PoiSearchState.failure(
           'Places are unavailable right now. Please try again.',
+          scope: scope,
         ),
       );
     }
@@ -102,6 +123,7 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
       PoiSearchState.resultsReady(
         current.results,
         totalCount: current.totalCount,
+        scope: current.scope,
         isLoadingMore: true,
       ),
     );
@@ -115,13 +137,20 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
         ...next.items.where((poi) => existingIds.add(poi.id)),
       ];
       _currentPage = nextPage;
-      emit(PoiSearchState.resultsReady(merged, totalCount: next.totalCount));
+      emit(
+        PoiSearchState.resultsReady(
+          merged,
+          totalCount: next.totalCount,
+          scope: current.scope,
+        ),
+      );
     } catch (_) {
       if (generation == _operationGeneration && !isClosed) {
         emit(
           PoiSearchState.resultsReady(
             current.results,
             totalCount: current.totalCount,
+            scope: current.scope,
           ),
         );
       }

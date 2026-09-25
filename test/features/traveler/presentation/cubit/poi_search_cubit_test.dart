@@ -123,12 +123,38 @@ void main() {
     ),
     act: (cubit) => cubit.search(query: 'Cham'),
     expect: () => [
-      const PoiSearchState.searching(),
+      const PoiSearchState.searching(scope: PoiSearchScope()),
       isA<PoiSearchState>()
           .having((state) => state.status, 'status', PoiSearchStatus.ready)
+          .having((state) => state.scope, 'scope', const PoiSearchScope())
           .having((state) => state.results, 'results', hasLength(1)),
     ],
   );
+
+  test('prepareScope resets state when scope changes', () async {
+    final repository = _PoiRepository();
+    final cubit = PoiSearchCubit(
+      locationService: _LocationService(),
+      repository: repository,
+    );
+
+    await cubit.search(query: 'Cham');
+    expect(cubit.state.status, PoiSearchStatus.ready);
+    expect(cubit.state.results, isNotEmpty);
+
+    cubit.prepareScope(
+      near: const DeviceLocation(latitude: 16.0, longitude: 108.2),
+      radiusKm: 10,
+    );
+
+    expect(cubit.state.status, PoiSearchStatus.initial);
+    expect(cubit.state.results, isEmpty);
+    expect(
+      cubit.state.scope,
+      const PoiSearchScope(latitude: 16.0, longitude: 108.2, radiusKm: 10),
+    );
+    await cubit.close();
+  });
 
   test(
     'appends the next POI page without replacing the current results',
