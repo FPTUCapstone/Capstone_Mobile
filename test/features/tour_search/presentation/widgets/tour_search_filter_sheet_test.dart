@@ -122,60 +122,62 @@ void main() {
       expect(applied, isFalse);
     });
 
-    testWidgets(
-      'accepts the backend maximum price and rejects a larger value',
-      (tester) async {
-        int? appliedMaxPrice;
+    testWidgets('accepts the backend maximum price', (tester) async {
+      int? appliedMaxPrice;
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: TourSearchFilterSheet(
-                onApply:
-                    ({
-                      String? destination,
-                      DateTime? departureDate,
-                      int? minPrice,
-                      int? maxPrice,
-                    }) {
-                      appliedMaxPrice = maxPrice;
-                    },
-                onReset: () {},
-              ),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TourSearchFilterSheet(
+              onApply:
+                  ({
+                    String? destination,
+                    DateTime? departureDate,
+                    int? minPrice,
+                    int? maxPrice,
+                  }) {
+                    appliedMaxPrice = maxPrice;
+                  },
+              onReset: () {},
             ),
           ),
-        );
+        ),
+      );
 
-        await tester.enterText(find.byType(TextField).at(2), '9999999999');
-        await tester.tap(find.widgetWithText(FilledButton, 'Áp dụng bộ lọc'));
-        await tester.pumpAndSettle();
-        expect(appliedMaxPrice, 9999999999);
+      await tester.enterText(find.byType(TextField).at(2), '9999999999');
+      await tester.tap(find.widgetWithText(FilledButton, 'Áp dụng bộ lọc'));
+      await tester.pumpAndSettle();
+      expect(appliedMaxPrice, 9999999999);
+    });
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: TourSearchFilterSheet(
-                onApply:
-                    ({
-                      String? destination,
-                      DateTime? departureDate,
-                      int? minPrice,
-                      int? maxPrice,
-                    }) {},
-                onReset: () {},
-              ),
+    testWidgets('rejects a price larger than the backend maximum', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TourSearchFilterSheet(
+              onApply:
+                  ({
+                    String? destination,
+                    DateTime? departureDate,
+                    int? minPrice,
+                    int? maxPrice,
+                  }) {},
+              onReset: () {},
             ),
           ),
-        );
-        await tester.enterText(find.byType(TextField).at(2), '10000000000');
-        await tester.tap(find.widgetWithText(FilledButton, 'Áp dụng bộ lọc'));
-        await tester.pumpAndSettle();
-        expect(
-          find.text('Giá tối đa phải từ 0 đến 9.999.999.999 VNĐ.'),
-          findsOneWidget,
-        );
-      },
-    );
+        ),
+      );
+
+      await tester.enterText(find.byType(TextField).at(2), '10000000000');
+      await tester.tap(find.widgetWithText(FilledButton, 'Áp dụng bộ lọc'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Giá tối đa phải từ 0 đến 9.999.999.999 VNĐ.'),
+        findsOneWidget,
+      );
+    });
 
     testWidgets(
       'opens DatePicker safely when its initial date is in the past',
