@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_search_query.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/theme/tour_search_palette.dart';
 
 /// Modal bottom sheet for tour search filters.
@@ -316,16 +317,24 @@ class _TourSearchFilterSheetState extends State<TourSearchFilterSheet> {
   }
 
   Future<void> _pickDate() async {
-    final now = DateTime.now();
+    final today = _dateOnly(DateTime.now());
+    final lastDate = DateTime(today.year + 5, today.month, today.day);
+    final initialDate = _clampDate(
+      _selectedDate == null
+          ? today.add(const Duration(days: 1))
+          : _dateOnly(_selectedDate!),
+      today,
+      lastDate,
+    );
     final picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate ?? now.add(const Duration(days: 1)),
-      firstDate: now,
-      lastDate: DateTime(now.year + 5),
+      initialDate: initialDate,
+      firstDate: today,
+      lastDate: lastDate,
       helpText: 'Chọn ngày khởi hành',
     );
     if (picked != null) {
-      setState(() => _selectedDate = picked);
+      setState(() => _selectedDate = _dateOnly(picked));
     }
   }
 
@@ -337,14 +346,28 @@ class _TourSearchFilterSheetState extends State<TourSearchFilterSheet> {
     final minPrice = minText.isNotEmpty ? int.tryParse(minText) : null;
     final maxPrice = maxText.isNotEmpty ? int.tryParse(maxText) : null;
 
-    if (minPrice != null && (minPrice < 0 || minPrice > 9999999999)) {
+    if (minText.isNotEmpty && minPrice == null) {
+      setState(() => _priceError = 'Giá tối thiểu không hợp lệ.');
+      return;
+    }
+
+    if (maxText.isNotEmpty && maxPrice == null) {
+      setState(() => _priceError = 'Giá tối đa không hợp lệ.');
+      return;
+    }
+
+    if (minPrice != null &&
+        (minPrice < TourSearchQuery.minPriceLimit ||
+            minPrice > TourSearchQuery.maxPriceLimit)) {
       setState(() {
         _priceError = 'Giá tối thiểu phải từ 0 đến 9.999.999.999 VNĐ.';
       });
       return;
     }
 
-    if (maxPrice != null && (maxPrice < 0 || maxPrice > 9999999999)) {
+    if (maxPrice != null &&
+        (maxPrice < TourSearchQuery.minPriceLimit ||
+            maxPrice > TourSearchQuery.maxPriceLimit)) {
       setState(() {
         _priceError = 'Giá tối đa phải từ 0 đến 9.999.999.999 VNĐ.';
       });
@@ -370,5 +393,14 @@ class _TourSearchFilterSheetState extends State<TourSearchFilterSheet> {
   void _handleReset() {
     widget.onReset();
     Navigator.of(context).pop();
+  }
+
+  DateTime _dateOnly(DateTime value) =>
+      DateTime(value.year, value.month, value.day);
+
+  DateTime _clampDate(DateTime value, DateTime firstDate, DateTime lastDate) {
+    if (value.isBefore(firstDate)) return firstDate;
+    if (value.isAfter(lastDate)) return lastDate;
+    return value;
   }
 }

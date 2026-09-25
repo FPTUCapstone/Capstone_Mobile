@@ -10,7 +10,7 @@ final class TourSearchCubit extends Cubit<TourSearchState> {
       super(const TourSearchState());
 
   final SearchToursUseCase _searchTours;
-  bool _requestInFlight = false;
+  int _requestEpoch = 0;
 
   Future<void> loadInitial() => _replace(state.query.copyWith(page: 1));
 
@@ -35,12 +35,14 @@ final class TourSearchCubit extends Cubit<TourSearchState> {
   Future<void> resetFilters() => _replace(const TourSearchQuery());
 
   Future<void> loadNextPage() async {
-    if (_requestInFlight || state.isLoadingMore || !state.canLoadMore) return;
-    _requestInFlight = true;
+    if (state.isLoadingMore || !state.canLoadMore) return;
+    final requestEpoch = _requestEpoch;
+    final query = state.query;
+    final nextPage = state.page + 1;
     emit(state.copyWith(isLoadingMore: true, failure: null));
     try {
-      final nextPage = state.page + 1;
-      final result = await _searchTours(state.query.copyWith(page: nextPage));
+      final result = await _searchTours(query.copyWith(page: nextPage));
+      if (isClosed || requestEpoch != _requestEpoch) return;
       final byId = {for (final item in state.items) item.tourId: item};
       for (final item in result.items) {
         byId[item.tourId] = item;
@@ -59,17 +61,16 @@ final class TourSearchCubit extends Cubit<TourSearchState> {
         ),
       );
     } on ValidationFailure catch (failure) {
+      if (isClosed || requestEpoch != _requestEpoch) return;
       emit(state.copyWith(isLoadingMore: false, validationFailure: failure));
     } on Failure catch (failure) {
+      if (isClosed || requestEpoch != _requestEpoch) return;
       emit(state.copyWith(isLoadingMore: false, failure: failure));
-    } finally {
-      _requestInFlight = false;
     }
   }
 
   Future<void> _replace(TourSearchQuery query) async {
-    if (_requestInFlight) return;
-    _requestInFlight = true;
+    final requestEpoch = ++_requestEpoch;
     final hasData = state.items.isNotEmpty;
     emit(
       state.copyWith(
@@ -82,6 +83,7 @@ final class TourSearchCubit extends Cubit<TourSearchState> {
     );
     try {
       final result = await _searchTours(query);
+      if (isClosed || requestEpoch != _requestEpoch) return;
       emit(
         state.copyWith(
           status: TourSearchStatus.success,
@@ -95,6 +97,7 @@ final class TourSearchCubit extends Cubit<TourSearchState> {
         ),
       );
     } on ValidationFailure catch (failure) {
+      if (isClosed || requestEpoch != _requestEpoch) return;
       emit(
         state.copyWith(
           status: hasData ? TourSearchStatus.success : TourSearchStatus.failure,
@@ -102,14 +105,13 @@ final class TourSearchCubit extends Cubit<TourSearchState> {
         ),
       );
     } on Failure catch (failure) {
+      if (isClosed || requestEpoch != _requestEpoch) return;
       emit(
         state.copyWith(
           status: hasData ? TourSearchStatus.success : TourSearchStatus.failure,
           failure: failure,
         ),
       );
-    } finally {
-      _requestInFlight = false;
     }
   }
 }
