@@ -97,6 +97,29 @@ void main() {
     expect(model.items.first.remainingSlots, isNull);
   });
 
+  test('departureAtUtc is normalized to UTC for Z and offset timestamps', () {
+    final zItem = TourSearchItemModel.fromJson(
+      (sampleJson['items']! as List<Object?>).first as Map<String, Object?>,
+    );
+    final offsetItem = TourSearchItemModel.fromJson({
+      'tourId': '1',
+      'title': 'Tour',
+      'destinations': <Object?>[],
+      'operatorName': 'Operator',
+      'durationDays': 1,
+      'basePrice': 1,
+      'currency': 'VND',
+      'representativeScheduleId': null,
+      'departureAtUtc': '2026-10-01T08:00:00+07:00',
+      'availabilityStatus': 'available',
+      'remainingSlots': null,
+    });
+
+    expect(zItem.departureAtUtc, DateTime.utc(2026, 10, 1, 1));
+    expect(offsetItem.departureAtUtc, DateTime.utc(2026, 10, 1, 1));
+    expect(offsetItem.departureAtUtc!.isUtc, isTrue);
+  });
+
   test('Empty items list parses with empty list', () {
     final json = <String, Object?>{
       'page': 1,

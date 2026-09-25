@@ -66,8 +66,10 @@ final class TourSearchItemModel {
       representativeScheduleId: _nullableString(
         json['representativeScheduleId'],
       ),
+      // The public Tour Search API emits this field from UTC DateTime values.
+      // Normalize offset-bearing timestamps here so presentation always receives UTC.
       departureAtUtc: departureStr != null
-          ? DateTime.tryParse(departureStr)
+          ? DateTime.tryParse(departureStr)?.toUtc()
           : null,
       availabilityStatus: _requiredString(json, 'availabilityStatus'),
       remainingSlots: _nullableInt(json['remainingSlots']),

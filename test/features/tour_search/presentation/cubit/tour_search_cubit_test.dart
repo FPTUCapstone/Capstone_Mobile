@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
@@ -124,6 +126,121 @@ void main() {
         expect(cubit.state.validationFailure, isA<ValidationFailure>());
       },
     );
+
+    test('a filter request supersedes an in-flight initial load', () async {
+      final repository = _DeferredTourRepository();
+      final cubit = TourSearchCubit(
+        searchTours: SearchToursUseCase(repository),
+      );
+
+      final initial = cubit.loadInitial();
+      final filtered = cubit.applyFilters(destination: 'Hội An');
+      repository.complete('Hội An', _resultFor(_tour2));
+      await filtered;
+      repository.complete(null, _resultFor(_tour1));
+      await initial;
+
+      expect(cubit.state.query.destination, 'Hội An');
+      expect(cubit.state.items, [_tour2]);
+      await cubit.close();
+    });
+
+    test(
+      'latest of two filter requests wins when responses arrive out of order',
+      () async {
+        final repository = _DeferredTourRepository();
+        final cubit = TourSearchCubit(
+          searchTours: SearchToursUseCase(repository),
+        );
+
+        final first = cubit.applyFilters(destination: 'Đà Nẵng');
+        final second = cubit.applyFilters(destination: 'Hội An');
+        repository.complete('Hội An', _resultFor(_tour2));
+        await second;
+        repository.complete('Đà Nẵng', _resultFor(_tour1));
+        await first;
+
+        expect(cubit.state.query.destination, 'Hội An');
+        expect(cubit.state.items, [_tour2]);
+        await cubit.close();
+      },
+    );
+
+    test('a stale failure cannot overwrite a newer filter result', () async {
+      final repository = _DeferredTourRepository();
+      final cubit = TourSearchCubit(
+        searchTours: SearchToursUseCase(repository),
+      );
+
+      final initial = cubit.loadInitial();
+      final filtered = cubit.applyFilters(destination: 'Hội An');
+      repository.complete('Hội An', _resultFor(_tour2));
+      await filtered;
+      repository.completeError(null, const ServerFailure('stale failure'));
+      await initial;
+
+      expect(cubit.state.status, TourSearchStatus.success);
+      expect(cubit.state.failure, isNull);
+      expect(cubit.state.items, [_tour2]);
+      await cubit.close();
+    });
+
+    test('a filter request supersedes an in-flight refresh', () async {
+      final repository = _DeferredTourRepository();
+      final cubit = TourSearchCubit(
+        searchTours: SearchToursUseCase(repository),
+      );
+
+      final initial = cubit.applyFilters(destination: 'Đà Nẵng');
+      repository.complete('Đà Nẵng', _resultFor(_tour1));
+      await initial;
+      final refresh = cubit.refresh();
+      final filtered = cubit.applyFilters(destination: 'Hội An');
+      repository.complete('Hội An', _resultFor(_tour2));
+      await filtered;
+      repository.complete('Đà Nẵng', _resultFor(_tour1));
+      await refresh;
+
+      expect(cubit.state.query.destination, 'Hội An');
+      expect(cubit.state.items, [_tour2]);
+      await cubit.close();
+    });
+
+    test(
+      'a stale pagination response cannot attach to a replacement query',
+      () async {
+        final repository = _DeferredTourRepository();
+        final cubit = TourSearchCubit(
+          searchTours: SearchToursUseCase(repository),
+        );
+
+        final initial = cubit.loadInitial();
+        repository.complete(null, _resultFor(_tour1, totalPages: 2));
+        await initial;
+        final nextPage = cubit.loadNextPage();
+        final filtered = cubit.applyFilters(destination: 'Hội An');
+        repository.complete('Hội An', _resultFor(_tour2));
+        await filtered;
+        repository.complete(null, _resultFor(_tour1, page: 2, totalPages: 2));
+        await nextPage;
+
+        expect(cubit.state.query.destination, 'Hội An');
+        expect(cubit.state.items, [_tour2]);
+        await cubit.close();
+      },
+    );
+
+    test('an in-flight response after close does not emit', () async {
+      final repository = _DeferredTourRepository();
+      final cubit = TourSearchCubit(
+        searchTours: SearchToursUseCase(repository),
+      );
+
+      final pending = cubit.loadInitial();
+      await cubit.close();
+      repository.complete(null, _resultFor(_tour1));
+      await pending;
+    });
   });
 }
 
@@ -201,5 +318,36 @@ final class _ConditionalErrorTourRepository implements TourSearchRepository {
       totalPages: 1,
       items: [_tour1],
     );
+  }
+}
+
+PagedTourResult _resultFor(
+  TourSummary item, {
+  int page = 1,
+  int totalPages = 1,
+}) => PagedTourResult(
+  page: page,
+  pageSize: 20,
+  totalCount: totalPages == 1 ? 1 : 2,
+  totalPages: totalPages,
+  items: [item],
+);
+
+final class _DeferredTourRepository implements TourSearchRepository {
+  final Map<String?, List<Completer<PagedTourResult>>> _requests = {};
+
+  @override
+  Future<PagedTourResult> searchTours(TourSearchQuery query) {
+    final completer = Completer<PagedTourResult>();
+    _requests.putIfAbsent(query.destination, () => []).add(completer);
+    return completer.future;
+  }
+
+  void complete(String? destination, PagedTourResult result) {
+    _requests[destination]!.removeAt(0).complete(result);
+  }
+
+  void completeError(String? destination, Failure error) {
+    _requests[destination]!.removeAt(0).completeError(error);
   }
 }
