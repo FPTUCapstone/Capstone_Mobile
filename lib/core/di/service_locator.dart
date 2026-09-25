@@ -29,13 +29,13 @@ import 'package:trip_mate_mobile/features/poi/domain/usecases/get_poi_location_u
 import 'package:trip_mate_mobile/features/poi/domain/usecases/get_pois_use_case.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
-import 'package:trip_mate_mobile/features/traveler/data/repositories/itinerary_repository_impl.dart';
-import 'package:trip_mate_mobile/features/traveler/data/repositories/point_of_interest_repository_impl.dart';
 import 'package:trip_mate_mobile/features/tour_search/data/datasources/tour_search_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/tour_search/data/repositories/tour_search_repository_impl.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/repositories/tour_search_repository.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/usecases/search_tours_use_case.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/data/repositories/itinerary_repository_impl.dart';
+import 'package:trip_mate_mobile/features/traveler/data/repositories/point_of_interest_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_group_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
