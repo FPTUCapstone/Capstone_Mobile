@@ -227,4 +227,43 @@ void main() {
 
     expect(failure, isA<ServerFailure>());
   });
+
+  test('maps planning HTTP outcomes to safe business failures', () {
+    Failure failureFor(int statusCode) => ErrorMapper.toFailure(
+      DioException(
+        requestOptions: RequestOptions(path: '/scheduling-requests'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/scheduling-requests'),
+          statusCode: statusCode,
+        ),
+      ),
+    );
+
+    expect(failureFor(409), isA<ConflictFailure>());
+    expect(failureFor(422), isA<ConstraintFailure>());
+    expect(failureFor(429), isA<ServerFailure>());
+    expect(failureFor(429).message, isNot(contains('routing')));
+  });
+
+  test('preserves the safe planning reason for an infeasible request', () {
+    final failure = ErrorMapper.toFailure(
+      DioException(
+        requestOptions: RequestOptions(path: '/scheduling-requests'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/scheduling-requests'),
+          statusCode: 422,
+          data: {
+            'title': 'The selected time is too short for the required stops.',
+            'extensions': {'errorCode': 'planning.constraints_infeasible'},
+          },
+        ),
+      ),
+    );
+
+    expect(failure, isA<ConstraintFailure>());
+    expect(
+      failure.message,
+      'The selected time is too short for the required stops.',
+    );
+  });
 }

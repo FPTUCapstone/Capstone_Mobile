@@ -19,6 +19,13 @@ final class ServerFailure extends Failure {
   ]);
 }
 
+final class RoutingProviderFailure extends Failure {
+  const RoutingProviderFailure([
+    super.message =
+        'The routing service is temporarily unavailable. Please try again later.',
+  ]);
+}
+
 final class AuthenticationFailure extends Failure {
   const AuthenticationFailure([super.message = 'Please sign in to continue.']);
 }
@@ -70,6 +77,13 @@ final class ConflictFailure extends Failure {
     groupId,
     isIdempotencyKeyPayloadMismatch,
   ];
+}
+
+final class ConstraintFailure extends Failure {
+  const ConstraintFailure([
+    super.message =
+        'Your selected time, locations, or budget cannot form an itinerary.',
+  ]);
 }
 
 final class UnknownFailure extends Failure {
