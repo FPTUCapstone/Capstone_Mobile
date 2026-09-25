@@ -126,9 +126,9 @@ class _TravelerSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
