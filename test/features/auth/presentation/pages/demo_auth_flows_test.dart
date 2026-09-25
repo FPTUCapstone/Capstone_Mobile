@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trip_mate_mobile/app/config/app_config.dart';
 import 'package:trip_mate_mobile/app/config/environment.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_theme.dart';
 import 'package:trip_mate_mobile/core/constants/app_constants.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
@@ -203,6 +205,58 @@ void main() {
 
     expect(find.text(_remoteFailureCopy), findsNothing);
     expect(find.byType(AppAlert), findsNothing);
+  });
+
+  testWidgets('login exposes the forgot-password entry point', (tester) async {
+    final session = AuthSessionCubit();
+    addTearDown(session.close);
+    final router = GoRouter(
+      initialLocation: AppRoutes.login,
+      routes: [
+        GoRoute(path: AppRoutes.login, builder: (_, _) => const LoginPage()),
+        GoRoute(
+          path: AppRoutes.forgotPassword,
+          builder: (_, _) =>
+              const Scaffold(body: Text('Password recovery destination')),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      BlocProvider<AuthSessionCubit>.value(
+        value: session,
+        child: MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+      ),
+    );
+
+    final forgotPassword = find.text('Forgot password?');
+    await _tapVisible(tester, forgotPassword);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Password recovery destination'), findsOneWidget);
+  });
+
+  testWidgets('login renders a password-reset success notice', (tester) async {
+    final session = AuthSessionCubit();
+    addTearDown(session.close);
+
+    await tester.pumpWidget(
+      _page(
+        BlocProvider<AuthSessionCubit>.value(
+          value: session,
+          child: const LoginPage(
+            notice: 'Password updated. Sign in with your new password.',
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(AppAlert), findsOneWidget);
+    expect(
+      find.text('Password updated. Sign in with your new password.'),
+      findsOneWidget,
+    );
   });
 }
 

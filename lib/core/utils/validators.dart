@@ -13,7 +13,11 @@ abstract final class Validators {
     if (requiredError != null) {
       return requiredError;
     }
-    if (!_emailPattern.hasMatch(value!.trim())) {
+    final normalized = value!.trim();
+    if (normalized.length > 254) {
+      return 'Email must be 254 characters or fewer.';
+    }
+    if (!_emailPattern.hasMatch(normalized)) {
       return 'Enter a valid email address.';
     }
     return null;
@@ -27,14 +31,22 @@ abstract final class Validators {
     if (value!.length < 8 || value.length > 72) {
       return 'Password must be between 8 and 72 characters.';
     }
-    if (value.startsWith(' ') || value.endsWith(' ')) {
-      return 'Password cannot start or end with a space.';
+    if (value != value.trim()) {
+      return 'Password cannot start or end with whitespace.';
     }
     if (!RegExp(r'[A-Z]').hasMatch(value) ||
         !RegExp(r'[a-z]').hasMatch(value) ||
         !RegExp(r'\d').hasMatch(value) ||
         !RegExp(r'[^A-Za-z0-9]').hasMatch(value)) {
       return 'Password must contain uppercase, lowercase, number, and special character.';
+    }
+    return null;
+  }
+
+  static String? otp(String? value) {
+    if (value == null || value.isEmpty) return 'Reset code is required.';
+    if (!RegExp(r'^[0-9]{6}$').hasMatch(value)) {
+      return 'Enter exactly 6 ASCII digits.';
     }
     return null;
   }

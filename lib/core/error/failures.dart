@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-sealed class Failure extends Equatable implements Exception {
+abstract class Failure extends Equatable implements Exception {
   const Failure(this.message);
 
   final String message;
@@ -16,6 +16,12 @@ final class NetworkFailure extends Failure {
 final class ServerFailure extends Failure {
   const ServerFailure([
     super.message = 'The service is currently unavailable.',
+  ]);
+}
+
+final class RateLimitFailure extends Failure {
+  const RateLimitFailure([
+    super.message = 'Too many requests. Please wait and try again.',
   ]);
 }
 

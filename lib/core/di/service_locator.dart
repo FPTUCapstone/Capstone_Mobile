@@ -16,6 +16,10 @@ import 'package:trip_mate_mobile/features/auth/data/repositories/auth_repository
 import 'package:trip_mate_mobile/features/auth/data/services/firebase_auth_service.dart';
 import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:trip_mate_mobile/features/auth/domain/services/auth_identity_service.dart';
+import 'package:trip_mate_mobile/features/auth/password_recovery/data/datasources/password_recovery_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/auth/password_recovery/data/repositories/password_recovery_repository_impl.dart';
+import 'package:trip_mate_mobile/features/auth/password_recovery/domain/repositories/password_recovery_repository.dart';
+import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/cubit/password_recovery_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/data/datasources/poi_remote_data_source.dart';
@@ -94,6 +98,12 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerLazySingleton<AuthRepository>(
       () => AuthRepositoryImpl(serviceLocator()),
     )
+    ..registerLazySingleton<PasswordRecoveryRemoteDataSource>(
+      () => PasswordRecoveryRemoteDataSourceImpl(serviceLocator()),
+    )
+    ..registerLazySingleton<PasswordRecoveryRepository>(
+      () => PasswordRecoveryRepositoryImpl(serviceLocator()),
+    )
     ..registerLazySingleton<TravelGroupRepository>(
       () => TravelGroupRepositoryImpl(dioClient: serviceLocator()),
     )
@@ -106,5 +116,8 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerFactory<RegisterCubit>(
       () => RegisterCubit(serviceLocator(), serviceLocator()),
+    )
+    ..registerFactory<PasswordRecoveryCubit>(
+      () => PasswordRecoveryCubit(serviceLocator()),
     );
 }

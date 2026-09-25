@@ -8,6 +8,8 @@ import 'package:trip_mate_mobile/app/router/travel_group_details_route_args.dart
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/tour_operator_application_status.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
+import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/cubit/password_recovery_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/pages/password_recovery_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_application_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/login_page.dart';
@@ -49,7 +51,17 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
       GoRoute(
         path: AppRoutes.login,
         name: AppRouteNames.login,
-        builder: (_, _) => const LoginPage(),
+        builder: (_, state) => LoginPage(
+          notice: state.extra is String ? state.extra as String : null,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.forgotPassword,
+        name: AppRouteNames.forgotPassword,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<PasswordRecoveryCubit>(),
+          child: const PasswordRecoveryPage(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.travelerRegistration,

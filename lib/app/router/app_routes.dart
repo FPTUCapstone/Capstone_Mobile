@@ -2,6 +2,7 @@ abstract final class AppRoutes {
   static const splash = '/';
   static const home = traveler;
   static const login = '/auth/login';
+  static const forgotPassword = '/auth/forgot-password';
   static const travelerRegistration = '/auth/register/traveler';
   static const verifyEmail = '/auth/verify-email';
   static const operatorRegistration = '/auth/register/operator';
@@ -28,6 +29,7 @@ abstract final class AppRoutes {
 abstract final class AppRouteNames {
   static const splash = 'splash';
   static const login = 'login';
+  static const forgotPassword = 'forgot-password';
   static const travelerRegistration = 'traveler-registration';
   static const verifyEmail = 'verify-email';
   static const operatorRegistration = 'operator-registration';
