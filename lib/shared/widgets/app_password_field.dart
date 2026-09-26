@@ -6,7 +6,9 @@ class AppPasswordField extends StatefulWidget {
     required this.controller,
     required this.label,
     this.enabled = true,
+    this.errorText,
     this.helperText,
+    this.onChanged,
     this.textInputAction,
     this.validator,
     super.key,
@@ -14,8 +16,10 @@ class AppPasswordField extends StatefulWidget {
 
   final TextEditingController controller;
   final bool enabled;
+  final String? errorText;
   final String? helperText;
   final String label;
+  final ValueChanged<String>? onChanged;
   final TextInputAction? textInputAction;
   final FormFieldValidator<String>? validator;
 
@@ -31,9 +35,11 @@ class _AppPasswordFieldState extends State<AppPasswordField> {
     return AppTextField(
       controller: widget.controller,
       enabled: widget.enabled,
+      errorText: widget.errorText,
       helperText: widget.helperText,
       label: widget.label,
       obscureText: _obscured,
+      onChanged: widget.onChanged,
       textInputAction: widget.textInputAction,
       validator: widget.validator,
       suffix: IconButton(

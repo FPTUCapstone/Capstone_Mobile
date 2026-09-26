@@ -19,6 +19,12 @@ final class ServerFailure extends Failure {
   ]);
 }
 
+final class RateLimitFailure extends Failure {
+  const RateLimitFailure([
+    super.message = 'Too many requests. Please wait and try again.',
+  ]);
+}
+
 final class RoutingProviderFailure extends Failure {
   const RoutingProviderFailure([
     super.message =
@@ -28,6 +34,13 @@ final class RoutingProviderFailure extends Failure {
 
 final class AuthenticationFailure extends Failure {
   const AuthenticationFailure([super.message = 'Please sign in to continue.']);
+}
+
+final class InvalidResetCredentialFailure extends Failure {
+  const InvalidResetCredentialFailure([
+    super.message =
+        'The reset code is invalid or no longer usable. Request a new code and try again.',
+  ]);
 }
 
 final class PermissionFailure extends Failure {

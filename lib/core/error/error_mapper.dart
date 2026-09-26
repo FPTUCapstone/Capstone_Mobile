@@ -21,6 +21,10 @@ abstract final class ErrorMapper {
   static Failure _mapDioException(DioException error) {
     final statusCode = error.response?.statusCode;
     final responseData = error.response?.data;
+    if (extractErrorCode(responseData) == 'MSG127') {
+      return const ServerFailure();
+    }
+    if (statusCode == 429) return const RateLimitFailure();
     if (statusCode == 400) {
       return ValidationFailure(
         _extractValidationMessage(responseData) ??
@@ -30,7 +34,7 @@ abstract final class ErrorMapper {
       );
     }
     if (statusCode == 404) {
-      final errorCode = _extractErrorCode(responseData);
+      final errorCode = extractErrorCode(responseData);
       if (errorCode == 'Poi.NotFound') return const NotFoundFailure();
       if (errorCode == 'travel_group.group_not_found') {
         return const NotFoundFailure();
@@ -48,20 +52,19 @@ abstract final class ErrorMapper {
       return ConflictFailure(
         message ?? 'Conflict occurred. Please try again.',
         groupId,
-        _extractErrorCode(responseData) ==
+        extractErrorCode(responseData) ==
             'travel_group.idempotency_key_payload_mismatch',
       );
     }
     if (statusCode == 422) {
       final data = error.response?.data;
-      final errorCode = data is Map ? _extractErrorCode(data) : null;
+      final errorCode = data is Map ? extractErrorCode(data) : null;
       if (errorCode == 'planning.constraints_infeasible') {
         final message = _extractSafePlanningMessage(data);
         return ConstraintFailure(message ?? const ConstraintFailure().message);
       }
       return const ConstraintFailure();
     }
-    if (statusCode == 429) return const ServerFailure();
     if (statusCode != null && statusCode >= 500) return const ServerFailure();
 
     return switch (error.type) {
@@ -76,7 +79,7 @@ abstract final class ErrorMapper {
   static String? _extractValidationMessage(Object? data) {
     if (data is! Map) return null;
 
-    final errorCode = _extractErrorCode(data);
+    final errorCode = extractErrorCode(data);
     if (errorCode == 'travel_group.invitation_unavailable') {
       return 'This invitation is invalid, expired, or no longer available. Please check the invitation and try again.';
     }
@@ -112,7 +115,7 @@ abstract final class ErrorMapper {
   static (String?, int?) _extractConflictDetails(Object? data) {
     if (data is! Map) return (null, null);
 
-    final errorCode = _extractErrorCode(data);
+    final errorCode = extractErrorCode(data);
     final groupId = _extractGroupId(data);
     if (errorCode == 'travel_group.already_active_member') {
       return ('You are already a member of this travel group.', groupId);
@@ -126,10 +129,11 @@ abstract final class ErrorMapper {
     return (null, groupId);
   }
 
-  static String? _extractErrorCode(Object? data) {
+  static String? extractErrorCode(Object? data) {
     if (data is! Map) return null;
     final code =
         data['errorCode'] ??
+        data['code'] ??
         (data['extensions'] is Map ? data['extensions']['errorCode'] : null);
     return code is String ? code : null;
   }
