@@ -6,7 +6,6 @@ import 'package:trip_mate_mobile/features/auth/password_recovery/data/models/con
 import 'package:trip_mate_mobile/features/auth/password_recovery/data/models/password_reset_message_dto.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/data/models/password_reset_request.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/data/repositories/password_recovery_repository_impl.dart';
-import 'package:trip_mate_mobile/features/auth/password_recovery/domain/failures/password_recovery_failures.dart';
 
 void main() {
   group('PasswordRecoveryRepositoryImpl', () {

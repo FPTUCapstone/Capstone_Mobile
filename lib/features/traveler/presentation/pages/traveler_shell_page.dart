@@ -126,9 +126,9 @@ class _TravelerSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -149,22 +149,38 @@ class _TravelerSection extends StatelessWidget {
                   : 'Feature placeholder',
               textAlign: TextAlign.center,
             ),
-            if (destination.label == 'Trang chủ' ||
-                destination.label == 'Hồ sơ') ...[
+            if (destination.label == 'Trang chủ') ...[
               const SizedBox(height: AppSpacing.lg),
               FilledButton.icon(
+                onPressed: () => context.push(AppRoutes.tourSearch),
+                icon: const Icon(Icons.tour_outlined),
+                label: const Text('Tìm kiếm Tour'),
+              ),
+            ],
+            if (destination.label == 'Trang chủ' ||
+                destination.label == 'Hồ sơ') ...[
+              const SizedBox(height: AppSpacing.sm),
+              OutlinedButton.icon(
                 onPressed: () => context.push(AppRoutes.travelerSettings),
                 icon: const Icon(Icons.manage_accounts_outlined),
                 label: const Text('Account settings'),
               ),
             ],
-            if (destination.label == 'Home' ||
-                destination.label == 'Trips') ...[
+            if (destination.label == 'Trang chủ' ||
+                destination.label == 'Chuyến đi') ...[
               const SizedBox(height: AppSpacing.sm),
               OutlinedButton.icon(
                 onPressed: () => context.push(AppRoutes.joinTravelGroup),
                 icon: const Icon(Icons.group_add_outlined),
                 label: const Text('Join travel group'),
+              ),
+            ],
+            if (destination.label == 'Chuyến đi') ...[
+              const SizedBox(height: AppSpacing.lg),
+              FilledButton.icon(
+                onPressed: () => context.push(AppRoutes.createItinerary),
+                icon: const Icon(Icons.auto_awesome_outlined),
+                label: const Text('Create an itinerary'),
               ),
             ],
           ],

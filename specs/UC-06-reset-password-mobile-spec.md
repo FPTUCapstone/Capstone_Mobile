@@ -1,9 +1,9 @@
 # UC-06 Mobile Specification — Reset Password
 
-**Feature:** UC-06 Reset Password  
-**Platform:** Mobile / Flutter  
-**Status:** Approved  
-**Revision:** 1.1 — 2026-09-25  
+**Feature:** UC-06 Reset Password
+**Platform:** Mobile / Flutter
+**Status:** Approved
+**Revision:** 1.1 — 2026-09-25
 **Contract basis:** Current TripMate Backend UC-06 Reset Password API and current Frontend UC-06 behavior
 
 ---

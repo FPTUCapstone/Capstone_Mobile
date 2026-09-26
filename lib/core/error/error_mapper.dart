@@ -56,6 +56,15 @@ abstract final class ErrorMapper {
             'travel_group.idempotency_key_payload_mismatch',
       );
     }
+    if (statusCode == 422) {
+      final data = error.response?.data;
+      final errorCode = data is Map ? extractErrorCode(data) : null;
+      if (errorCode == 'planning.constraints_infeasible') {
+        final message = _extractSafePlanningMessage(data);
+        return ConstraintFailure(message ?? const ConstraintFailure().message);
+      }
+      return const ConstraintFailure();
+    }
     if (statusCode != null && statusCode >= 500) return const ServerFailure();
 
     return switch (error.type) {
@@ -88,6 +97,19 @@ abstract final class ErrorMapper {
       if (value is String && value.trim().isNotEmpty) return value.trim();
     }
     return null;
+  }
+
+  static String? _extractSafePlanningMessage(Object? data) {
+    if (data is! Map) return null;
+    final dynamic raw = data['detail'] ?? data['title'];
+    if (raw is! String) return null;
+    final message = raw.trim();
+    if (message.isEmpty || message.length > 300) return null;
+    if (message.toLowerCase().contains('exception') ||
+        message.toLowerCase().contains('sql')) {
+      return null;
+    }
+    return message;
   }
 
   static (String?, int?) _extractConflictDetails(Object? data) {

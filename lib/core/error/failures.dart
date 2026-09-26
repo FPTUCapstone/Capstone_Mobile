@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-abstract class Failure extends Equatable implements Exception {
+sealed class Failure extends Equatable implements Exception {
   const Failure(this.message);
 
   final String message;
@@ -25,8 +25,22 @@ final class RateLimitFailure extends Failure {
   ]);
 }
 
+final class RoutingProviderFailure extends Failure {
+  const RoutingProviderFailure([
+    super.message =
+        'The routing service is temporarily unavailable. Please try again later.',
+  ]);
+}
+
 final class AuthenticationFailure extends Failure {
   const AuthenticationFailure([super.message = 'Please sign in to continue.']);
+}
+
+final class InvalidResetCredentialFailure extends Failure {
+  const InvalidResetCredentialFailure([
+    super.message =
+        'The reset code is invalid or no longer usable. Request a new code and try again.',
+  ]);
 }
 
 final class PermissionFailure extends Failure {
@@ -76,6 +90,13 @@ final class ConflictFailure extends Failure {
     groupId,
     isIdempotencyKeyPayloadMismatch,
   ];
+}
+
+final class ConstraintFailure extends Failure {
+  const ConstraintFailure([
+    super.message =
+        'Your selected time, locations, or budget cannot form an itinerary.',
+  ]);
 }
 
 final class UnknownFailure extends Failure {

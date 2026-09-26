@@ -297,6 +297,13 @@ class _ExploreControls extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
+                ActionChip(
+                  avatar: const Icon(Icons.tour_outlined, size: 18),
+                  label: const Text('Tìm tour'),
+                  onPressed: () => context.push(AppRoutes.tourSearch),
+                  materialTapTargetSize: MaterialTapTargetSize.padded,
+                ),
+                const SizedBox(width: 8),
                 FilterChip(
                   label: const Text('Đang mở cửa'),
                   avatar: const Icon(Icons.storefront_outlined, size: 18),

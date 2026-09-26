@@ -1,9 +1,9 @@
 # UC-06 Mobile Implementation Plan — Reset Password
 
-**Feature:** UC-06 Reset Password  
-**Platform:** Mobile / Flutter  
-**Status:** Approved  
-**Revision:** 1.1 — 2026-09-25  
+**Feature:** UC-06 Reset Password
+**Platform:** Mobile / Flutter
+**Status:** Approved
+**Revision:** 1.1 — 2026-09-25
 **Specification:** `specs/UC-06-reset-password-mobile-spec.md`
 
 ---

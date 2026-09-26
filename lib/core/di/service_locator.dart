@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trip_mate_mobile/app/config/app_config.dart';
+import 'package:trip_mate_mobile/core/location/device_location_service.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/core/network/network_info.dart';
 import 'package:trip_mate_mobile/core/network/session_coordinator.dart';
@@ -32,7 +33,16 @@ import 'package:trip_mate_mobile/features/poi/domain/usecases/get_poi_location_u
 import 'package:trip_mate_mobile/features/poi/domain/usecases/get_pois_use_case.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
+import 'package:trip_mate_mobile/features/tour_search/data/datasources/tour_search_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/tour_search/data/repositories/tour_search_repository_impl.dart';
+import 'package:trip_mate_mobile/features/tour_search/domain/repositories/tour_search_repository.dart';
+import 'package:trip_mate_mobile/features/tour_search/domain/usecases/search_tours_use_case.dart';
+import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/data/repositories/itinerary_repository_impl.dart';
+import 'package:trip_mate_mobile/features/traveler/data/repositories/point_of_interest_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_group_repository_impl.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 
 final GetIt serviceLocator = GetIt.instance;
@@ -62,6 +72,9 @@ Future<void> configureDependencies({AppConfig? config}) async {
       () => ConnectivityNetworkInfo(serviceLocator()),
     )
     ..registerLazySingleton<SessionCoordinator>(SessionCoordinator.new)
+    ..registerLazySingleton<DeviceLocationService>(
+      GeolocatorDeviceLocationService.new,
+    )
     ..registerLazySingleton<DioClient>(
       () => DioClient(
         config: serviceLocator(),
@@ -92,6 +105,19 @@ Future<void> configureDependencies({AppConfig? config}) async {
       ),
     )
     ..registerFactory<PoiDetailCubit>(() => PoiDetailCubit(serviceLocator()))
+    // ── Tour Search ────────────────────────────────────────────────────
+    ..registerLazySingleton<TourSearchRemoteDataSource>(
+      () => DioTourSearchRemoteDataSource(serviceLocator()),
+    )
+    ..registerLazySingleton<TourSearchRepository>(
+      () => TourSearchRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<SearchToursUseCase>(
+      () => SearchToursUseCase(serviceLocator()),
+    )
+    ..registerFactory<TourSearchCubit>(
+      () => TourSearchCubit(searchTours: serviceLocator()),
+    )
     ..registerLazySingleton<AuthRemoteDataSource>(
       () => AuthRemoteDataSourceImpl(serviceLocator()),
     )
@@ -106,6 +132,12 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerLazySingleton<TravelGroupRepository>(
       () => TravelGroupRepositoryImpl(dioClient: serviceLocator()),
+    )
+    ..registerLazySingleton<ItineraryRepository>(
+      () => ItineraryRepositoryImpl(dioClient: serviceLocator()),
+    )
+    ..registerLazySingleton<PointOfInterestRepository>(
+      () => PointOfInterestRepositoryImpl(dioClient: serviceLocator()),
     )
     ..registerFactory<AuthSessionCubit>(
       () => AuthSessionCubit(

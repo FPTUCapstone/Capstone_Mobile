@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
-import 'package:trip_mate_mobile/features/auth/password_recovery/domain/failures/password_recovery_failures.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/domain/repositories/password_recovery_repository.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/cubit/password_recovery_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/cubit/password_recovery_state.dart';

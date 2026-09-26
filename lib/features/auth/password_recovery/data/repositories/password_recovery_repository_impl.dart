@@ -4,7 +4,6 @@ import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/data/datasources/password_recovery_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/data/models/confirm_password_reset_request.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/data/models/password_reset_request.dart';
-import 'package:trip_mate_mobile/features/auth/password_recovery/domain/failures/password_recovery_failures.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/domain/repositories/password_recovery_repository.dart';
 
 final class PasswordRecoveryRepositoryImpl
