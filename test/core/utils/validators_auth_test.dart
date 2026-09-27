@@ -7,9 +7,40 @@ void main() {
       expect(Validators.password('Password123!'), isNull);
     });
 
-    test('rejects password whitespace at either edge like the Web form', () {
-      expect(Validators.password(' Password123!'), isNotNull);
-      expect(Validators.password('Password123! '), isNotNull);
+    test('rejects every supported whitespace character at either edge', () {
+      final invalidPasswords = [
+        ' Password1!',
+        'Password1! ',
+        '\tPassword1!',
+        'Password1!\t',
+        '\nPassword1!',
+        'Password1!\n',
+        '\u00A0Password1!',
+        'Password1!\u00A0',
+      ];
+
+      for (final password in invalidPasswords) {
+        expect(
+          Validators.password(password),
+          isNotNull,
+          reason: 'Expected edge whitespace ${password.codeUnits} to fail.',
+        );
+      }
+    });
+
+    test('validates every password character class independently', () {
+      expect(Validators.password('password1!'), isNotNull);
+      expect(Validators.password('PASSWORD1!'), isNotNull);
+      expect(Validators.password('Password!'), isNotNull);
+      expect(Validators.password('Password1'), isNotNull);
+      expect(Validators.password('Password1!'), isNull);
+    });
+
+    test('validates reset codes as exactly six ASCII digits', () {
+      expect(Validators.otp('12345'), isNotNull);
+      expect(Validators.otp('1234567'), isNotNull);
+      expect(Validators.otp('12a456'), isNotNull);
+      expect(Validators.otp('012345'), isNull);
     });
 
     test('rejects password values outside the backend length range', () {

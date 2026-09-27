@@ -6,12 +6,14 @@ class AppTextField extends StatelessWidget {
     required this.label,
     this.controller,
     this.enabled = true,
+    this.errorText,
     this.helperText,
     this.initialValue,
     this.inputFormatters,
     this.keyboardType,
     this.maxLines = 1,
     this.obscureText = false,
+    this.onChanged,
     this.onTap,
     this.prefixIcon,
     this.readOnly = false,
@@ -24,6 +26,7 @@ class AppTextField extends StatelessWidget {
 
   final TextEditingController? controller;
   final bool enabled;
+  final String? errorText;
   final String? helperText;
   final String? initialValue;
   final List<TextInputFormatter>? inputFormatters;
@@ -31,6 +34,7 @@ class AppTextField extends StatelessWidget {
   final String label;
   final int maxLines;
   final bool obscureText;
+  final ValueChanged<String>? onChanged;
   final VoidCallback? onTap;
   final Widget? prefixIcon;
   final bool readOnly;
@@ -49,12 +53,14 @@ class AppTextField extends StatelessWidget {
       keyboardType: keyboardType,
       maxLines: maxLines,
       obscureText: obscureText,
+      onChanged: onChanged,
       onTap: onTap,
       readOnly: readOnly,
       textCapitalization: textCapitalization,
       textInputAction: textInputAction,
       validator: validator,
       decoration: InputDecoration(
+        errorText: errorText,
         helperText: helperText,
         labelText: label,
         prefixIcon: prefixIcon,

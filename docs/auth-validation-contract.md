@@ -1,6 +1,6 @@
 # TripMate Validation Contract Audit
 
-Date: 2026-09-09
+Date: 2026-09-25
 
 This contract records runtime validation found in the current Flutter Mobile, Next.js FE, and ASP.NET Core BE repositories. Backend runtime is authoritative for accepted data. No rules are invented for APIs that do not exist.
 
@@ -12,15 +12,17 @@ Implemented BE validation/API surface:
 - `POST /api/v1/auth/login`
 - `POST /api/v1/auth/google`
 - `POST /api/v1/auth/verify-email`
+- `POST /api/v1/auth/password-reset/request`
+- `POST /api/v1/auth/password-reset/confirm`
 
-No runtime BE DTO/controller/validator was found for forgot-password, profile, scheduling, or booking. Existing FE/Mobile implementations for those areas are prototypes/local state and cannot define a shared production contract.
+No runtime BE DTO/controller/validator was found for profile, scheduling, or booking. Existing FE/Mobile implementations for those areas are prototypes/local state and cannot define a shared production contract.
 
 ## AUTH REGISTER
 
 | Field | Mobile | FE | BE DTO/property | Required | Type | Min/Max | Format | Error/message | Result |
 |---|---|---|---|---|---|---|---|---|---|
 | `email` | `Validators.email`; trim/lowercase in Cubit | trim; max 254; `/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/` | `RegisterTravelerRequestDto.Email`, string | Yes | string | max 254 | FluentValidation email | FE: `Please enter your email.` / invalid email; BE: `Email is required.` / `Invalid email format.` | Same acceptance intent; messages differ |
-| `password` | required; 8-72; upper/lower/digit/special | required; rejects leading/trailing spaces; 8-72; upper/lower/digit/special | `Password`, string | Yes | string | 8-72 | upper/lower/digit/special | FE has detailed messages; BE has separate policy messages | Rules align except Mobile does not explicitly reject edge spaces |
+| `password` | required; rejects leading/trailing whitespace; 8-72; upper/lower/digit/special | required; rejects leading/trailing spaces; 8-72; upper/lower/digit/special | `Password`, string | Yes | string | 8-72 | upper/lower/digit/special | FE has detailed messages; BE has separate policy messages | Mobile applies the approved stricter edge-whitespace UX rule |
 | `confirmPassword` | UI-only local comparison | UI-only local comparison | Not in BE DTO | Yes locally | string | none | must equal password | FE: `Passwords do not match...`; Mobile differs slightly in reset flow | Must never serialize to register API |
 | `fullName` | `Validators.fullName`; trim/normalize; 2-150; Unicode letters/spaces | trim; 2-150; rejects digits/non-letters/spaces | `FullName`, string | Yes | string | 2-150 trimmed | `^[\\p{L}\\p{Zs}]+$` | Messages differ by platform | Acceptance aligns |
 | `phoneNumber` | optional; blank -> null; exact `^0\\d{9}$` | optional; removes whitespace; exact `^0\\d{9}$` | `PhoneNumber`, nullable string | No | string/null | exactly 10 digits when present | `^0\\d{9}$` | FE: invalid 10-digit phone; BE `MSG04`; Mobile equivalent | Aligns runtime BE/FE |
@@ -81,7 +83,18 @@ BE returns `401 auth.invalid_credentials`, `403 MSG_UNVERIFIED`, `403 auth.accou
 
 ## FORGOT PASSWORD
 
-No BE endpoint or DTO exists. FE `PasswordRecoveryFlow` and Mobile `ResetPasswordPage` use local/demo behavior. Their email/code/password rules are not a production contract and must not be copied into API models.
+BE exposes `POST /api/v1/auth/password-reset/request` with `{ "email" }` and
+`POST /api/v1/auth/password-reset/confirm` with
+`{ "email", "code", "newPassword" }`. Both success responses use a direct
+`{ "message" }` DTO. Mobile uses these anonymous endpoints and does not use
+Firebase Password Reset. Backend remains authoritative for OTP expiration,
+single use, the five-wrong-attempt limit, resend suppression, rate limiting,
+password validation, and refresh-token revocation.
+
+An HTTP `200` from the request endpoint means the request was accepted; it
+does not guarantee background SMTP delivery completed. Mobile uses neutral
+feedback, does not poll delivery state, and offers resend after its 60-second
+UI cooldown.
 
 ## PROFILE, SCHEDULING, AND BOOKING
 
@@ -96,9 +109,9 @@ FE legacy/mock UI and Mobile local screens do not establish API validation. Thes
 ## Concrete Mismatches
 
 1. Mobile `Validators.phone` treats blank phone as valid. This matches current BE/FE optional runtime behavior, but conflicts with older requirement documents that called phone mandatory.
-2. Mobile and FE error text is not identical to BE validator text. Error code-to-field mapping should be used where BE supplies codes; validation text should be centralized later without changing BE rules.
+2. Mobile preserves human-readable `ValidationProblemDetails.errors[field]` messages from the current Backend contract and normalizes only the known field names used by the UI. Business failures continue to use stable top-level codes where supplied.
 3. Mobile `RegisterCubit.registerTraveler` has a default `acceptedTerms = true`; production UI must always pass the checkbox value explicitly. A caller could otherwise bypass local terms validation, although BE still rejects `false`.
-4. Mobile password validation accepts leading/trailing spaces if the other policy rules pass; FE rejects them locally, while BE does not explicitly reject them. This is a FE/Mobile UX mismatch requiring a product decision before changing the rule.
+4. Mobile rejects leading/trailing whitespace locally while preserving internal whitespace. Backend remains authoritative and currently enforces length and character classes but does not duplicate this client UX check.
 5. FE register API type makes the Firebase ID token optional even though BE requires it; Mobile implementation treats it as required.
 6. Mobile strict response models correctly reject missing JWT fields for authenticated responses; register response is a separate non-JWT model and must remain separate.
 

@@ -228,6 +228,34 @@ void main() {
     expect(failure, isA<ServerFailure>());
   });
 
+  test('maps MSG127 to ServerFailure regardless of HTTP 400', () {
+    final failure = ErrorMapper.toFailure(
+      responseError(statusCode: 400, data: {'code': 'MSG127'}),
+    );
+
+    expect(failure, isA<ServerFailure>());
+  });
+
+  test('maps HTTP 429 to RateLimitFailure', () {
+    final failure = ErrorMapper.toFailure(responseError(statusCode: 429));
+
+    expect(failure, isA<RateLimitFailure>());
+  });
+
+  test('extracts an error code from every supported Backend envelope', () {
+    final cases = <Object, String>{
+      {'errorCode': 'TOP_LEVEL_ERROR_CODE'}: 'TOP_LEVEL_ERROR_CODE',
+      {'code': 'TOP_LEVEL_CODE'}: 'TOP_LEVEL_CODE',
+      {
+        'extensions': {'errorCode': 'EXTENSION_ERROR_CODE'},
+      }: 'EXTENSION_ERROR_CODE',
+    };
+
+    for (final entry in cases.entries) {
+      expect(ErrorMapper.extractErrorCode(entry.key), entry.value);
+    }
+  });
+
   test('maps planning HTTP outcomes to safe business failures', () {
     Failure failureFor(int statusCode) => ErrorMapper.toFailure(
       DioException(
@@ -241,7 +269,7 @@ void main() {
 
     expect(failureFor(409), isA<ConflictFailure>());
     expect(failureFor(422), isA<ConstraintFailure>());
-    expect(failureFor(429), isA<ServerFailure>());
+    expect(failureFor(429), isA<RateLimitFailure>());
     expect(failureFor(429).message, isNot(contains('routing')));
   });
 

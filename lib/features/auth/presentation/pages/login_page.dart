@@ -14,7 +14,9 @@ import 'package:trip_mate_mobile/shared/widgets/app_password_field.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({this.notice, super.key});
+
+  final String? notice;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -90,8 +92,18 @@ class _LoginPageState extends State<LoginPage> {
                   },
                 ),
                 const Expanded(child: Text('Keep me signed in')),
+                TextButton(
+                  onPressed: session.isLoading
+                      ? null
+                      : () => context.push(AppRoutes.forgotPassword),
+                  child: const Text('Forgot password?'),
+                ),
               ],
             ),
+            if (widget.notice != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              AppAlert(message: widget.notice!, type: AppAlertType.success),
+            ],
             // A completed local sign-out that could not reach the server
             // arrives as an unauthenticated state carrying the approved notice.
             if (session.status == AuthSessionStatus.failure ||
