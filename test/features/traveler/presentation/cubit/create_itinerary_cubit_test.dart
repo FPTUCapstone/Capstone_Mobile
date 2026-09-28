@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_cubit.dart';
@@ -219,6 +220,26 @@ final class _FailingRepository implements ItineraryRepository {
     keys.add(idempotencyKey);
     throw Exception('offline');
   }
+
+  @override
+  Future<ItineraryDetail> getById(int itineraryId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> accept(int itineraryId) => throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> regenerate({
+    required int itineraryId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> adjustItems({
+    required int itineraryId,
+    required List<int> orderedVisitPoiIds,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
 }
 
 final class _ConflictRepository implements ItineraryRepository {

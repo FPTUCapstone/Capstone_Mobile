@@ -49,6 +49,12 @@ final class PermissionFailure extends Failure {
   ]);
 }
 
+final class NotFoundFailure extends Failure {
+  const NotFoundFailure([
+    super.message = 'The requested resource could not be found.',
+  ]);
+}
+
 final class ValidationFailure extends Failure {
   const ValidationFailure(
     super.message, {

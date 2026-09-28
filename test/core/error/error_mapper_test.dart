@@ -256,6 +256,21 @@ void main() {
     }
   });
 
+  test('maps HTTP 404 to NotFoundFailure', () {
+    final failure = ErrorMapper.toFailure(
+      DioException(
+        requestOptions: RequestOptions(path: '/itineraries/10'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/itineraries/10'),
+          statusCode: 404,
+        ),
+      ),
+    );
+
+    expect(failure, isA<NotFoundFailure>());
+    expect(failure.message, 'The requested resource could not be found.');
+  });
+
   test('maps planning HTTP outcomes to safe business failures', () {
     Failure failureFor(int statusCode) => ErrorMapper.toFailure(
       DioException(

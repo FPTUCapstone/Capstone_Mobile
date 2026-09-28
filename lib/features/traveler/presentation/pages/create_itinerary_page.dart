@@ -84,7 +84,12 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
             }
             if (state.status == CreateItineraryStatus.success &&
                 state.result != null) {
-              context.push(AppRoutes.itineraryResult, extra: state.result);
+              context.pushNamed(
+                AppRouteNames.itineraryDetail,
+                pathParameters: {
+                  'itineraryId': state.result!.itineraryId.toString(),
+                },
+              );
             }
           },
         ),

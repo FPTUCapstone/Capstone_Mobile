@@ -47,6 +47,7 @@ abstract final class ErrorMapper {
     }
     if (statusCode == 401) return const AuthenticationFailure();
     if (statusCode == 403) return const PermissionFailure();
+    if (statusCode == 404) return const NotFoundFailure();
     if (statusCode == 409) {
       final (message, groupId) = _extractConflictDetails(responseData);
       return ConflictFailure(
