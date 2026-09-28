@@ -67,12 +67,6 @@ final class ValidationFailure extends Failure {
   List<Object?> get props => [message, fieldErrors];
 }
 
-final class NotFoundFailure extends Failure {
-  const NotFoundFailure([
-    super.message = 'Địa điểm không tồn tại hoặc đã đóng.',
-  ]);
-}
-
 final class LocationPermissionFailure extends Failure {
   const LocationPermissionFailure([
     super.message =

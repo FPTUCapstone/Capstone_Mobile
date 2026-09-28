@@ -312,6 +312,26 @@ final class _DeferredItineraryRepository implements ItineraryRepository {
     required ItineraryGenerationRequest request,
     required String idempotencyKey,
   }) => _completer.future;
+
+  @override
+  Future<ItineraryDetail> getById(int itineraryId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> accept(int itineraryId) => throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> regenerate({
+    required int itineraryId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> adjustItems({
+    required int itineraryId,
+    required List<int> orderedVisitPoiIds,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
 }
 
 final class _LocationService implements DeviceLocationService {

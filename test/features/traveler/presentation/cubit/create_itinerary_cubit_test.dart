@@ -253,6 +253,26 @@ final class _ConflictRepository implements ItineraryRepository {
     keys.add(idempotencyKey);
     throw ConflictFailure();
   }
+
+  @override
+  Future<ItineraryDetail> getById(int itineraryId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> accept(int itineraryId) => throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> regenerate({
+    required int itineraryId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> adjustItems({
+    required int itineraryId,
+    required List<int> orderedVisitPoiIds,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
 }
 
 final class _DelayedRepository implements ItineraryRepository {
@@ -272,4 +292,24 @@ final class _DelayedRepository implements ItineraryRepository {
   void complete(ItineraryGenerationRequest request, GeneratedItinerary result) {
     requests[request.availableMinutes.toString()]!.complete(result);
   }
+
+  @override
+  Future<ItineraryDetail> getById(int itineraryId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> accept(int itineraryId) => throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> regenerate({
+    required int itineraryId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> adjustItems({
+    required int itineraryId,
+    required List<int> orderedVisitPoiIds,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
 }
