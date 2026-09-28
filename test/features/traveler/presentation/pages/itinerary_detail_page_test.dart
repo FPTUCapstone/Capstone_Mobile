@@ -30,6 +30,14 @@ void main() {
     expect(find.text('Reorder or remove places'), findsOneWidget);
     expect(find.text('This place is currently unavailable.'), findsOneWidget);
     expect(find.text('Travel: 15 min'), findsOneWidget);
+
+    await tester.tap(find.text('Reorder or remove places'));
+    await tester.pumpAndSettle();
+
+    final list = tester.widget<ReorderableListView>(
+      find.byType(ReorderableListView),
+    );
+    expect(list.onReorderItem, isNotNull);
   });
 
   testWidgets('group member sees the timeline without owner actions', (

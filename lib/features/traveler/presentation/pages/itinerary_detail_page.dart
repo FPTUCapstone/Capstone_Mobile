@@ -236,8 +236,7 @@ final class _EditItemsSheetState extends State<_EditItemsSheet> {
               child: ReorderableListView.builder(
                 shrinkWrap: true,
                 itemCount: _items.length,
-                onReorder: (oldIndex, newIndex) => setState(() {
-                  if (newIndex > oldIndex) newIndex--;
+                onReorderItem: (oldIndex, newIndex) => setState(() {
                   final item = _items.removeAt(oldIndex);
                   _items.insert(newIndex, item);
                 }),
