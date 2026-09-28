@@ -63,7 +63,7 @@ final class ValidationFailure extends Failure {
 
 final class NotFoundFailure extends Failure {
   const NotFoundFailure([
-    super.message = 'Địa điểm không tồn tại hoặc đã đóng.',
+    super.message = 'The requested resource could not be found.',
   ]);
 }
 

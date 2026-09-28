@@ -44,6 +44,7 @@ import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_grou
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_cubit.dart';
 
 final GetIt serviceLocator = GetIt.instance;
 
@@ -138,6 +139,9 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerLazySingleton<PointOfInterestRepository>(
       () => PointOfInterestRepositoryImpl(dioClient: serviceLocator()),
+    )
+    ..registerFactory<TravelGroupMembersCubit>(
+      () => TravelGroupMembersCubit(repository: serviceLocator()),
     )
     ..registerFactory<AuthSessionCubit>(
       () => AuthSessionCubit(
