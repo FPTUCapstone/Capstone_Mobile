@@ -37,8 +37,60 @@ void main() {
     final list = tester.widget<ReorderableListView>(
       find.byType(ReorderableListView),
     );
-    expect(list.onReorderItem, isNotNull);
+    expect(list.onReorder, isNotNull);
   });
+
+  testWidgets('timeline keeps Vietnam itinerary time instead of device time', (
+    tester,
+  ) async {
+    final cubit = ItineraryDetailCubit(repository: _Repository(_ownerDetail));
+    addTearDown(cubit.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider.value(
+          value: cubit,
+          child: const ItineraryDetailPage(itineraryId: 10),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('08:00'), findsOneWidget);
+  });
+
+  testWidgets(
+    'saving a reordered timeline submits POI IDs in displayed order',
+    (tester) async {
+      final repository = _Repository(_ownerDetail);
+      final cubit = ItineraryDetailCubit(repository: repository);
+      addTearDown(cubit.close);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BlocProvider.value(
+            value: cubit,
+            child: const ItineraryDetailPage(itineraryId: 10),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Reorder or remove places'));
+      await tester.pumpAndSettle();
+
+      final list = tester.widget<ReorderableListView>(
+        find.byType(ReorderableListView),
+      );
+      list.onReorder(0, 2);
+      await tester.pump();
+      await tester.tap(find.text('Save adjustment'));
+      await tester.pumpAndSettle();
+
+      expect(repository.adjustedOrders, [
+        [102, 101],
+      ]);
+    },
+  );
 
   testWidgets('group member sees the timeline without owner actions', (
     tester,
@@ -173,6 +225,7 @@ final class _Repository implements ItineraryRepository {
 
   final ItineraryDetail detail;
   final Failure? failure;
+  final adjustedOrders = <List<int>>[];
 
   @override
   Future<GeneratedItinerary> generate({
@@ -200,5 +253,8 @@ final class _Repository implements ItineraryRepository {
     required int itineraryId,
     required List<int> orderedVisitPoiIds,
     required String idempotencyKey,
-  }) => throw UnimplementedError();
+  }) async {
+    adjustedOrders.add(List<int>.from(orderedVisitPoiIds));
+    return detail;
+  }
 }

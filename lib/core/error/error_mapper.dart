@@ -60,7 +60,8 @@ abstract final class ErrorMapper {
     if (statusCode == 422) {
       final data = error.response?.data;
       final errorCode = data is Map ? extractErrorCode(data) : null;
-      if (errorCode == 'planning.constraints_infeasible') {
+      if (errorCode == 'planning.constraints_infeasible' ||
+          errorCode == 'itinerary.constraints_infeasible') {
         final message = _extractSafePlanningMessage(data);
         return ConstraintFailure(message ?? const ConstraintFailure().message);
       }

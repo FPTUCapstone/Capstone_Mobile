@@ -309,4 +309,20 @@ void main() {
       'The selected time is too short for the required stops.',
     );
   });
+
+  test('preserves the UC-11 infeasible itinerary reason', () {
+    final failure = ErrorMapper.toFailure(
+      responseError(
+        statusCode: 422,
+        path: '/api/v1/itineraries/10/items',
+        data: {
+          'title': 'The selected order cannot produce an itinerary.',
+          'errorCode': 'itinerary.constraints_infeasible',
+        },
+      ),
+    );
+
+    expect(failure, isA<ConstraintFailure>());
+    expect(failure.message, 'The selected order cannot produce an itinerary.');
+  });
 }

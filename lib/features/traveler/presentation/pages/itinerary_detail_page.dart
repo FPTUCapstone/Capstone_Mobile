@@ -236,7 +236,10 @@ final class _EditItemsSheetState extends State<_EditItemsSheet> {
               child: ReorderableListView.builder(
                 shrinkWrap: true,
                 itemCount: _items.length,
-                onReorderItem: (oldIndex, newIndex) => setState(() {
+                onReorder: (oldIndex, newIndex) => setState(() {
+                  if (oldIndex < newIndex) {
+                    newIndex -= 1;
+                  }
                   final item = _items.removeAt(oldIndex);
                   _items.insert(newIndex, item);
                 }),
@@ -274,8 +277,10 @@ final class _EditItemsSheetState extends State<_EditItemsSheet> {
   }
 }
 
-String _formatTime(DateTime value) =>
-    '${value.toLocal().hour.toString().padLeft(2, '0')}:${value.toLocal().minute.toString().padLeft(2, '0')}';
+String _formatTime(DateTime value) {
+  final vietnamTime = value.toUtc().add(const Duration(hours: 7));
+  return '${vietnamTime.hour.toString().padLeft(2, '0')}:${vietnamTime.minute.toString().padLeft(2, '0')}';
+}
 
 String _duration(int minutes) {
   final hours = minutes ~/ 60;

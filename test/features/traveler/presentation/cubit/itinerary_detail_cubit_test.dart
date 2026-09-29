@@ -43,6 +43,19 @@ void main() {
     expect(cubit.state.message, 'This itinerary could not be found.');
   });
 
+  test('uses the successor ID for mutations after regeneration', () async {
+    final repository = _Repository(regeneratedDetail: _successorDetail);
+    final cubit = ItineraryDetailCubit(repository: repository);
+    addTearDown(cubit.close);
+
+    await cubit.load(10);
+    await cubit.regenerate();
+    await cubit.accept();
+
+    expect(repository.regeneratedIds, [10]);
+    expect(repository.acceptedIds, [15]);
+  });
+
   blocTest<ItineraryDetailCubit, ItineraryDetailState>(
     'preserves the edit operation key when the same adjustment is retried',
     build: () {
@@ -130,12 +143,29 @@ final _detail = ItineraryDetail(
   ],
 );
 
+final _successorDetail = ItineraryDetail(
+  itineraryId: 15,
+  schedulingRequestId: 20,
+  title: 'Day plan',
+  version: 2,
+  status: 'Draft',
+  validFrom: DateTime.utc(2026, 9, 20, 1),
+  validTo: DateTime.utc(2026, 9, 20, 5),
+  canManage: true,
+  totalEstimatedCost: 0,
+  totalDurationMinutes: 240,
+  items: _detail.items,
+);
+
 final class _Repository implements ItineraryRepository {
-  _Repository({this.failure, this.loadFailure});
+  _Repository({this.failure, this.loadFailure, this.regeneratedDetail});
 
   final Failure? failure;
   final Failure? loadFailure;
+  final ItineraryDetail? regeneratedDetail;
   final keys = <String>[];
+  final regeneratedIds = <int>[];
+  final acceptedIds = <int>[];
 
   @override
   Future<GeneratedItinerary> generate({
@@ -150,13 +180,19 @@ final class _Repository implements ItineraryRepository {
   }
 
   @override
-  Future<ItineraryDetail> accept(int itineraryId) => throw UnimplementedError();
+  Future<ItineraryDetail> accept(int itineraryId) async {
+    acceptedIds.add(itineraryId);
+    return regeneratedDetail ?? _detail;
+  }
 
   @override
   Future<ItineraryDetail> regenerate({
     required int itineraryId,
     required String idempotencyKey,
-  }) => throw UnimplementedError();
+  }) async {
+    regeneratedIds.add(itineraryId);
+    return regeneratedDetail ?? _detail;
+  }
 
   @override
   Future<ItineraryDetail> adjustItems({

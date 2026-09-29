@@ -68,6 +68,7 @@ final class ItineraryDetailCubit extends Cubit<ItineraryDetailState> {
     try {
       final detail = await _repository.accept(itineraryId);
       if (isClosed) return;
+      _itineraryId = detail.itineraryId;
       _resetOperation();
       emit(
         ItineraryDetailState(
@@ -100,6 +101,7 @@ final class ItineraryDetailCubit extends Cubit<ItineraryDetailState> {
         idempotencyKey: key,
       );
       if (isClosed) return;
+      _itineraryId = detail.itineraryId;
       _resetOperation();
       emit(
         ItineraryDetailState(
@@ -145,6 +147,7 @@ final class ItineraryDetailCubit extends Cubit<ItineraryDetailState> {
         idempotencyKey: key,
       );
       if (isClosed) return;
+      _itineraryId = detail.itineraryId;
       _resetOperation();
       emit(
         ItineraryDetailState(
