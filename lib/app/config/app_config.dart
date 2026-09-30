@@ -41,10 +41,21 @@ final class AppConfig {
     return 'https://api.example.invalid';
   }
 
+  @visibleForTesting
+  static Uri parseBaseUrl(String value) => _parseBaseUrl(value);
+
   static Uri _parseBaseUrl(String value) {
+    if (value.contains(RegExp(r'\s'))) {
+      throw FormatException('API_BASE_URL must not contain whitespace.', value);
+    }
     final uri = Uri.tryParse(value);
-    if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
-      throw FormatException('API_BASE_URL must be an absolute URL.', value);
+    if (uri == null ||
+        (uri.scheme != 'http' && uri.scheme != 'https') ||
+        uri.host.isEmpty) {
+      throw FormatException(
+        'API_BASE_URL must be an absolute HTTP or HTTPS URL with a non-empty host.',
+        value,
+      );
     }
     return uri;
   }
