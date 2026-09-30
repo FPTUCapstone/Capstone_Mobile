@@ -27,8 +27,8 @@ jobs:
             echo "API_BASE_URL GitHub Actions variable is required for demo APK builds."
             exit 1
           fi
-          if ! echo "$API_BASE_URL" | grep -Eq '^https?://'; then
-            echo "API_BASE_URL must be a valid HTTP or HTTPS URL: $API_BASE_URL"
+          if ! echo "$API_BASE_URL" | grep -Eq '^https?://[^/[:space:]]+(/[^[:space:]]*)?$'; then
+            echo "API_BASE_URL must be a valid HTTP or HTTPS URL with a non-empty host: $API_BASE_URL"
             exit 1
           fi
 
