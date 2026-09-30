@@ -22,12 +22,7 @@ void main() {
     });
 
     test('returns false for empty or whitespace-only inputs', () {
-      final invalidUrls = [
-        '',
-        '   ',
-        '\t',
-        '\n',
-      ];
+      final invalidUrls = ['', '   ', '\t', '\n'];
 
       for (final url in invalidUrls) {
         expect(
@@ -70,10 +65,7 @@ void main() {
       final exitCode = runValidateApiBaseUrl([], out: out, err: err);
 
       expect(exitCode, 1);
-      expect(
-        err.toString(),
-        contains('API_BASE_URL argument is missing'),
-      );
+      expect(err.toString(), contains('API_BASE_URL argument is missing'));
       expect(out.toString(), isEmpty);
     });
 
@@ -99,11 +91,7 @@ void main() {
       final err = StringBuffer();
       final out = StringBuffer();
 
-      final exitCode = runValidateApiBaseUrl(
-        ['https://'],
-        out: out,
-        err: err,
-      );
+      final exitCode = runValidateApiBaseUrl(['https://'], out: out, err: err);
 
       expect(exitCode, 1);
       expect(
