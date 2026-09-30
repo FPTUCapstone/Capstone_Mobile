@@ -23,7 +23,7 @@ jobs:
       # installable-for-testing APK, not a Play Store-ready release build. Switch to
       # `flutter build apk --release` once real signing secrets are set up.
       - name: Build debug APK
-        run: flutter build apk --debug
+        run: flutter build apk --debug --dart-define=API_BASE_URL=https://capstonebe-production-1df1.up.railway.app
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
