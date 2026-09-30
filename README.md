@@ -198,6 +198,17 @@ The UC-12 category chips are disabled in production until Backend publishes an a
 
 Do not place tokens or secrets in Dart defines or source control.
 
+### CI/CD Demo APK Configuration
+
+Automated GitHub Actions CI/CD workflows (PR CI and develop/main CD) build a debug demo APK with the backend endpoint injected at build time. These builds require a GitHub Actions repository variable:
+
+- Variable name: `API_BASE_URL`
+- Path in GitHub UI: **Settings** → **Secrets and variables** → **Actions** → **Variables** tab
+
+If `API_BASE_URL` is omitted or empty in GitHub Actions, the workflow fails fast before the build step to prevent distributing an APK with invalid backend routing.
+
+For local Android development without an explicit `API_BASE_URL` define, the app automatically falls back to `http://10.0.2.2:5000` for Android emulator host loopback. When targeting a remote or physical demo backend locally, supply `--dart-define=API_BASE_URL=<backend_url>` explicitly.
+
 ## Storage and Networking
 
 - `flutter_secure_storage` is reserved for access and refresh tokens.
