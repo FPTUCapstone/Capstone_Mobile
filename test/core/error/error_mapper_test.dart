@@ -40,7 +40,7 @@ void main() {
     ]);
   });
 
-  test('maps Poi.NotFound without leaking server details', () {
+  test('maps HTTP 404 to a generic NotFoundFailure', () {
     final failure = ErrorMapper.toFailure(
       responseError(
         statusCode: 404,
@@ -84,6 +84,7 @@ void main() {
     );
 
     expect(failure, isA<NotFoundFailure>());
+    expect(failure.message, 'The requested resource could not be found.');
   });
 
   test('maps HTTP 401 to AuthenticationFailure', () {

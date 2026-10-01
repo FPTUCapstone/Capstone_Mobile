@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_state.dart';
@@ -44,6 +45,10 @@ final class _MockTravelGroupRepository implements TravelGroupRepository {
     }
     return joinResult!;
   }
+
+  @override
+  Future<TravelGroupMembers> getTravelGroupMembers({required int groupId}) =>
+      throw UnimplementedError();
 }
 
 void main() {
