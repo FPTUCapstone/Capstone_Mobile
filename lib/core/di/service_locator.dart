@@ -39,11 +39,16 @@ import 'package:trip_mate_mobile/features/tour_search/domain/repositories/tour_s
 import 'package:trip_mate_mobile/features/tour_search/domain/usecases/search_tours_use_case.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/itinerary_repository_impl.dart';
+import 'package:trip_mate_mobile/features/traveler/data/repositories/group_location_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/point_of_interest_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_group_repository_impl.dart';
+import 'package:trip_mate_mobile/features/traveler/data/services/foreground_group_location_publisher.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/group_location_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/services/group_location_publisher.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/location_sharing_cubit.dart';
 
 final GetIt serviceLocator = GetIt.instance;
 
@@ -132,6 +137,24 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerLazySingleton<TravelGroupRepository>(
       () => TravelGroupRepositoryImpl(dioClient: serviceLocator()),
+    )
+    ..registerLazySingleton<GroupLocationRepository>(
+      () => GroupLocationRepositoryImpl(dioClient: serviceLocator()),
+    )
+    ..registerLazySingleton<GroupLocationDevice>(
+      GeolocatorGroupLocationDevice.new,
+    )
+    ..registerLazySingleton<GroupLocationPublisher>(
+      () => ForegroundGroupLocationPublisher(
+        repository: serviceLocator(),
+        device: serviceLocator(),
+      ),
+    )
+    ..registerFactory<LocationSharingCubit>(
+      () => LocationSharingCubit(
+        repository: serviceLocator(),
+        publisher: serviceLocator(),
+      ),
     )
     ..registerLazySingleton<ItineraryRepository>(
       () => ItineraryRepositoryImpl(dioClient: serviceLocator()),

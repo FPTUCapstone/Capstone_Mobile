@@ -29,7 +29,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>TripMate uses your location when you ask to search nearby points of interest or start your itinerary from where you are.</string>
+	<string>TripMate uses your location to show nearby points of interest and, only when you opt in, share your location with active members of a travel group while the app is open.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

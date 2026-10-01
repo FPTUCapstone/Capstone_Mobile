@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_details_page.dart';
 
@@ -11,6 +12,35 @@ void main() {
     inviteCode: 'HOIAN8KP',
     itineraryId: 10,
   );
+
+  testWidgets('active member can open group location sharing settings', (
+    tester,
+  ) async {
+    final router = GoRouter(
+      initialLocation: '/traveler/groups/42',
+      routes: [
+        GoRoute(
+          path: AppRoutes.travelGroupDetails,
+          name: AppRouteNames.travelGroupDetails,
+          builder: (_, _) =>
+              const TravelGroupDetailsPage(groupId: 42, group: group),
+        ),
+        GoRoute(
+          path: AppRoutes.groupLocationSharing,
+          name: AppRouteNames.groupLocationSharing,
+          builder: (_, _) =>
+              const Scaffold(body: Text('Location settings screen')),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.tap(find.text('Location sharing'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Location settings screen'), findsOneWidget);
+  });
 
   testWidgets('Host sees invitation action and existing code', (tester) async {
     await tester.pumpWidget(

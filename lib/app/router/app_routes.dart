@@ -20,6 +20,8 @@ abstract final class AppRoutes {
   static const travelerTravelGroups = '/traveler/groups';
   static const travelGroupDetails = '/traveler/groups/:groupId';
   static const inviteGroupMembers = '/traveler/groups/:groupId/invitation';
+  static const groupLocationSharing =
+      '/traveler/groups/:groupId/location-sharing';
   static const operator = '/operator';
   static const operatorApplication = '/operator/application';
 
@@ -49,6 +51,7 @@ abstract final class AppRouteNames {
   static const joinTravelGroup = 'join-travel-group';
   static const travelGroupDetails = 'travel-group-details';
   static const inviteGroupMembers = 'invite-group-members';
+  static const groupLocationSharing = 'group-location-sharing';
   static const operator = 'operator';
   static const operatorApplication = 'operator-application';
 }

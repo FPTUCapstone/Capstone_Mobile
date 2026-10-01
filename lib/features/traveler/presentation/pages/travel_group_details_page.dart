@@ -33,6 +33,17 @@ final class TravelGroupDetailsPage extends StatelessWidget {
             Text(
               isHost ? 'You are the Group Host.' : 'You are a Group Member.',
             ),
+          if (currentGroup != null) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => context.pushNamed(
+                AppRouteNames.groupLocationSharing,
+                pathParameters: {'groupId': groupId.toString()},
+              ),
+              icon: const Icon(Icons.location_on_outlined),
+              label: const Text('Location sharing'),
+            ),
+          ],
           if (currentGroup != null && isHost) ...[
             if (currentGroup.inviteCode?.isNotEmpty ?? false) ...[
               const SizedBox(height: 24),

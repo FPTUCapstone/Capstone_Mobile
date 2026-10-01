@@ -31,6 +31,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_iti
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/invite_group_members_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/location_sharing_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/poi_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_itinerary_page.dart';
@@ -38,6 +39,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_tra
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/invite_group_members_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_result_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/join_travel_group_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/location_sharing_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_details_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_preferences_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_profile_page.dart';
@@ -216,6 +218,21 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
               _ => null,
             },
             isHost: args is TravelGroupDetailsRouteArgs && args.isHost,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.groupLocationSharing,
+        name: AppRouteNames.groupLocationSharing,
+        builder: (_, state) {
+          final groupId = int.tryParse(state.pathParameters['groupId'] ?? '');
+          if (groupId == null || groupId <= 0) {
+            return const ErrorView(message: 'Page not found.');
+          }
+          return BlocProvider(
+            create: (_) =>
+                serviceLocator<LocationSharingCubit>()..load(groupId),
+            child: LocationSharingPage(groupId: groupId),
           );
         },
       ),
