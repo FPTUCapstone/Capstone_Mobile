@@ -26,11 +26,13 @@ import 'package:trip_mate_mobile/features/poi/presentation/pages/poi_detail_page
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/pages/tour_search_page.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/invite_group_members_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/itinerary_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/poi_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_cubit.dart';
@@ -39,6 +41,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/pages/active_tri
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_itinerary_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_travel_group_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/invite_group_members_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_detail_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_result_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/join_travel_group_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/offline_trip_package_page.dart';
@@ -170,6 +173,22 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         ),
       ),
       GoRoute(
+        path: AppRoutes.itineraryDetail,
+        name: AppRouteNames.itineraryDetail,
+        builder: (_, state) {
+          final itineraryId = int.tryParse(
+            state.pathParameters['itineraryId'] ?? '',
+          );
+          if (itineraryId == null || itineraryId <= 0) {
+            return const ErrorView(message: 'Your itinerary is unavailable.');
+          }
+          return BlocProvider(
+            create: (_) => ItineraryDetailCubit(repository: serviceLocator()),
+            child: ItineraryDetailPage(itineraryId: itineraryId),
+          );
+        },
+      ),
+      GoRoute(
         path: AppRoutes.itineraryResult,
         name: AppRouteNames.itineraryResult,
         builder: (_, state) {
@@ -266,11 +285,19 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
           if (itineraryId == null || itineraryId <= 0) {
             return const ErrorView(message: 'Page not found.');
           }
-          final title = state.extra is String
-              ? state.extra as String
-              : 'Đà Nẵng Day Trip';
           final isDemo =
               kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final extraTitle = switch (state.extra) {
+            String title when title.trim().isNotEmpty => title.trim(),
+            GeneratedItinerary it when it.title.trim().isNotEmpty =>
+              it.title.trim(),
+            ItineraryDetail d when (d.title?.trim().isNotEmpty ?? false) =>
+              d.title!.trim(),
+            _ => null,
+          };
+          final title = isDemo
+              ? (extraTitle ?? 'Đà Nẵng Day Trip')
+              : extraTitle;
           return ActiveTripPage(
             itineraryId: itineraryId,
             title: title,
@@ -303,11 +330,19 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
           if (itineraryId == null || itineraryId <= 0) {
             return const ErrorView(message: 'Page not found.');
           }
-          final title = state.extra is String
-              ? state.extra as String
-              : 'Đà Nẵng City Explorer';
           final isDemo =
               kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final extraTitle = switch (state.extra) {
+            String title when title.trim().isNotEmpty => title.trim(),
+            GeneratedItinerary it when it.title.trim().isNotEmpty =>
+              it.title.trim(),
+            ItineraryDetail d when (d.title?.trim().isNotEmpty ?? false) =>
+              d.title!.trim(),
+            _ => null,
+          };
+          final title = isDemo
+              ? (extraTitle ?? 'Đà Nẵng City Explorer')
+              : extraTitle;
           return OfflineTripPackagePage(
             itineraryId: itineraryId,
             title: title,

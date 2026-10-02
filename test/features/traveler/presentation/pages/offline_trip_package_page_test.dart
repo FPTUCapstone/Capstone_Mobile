@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/offline_trip_package.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/offline_trip_package_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/demo/active_trip_demo_fixtures.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/offline_trip_package_page.dart';
@@ -8,21 +13,139 @@ import 'package:trip_mate_mobile/features/traveler/presentation/pages/offline_tr
 void main() {
   Widget buildTestWidget({
     OfflineTripPackageCubit? cubit,
+    String? title,
+    ItineraryRepository? repository,
     bool isDemoMode = false,
   }) {
     return MaterialApp(
       home: OfflineTripPackagePage(
         itineraryId: 101,
-        title: 'Đà Nẵng City Explorer',
+        title: title,
         cubit: cubit,
+        repository: repository,
         isDemoMode: isDemoMode,
       ),
     );
   }
 
-  group('OfflineTripPackagePage', () {
+  group('OfflineTripPackagePage Production Mode (UC-16 Truthful)', () {
     testWidgets(
-      'renders package details and download button for fresh package',
+      'production mode does NOT show fake package values (85.0 MB, 2.5 MB, 31.0 MB, 18 km, Zoom 12-16)',
+      (tester) async {
+        await tester.pumpWidget(
+          buildTestWidget(title: 'Real Trip', isDemoMode: false),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining('85.0 MB'), findsNothing);
+        expect(find.textContaining('2.5 MB'), findsNothing);
+        expect(find.textContaining('31.0 MB'), findsNothing);
+        expect(find.textContaining('18 km'), findsNothing);
+        expect(find.textContaining('Zoom 12-16'), findsNothing);
+        expect(find.text('Package Contents'), findsNothing);
+        expect(find.textContaining('GB available'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'production UC-16 immediately shows the truthful unavailable/integration-pending state',
+      (tester) async {
+        await tester.pumpWidget(
+          buildTestWidget(title: 'Real Trip', isDemoMode: false),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Offline Access'), findsOneWidget);
+        expect(find.text('Real Trip'), findsOneWidget);
+        expect(
+          find.text('Offline package is not available yet'),
+          findsOneWidget,
+        );
+        expect(
+          find.textContaining(
+            'Offline map and itinerary download is not currently available because the required trip-package service and local persistence integration are not yet connected.',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Back to itinerary'), findsOneWidget);
+      },
+    );
+
+    testWidgets('production UC-16 has no actionable fake Download button', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildTestWidget(title: 'Real Trip', isDemoMode: false),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Download for Offline Use'), findsNothing);
+      expect(find.byIcon(Icons.download_rounded), findsNothing);
+    });
+
+    testWidgets(
+      'direct Offline route without state.extra does NOT fabricate "Đà Nẵng City Explorer"',
+      (tester) async {
+        final repo = _FakeItineraryRepository(
+          detail: _createSampleDetail(
+            itineraryId: 101,
+            title: 'Hue Cultural Journey',
+          ),
+        );
+
+        await tester.pumpWidget(
+          buildTestWidget(title: null, repository: repo, isDemoMode: false),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Đà Nẵng City Explorer'), findsNothing);
+        expect(find.text('Hue Cultural Journey'), findsOneWidget);
+      },
+    );
+
+    testWidgets('shows loading state while metadata is being retrieved', (
+      tester,
+    ) async {
+      final completer = Completer<ItineraryDetail>();
+      final repo = _CompleterItineraryRepository(completer);
+
+      await tester.pumpWidget(
+        buildTestWidget(title: null, repository: repo, isDemoMode: false),
+      );
+      await tester.pump();
+
+      expect(find.text('Offline Access'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text('Loading trip information...'), findsOneWidget);
+
+      completer.complete(
+        _createSampleDetail(itineraryId: 101, title: 'Loaded Trip'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Loaded Trip'), findsOneWidget);
+    });
+
+    testWidgets('shows error state when metadata retrieval fails', (
+      tester,
+    ) async {
+      final repo = _FakeItineraryRepository(shouldThrow: true);
+
+      await tester.pumpWidget(
+        buildTestWidget(title: null, repository: repo, isDemoMode: false),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Trip information unavailable.'), findsOneWidget);
+      expect(find.text('Could not load itinerary #101.'), findsOneWidget);
+      expect(find.text('Retry'), findsOneWidget);
+      expect(find.text('Go back'), findsOneWidget);
+    });
+  });
+
+  group('OfflineTripPackagePage Demo Mode (UC-16 Preview)', () {
+    testWidgets(
+      'explicit demo mode DOES show the intended package-preview experience and fixtures',
       (tester) async {
         final notDownloadedPackage =
             ActiveTripDemoFixtures.createSampleOfflinePackage(
@@ -44,7 +167,10 @@ void main() {
 
         expect(find.text('Offline Access'), findsOneWidget);
         expect(find.text('Đà Nẵng City Explorer'), findsOneWidget);
-        expect(find.textContaining('118.5 MB'), findsWidgets);
+        expect(find.text('Package Contents'), findsOneWidget);
+        expect(find.textContaining('85.0 MB'), findsWidgets);
+        expect(find.textContaining('2.5 MB'), findsWidgets);
+        expect(find.textContaining('31.0 MB'), findsWidgets);
         expect(find.text('Download for Offline Use'), findsOneWidget);
 
         await cubit.close();
@@ -54,7 +180,9 @@ void main() {
     testWidgets('DEMO controls are absent when isDemoMode is false', (
       tester,
     ) async {
-      await tester.pumpWidget(buildTestWidget(isDemoMode: false));
+      await tester.pumpWidget(
+        buildTestWidget(title: 'Real Trip', isDemoMode: false),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byTooltip('DEMO_ONLY Controls'), findsNothing);
@@ -193,4 +321,92 @@ void main() {
       await cubit.close();
     });
   });
+}
+
+ItineraryDetail _createSampleDetail({
+  required int itineraryId,
+  required String title,
+}) {
+  return ItineraryDetail(
+    itineraryId: itineraryId,
+    schedulingRequestId: 1,
+    title: title,
+    version: 1,
+    status: 'Active',
+    validFrom: null,
+    validTo: null,
+    canManage: true,
+    totalEstimatedCost: 150000,
+    totalDurationMinutes: 180,
+    items: const [],
+  );
+}
+
+final class _FakeItineraryRepository implements ItineraryRepository {
+  _FakeItineraryRepository({this.detail, this.shouldThrow = false});
+
+  final ItineraryDetail? detail;
+  final bool shouldThrow;
+
+  @override
+  Future<ItineraryDetail> getById(int itineraryId) async {
+    if (shouldThrow) {
+      throw Exception('Server unreachable');
+    }
+    return detail ??
+        _createSampleDetail(itineraryId: itineraryId, title: 'Sample Trip');
+  }
+
+  @override
+  Future<GeneratedItinerary> generate({
+    required ItineraryGenerationRequest request,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> accept(int itineraryId) => throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> adjustItems({
+    required int itineraryId,
+    required List<int> orderedVisitPoiIds,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> regenerate({
+    required int itineraryId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+}
+
+final class _CompleterItineraryRepository implements ItineraryRepository {
+  _CompleterItineraryRepository(this.completer);
+
+  final Completer<ItineraryDetail> completer;
+
+  @override
+  Future<ItineraryDetail> getById(int itineraryId) => completer.future;
+
+  @override
+  Future<GeneratedItinerary> generate({
+    required ItineraryGenerationRequest request,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> accept(int itineraryId) => throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> adjustItems({
+    required int itineraryId,
+    required List<int> orderedVisitPoiIds,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> regenerate({
+    required int itineraryId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
 }

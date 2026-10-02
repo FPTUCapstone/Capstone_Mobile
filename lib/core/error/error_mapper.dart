@@ -48,6 +48,7 @@ abstract final class ErrorMapper {
     }
     if (statusCode == 401) return const AuthenticationFailure();
     if (statusCode == 403) return const PermissionFailure();
+    if (statusCode == 404) return const NotFoundFailure();
     if (statusCode == 409) {
       final (message, groupId) = _extractConflictDetails(responseData);
       return ConflictFailure(
@@ -60,7 +61,8 @@ abstract final class ErrorMapper {
     if (statusCode == 422) {
       final data = error.response?.data;
       final errorCode = data is Map ? extractErrorCode(data) : null;
-      if (errorCode == 'planning.constraints_infeasible') {
+      if (errorCode == 'planning.constraints_infeasible' ||
+          errorCode == 'itinerary.constraints_infeasible') {
         final message = _extractSafePlanningMessage(data);
         return ConstraintFailure(message ?? const ConstraintFailure().message);
       }
