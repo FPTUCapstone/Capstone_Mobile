@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_details_page.dart';
 
@@ -12,17 +13,53 @@ void main() {
     itineraryId: 10,
   );
 
-  testWidgets('Host sees invitation action and existing code', (tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: TravelGroupDetailsPage(groupId: 42, group: group, isHost: true),
-      ),
+  testWidgets('View members preserves details in the back stack', (
+    tester,
+  ) async {
+    final router = GoRouter(
+      initialLocation: '/traveler/groups/42',
+      routes: [
+        GoRoute(
+          path: AppRoutes.travelGroupDetails,
+          name: AppRouteNames.travelGroupDetails,
+          builder: (_, _) =>
+              const TravelGroupDetailsPage(groupId: 42, group: group),
+        ),
+        GoRoute(
+          path: AppRoutes.travelGroupMembers,
+          name: AppRouteNames.travelGroupMembers,
+          builder: (_, _) => const Scaffold(body: Text('Members screen')),
+        ),
+      ],
     );
+    addTearDown(router.dispose);
 
-    expect(find.text('You are the Group Host.'), findsOneWidget);
-    expect(find.text('Invite code: HOIAN8KP'), findsOneWidget);
-    expect(find.text('Invite Members'), findsOneWidget);
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.tap(find.text('View members'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Members screen'), findsOneWidget);
+    expect(router.canPop(), isTrue);
+    router.pop();
+    await tester.pumpAndSettle();
+    expect(find.text('Da Nang Group'), findsOneWidget);
   });
+
+  testWidgets(
+    'Host sees invitation action, members action, and existing code',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: TravelGroupDetailsPage(groupId: 42, group: group, isHost: true),
+        ),
+      );
+
+      expect(find.text('You are the Group Host.'), findsOneWidget);
+      expect(find.text('Invite code: HOIAN8KP'), findsOneWidget);
+      expect(find.text('View members'), findsOneWidget);
+      expect(find.text('Invite Members'), findsOneWidget);
+    },
+  );
 
   testWidgets('member never sees Host controls even with invite code', (
     tester,
@@ -36,6 +73,7 @@ void main() {
     expect(find.text('You are a Group Member.'), findsOneWidget);
     expect(find.text('You are the Group Host.'), findsNothing);
     expect(find.textContaining('Invite code:'), findsNothing);
+    expect(find.text('View members'), findsOneWidget);
     expect(find.text('Invite Members'), findsNothing);
   });
 
@@ -47,6 +85,7 @@ void main() {
     );
 
     expect(find.text('You are the Group Host.'), findsNothing);
+    expect(find.text('View members'), findsOneWidget);
     expect(find.text('Invite Members'), findsNothing);
   });
 
@@ -62,6 +101,7 @@ void main() {
     expect(find.text('Travel Group #99'), findsOneWidget);
     expect(find.text('You are the Group Host.'), findsNothing);
     expect(find.textContaining('Invite code:'), findsNothing);
+    expect(find.text('View members'), findsOneWidget);
     expect(find.text('Invite Members'), findsNothing);
   });
 
@@ -81,7 +121,7 @@ void main() {
         ),
         GoRoute(
           path: '/group/:groupId/invitation',
-          name: 'invite-group-members',
+          name: AppRouteNames.inviteGroupMembers,
           builder: (_, state) => Scaffold(
             appBar: AppBar(title: const Text('Invitation')),
             body: Text('Invitation for ${state.pathParameters['groupId']}'),
@@ -100,5 +140,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Da Nang Group'), findsOneWidget);
     expect(find.text('Invite Members'), findsOneWidget);
+    expect(find.text('View members'), findsOneWidget);
   });
 }

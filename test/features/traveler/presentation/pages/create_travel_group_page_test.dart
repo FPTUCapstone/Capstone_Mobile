@@ -6,6 +6,7 @@ import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/router/travel_group_details_route_args.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_travel_group_page.dart';
@@ -45,6 +46,10 @@ final class _MockRepository implements TravelGroupRepository {
   }) async {
     return const TravelGroup(id: 1, name: 'Test Group', inviteCode: 'ABC12345');
   }
+
+  @override
+  Future<TravelGroupMembers> getTravelGroupMembers({required int groupId}) =>
+      throw UnimplementedError();
 }
 
 void main() {

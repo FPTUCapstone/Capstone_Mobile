@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/invite_group_members_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/invite_group_members_state.dart';
@@ -18,6 +19,11 @@ abstract class _TravelGroupRepositoryFake implements TravelGroupRepository {
   Future<TravelGroup> joinTravelGroup({
     required String invitationCode,
     required String idempotencyKey,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<TravelGroupMembers> getTravelGroupMembers({
+    required int groupId,
   }) async => throw UnimplementedError();
 }
 

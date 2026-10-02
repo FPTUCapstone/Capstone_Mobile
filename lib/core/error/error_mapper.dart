@@ -44,6 +44,7 @@ abstract final class ErrorMapper {
           'The selected itinerary was not found. Please choose another itinerary.',
         );
       }
+      return const NotFoundFailure();
     }
     if (statusCode == 401) return const AuthenticationFailure();
     if (statusCode == 403) return const PermissionFailure();

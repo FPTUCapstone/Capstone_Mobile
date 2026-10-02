@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_state.dart';
@@ -38,6 +39,10 @@ final class _SuccessRepository implements TravelGroupRepository {
     required String invitationCode,
     required String idempotencyKey,
   }) async => _result;
+
+  @override
+  Future<TravelGroupMembers> getTravelGroupMembers({required int groupId}) =>
+      throw UnimplementedError();
 }
 
 final class _FailureRepository implements TravelGroupRepository {
@@ -67,6 +72,10 @@ final class _FailureRepository implements TravelGroupRepository {
     required String invitationCode,
     required String idempotencyKey,
   }) async => throw Exception('server error');
+
+  @override
+  Future<TravelGroupMembers> getTravelGroupMembers({required int groupId}) =>
+      throw UnimplementedError();
 }
 
 final class _TypedFailureRepository implements TravelGroupRepository {
@@ -97,6 +106,10 @@ final class _TypedFailureRepository implements TravelGroupRepository {
     required String invitationCode,
     required String idempotencyKey,
   }) async => throw failure;
+
+  @override
+  Future<TravelGroupMembers> getTravelGroupMembers({required int groupId}) =>
+      throw UnimplementedError();
 }
 
 final class _TrackingRepository implements TravelGroupRepository {
@@ -149,6 +162,10 @@ final class _TrackingRepository implements TravelGroupRepository {
     required String invitationCode,
     required String idempotencyKey,
   }) => throw UnimplementedError();
+
+  @override
+  Future<TravelGroupMembers> getTravelGroupMembers({required int groupId}) =>
+      throw UnimplementedError();
 }
 
 // --------------------------------------------------------------------------

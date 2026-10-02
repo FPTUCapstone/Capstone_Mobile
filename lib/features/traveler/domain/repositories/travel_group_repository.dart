@@ -1,5 +1,6 @@
 import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
 
 /// Abstract contract for travel group data operations.
 ///
@@ -32,4 +33,7 @@ abstract interface class TravelGroupRepository {
     required String invitationCode,
     required String idempotencyKey,
   });
+
+  /// Gets privacy-safe details for the active members of a travel group.
+  Future<TravelGroupMembers> getTravelGroupMembers({required int groupId});
 }

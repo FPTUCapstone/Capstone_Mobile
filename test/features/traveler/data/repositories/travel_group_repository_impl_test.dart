@@ -201,6 +201,22 @@ void main() {
       expect(group.name, 'Hoi An Friends');
       expect(group.itineraryId, 21);
     });
+
+    test('gets the UC19 members endpoint and maps the response', () async {
+      final dioClient = _createDioClient();
+      final adapter = _RecordingHttpClientAdapter(
+        body:
+            '{"groupId":42,"groupName":"Da Nang Weekend","itineraryId":10,"memberCount":1,"members":[{"memberId":101,"displayName":"Khanh Phan","avatarUrl":null,"isHost":true,"joinedAtUtc":"2026-09-21T09:00:00Z","locationSharingEnabled":false}]}',
+      );
+      dioClient.dio.httpClientAdapter = adapter;
+      final repository = TravelGroupRepositoryImpl(dioClient: dioClient);
+
+      final result = await repository.getTravelGroupMembers(groupId: 42);
+
+      expect(adapter.request?.path, '/api/v1/travel-groups/42/members');
+      expect(result.groupName, 'Da Nang Weekend');
+      expect(result.members.single.isHost, isTrue);
+    });
   });
 }
 
