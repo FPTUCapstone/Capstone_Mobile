@@ -6,7 +6,8 @@ import 'package:trip_mate_mobile/features/traveler/presentation/demo/active_trip
 class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
   OfflineTripPackageCubit({
     required int itineraryId,
-    String title = 'Đà Nẵng City Explorer',
+    String? title,
+    int version = 1,
     OfflineTripPackage? initialPackage,
     double initialFreeStorageMb = 14200.0,
     String initialDownloadStepDescription = '',
@@ -18,16 +19,18 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
                (isDemoMode
                    ? ActiveTripDemoFixtures.createSampleOfflinePackage(
                        itineraryId: itineraryId,
-                       title: title,
+                       title: title ?? 'Đà Nẵng City Explorer',
                      )
                    : OfflineTripPackage(
                        itineraryId: itineraryId,
-                       title: title,
-                       version: 1,
-                       status: OfflinePackageStatus.notDownloaded,
+                       title: title ?? 'Trip #$itineraryId',
+                       version: version,
+                       status: OfflinePackageStatus.unavailable,
                        totalSizeMb: 0.0,
+                       errorMessage:
+                           'Offline map and itinerary download is not currently available because the required trip-package service and local persistence integration are not yet connected.',
                      )),
-           deviceFreeStorageMb: initialFreeStorageMb,
+           deviceFreeStorageMb: isDemoMode ? initialFreeStorageMb : 0.0,
            downloadStepDescription: initialDownloadStepDescription,
            isDemoMode: isDemoMode,
          ),
@@ -38,6 +41,20 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
   /// 1. Package size <= 150 MB configured ceiling (BR-37).
   /// 2. Device free space >= 150 MB minimum required space.
   Future<void> startDownload() async {
+    if (!state.isDemoMode) {
+      emit(
+        state.copyWith(
+          package: state.package.copyWith(
+            status: OfflinePackageStatus.unavailable,
+            errorMessage:
+                'Offline map and itinerary download is not currently available because the required trip-package service and local persistence integration are not yet connected.',
+          ),
+          downloadStepDescription: 'Download service unavailable.',
+        ),
+      );
+      return;
+    }
+
     final pkg = state.package;
 
     // Transition to checking storage
@@ -78,7 +95,7 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
       return;
     }
 
-    // Start download stream simulation
+    // Start download stream simulation (DEMO ONLY)
     emit(
       state.copyWith(
         package: pkg.copyWith(
@@ -89,49 +106,36 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
       ),
     );
 
-    // If demo mode, progress through steps
-    if (state.isDemoMode) {
-      emit(
-        state.copyWith(
-          package: state.package.copyWith(progressPercent: 55.0),
-          downloadStepDescription: 'Downloading POI photos & information...',
-        ),
-      );
+    emit(
+      state.copyWith(
+        package: state.package.copyWith(progressPercent: 55.0),
+        downloadStepDescription: 'Downloading POI photos & information...',
+      ),
+    );
 
-      emit(
-        state.copyWith(
-          package: state.package.copyWith(progressPercent: 88.0),
-          downloadStepDescription: 'Downloading offline area map tiles...',
-        ),
-      );
+    emit(
+      state.copyWith(
+        package: state.package.copyWith(progressPercent: 88.0),
+        downloadStepDescription: 'Downloading offline area map tiles...',
+      ),
+    );
 
-      // Successfully stored (BR-38)
-      emit(
-        state.copyWith(
-          package: state.package.copyWith(
-            status: OfflinePackageStatus.available,
-            progressPercent: 100.0,
-            lastDownloadedAt: DateTime.now(),
-          ),
-          downloadStepDescription: 'Offline package ready.',
+    // Successfully stored (BR-38)
+    emit(
+      state.copyWith(
+        package: state.package.copyWith(
+          status: OfflinePackageStatus.available,
+          progressPercent: 100.0,
+          lastDownloadedAt: DateTime.now(),
         ),
-      );
-    } else {
-      // Production mode: download service / backend packaging is not implemented yet.
-      emit(
-        state.copyWith(
-          package: state.package.copyWith(
-            status: OfflinePackageStatus.error,
-            errorMessage: 'Offline download service is currently unavailable.',
-          ),
-          downloadStepDescription: 'Download service unavailable.',
-        ),
-      );
-    }
+        downloadStepDescription: 'Offline package ready.',
+      ),
+    );
   }
 
   /// Cancels in-progress download. Discards partial download (BR-38).
   void cancelDownload() {
+    if (!state.isDemoMode) return;
     emit(
       state.copyWith(
         package: state.package.copyWith(
@@ -145,6 +149,7 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
 
   /// Removes downloaded package from local device storage.
   void removeOfflineData() {
+    if (!state.isDemoMode) return;
     emit(
       state.copyWith(
         package: state.package.copyWith(
@@ -161,7 +166,7 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
   /// Refreshes superseded offline package.
   /// Retains current version available until replacement download finishes.
   Future<void> refreshSupersededPackage() async {
-    // Retains existing version while downloading update
+    if (!state.isDemoMode) return;
     await startDownload();
   }
 

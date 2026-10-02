@@ -180,7 +180,7 @@ void main() {
         expect(prodCubit.state.package.totalSizeMb, 0.0);
         expect(
           prodCubit.state.package.status,
-          OfflinePackageStatus.notDownloaded,
+          OfflinePackageStatus.unavailable,
         );
         expect(prodCubit.state.package.lastDownloadedAt, isNull);
 
@@ -193,12 +193,20 @@ void main() {
       () async {
         final prodCubit = OfflineTripPackageCubit(itineraryId: 202);
 
+        expect(
+          prodCubit.state.package.status,
+          OfflinePackageStatus.unavailable,
+        );
+
         await prodCubit.startDownload();
 
-        expect(prodCubit.state.package.status, OfflinePackageStatus.error);
+        expect(
+          prodCubit.state.package.status,
+          OfflinePackageStatus.unavailable,
+        );
         expect(
           prodCubit.state.package.errorMessage,
-          'Offline download service is currently unavailable.',
+          contains('not currently available'),
         );
 
         await prodCubit.close();

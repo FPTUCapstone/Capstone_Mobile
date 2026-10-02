@@ -1,5 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/demo/active_trip_demo_fixtures.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/active_trip_page.dart';
@@ -8,12 +13,18 @@ import 'package:trip_mate_mobile/features/traveler/presentation/widgets/reroute_
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_alert_banner.dart';
 
 void main() {
-  Widget buildTestWidget({ActiveTripCubit? cubit, bool isDemoMode = false}) {
+  Widget buildTestWidget({
+    ActiveTripCubit? cubit,
+    String? title,
+    ItineraryRepository? repository,
+    bool isDemoMode = false,
+  }) {
     return MaterialApp(
       home: ActiveTripPage(
         itineraryId: 101,
-        title: 'Đà Nẵng City Explorer',
+        title: title,
         cubit: cubit,
+        repository: repository,
         isDemoMode: isDemoMode,
       ),
     );
@@ -98,29 +109,56 @@ void main() {
       },
     );
 
-    testWidgets('DEMO controls are absent when isDemoMode is false', (
-      tester,
-    ) async {
-      await tester.pumpWidget(buildTestWidget(isDemoMode: false));
-      await tester.pumpAndSettle();
-
-      expect(find.byTooltip('DEMO_ONLY Controls'), findsNothing);
-      expect(find.byIcon(Icons.build_circle_outlined), findsNothing);
-    });
-
     testWidgets(
-      'DEMO controls appear when explicitly constructed with isDemoMode true',
+      'production mode (isDemoMode: false) does NOT render DEMO_ONLY Controls banner',
       (tester) async {
-        await tester.pumpWidget(buildTestWidget(isDemoMode: true));
+        final cubit = ActiveTripCubit(
+          itineraryId: 101,
+          itineraryTitle: 'Real Trip',
+          isDemoMode: false,
+        );
+
+        await tester.pumpWidget(
+          buildTestWidget(cubit: cubit, isDemoMode: false),
+        );
         await tester.pumpAndSettle();
 
-        expect(find.byTooltip('DEMO_ONLY Controls'), findsOneWidget);
-        expect(find.byIcon(Icons.build_circle_outlined), findsOneWidget);
+        expect(find.text('DEMO_ONLY Controls'), findsNothing);
+        expect(find.byTooltip('DEMO_ONLY Controls'), findsNothing);
+        expect(find.byIcon(Icons.build_circle_outlined), findsNothing);
+
+        await cubit.close();
       },
     );
 
     testWidgets(
-      'renders active alert banner and dismissing it retains history',
+      'demo mode (isDemoMode: true) DOES render DEMO_ONLY Controls banner',
+      (tester) async {
+        final cubit = ActiveTripCubit(
+          itineraryId: 101,
+          itineraryTitle: 'Demo Trip',
+          isDemoMode: true,
+        );
+
+        await tester.pumpWidget(
+          buildTestWidget(cubit: cubit, isDemoMode: true),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byTooltip('DEMO_ONLY Controls'), findsOneWidget);
+        expect(find.byIcon(Icons.build_circle_outlined), findsOneWidget);
+
+        await tester.tap(find.byIcon(Icons.build_circle_outlined));
+        await tester.pumpAndSettle();
+
+        expect(find.text('DEMO_ONLY Test Controls'), findsOneWidget);
+
+        await cubit.close();
+      },
+    );
+
+    testWidgets(
+      'renders dismissible TripAlertBanner when undismissed alert is present',
       (tester) async {
         final cubit = ActiveTripCubit(
           itineraryId: 101,
@@ -135,16 +173,15 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Alert banner is visible
         expect(find.byType(TripAlertBanner), findsOneWidget);
-        expect(find.text('CRITICAL ALERT'), findsOneWidget);
+        expect(find.textContaining('Severe weather warning'), findsOneWidget);
 
         await cubit.close();
       },
     );
 
     testWidgets(
-      'reroute proposal sheet displays comparison and strict consent buttons',
+      'shows RerouteProposalSheet when proposal is triggered and handles accept',
       (tester) async {
         final cubit = ActiveTripCubit(
           itineraryId: 101,
@@ -159,21 +196,46 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Present proposal
-        cubit.openRerouteProposal(
-          ActiveTripDemoFixtures.createSampleRerouteProposal(),
+        expect(find.byType(RerouteProposalSheet), findsNothing);
+
+        cubit.openRerouteProposal();
+        await tester.pumpAndSettle();
+
+        expect(find.byType(RerouteProposalSheet), findsOneWidget);
+        expect(find.text('Suggested Route Change'), findsOneWidget);
+        expect(find.text('Reason for Re-routing'), findsOneWidget);
+
+        await tester.tap(find.text('Accept Re-routing'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(RerouteProposalSheet), findsNothing);
+        expect(cubit.state.itineraryVersion, 2);
+
+        await cubit.close();
+      },
+    );
+
+    testWidgets(
+      'declining RerouteProposalSheet retains original route without incrementing version',
+      (tester) async {
+        final cubit = ActiveTripCubit(
+          itineraryId: 101,
+          itineraryTitle: 'Đà Nẵng City Explorer',
+          initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
+          initialAlerts: const [],
+          isDemoMode: true,
+        );
+
+        await tester.pumpWidget(
+          buildTestWidget(cubit: cubit, isDemoMode: true),
         );
         await tester.pumpAndSettle();
 
-        // Reroute proposal sheet is rendered
+        cubit.openRerouteProposal();
+        await tester.pumpAndSettle();
+
         expect(find.byType(RerouteProposalSheet), findsOneWidget);
-        expect(find.text('Suggested Route Change'), findsOneWidget);
 
-        // Explicit consent buttons exist (no auto-apply)
-        expect(find.text('Accept Re-routing'), findsOneWidget);
-        expect(find.text('Keep Current Route'), findsOneWidget);
-
-        // Declining proposal closes sheet and retains route
         await tester.tap(find.text('Keep Current Route'));
         await tester.pumpAndSettle();
 
@@ -215,5 +277,162 @@ void main() {
 
       await cubit.close();
     });
+
+    testWidgets(
+      'direct Active Trip route without state.extra does NOT fabricate "Đà Nẵng Day Trip"',
+      (tester) async {
+        final repo = _FakeItineraryRepository(
+          detail: _createSampleDetail(
+            itineraryId: 101,
+            title: 'Hanoi Heritage Tour',
+          ),
+        );
+
+        await tester.pumpWidget(
+          buildTestWidget(title: null, repository: repo, isDemoMode: false),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Đà Nẵng Day Trip'), findsNothing);
+        expect(find.text('Đà Nẵng City Explorer'), findsNothing);
+        expect(find.text('Hanoi Heritage Tour'), findsOneWidget);
+      },
+    );
+
+    testWidgets('shows loading state while metadata is being retrieved', (
+      tester,
+    ) async {
+      final completer = Completer<ItineraryDetail>();
+      final repo = _CompleterItineraryRepository(completer);
+
+      await tester.pumpWidget(
+        buildTestWidget(title: null, repository: repo, isDemoMode: false),
+      );
+      await tester.pump();
+
+      expect(find.text('Loading trip...'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      completer.complete(
+        _createSampleDetail(itineraryId: 101, title: 'Saigon Explorer'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Saigon Explorer'), findsOneWidget);
+    });
+
+    testWidgets('shows error state when metadata retrieval fails', (
+      tester,
+    ) async {
+      final repo = _FakeItineraryRepository(shouldThrow: true);
+
+      await tester.pumpWidget(
+        buildTestWidget(title: null, repository: repo, isDemoMode: false),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Unable to load trip'), findsOneWidget);
+      expect(find.text('Trip information unavailable.'), findsOneWidget);
+      expect(find.text('Retry'), findsOneWidget);
+      expect(find.text('Go back'), findsOneWidget);
+    });
+
+    testWidgets(
+      'explicit demo mode may show fixture title when no title passed',
+      (tester) async {
+        await tester.pumpWidget(buildTestWidget(title: null, isDemoMode: true));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Đà Nẵng Day Trip'), findsOneWidget);
+      },
+    );
   });
+}
+
+ItineraryDetail _createSampleDetail({
+  required int itineraryId,
+  required String title,
+}) {
+  return ItineraryDetail(
+    itineraryId: itineraryId,
+    schedulingRequestId: 1,
+    title: title,
+    version: 1,
+    status: 'Active',
+    validFrom: null,
+    validTo: null,
+    canManage: true,
+    totalEstimatedCost: 150000,
+    totalDurationMinutes: 180,
+    items: const [],
+  );
+}
+
+final class _FakeItineraryRepository implements ItineraryRepository {
+  _FakeItineraryRepository({this.detail, this.shouldThrow = false});
+
+  final ItineraryDetail? detail;
+  final bool shouldThrow;
+
+  @override
+  Future<ItineraryDetail> getById(int itineraryId) async {
+    if (shouldThrow) {
+      throw Exception('Server unreachable');
+    }
+    return detail ??
+        _createSampleDetail(itineraryId: itineraryId, title: 'Sample Trip');
+  }
+
+  @override
+  Future<GeneratedItinerary> generate({
+    required ItineraryGenerationRequest request,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> accept(int itineraryId) => throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> adjustItems({
+    required int itineraryId,
+    required List<int> orderedVisitPoiIds,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> regenerate({
+    required int itineraryId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+}
+
+final class _CompleterItineraryRepository implements ItineraryRepository {
+  _CompleterItineraryRepository(this.completer);
+
+  final Completer<ItineraryDetail> completer;
+
+  @override
+  Future<ItineraryDetail> getById(int itineraryId) => completer.future;
+
+  @override
+  Future<GeneratedItinerary> generate({
+    required ItineraryGenerationRequest request,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> accept(int itineraryId) => throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> adjustItems({
+    required int itineraryId,
+    required List<int> orderedVisitPoiIds,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<ItineraryDetail> regenerate({
+    required int itineraryId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
 }
