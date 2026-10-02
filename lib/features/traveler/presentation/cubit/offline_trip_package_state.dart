@@ -6,7 +6,7 @@ final class OfflineTripPackageState extends Equatable {
     required this.package,
     this.deviceFreeStorageMb = 14200.0, // 14.2 GB typical
     this.downloadStepDescription = '',
-    this.isDemoMode = true,
+    this.isDemoMode = false,
   });
 
   final OfflineTripPackage package;

@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/active_trip_maneuver.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/active_trip_waypoint.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/reroute_proposal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.dart';
@@ -12,8 +13,9 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
     int itineraryVersion = 1,
     List<ActiveTripWaypoint>? initialWaypoints,
     List<TripAlert>? initialAlerts,
+    ActiveTripManeuver? initialManeuver,
     ActiveTripStatus initialStatus = ActiveTripStatus.navigationActive,
-    bool isDemoMode = true,
+    bool isDemoMode = false,
   }) : super(
          _createInitialState(
            itineraryId: itineraryId,
@@ -21,6 +23,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
            itineraryVersion: itineraryVersion,
            initialWaypoints: initialWaypoints,
            initialAlerts: initialAlerts,
+           initialManeuver: initialManeuver,
            initialStatus: initialStatus,
            isDemoMode: isDemoMode,
          ),
@@ -32,10 +35,36 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
     required int itineraryVersion,
     List<ActiveTripWaypoint>? initialWaypoints,
     List<TripAlert>? initialAlerts,
+    ActiveTripManeuver? initialManeuver,
     required ActiveTripStatus initialStatus,
     required bool isDemoMode,
   }) {
-    final alerts = initialAlerts ?? ActiveTripDemoFixtures.createSampleAlerts();
+    if (isDemoMode) {
+      final alerts =
+          initialAlerts ?? ActiveTripDemoFixtures.createSampleAlerts();
+      final newestUndismissed = alerts.cast<TripAlert?>().firstWhere(
+        (a) => a != null && !a.isDismissedFromBanner,
+        orElse: () => null,
+      );
+
+      return ActiveTripState(
+        itineraryId: itineraryId,
+        itineraryTitle: itineraryTitle,
+        itineraryVersion: itineraryVersion,
+        status: initialStatus,
+        waypoints:
+            initialWaypoints ?? ActiveTripDemoFixtures.createDefaultWaypoints(),
+        alerts: alerts,
+        activeBannerAlert: newestUndismissed,
+        currentManeuver:
+            initialManeuver ?? ActiveTripDemoFixtures.defaultManeuver,
+        isDemoMode: true,
+      );
+    }
+
+    // Production (non-demo) state: truthful representation without fake fixtures.
+    final waypoints = initialWaypoints ?? const [];
+    final alerts = initialAlerts ?? const [];
     final newestUndismissed = alerts.cast<TripAlert?>().firstWhere(
       (a) => a != null && !a.isDismissedFromBanner,
       orElse: () => null,
@@ -45,13 +74,17 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
       itineraryId: itineraryId,
       itineraryTitle: itineraryTitle,
       itineraryVersion: itineraryVersion,
-      status: initialStatus,
-      waypoints:
-          initialWaypoints ?? ActiveTripDemoFixtures.createDefaultWaypoints(),
+      status: waypoints.isEmpty
+          ? ActiveTripStatus.navigationPositionUnavailable
+          : initialStatus,
+      statusMessage: waypoints.isEmpty
+          ? 'Waiting for route geometry and GPS signal...'
+          : null,
+      waypoints: waypoints,
       alerts: alerts,
       activeBannerAlert: newestUndismissed,
-      currentManeuver: ActiveTripDemoFixtures.defaultManeuver,
-      isDemoMode: isDemoMode,
+      currentManeuver: initialManeuver,
+      isDemoMode: false,
     );
   }
 
@@ -128,15 +161,30 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
   }
 
   /// Opens reroute proposal sheet for user review.
+  /// A proposal may be reviewed/actioned only when its status is pending.
+  /// If proposal is null:
+  /// - In production mode: does not invent or reopen non-pending proposals.
+  /// - In demo mode: generates a sample demo proposal if none is active.
   void openRerouteProposal([RerouteProposal? proposal]) {
-    final toOpen =
-        proposal ??
-        state.activeRerouteProposal ??
-        ActiveTripDemoFixtures.createSampleRerouteProposal();
+    final target = proposal ?? state.activeRerouteProposal;
+    if (target == null) {
+      if (!state.isDemoMode) return;
+      final demoProposal = ActiveTripDemoFixtures.createSampleRerouteProposal();
+      emit(
+        state.copyWith(
+          activeRerouteProposal: demoProposal,
+          isRerouteSheetVisible: true,
+        ),
+      );
+      return;
+    }
+
+    // Terminal proposals (accepted, declined, expired) cannot be reopened
+    if (target.status != RerouteStatus.pending) return;
 
     emit(
       state.copyWith(
-        activeRerouteProposal: toOpen,
+        activeRerouteProposal: target,
         isRerouteSheetVisible: true,
       ),
     );
@@ -149,16 +197,17 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
 
   /// UC-15 Traveler accepts the reroute proposal.
   /// Explicit consent creates a new itinerary version (V+1).
+  /// Requires activeRerouteProposal != null and status == pending.
   void acceptRerouteProposal() {
     final proposal = state.activeRerouteProposal;
-    if (proposal == null) return;
+    if (proposal == null || proposal.status != RerouteStatus.pending) return;
 
     final acceptedProposal = proposal.copyWith(status: RerouteStatus.accepted);
     final nextVersion = state.itineraryVersion + 1;
 
     // In demo preview, simulate applying shelter stop
     final updatedWaypoints = List<ActiveTripWaypoint>.from(state.waypoints);
-    if (updatedWaypoints.length >= 4) {
+    if (state.isDemoMode && updatedWaypoints.length >= 4) {
       updatedWaypoints[3] = updatedWaypoints[3].copyWith(
         name: 'Helio Center [Indoor Shelter]',
       );
@@ -179,9 +228,10 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
 
   /// UC-15 Traveler declines the reroute proposal.
   /// Current route and version remain active.
+  /// Requires activeRerouteProposal != null and status == pending.
   void declineRerouteProposal() {
     final proposal = state.activeRerouteProposal;
-    if (proposal == null) return;
+    if (proposal == null || proposal.status != RerouteStatus.pending) return;
 
     final declinedProposal = proposal.copyWith(status: RerouteStatus.declined);
     emit(
@@ -195,9 +245,10 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
   }
 
   /// Proposal expires. Current route remains active.
+  /// Requires activeRerouteProposal != null and status == pending.
   void expireRerouteProposal() {
     final proposal = state.activeRerouteProposal;
-    if (proposal == null) return;
+    if (proposal == null || proposal.status != RerouteStatus.pending) return;
 
     final expiredProposal = proposal.copyWith(status: RerouteStatus.expired);
     emit(
@@ -235,11 +286,13 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
 
   /// DEMO_ONLY: Simulates GPS arrival detection at current waypoint.
   void demoSimulateArrivalAtNextStop() {
+    if (!state.isDemoMode) return;
     onSystemDetectedArrival();
   }
 
   /// DEMO_ONLY: Injects a severe weather disruption with reroute proposal.
   void demoSimulateWeatherDisruption() {
+    if (!state.isDemoMode) return;
     final alert = TripAlert(
       id: 'demo-weather-${DateTime.now().millisecondsSinceEpoch}',
       title: 'Severe weather warning',
@@ -265,6 +318,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
 
   /// DEMO_ONLY: Injects route deviation event (>500m).
   void demoSimulateRouteDeviation() {
+    if (!state.isDemoMode) return;
     final alert = TripAlert(
       id: 'demo-deviation-${DateTime.now().millisecondsSinceEpoch}',
       title: 'Off-route deviation detected',
@@ -288,11 +342,13 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
 
   /// DEMO_ONLY: Toggles GPS acquiring state.
   void demoSimulateGpsAcquiring() {
+    if (!state.isDemoMode) return;
     emit(state.copyWith(status: ActiveTripStatus.navigationAcquiringPosition));
   }
 
   /// DEMO_ONLY: Simulates GPS unavailable state.
   void demoSimulateGpsLost() {
+    if (!state.isDemoMode) return;
     emit(
       state.copyWith(status: ActiveTripStatus.navigationPositionUnavailable),
     );
@@ -300,6 +356,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
 
   /// DEMO_ONLY: Simulates permission denied state.
   void demoSimulatePermissionDenied() {
+    if (!state.isDemoMode) return;
     emit(state.copyWith(status: ActiveTripStatus.navigationPermissionDenied));
   }
 }

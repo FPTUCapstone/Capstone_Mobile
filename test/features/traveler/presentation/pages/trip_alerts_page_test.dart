@@ -30,13 +30,30 @@ void main() {
       expect(find.text('NOTICE'), findsOneWidget);
     });
 
-    testWidgets('renders empty state when there are no alerts', (tester) async {
+    testWidgets('renders empty state when there are no alerts in production', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        const MaterialApp(home: TripAlertsPage(itineraryId: 101, alerts: [])),
+        const MaterialApp(home: TripAlertsPage(itineraryId: 101)),
       );
       await tester.pumpAndSettle();
 
       expect(find.text('No alerts found for this trip.'), findsOneWidget);
+      expect(find.textContaining('0 active alerts logged'), findsOneWidget);
+    });
+
+    testWidgets('populates sample alerts when isDemoMode is explicitly true', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: TripAlertsPage(itineraryId: 101, isDemoMode: true),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Severe weather warning'), findsOneWidget);
+      expect(find.text('No alerts found for this trip.'), findsNothing);
     });
   });
 }

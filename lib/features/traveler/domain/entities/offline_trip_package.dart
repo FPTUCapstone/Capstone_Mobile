@@ -52,9 +52,12 @@ final class OfflineTripPackage extends Equatable {
     double? maxLimitMb,
     double? progressPercent,
     DateTime? lastDownloadedAt,
+    bool clearLastDownloadedAt = false,
     String? dateRange,
+    bool clearDateRange = false,
     int? stopsCount,
     String? errorMessage,
+    bool clearErrorMessage = false,
   }) {
     return OfflineTripPackage(
       itineraryId: itineraryId ?? this.itineraryId,
@@ -64,10 +67,14 @@ final class OfflineTripPackage extends Equatable {
       totalSizeMb: totalSizeMb ?? this.totalSizeMb,
       maxLimitMb: maxLimitMb ?? this.maxLimitMb,
       progressPercent: progressPercent ?? this.progressPercent,
-      lastDownloadedAt: lastDownloadedAt ?? this.lastDownloadedAt,
-      dateRange: dateRange ?? this.dateRange,
+      lastDownloadedAt: clearLastDownloadedAt
+          ? null
+          : (lastDownloadedAt ?? this.lastDownloadedAt),
+      dateRange: clearDateRange ? null : (dateRange ?? this.dateRange),
       stopsCount: stopsCount ?? this.stopsCount,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: clearErrorMessage
+          ? null
+          : (errorMessage ?? this.errorMessage),
     );
   }
 

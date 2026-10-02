@@ -8,12 +8,13 @@ import 'package:trip_mate_mobile/features/traveler/presentation/widgets/reroute_
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_alert_banner.dart';
 
 void main() {
-  Widget buildTestWidget({ActiveTripCubit? cubit}) {
+  Widget buildTestWidget({ActiveTripCubit? cubit, bool isDemoMode = false}) {
     return MaterialApp(
       home: ActiveTripPage(
         itineraryId: 101,
         title: 'Đà Nẵng City Explorer',
         cubit: cubit,
+        isDemoMode: isDemoMode,
       ),
     );
   }
@@ -27,9 +28,12 @@ void main() {
           itineraryTitle: 'Đà Nẵng City Explorer',
           initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
           initialAlerts: const [],
+          isDemoMode: true,
         );
 
-        await tester.pumpWidget(buildTestWidget(cubit: cubit));
+        await tester.pumpWidget(
+          buildTestWidget(cubit: cubit, isDemoMode: true),
+        );
         await tester.pumpAndSettle();
 
         // Maneuver banner
@@ -61,9 +65,12 @@ void main() {
           itineraryTitle: 'Đà Nẵng City Explorer',
           initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
           initialAlerts: const [],
+          isDemoMode: true,
         );
 
-        await tester.pumpWidget(buildTestWidget(cubit: cubit));
+        await tester.pumpWidget(
+          buildTestWidget(cubit: cubit, isDemoMode: true),
+        );
         await tester.pumpAndSettle();
 
         // Demo controls toggle exists
@@ -91,6 +98,27 @@ void main() {
       },
     );
 
+    testWidgets('DEMO controls are absent when isDemoMode is false', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildTestWidget(isDemoMode: false));
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('DEMO_ONLY Controls'), findsNothing);
+      expect(find.byIcon(Icons.build_circle_outlined), findsNothing);
+    });
+
+    testWidgets(
+      'DEMO controls appear when explicitly constructed with isDemoMode true',
+      (tester) async {
+        await tester.pumpWidget(buildTestWidget(isDemoMode: true));
+        await tester.pumpAndSettle();
+
+        expect(find.byTooltip('DEMO_ONLY Controls'), findsOneWidget);
+        expect(find.byIcon(Icons.build_circle_outlined), findsOneWidget);
+      },
+    );
+
     testWidgets(
       'renders active alert banner and dismissing it retains history',
       (tester) async {
@@ -99,9 +127,12 @@ void main() {
           itineraryTitle: 'Đà Nẵng City Explorer',
           initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
           initialAlerts: ActiveTripDemoFixtures.createSampleAlerts(),
+          isDemoMode: true,
         );
 
-        await tester.pumpWidget(buildTestWidget(cubit: cubit));
+        await tester.pumpWidget(
+          buildTestWidget(cubit: cubit, isDemoMode: true),
+        );
         await tester.pumpAndSettle();
 
         // Alert banner is visible
@@ -120,9 +151,12 @@ void main() {
           itineraryTitle: 'Đà Nẵng City Explorer',
           initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
           initialAlerts: const [],
+          isDemoMode: true,
         );
 
-        await tester.pumpWidget(buildTestWidget(cubit: cubit));
+        await tester.pumpWidget(
+          buildTestWidget(cubit: cubit, isDemoMode: true),
+        );
         await tester.pumpAndSettle();
 
         // Present proposal
@@ -158,9 +192,10 @@ void main() {
         itineraryTitle: 'Đà Nẵng City Explorer',
         initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
         initialAlerts: const [],
+        isDemoMode: true,
       );
 
-      await tester.pumpWidget(buildTestWidget(cubit: cubit));
+      await tester.pumpWidget(buildTestWidget(cubit: cubit, isDemoMode: true));
       await tester.pumpAndSettle();
 
       // Simulate reaching all 5 stops

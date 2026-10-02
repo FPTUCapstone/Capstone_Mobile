@@ -10,15 +10,23 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
     OfflineTripPackage? initialPackage,
     double initialFreeStorageMb = 14200.0,
     String initialDownloadStepDescription = '',
-    bool isDemoMode = true,
+    bool isDemoMode = false,
   }) : super(
          OfflineTripPackageState(
            package:
                initialPackage ??
-               ActiveTripDemoFixtures.createSampleOfflinePackage(
-                 itineraryId: itineraryId,
-                 title: title,
-               ),
+               (isDemoMode
+                   ? ActiveTripDemoFixtures.createSampleOfflinePackage(
+                       itineraryId: itineraryId,
+                       title: title,
+                     )
+                   : OfflineTripPackage(
+                       itineraryId: itineraryId,
+                       title: title,
+                       version: 1,
+                       status: OfflinePackageStatus.notDownloaded,
+                       totalSizeMb: 0.0,
+                     )),
            deviceFreeStorageMb: initialFreeStorageMb,
            downloadStepDescription: initialDownloadStepDescription,
            isDemoMode: isDemoMode,
@@ -108,6 +116,17 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
           downloadStepDescription: 'Offline package ready.',
         ),
       );
+    } else {
+      // Production mode: download service / backend packaging is not implemented yet.
+      emit(
+        state.copyWith(
+          package: state.package.copyWith(
+            status: OfflinePackageStatus.error,
+            errorMessage: 'Offline download service is currently unavailable.',
+          ),
+          downloadStepDescription: 'Download service unavailable.',
+        ),
+      );
     }
   }
 
@@ -131,7 +150,8 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
         package: state.package.copyWith(
           status: OfflinePackageStatus.notDownloaded,
           progressPercent: 0.0,
-          lastDownloadedAt: null,
+          clearLastDownloadedAt: true,
+          clearErrorMessage: true,
         ),
         downloadStepDescription: 'Offline data removed from device.',
       ),
@@ -151,6 +171,7 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
 
   /// DEMO_ONLY: Simulates a network interruption during download.
   void demoSimulateNetworkInterruption() {
+    if (!state.isDemoMode) return;
     emit(
       state.copyWith(
         package: state.package.copyWith(
@@ -165,6 +186,7 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
 
   /// DEMO_ONLY: Simulates package exceeding 150 MB ceiling.
   void demoSimulateOversizePackage() {
+    if (!state.isDemoMode) return;
     emit(
       state.copyWith(
         package: state.package.copyWith(
@@ -180,6 +202,7 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
 
   /// DEMO_ONLY: Simulates server version incrementing to test refresh flow.
   void demoSimulateSuperseded() {
+    if (!state.isDemoMode) return;
     emit(
       state.copyWith(
         package: state.package.copyWith(
