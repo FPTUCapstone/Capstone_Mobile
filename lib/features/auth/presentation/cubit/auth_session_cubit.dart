@@ -39,11 +39,15 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
 
     final role = state.role!;
     final applicationStatus = state.applicationStatus;
+    final fullName = state.fullName;
+    final email = state.email;
     emit(
       AuthSessionState.authenticated(
         role,
         applicationStatus: applicationStatus,
         operation: AuthSessionOperation.signOut,
+        fullName: fullName,
+        email: email,
       ),
     );
 
@@ -69,6 +73,8 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
             AuthSessionState.authenticated(
               role,
               applicationStatus: applicationStatus,
+              fullName: fullName,
+              email: email,
             ),
           );
         }
@@ -88,6 +94,8 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
           role,
           applicationStatus: applicationStatus,
           errorMessage: signOutLocalCleanupFailureMessage,
+          fullName: fullName,
+          email: email,
         ),
       );
       return;
@@ -142,6 +150,8 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
       AppConstants.refreshTokenKey,
       AppConstants.sessionRoleKey,
       AppConstants.sessionApplicationStatusKey,
+      AppConstants.sessionFullNameKey,
+      AppConstants.sessionEmailKey,
       AppConstants.keepSignedInKey,
     ]) {
       try {
@@ -240,6 +250,14 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
           role,
           applicationStatus: _applicationStatusFromStorage(
             storedApplicationStatus,
+          ),
+          fullName: await _readIdentityQuietly(
+            storage,
+            AppConstants.sessionFullNameKey,
+          ),
+          email: await _readIdentityQuietly(
+            storage,
+            AppConstants.sessionEmailKey,
           ),
         ),
       );
@@ -478,6 +496,8 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
           AuthSessionState.authenticated(
             role,
             applicationStatus: response.applicationStatus,
+            fullName: _cleanIdentity(response.fullName),
+            email: _cleanIdentity(response.email),
           ),
         );
         return true;
@@ -532,6 +552,51 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
       await storage.delete(AppConstants.sessionApplicationStatusKey);
     }
     await storage.write(AppConstants.keepSignedInKey, keepSignedIn.toString());
+    await _saveIdentityBestEffort(storage, response);
+  }
+
+  /// Backend-issued identity is trimmed; blank means absent. Never a fallback.
+  static String? _cleanIdentity(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
+
+  /// Reads one persisted identity value. A read failure or blank value is
+  /// "no identity", never a failed authentication.
+  Future<String?> _readIdentityQuietly(
+    SecureStorageService storage,
+    String key,
+  ) async {
+    try {
+      return _cleanIdentity(await storage.read(key));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Persists (or removes) the display-identity snapshot. It is not part of
+  /// authentication validity, so a storage failure never fails the sign-in; the
+  /// identity is then simply absent after a restart.
+  Future<void> _saveIdentityBestEffort(
+    SecureStorageService storage,
+    AuthSession response,
+  ) async {
+    final identity = <String, String?>{
+      AppConstants.sessionFullNameKey: _cleanIdentity(response.fullName),
+      AppConstants.sessionEmailKey: _cleanIdentity(response.email),
+    };
+    for (final entry in identity.entries) {
+      try {
+        final value = entry.value;
+        if (value == null) {
+          await storage.delete(entry.key);
+        } else {
+          await storage.write(entry.key, value);
+        }
+      } catch (_) {
+        // Identity is a convenience snapshot, not authentication state.
+      }
+    }
   }
 
   Future<void> _clearStoredSession(SecureStorageService storage) async {
@@ -539,6 +604,8 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     await storage.delete(AppConstants.refreshTokenKey);
     await storage.delete(AppConstants.sessionRoleKey);
     await storage.delete(AppConstants.sessionApplicationStatusKey);
+    await storage.delete(AppConstants.sessionFullNameKey);
+    await storage.delete(AppConstants.sessionEmailKey);
     await storage.delete(AppConstants.keepSignedInKey);
   }
 
@@ -551,6 +618,8 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
       AppConstants.accessTokenKey,
       AppConstants.refreshTokenKey,
       AppConstants.sessionApplicationStatusKey,
+      AppConstants.sessionFullNameKey,
+      AppConstants.sessionEmailKey,
     ]) {
       try {
         await storage.delete(key);

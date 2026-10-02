@@ -133,7 +133,11 @@ void main() {
         expect(repository.googleFirebaseIdToken, 'new-google-id-token');
         expect(
           cubit.state,
-          const AuthSessionState.authenticated(UserRole.traveler),
+          const AuthSessionState.authenticated(
+            UserRole.traveler,
+            fullName: 'New Traveler',
+            email: 'new.traveler@example.com',
+          ),
         );
         expect(
           storage.values[AppConstants.accessTokenKey],
@@ -1204,9 +1208,10 @@ void main() {
       expect(storage.values, isEmpty);
       expect(cubit.state, const AuthSessionState.unauthenticated());
       expect(firebase.signOutCalls, 1);
-      // A single attempt suffices: five distinct keys, no retry, no gate
-      // fallback write.
-      expect(storage.deleteCalls.length, 5);
+      // A single attempt suffices: seven distinct keys (credentials, role,
+      // application status, the two identity-snapshot keys and the gate), no
+      // retry, no gate fallback write.
+      expect(storage.deleteCalls.length, 7);
       expect(storage.writeCalls, isEmpty);
       await expectNoRestore(storage);
     });
@@ -1352,6 +1357,562 @@ void main() {
         expect(cubit.state.errorMessage, isNot(contains('500')));
         expect(cubit.state.errorMessage, isNot(contains('MSG127')));
         expect(firebase.signOutCalls, 0);
+      },
+    );
+  });
+
+  group('AuthSessionCubit session identity snapshot (Batch 1 S-2)', () {
+    late FakeAuthRepository repository;
+    late FakeSecureStorageService storage;
+    late FakeFirebaseAuthService firebase;
+
+    AuthSessionCubit buildCubit({
+      AuthSession? session,
+      AuthSession? verifyEmailSession,
+      FakeFirebaseAuthService? firebaseService,
+    }) {
+      repository = FakeAuthRepository(
+        session: session,
+        verifyEmailSession: verifyEmailSession,
+      );
+      storage = FakeSecureStorageService();
+      firebase =
+          firebaseService ??
+          FakeFirebaseAuthService(googleToken: 'google-id-token');
+      final cubit = AuthSessionCubit(repository, storage, firebase);
+      addTearDown(cubit.close);
+      return cubit;
+    }
+
+    test('password login preserves Backend fullName and email', () async {
+      final cubit = buildCubit(session: _identifiedTravelerSession);
+
+      await cubit.signIn(email: 'x@example.com', password: 'Password123!');
+
+      expect(cubit.state.isAuthenticated, isTrue);
+      expect(cubit.state.fullName, 'Identified Traveler');
+      expect(cubit.state.email, 'identified@example.com');
+      expect(
+        storage.values[AppConstants.sessionFullNameKey],
+        'Identified Traveler',
+      );
+      expect(
+        storage.values[AppConstants.sessionEmailKey],
+        'identified@example.com',
+      );
+    });
+
+    test('identity strings are trimmed before storing and emitting', () async {
+      final cubit = buildCubit(
+        session: _identifiedTravelerSession.copyWithIdentity(
+          fullName: '  Padded Name  ',
+          email: '\t padded@example.com \n',
+        ),
+      );
+
+      await cubit.signIn(email: 'x@example.com', password: 'Password123!');
+
+      expect(cubit.state.fullName, 'Padded Name');
+      expect(cubit.state.email, 'padded@example.com');
+      expect(storage.values[AppConstants.sessionFullNameKey], 'Padded Name');
+      expect(
+        storage.values[AppConstants.sessionEmailKey],
+        'padded@example.com',
+      );
+    });
+
+    test(
+      'blank or whitespace-only identity becomes null and is never stored',
+      () async {
+        final cubit = buildCubit(
+          session: _identifiedTravelerSession.copyWithIdentity(
+            fullName: '   ',
+            email: '',
+          ),
+        );
+
+        await cubit.signIn(email: 'x@example.com', password: 'Password123!');
+
+        expect(cubit.state.isAuthenticated, isTrue);
+        expect(cubit.state.fullName, isNull);
+        expect(cubit.state.email, isNull);
+        expect(
+          storage.values.containsKey(AppConstants.sessionFullNameKey),
+          isFalse,
+        );
+        expect(
+          storage.values.containsKey(AppConstants.sessionEmailKey),
+          isFalse,
+        );
+      },
+    );
+
+    test('a Backend response without identity keeps it null', () async {
+      final cubit = buildCubit(session: _session);
+
+      await cubit.signIn(email: 'x@example.com', password: 'Password123!');
+
+      expect(cubit.state.isAuthenticated, isTrue);
+      expect(cubit.state.fullName, isNull);
+      expect(cubit.state.email, isNull);
+      expect(
+        storage.values.containsKey(AppConstants.sessionFullNameKey),
+        isFalse,
+      );
+      expect(storage.values.containsKey(AppConstants.sessionEmailKey), isFalse);
+    });
+
+    test(
+      'a new session without identity removes a previous account identity',
+      () async {
+        final cubit = buildCubit(session: _session);
+        storage.values[AppConstants.sessionFullNameKey] = 'Previous User';
+        storage.values[AppConstants.sessionEmailKey] = 'previous@example.com';
+
+        await cubit.signIn(email: 'x@example.com', password: 'Password123!');
+
+        expect(cubit.state.fullName, isNull);
+        expect(cubit.state.email, isNull);
+        expect(
+          storage.values.containsKey(AppConstants.sessionFullNameKey),
+          isFalse,
+        );
+        expect(
+          storage.values.containsKey(AppConstants.sessionEmailKey),
+          isFalse,
+        );
+      },
+    );
+
+    test(
+      'a new session with identity overwrites a previous identity',
+      () async {
+        final cubit = buildCubit(session: _identifiedTravelerSession);
+        storage.values[AppConstants.sessionFullNameKey] = 'Previous User';
+        storage.values[AppConstants.sessionEmailKey] = 'previous@example.com';
+
+        await cubit.signIn(email: 'x@example.com', password: 'Password123!');
+
+        expect(
+          storage.values[AppConstants.sessionFullNameKey],
+          'Identified Traveler',
+        );
+        expect(
+          storage.values[AppConstants.sessionEmailKey],
+          'identified@example.com',
+        );
+      },
+    );
+
+    test(
+      'Google sign-in preserves identity through _establishSession',
+      () async {
+        final cubit = buildCubit(session: _firstTimeGoogleTravelerSession);
+
+        await cubit.signInWithGoogle();
+
+        expect(cubit.state.isAuthenticated, isTrue);
+        expect(cubit.state.fullName, 'New Traveler');
+        expect(cubit.state.email, 'new.traveler@example.com');
+        expect(storage.values[AppConstants.sessionFullNameKey], 'New Traveler');
+        expect(
+          storage.values[AppConstants.sessionEmailKey],
+          'new.traveler@example.com',
+        );
+      },
+    );
+
+    test('verify-email preserves identity through _establishSession', () async {
+      final cubit = buildCubit(
+        verifyEmailSession: _identifiedTravelerSession,
+        firebaseService: FakeFirebaseAuthService(refreshToken: 'fb-token'),
+      );
+
+      await cubit.verifyEmail();
+
+      expect(cubit.state.isAuthenticated, isTrue);
+      expect(cubit.state.fullName, 'Identified Traveler');
+      expect(cubit.state.email, 'identified@example.com');
+      expect(
+        storage.values[AppConstants.sessionFullNameKey],
+        'Identified Traveler',
+      );
+    });
+
+    test(
+      'identity storage failure never turns a successful sign-in into a failure',
+      () async {
+        final cubit = buildCubit(session: _identifiedTravelerSession);
+        storage.permanentMutationFailures.addAll({
+          AppConstants.sessionFullNameKey,
+          AppConstants.sessionEmailKey,
+        });
+
+        await cubit.signIn(email: 'x@example.com', password: 'Password123!');
+
+        expect(cubit.state.isAuthenticated, isTrue);
+        expect(cubit.state.role, UserRole.traveler);
+        expect(storage.values[AppConstants.accessTokenKey], isNotNull);
+        expect(storage.values[AppConstants.refreshTokenKey], isNotNull);
+        // The in-memory identity is still the Backend-issued one.
+        expect(cubit.state.fullName, 'Identified Traveler');
+      },
+    );
+
+    test('Equatable includes the identity snapshot', () {
+      const a = AuthSessionState.authenticated(
+        UserRole.traveler,
+        fullName: 'A',
+        email: 'a@example.com',
+      );
+      const b = AuthSessionState.authenticated(
+        UserRole.traveler,
+        fullName: 'B',
+        email: 'a@example.com',
+      );
+      const c = AuthSessionState.authenticated(
+        UserRole.traveler,
+        fullName: 'A',
+        email: 'c@example.com',
+      );
+      const same = AuthSessionState.authenticated(
+        UserRole.traveler,
+        fullName: 'A',
+        email: 'a@example.com',
+      );
+
+      expect(a, isNot(b));
+      expect(a, isNot(c));
+      expect(a, same);
+    });
+
+    test('the role-only authenticated constructor remains compatible', () {
+      const state = AuthSessionState.authenticated(UserRole.traveler);
+
+      expect(state.isAuthenticated, isTrue);
+      expect(state.fullName, isNull);
+      expect(state.email, isNull);
+      expect(state, const AuthSessionState.authenticated(UserRole.traveler));
+    });
+  });
+
+  group('AuthSessionCubit identity restore and cleanup (Batch 1 S-2)', () {
+    late FakeAuthRepository repository;
+    late FakeSecureStorageService storage;
+    late FakeFirebaseAuthService firebase;
+
+    const identityKeys = [
+      AppConstants.sessionFullNameKey,
+      AppConstants.sessionEmailKey,
+    ];
+
+    void seedRestorableSession({bool withIdentity = true}) {
+      storage.values
+        ..[AppConstants.keepSignedInKey] = 'true'
+        ..[AppConstants.accessTokenKey] = 'stored-access'
+        ..[AppConstants.refreshTokenKey] = 'stored-refresh'
+        ..[AppConstants.sessionRoleKey] = 'traveler';
+      if (withIdentity) {
+        storage.values
+          ..[AppConstants.sessionFullNameKey] = 'Stored Traveler'
+          ..[AppConstants.sessionEmailKey] = 'stored@example.com';
+      }
+    }
+
+    AuthSessionCubit buildCubit({
+      AuthSession? session,
+      FakeAuthRepository? repositoryOverride,
+    }) {
+      repository =
+          repositoryOverride ??
+          FakeAuthRepository(session: session ?? _identifiedTravelerSession);
+      firebase = FakeFirebaseAuthService(googleToken: 'google-id-token');
+      final cubit = AuthSessionCubit(repository, storage, firebase);
+      addTearDown(cubit.close);
+      return cubit;
+    }
+
+    Future<AuthSessionCubit> signedInWithIdentity({
+      FakeAuthRepository? repositoryOverride,
+    }) async {
+      final cubit = buildCubit(repositoryOverride: repositoryOverride);
+      await cubit.signIn(email: 'x@example.com', password: 'Password123!');
+      expect(cubit.state.fullName, 'Identified Traveler');
+      return cubit;
+    }
+
+    void expectIdentityKeysAbsent() {
+      for (final key in identityKeys) {
+        expect(storage.values.containsKey(key), isFalse, reason: key);
+      }
+    }
+
+    setUp(() => storage = FakeSecureStorageService());
+
+    test('a valid restore rehydrates the persisted identity', () async {
+      seedRestorableSession();
+      final cubit = AuthSessionCubit(null, storage);
+      addTearDown(cubit.close);
+
+      await cubit.restoreSession();
+
+      expect(cubit.state.isAuthenticated, isTrue);
+      expect(cubit.state.role, UserRole.traveler);
+      expect(cubit.state.fullName, 'Stored Traveler');
+      expect(cubit.state.email, 'stored@example.com');
+    });
+
+    test(
+      'an old install without identity keys still restores normally',
+      () async {
+        seedRestorableSession(withIdentity: false);
+        final cubit = AuthSessionCubit(null, storage);
+        addTearDown(cubit.close);
+
+        await cubit.restoreSession();
+
+        expect(cubit.state.isAuthenticated, isTrue);
+        expect(cubit.state.fullName, isNull);
+        expect(cubit.state.email, isNull);
+      },
+    );
+
+    test(
+      'an identity read error yields null identity, not a failed restore',
+      () async {
+        seedRestorableSession();
+        storage.permanentReadFailures.addAll(identityKeys);
+        final cubit = AuthSessionCubit(null, storage);
+        addTearDown(cubit.close);
+
+        await cubit.restoreSession();
+
+        expect(cubit.state.isAuthenticated, isTrue);
+        expect(cubit.state.role, UserRole.traveler);
+        expect(cubit.state.fullName, isNull);
+        expect(cubit.state.email, isNull);
+      },
+    );
+
+    test(
+      'stored identity is trimmed on restore and blank values become null',
+      () async {
+        seedRestorableSession();
+        storage.values[AppConstants.sessionFullNameKey] = '  Spaced Name  ';
+        storage.values[AppConstants.sessionEmailKey] = '   ';
+        final cubit = AuthSessionCubit(null, storage);
+        addTearDown(cubit.close);
+
+        await cubit.restoreSession();
+
+        expect(cubit.state.fullName, 'Spaced Name');
+        expect(cubit.state.email, isNull);
+      },
+    );
+
+    test(
+      'identity never grants restore eligibility without credentials',
+      () async {
+        storage.values
+          ..[AppConstants.keepSignedInKey] = 'true'
+          ..[AppConstants.sessionRoleKey] = 'traveler'
+          ..[AppConstants.sessionFullNameKey] = 'Orphan Identity'
+          ..[AppConstants.sessionEmailKey] = 'orphan@example.com';
+        final cubit = AuthSessionCubit(null, storage);
+        addTearDown(cubit.close);
+
+        await cubit.restoreSession();
+
+        expect(cubit.state.isAuthenticated, isFalse);
+        expect(cubit.state, const AuthSessionState.unauthenticated());
+      },
+    );
+
+    test(
+      'identity never grants restore when keep-signed-in is not true',
+      () async {
+        seedRestorableSession();
+        storage.values[AppConstants.keepSignedInKey] = 'false';
+        final cubit = AuthSessionCubit(null, storage);
+        addTearDown(cubit.close);
+
+        await cubit.restoreSession();
+
+        expect(cubit.state.isAuthenticated, isFalse);
+        expectIdentityKeysAbsent();
+      },
+    );
+
+    test('a failed restore clears any orphan identity', () async {
+      storage.values
+        ..[AppConstants.sessionFullNameKey] = 'Orphan Identity'
+        ..[AppConstants.sessionEmailKey] = 'orphan@example.com';
+      final cubit = AuthSessionCubit(null, storage);
+      addTearDown(cubit.close);
+
+      await cubit.restoreSession();
+
+      expect(cubit.state.isAuthenticated, isFalse);
+      expectIdentityKeysAbsent();
+    });
+
+    test('normal sign-out clears the persisted identity', () async {
+      final cubit = await signedInWithIdentity();
+      expect(storage.values[AppConstants.sessionEmailKey], isNotNull);
+
+      await cubit.signOut();
+
+      expect(cubit.state, const AuthSessionState.unauthenticated());
+      expectIdentityKeysAbsent();
+      expect(storage.values, isEmpty);
+    });
+
+    test(
+      'a remote logout failure still clears identity when local invalidation succeeds',
+      () async {
+        final cubit = await signedInWithIdentity(
+          repositoryOverride: FakeAuthRepository(
+            session: _identifiedTravelerSession,
+            logoutError: const ServerException('raw 500', 'MSG127', 500),
+          ),
+        );
+
+        await cubit.signOut();
+
+        expect(cubit.state.status, AuthSessionStatus.unauthenticated);
+        expect(cubit.state.fullName, isNull);
+        expect(cubit.state.email, isNull);
+        expectIdentityKeysAbsent();
+      },
+    );
+
+    test('identity stays visible while sign-out is in flight', () async {
+      final completer = Completer<void>();
+      final cubit = await signedInWithIdentity(
+        repositoryOverride: FakeAuthRepository(
+          session: _identifiedTravelerSession,
+          logoutCompleter: completer,
+        ),
+      );
+      final states = <AuthSessionState>[];
+      final subscription = cubit.stream.listen(states.add);
+      addTearDown(subscription.cancel);
+
+      final pending = cubit.signOut();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(states.first.operation, AuthSessionOperation.signOut);
+      expect(states.first.fullName, 'Identified Traveler');
+      expect(states.first.email, 'identified@example.com');
+
+      completer.complete();
+      await pending;
+    });
+
+    test(
+      'a local invalidation failure does not claim sign-out and keeps the visible identity',
+      () async {
+        final cubit = await signedInWithIdentity();
+        storage.permanentMutationFailures.addAll({
+          AppConstants.accessTokenKey,
+          AppConstants.refreshTokenKey,
+          AppConstants.sessionRoleKey,
+          AppConstants.sessionApplicationStatusKey,
+          AppConstants.keepSignedInKey,
+          ...identityKeys,
+        });
+
+        await expectLater(cubit.signOut(), completes);
+
+        expect(cubit.state.status, AuthSessionStatus.authenticated);
+        expect(
+          cubit.state.errorMessage,
+          AuthSessionCubit.signOutLocalCleanupFailureMessage,
+        );
+        expect(cubit.state.fullName, 'Identified Traveler');
+        expect(cubit.state.email, 'identified@example.com');
+      },
+    );
+
+    test(
+      'identity delete failure alone never makes sign-out report a failure',
+      () async {
+        final cubit = await signedInWithIdentity();
+        storage.permanentMutationFailures.addAll(identityKeys);
+
+        await expectLater(cubit.signOut(), completes);
+
+        expect(cubit.state.status, AuthSessionStatus.unauthenticated);
+        expect(cubit.state.errorMessage, isNull);
+        expect(
+          storage.values.containsKey(AppConstants.accessTokenKey),
+          isFalse,
+        );
+      },
+    );
+
+    test('session expiry (401) clears the persisted identity', () async {
+      final cubit = await signedInWithIdentity();
+
+      await cubit.handleSessionExpired();
+
+      expect(cubit.state, const AuthSessionState.unauthenticated());
+      expectIdentityKeysAbsent();
+      expect(storage.values, isEmpty);
+    });
+
+    test(
+      'best-effort cleanup continues past an identity delete failure',
+      () async {
+        final cubit = await signedInWithIdentity();
+        storage.permanentMutationFailures.add(AppConstants.sessionFullNameKey);
+
+        await expectLater(cubit.handleSessionExpired(), completes);
+
+        expect(cubit.state.isAuthenticated, isFalse);
+        expect(
+          storage.values.containsKey(AppConstants.accessTokenKey),
+          isFalse,
+        );
+        expect(
+          storage.values.containsKey(AppConstants.sessionEmailKey),
+          isFalse,
+        );
+      },
+    );
+
+    test(
+      'an unsupported Administrator login clears any stored identity',
+      () async {
+        storage.values
+          ..[AppConstants.sessionFullNameKey] = 'Previous User'
+          ..[AppConstants.sessionEmailKey] = 'previous@example.com';
+        final cubit = buildCubit(session: _administratorSession);
+
+        await cubit.signIn(
+          email: 'admin@example.com',
+          password: 'Password123!',
+        );
+
+        expect(cubit.state.isAuthenticated, isFalse);
+        expectIdentityKeysAbsent();
+      },
+    );
+
+    test(
+      'an account can never inherit the previous account identity',
+      () async {
+        final first = await signedInWithIdentity();
+        await first.signOut();
+        expect(storage.values, isEmpty);
+
+        final second = buildCubit(session: _session);
+        await second.signIn(email: 'b@example.com', password: 'Password123!');
+
+        expect(second.state.isAuthenticated, isTrue);
+        expect(second.state.fullName, isNull);
+        expect(second.state.email, isNull);
+        expectIdentityKeysAbsent();
       },
     );
   });
@@ -1623,6 +2184,31 @@ const _approvedOperatorSession = AuthSession(
   accessToken: 'operator-access-token',
   refreshToken: 'operator-refresh-token',
 );
+
+const _identifiedTravelerSession = AuthSession(
+  userId: 11,
+  status: 'Active',
+  role: 'Traveler',
+  accessToken: 'identified-access-token',
+  refreshToken: 'identified-refresh-token',
+  email: 'identified@example.com',
+  fullName: 'Identified Traveler',
+);
+
+extension on AuthSession {
+  AuthSession copyWithIdentity({String? fullName, String? email}) {
+    return AuthSession(
+      userId: userId,
+      status: status,
+      role: role,
+      applicationStatus: applicationStatus,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      fullName: fullName,
+      email: email,
+    );
+  }
+}
 
 const _firstTimeGoogleTravelerSession = AuthSession(
   userId: 6,
