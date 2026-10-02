@@ -51,9 +51,33 @@ final class ItineraryResultPage extends StatelessWidget {
           ),
         ],
       ],
-      footer: FilledButton.tonal(
-        onPressed: () => context.go(AppRoutes.createItinerary),
-        child: const Text('Create another itinerary'),
+      footer: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FilledButton.icon(
+            onPressed: () => context.push(
+              AppRoutes.activeTripLive(itinerary.itineraryId),
+              extra: itinerary.title,
+            ),
+            icon: const Icon(Icons.navigation_rounded),
+            label: const Text('Start Navigation'),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          OutlinedButton.icon(
+            onPressed: () => context.push(
+              AppRoutes.offlinePackage(itinerary.itineraryId),
+              extra: itinerary.title,
+            ),
+            icon: const Icon(Icons.download_rounded),
+            label: const Text('Download for Offline Use'),
+          ),
+          const SizedBox(height: AppSpacing.xxs),
+          TextButton(
+            onPressed: () => context.go(AppRoutes.createItinerary),
+            child: const Text('Create another itinerary'),
+          ),
+        ],
       ),
     );
   }
