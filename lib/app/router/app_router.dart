@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -286,7 +287,13 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
           final title = state.extra is String
               ? state.extra as String
               : 'Đà Nẵng Day Trip';
-          return ActiveTripPage(itineraryId: itineraryId, title: title);
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          return ActiveTripPage(
+            itineraryId: itineraryId,
+            title: title,
+            isDemoMode: isDemo,
+          );
         },
       ),
       GoRoute(
@@ -299,7 +306,9 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
           if (itineraryId == null || itineraryId <= 0) {
             return const ErrorView(message: 'Page not found.');
           }
-          return TripAlertsPage(itineraryId: itineraryId);
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          return TripAlertsPage(itineraryId: itineraryId, isDemoMode: isDemo);
         },
       ),
       GoRoute(
@@ -315,7 +324,13 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
           final title = state.extra is String
               ? state.extra as String
               : 'Đà Nẵng City Explorer';
-          return OfflineTripPackagePage(itineraryId: itineraryId, title: title);
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          return OfflineTripPackagePage(
+            itineraryId: itineraryId,
+            title: title,
+            isDemoMode: isDemo,
+          );
         },
       ),
       GoRoute(

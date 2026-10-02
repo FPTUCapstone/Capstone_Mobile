@@ -18,11 +18,13 @@ class ActiveTripPage extends StatefulWidget {
     required this.itineraryId,
     this.title = 'Đà Nẵng Day Trip',
     this.cubit,
+    this.isDemoMode = false,
   });
 
   final int itineraryId;
   final String title;
   final ActiveTripCubit? cubit;
+  final bool isDemoMode;
 
   @override
   State<ActiveTripPage> createState() => _ActiveTripPageState();
@@ -87,6 +89,7 @@ class _ActiveTripPageState extends State<ActiveTripPage> {
                         title: state.itineraryTitle,
                         version: state.itineraryVersion,
                         isOnline: state.isOnline,
+                        isDemoMode: state.isDemoMode,
                         onExit: () => _confirmStopNavigation(context),
                         onOpenDemoControls: () =>
                             _showDemoControls(context, cubit),
@@ -253,6 +256,7 @@ class _ActiveTripPageState extends State<ActiveTripPage> {
       create: (_) => ActiveTripCubit(
         itineraryId: widget.itineraryId,
         itineraryTitle: widget.title,
+        isDemoMode: widget.isDemoMode,
       ),
       child: consumer,
     );
@@ -413,6 +417,7 @@ class _TopHeaderBar extends StatelessWidget {
     required this.title,
     required this.version,
     required this.isOnline,
+    required this.isDemoMode,
     required this.onExit,
     required this.onOpenDemoControls,
   });
@@ -420,6 +425,7 @@ class _TopHeaderBar extends StatelessWidget {
   final String title;
   final int version;
   final bool isOnline;
+  final bool isDemoMode;
   final VoidCallback onExit;
   final VoidCallback onOpenDemoControls;
 
@@ -487,16 +493,18 @@ class _TopHeaderBar extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: AppSpacing.xs),
-          // Demo Controls Action Button
-          IconButton(
-            icon: const Icon(
-              Icons.build_circle_outlined,
-              color: AppColors.warning,
+          // Demo Controls Action Button (only rendered when isDemoMode is true)
+          if (isDemoMode) ...[
+            const SizedBox(width: AppSpacing.xs),
+            IconButton(
+              icon: const Icon(
+                Icons.build_circle_outlined,
+                color: AppColors.warning,
+              ),
+              tooltip: 'DEMO_ONLY Controls',
+              onPressed: onOpenDemoControls,
             ),
-            tooltip: 'DEMO_ONLY Controls',
-            onPressed: onOpenDemoControls,
-          ),
+          ],
         ],
       ),
     );

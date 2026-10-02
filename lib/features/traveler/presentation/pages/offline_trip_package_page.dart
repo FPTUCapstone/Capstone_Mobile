@@ -14,11 +14,13 @@ class OfflineTripPackagePage extends StatelessWidget {
     required this.itineraryId,
     this.title = 'Đà Nẵng City Explorer',
     this.cubit,
+    this.isDemoMode = false,
   });
 
   final int itineraryId;
   final String title;
   final OfflineTripPackageCubit? cubit;
+  final bool isDemoMode;
 
   @override
   Widget build(BuildContext context) {
@@ -29,8 +31,11 @@ class OfflineTripPackagePage extends StatelessWidget {
       );
     }
     return BlocProvider(
-      create: (_) =>
-          OfflineTripPackageCubit(itineraryId: itineraryId, title: title),
+      create: (_) => OfflineTripPackageCubit(
+        itineraryId: itineraryId,
+        title: title,
+        isDemoMode: isDemoMode,
+      ),
       child: const _OfflineTripPackageView(),
     );
   }
@@ -65,14 +70,15 @@ class _OfflineTripPackageView extends StatelessWidget {
           appBar: AppBar(
             title: const Text('Offline Access'),
             actions: [
-              IconButton(
-                icon: const Icon(
-                  Icons.build_circle_outlined,
-                  color: AppColors.warning,
+              if (state.isDemoMode)
+                IconButton(
+                  icon: const Icon(
+                    Icons.build_circle_outlined,
+                    color: AppColors.warning,
+                  ),
+                  tooltip: 'DEMO_ONLY Controls',
+                  onPressed: () => _showDemoControls(context, cubit),
                 ),
-                tooltip: 'DEMO_ONLY Controls',
-                onPressed: () => _showDemoControls(context, cubit),
-              ),
             ],
           ),
           body: ListView(

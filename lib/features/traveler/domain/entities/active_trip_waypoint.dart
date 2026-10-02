@@ -28,7 +28,7 @@ final class ActiveTripWaypoint extends Equatable {
     DateTime? plannedArrival,
     int? stayDurationMinutes,
     double? latitude,
-    double longitude = 0.0,
+    double? longitude,
     bool? isReached,
   }) {
     return ActiveTripWaypoint(
@@ -38,7 +38,7 @@ final class ActiveTripWaypoint extends Equatable {
       plannedArrival: plannedArrival ?? this.plannedArrival,
       stayDurationMinutes: stayDurationMinutes ?? this.stayDurationMinutes,
       latitude: latitude ?? this.latitude,
-      longitude: longitude != 0.0 ? longitude : this.longitude,
+      longitude: longitude ?? this.longitude,
       isReached: isReached ?? this.isReached,
     );
   }

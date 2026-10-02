@@ -6,7 +6,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_tri
 import 'package:trip_mate_mobile/features/traveler/presentation/demo/active_trip_demo_fixtures.dart';
 
 void main() {
-  group('ActiveTripCubit', () {
+  group('ActiveTripCubit Demo Mode', () {
     late ActiveTripCubit cubit;
 
     setUp(() {
@@ -16,6 +16,7 @@ void main() {
         itineraryVersion: 1,
         initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
         initialAlerts: ActiveTripDemoFixtures.createSampleAlerts(),
+        isDemoMode: true,
       );
     });
 
@@ -171,6 +172,165 @@ void main() {
       expect(cubit.state.isRerouteSheetVisible, isFalse);
       expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.expired);
       expect(cubit.state.itineraryVersion, 1);
+    });
+  });
+
+  group('Production / Demo Boundary in ActiveTripCubit', () {
+    test('ActiveTripCubit defaults isDemoMode to false', () {
+      final prodCubit = ActiveTripCubit(itineraryId: 202);
+      expect(prodCubit.state.isDemoMode, isFalse);
+      prodCubit.close();
+    });
+
+    test('production cubit does NOT automatically populate demo fixtures', () {
+      final prodCubit = ActiveTripCubit(itineraryId: 202);
+
+      expect(prodCubit.state.waypoints, isEmpty);
+      expect(prodCubit.state.alerts, isEmpty);
+      expect(prodCubit.state.currentManeuver, isNull);
+      expect(prodCubit.state.activeRerouteProposal, isNull);
+      expect(
+        prodCubit.state.status,
+        ActiveTripStatus.navigationPositionUnavailable,
+      );
+      expect(prodCubit.state.statusMessage, contains('Waiting for route'));
+
+      prodCubit.close();
+    });
+
+    test('demo simulation methods cannot alter non-demo state', () {
+      final prodCubit = ActiveTripCubit(itineraryId: 202);
+      final initialStatus = prodCubit.state.status;
+
+      // None of the demo simulation methods should affect non-demo state
+      prodCubit.demoSimulatePermissionDenied();
+      expect(prodCubit.state.status, initialStatus);
+
+      prodCubit.demoSimulateGpsLost();
+      expect(prodCubit.state.status, initialStatus);
+
+      prodCubit.demoSimulateGpsAcquiring();
+      expect(prodCubit.state.status, initialStatus);
+
+      prodCubit.demoSimulateRouteDeviation();
+      expect(prodCubit.state.status, initialStatus);
+      expect(prodCubit.state.alerts, isEmpty);
+
+      prodCubit.demoSimulateWeatherDisruption();
+      expect(prodCubit.state.alerts, isEmpty);
+      expect(prodCubit.state.activeRerouteProposal, isNull);
+
+      prodCubit.demoSimulateArrivalAtNextStop();
+      expect(prodCubit.state.currentWaypointIndex, 0);
+
+      prodCubit.close();
+    });
+
+    test(
+      'production cubit does not invent proposal when openRerouteProposal called with null',
+      () {
+        final prodCubit = ActiveTripCubit(itineraryId: 202);
+
+        prodCubit.openRerouteProposal();
+
+        expect(prodCubit.state.activeRerouteProposal, isNull);
+        expect(prodCubit.state.isRerouteSheetVisible, isFalse);
+
+        prodCubit.close();
+      },
+    );
+  });
+
+  group('Reroute Proposal Single-Decision & Terminal Lifecycle', () {
+    test(
+      'pending proposal -> accept -> version V+1 -> try open again -> try accept again -> version remains V+1',
+      () {
+        final cubit = ActiveTripCubit(
+          itineraryId: 101,
+          initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
+          isDemoMode: true,
+        );
+
+        final proposal = ActiveTripDemoFixtures.createSampleRerouteProposal();
+        cubit.openRerouteProposal(proposal);
+
+        expect(cubit.state.isRerouteSheetVisible, isTrue);
+        expect(
+          cubit.state.activeRerouteProposal?.status,
+          RerouteStatus.pending,
+        );
+
+        // 1. First acceptance -> transitions to accepted, version becomes 2
+        cubit.acceptRerouteProposal();
+        expect(cubit.state.itineraryVersion, 2);
+        expect(
+          cubit.state.activeRerouteProposal?.status,
+          RerouteStatus.accepted,
+        );
+        expect(cubit.state.isRerouteSheetVisible, isFalse);
+
+        // 2. Try to reopen accepted proposal -> blocked (isRerouteSheetVisible remains false)
+        cubit.openRerouteProposal();
+        expect(cubit.state.isRerouteSheetVisible, isFalse);
+
+        // 3. Try accept again -> no-op, version remains exactly 2
+        cubit.acceptRerouteProposal();
+        expect(cubit.state.itineraryVersion, 2);
+
+        cubit.close();
+      },
+    );
+
+    test('declined proposal cannot later be accepted', () {
+      final cubit = ActiveTripCubit(
+        itineraryId: 101,
+        initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
+        isDemoMode: true,
+      );
+
+      final proposal = ActiveTripDemoFixtures.createSampleRerouteProposal();
+      cubit.openRerouteProposal(proposal);
+      cubit.declineRerouteProposal();
+
+      expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.declined);
+      expect(cubit.state.itineraryVersion, 1);
+
+      // Try reopen -> blocked
+      cubit.openRerouteProposal();
+      expect(cubit.state.isRerouteSheetVisible, isFalse);
+
+      // Try accept -> no-op, version unchanged
+      cubit.acceptRerouteProposal();
+      expect(cubit.state.itineraryVersion, 1);
+      expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.declined);
+
+      cubit.close();
+    });
+
+    test('expired proposal cannot later be accepted', () {
+      final cubit = ActiveTripCubit(
+        itineraryId: 101,
+        initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
+        isDemoMode: true,
+      );
+
+      final proposal = ActiveTripDemoFixtures.createSampleRerouteProposal();
+      cubit.openRerouteProposal(proposal);
+      cubit.expireRerouteProposal();
+
+      expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.expired);
+      expect(cubit.state.itineraryVersion, 1);
+
+      // Try reopen -> blocked
+      cubit.openRerouteProposal();
+      expect(cubit.state.isRerouteSheetVisible, isFalse);
+
+      // Try accept -> no-op, version unchanged
+      cubit.acceptRerouteProposal();
+      expect(cubit.state.itineraryVersion, 1);
+      expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.expired);
+
+      cubit.close();
     });
   });
 }

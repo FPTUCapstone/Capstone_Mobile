@@ -33,7 +33,7 @@ final class ActiveTripState extends Equatable {
     this.activeRerouteProposal,
     this.isRerouteSheetVisible = false,
     this.statusMessage,
-    this.isDemoMode = true,
+    this.isDemoMode = false,
   });
 
   final ActiveTripStatus status;
