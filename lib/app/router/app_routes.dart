@@ -21,9 +21,18 @@ abstract final class AppRoutes {
   static const travelGroupDetails = '/traveler/groups/:groupId';
   static const inviteGroupMembers = '/traveler/groups/:groupId/invitation';
   static const travelGroupMembers = '/traveler/groups/:groupId/members';
+  static const activeTripLivePattern = '/traveler/trips/:itineraryId/live';
+  static const tripAlertsPattern = '/traveler/trips/:itineraryId/alerts';
+  static const offlinePackagePattern = '/traveler/trips/:itineraryId/offline';
   static const operator = '/operator';
   static const operatorApplication = '/operator/application';
 
+  static String activeTripLive(int itineraryId) =>
+      '/traveler/trips/$itineraryId/live';
+  static String tripAlerts(int itineraryId) =>
+      '/traveler/trips/$itineraryId/alerts';
+  static String offlinePackage(int itineraryId) =>
+      '/traveler/trips/$itineraryId/offline';
   static String poiDetail(int id) => '/explore/poi/$id';
   static const authPrefix = '/auth';
   static const travelerPrefix = '/traveler';
@@ -51,6 +60,9 @@ abstract final class AppRouteNames {
   static const travelGroupDetails = 'travel-group-details';
   static const inviteGroupMembers = 'invite-group-members';
   static const travelGroupMembers = 'travel-group-members';
+  static const activeTripLive = 'active-trip-live';
+  static const tripAlerts = 'trip-alerts';
+  static const offlinePackage = 'offline-package';
   static const operator = 'operator';
   static const operatorApplication = 'operator-application';
 }

@@ -65,7 +65,8 @@ class _TravelerSettingsPageState extends State<TravelerSettingsPage> {
               const ListTile(
                 leading: Icon(Icons.cloud_download_outlined),
                 title: Text('Offline downloads'),
-                trailing: Text('248 MB  ›'),
+                subtitle: Text('Manage packages from itinerary details'),
+                trailing: Text('Per trip  ›'),
               ),
             ],
           ),
