@@ -37,7 +37,7 @@ void main() {
     final list = tester.widget<ReorderableListView>(
       find.byType(ReorderableListView),
     );
-    expect(list.onReorder, isNotNull);
+    expect(list.onReorderItem, isNotNull);
   });
 
   testWidgets('timeline keeps Vietnam itinerary time instead of device time', (
@@ -81,7 +81,7 @@ void main() {
       final list = tester.widget<ReorderableListView>(
         find.byType(ReorderableListView),
       );
-      list.onReorder(0, 1);
+      list.onReorderItem!(0, 1);
       await tester.pump();
       await tester.tap(find.text('Save adjustment'));
       await tester.pumpAndSettle();
