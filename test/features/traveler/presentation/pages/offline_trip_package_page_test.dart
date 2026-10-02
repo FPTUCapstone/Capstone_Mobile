@@ -6,12 +6,16 @@ import 'package:trip_mate_mobile/features/traveler/presentation/demo/active_trip
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/offline_trip_package_page.dart';
 
 void main() {
-  Widget buildTestWidget({OfflineTripPackageCubit? cubit}) {
+  Widget buildTestWidget({
+    OfflineTripPackageCubit? cubit,
+    bool isDemoMode = false,
+  }) {
     return MaterialApp(
       home: OfflineTripPackagePage(
         itineraryId: 101,
         title: 'Đà Nẵng City Explorer',
         cubit: cubit,
+        isDemoMode: isDemoMode,
       ),
     );
   }
@@ -30,9 +34,12 @@ void main() {
         final cubit = OfflineTripPackageCubit(
           itineraryId: 101,
           initialPackage: notDownloadedPackage,
+          isDemoMode: true,
         );
 
-        await tester.pumpWidget(buildTestWidget(cubit: cubit));
+        await tester.pumpWidget(
+          buildTestWidget(cubit: cubit, isDemoMode: true),
+        );
         await tester.pumpAndSettle();
 
         expect(find.text('Offline Access'), findsOneWidget);
@@ -43,6 +50,24 @@ void main() {
         await cubit.close();
       },
     );
+
+    testWidgets('DEMO controls are absent when isDemoMode is false', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildTestWidget(isDemoMode: false));
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('DEMO_ONLY Controls'), findsNothing);
+      expect(find.byIcon(Icons.build_circle_outlined), findsNothing);
+    });
+
+    testWidgets('DEMO controls appear when isDemoMode is true', (tester) async {
+      await tester.pumpWidget(buildTestWidget(isDemoMode: true));
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('DEMO_ONLY Controls'), findsOneWidget);
+      expect(find.byIcon(Icons.build_circle_outlined), findsOneWidget);
+    });
 
     testWidgets('displays error when package exceeds 150 MB ceiling rule', (
       tester,
@@ -59,9 +84,10 @@ void main() {
       final cubit = OfflineTripPackageCubit(
         itineraryId: 101,
         initialPackage: oversizedPackage,
+        isDemoMode: true,
       );
 
-      await tester.pumpWidget(buildTestWidget(cubit: cubit));
+      await tester.pumpWidget(buildTestWidget(cubit: cubit, isDemoMode: true));
       await tester.pumpAndSettle();
 
       expect(find.textContaining('150 MB'), findsWidgets);
@@ -87,16 +113,57 @@ void main() {
       final cubit = OfflineTripPackageCubit(
         itineraryId: 101,
         initialPackage: availablePackage,
+        isDemoMode: true,
       );
 
-      await tester.pumpWidget(buildTestWidget(cubit: cubit));
+      await tester.pumpWidget(buildTestWidget(cubit: cubit, isDemoMode: true));
       await tester.pumpAndSettle();
 
       expect(find.text('AVAILABLE OFFLINE'), findsOneWidget);
       expect(find.text('Remove Offline Data'), findsOneWidget);
+      expect(find.textContaining('Last downloaded:'), findsOneWidget);
 
       await cubit.close();
     });
+
+    testWidgets(
+      'FIX 4: removing offline data clears lastDownloadedAt and UI removes Last downloaded text',
+      (tester) async {
+        final availablePackage =
+            ActiveTripDemoFixtures.createSampleOfflinePackage(
+              itineraryId: 101,
+              status: OfflinePackageStatus.available,
+              lastDownloadedAt: DateTime(2026, 10, 12, 10, 30),
+            );
+        final cubit = OfflineTripPackageCubit(
+          itineraryId: 101,
+          initialPackage: availablePackage,
+          isDemoMode: true,
+        );
+
+        await tester.pumpWidget(
+          buildTestWidget(cubit: cubit, isDemoMode: true),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining('Last downloaded:'), findsOneWidget);
+
+        // Tap Remove Offline Data
+        await tester.tap(find.text('Remove Offline Data'));
+        await tester.pumpAndSettle();
+
+        // Confirm in dialog
+        await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
+        await tester.pumpAndSettle();
+
+        // Package is removed and lastDownloadedAt is cleared
+        expect(cubit.state.package.status, OfflinePackageStatus.notDownloaded);
+        expect(cubit.state.package.lastDownloadedAt, isNull);
+        expect(find.textContaining('Last downloaded:'), findsNothing);
+
+        await cubit.close();
+      },
+    );
 
     testWidgets('renders update notice and refresh button when superseded', (
       tester,
@@ -109,9 +176,10 @@ void main() {
       final cubit = OfflineTripPackageCubit(
         itineraryId: 101,
         initialPackage: supersededPackage,
+        isDemoMode: true,
       );
 
-      await tester.pumpWidget(buildTestWidget(cubit: cubit));
+      await tester.pumpWidget(buildTestWidget(cubit: cubit, isDemoMode: true));
       await tester.pumpAndSettle();
 
       await tester.scrollUntilVisible(
