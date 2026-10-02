@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/active_trip_maneuver.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_state.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/navigation_map_canvas.dart';
@@ -16,14 +18,16 @@ class ActiveTripPage extends StatefulWidget {
   const ActiveTripPage({
     super.key,
     required this.itineraryId,
-    this.title = 'Đà Nẵng Day Trip',
+    this.title,
     this.cubit,
+    this.repository,
     this.isDemoMode = false,
   });
 
   final int itineraryId;
-  final String title;
+  final String? title;
   final ActiveTripCubit? cubit;
+  final ItineraryRepository? repository;
   final bool isDemoMode;
 
   @override
@@ -32,9 +36,122 @@ class ActiveTripPage extends StatefulWidget {
 
 class _ActiveTripPageState extends State<ActiveTripPage> {
   bool _showAllStops = false;
+  late bool _isLoadingMetadata;
+  String? _metadataError;
+  String? _resolvedTitle;
+  int? _resolvedVersion;
+
+  @override
+  void initState() {
+    super.initState();
+    final hasInitialTitle =
+        widget.title != null && widget.title!.trim().isNotEmpty;
+    if (widget.isDemoMode || hasInitialTitle || widget.cubit != null) {
+      _isLoadingMetadata = false;
+      _resolvedTitle =
+          widget.title ?? (widget.isDemoMode ? 'Đà Nẵng Day Trip' : null);
+    } else {
+      _isLoadingMetadata = true;
+      _fetchMetadata();
+    }
+  }
+
+  Future<void> _fetchMetadata() async {
+    setState(() {
+      _isLoadingMetadata = true;
+      _metadataError = null;
+    });
+    try {
+      final repo =
+          widget.repository ??
+          (serviceLocator.isRegistered<ItineraryRepository>()
+              ? serviceLocator<ItineraryRepository>()
+              : null);
+      if (repo == null) {
+        throw const FormatException('Itinerary service unavailable.');
+      }
+      final detail = await repo.getById(widget.itineraryId);
+      if (!mounted) return;
+      setState(() {
+        _isLoadingMetadata = false;
+        _resolvedTitle = detail.title ?? 'Trip #${widget.itineraryId}';
+        _resolvedVersion = detail.version;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingMetadata = false;
+        _metadataError = 'Trip information unavailable.';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingMetadata) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Loading trip...')),
+        body: const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: AppSpacing.md),
+              Text('Loading trip information...'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_metadataError != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Unable to load trip')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  size: 48,
+                  color: AppColors.error,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  _metadataError!,
+                  style: Theme.of(context).textTheme.titleMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  'Could not load itinerary #${widget.itineraryId}.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    OutlinedButton(
+                      onPressed: () => context.pop(),
+                      child: const Text('Go back'),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    FilledButton(
+                      onPressed: _fetchMetadata,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     final consumer = BlocConsumer<ActiveTripCubit, ActiveTripState>(
       listenWhen: (prev, curr) =>
           prev.isRerouteSheetVisible != curr.isRerouteSheetVisible ||
@@ -255,7 +372,8 @@ class _ActiveTripPageState extends State<ActiveTripPage> {
     return BlocProvider(
       create: (_) => ActiveTripCubit(
         itineraryId: widget.itineraryId,
-        itineraryTitle: widget.title,
+        itineraryTitle: _resolvedTitle ?? 'Trip #${widget.itineraryId}',
+        itineraryVersion: _resolvedVersion ?? 1,
         isDemoMode: widget.isDemoMode,
       ),
       child: consumer,

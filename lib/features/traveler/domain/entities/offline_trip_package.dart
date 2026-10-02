@@ -9,6 +9,7 @@ enum OfflinePackageStatus {
   insufficientStorage,
   networkInterrupted,
   error,
+  unavailable,
 }
 
 final class OfflineTripPackage extends Equatable {

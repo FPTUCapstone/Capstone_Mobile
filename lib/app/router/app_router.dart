@@ -26,6 +26,7 @@ import 'package:trip_mate_mobile/features/poi/presentation/pages/poi_detail_page
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/pages/tour_search_page.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_cubit.dart';
@@ -284,11 +285,19 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
           if (itineraryId == null || itineraryId <= 0) {
             return const ErrorView(message: 'Page not found.');
           }
-          final title = state.extra is String
-              ? state.extra as String
-              : 'Đà Nẵng Day Trip';
           final isDemo =
               kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final extraTitle = switch (state.extra) {
+            String title when title.trim().isNotEmpty => title.trim(),
+            GeneratedItinerary it when it.title.trim().isNotEmpty =>
+              it.title.trim(),
+            ItineraryDetail d when (d.title?.trim().isNotEmpty ?? false) =>
+              d.title!.trim(),
+            _ => null,
+          };
+          final title = isDemo
+              ? (extraTitle ?? 'Đà Nẵng Day Trip')
+              : extraTitle;
           return ActiveTripPage(
             itineraryId: itineraryId,
             title: title,
@@ -321,11 +330,19 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
           if (itineraryId == null || itineraryId <= 0) {
             return const ErrorView(message: 'Page not found.');
           }
-          final title = state.extra is String
-              ? state.extra as String
-              : 'Đà Nẵng City Explorer';
           final isDemo =
               kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final extraTitle = switch (state.extra) {
+            String title when title.trim().isNotEmpty => title.trim(),
+            GeneratedItinerary it when it.title.trim().isNotEmpty =>
+              it.title.trim(),
+            ItineraryDetail d when (d.title?.trim().isNotEmpty ?? false) =>
+              d.title!.trim(),
+            _ => null,
+          };
+          final title = isDemo
+              ? (extraTitle ?? 'Đà Nẵng City Explorer')
+              : extraTitle;
           return OfflineTripPackagePage(
             itineraryId: itineraryId,
             title: title,
