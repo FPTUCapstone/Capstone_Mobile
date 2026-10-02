@@ -60,9 +60,8 @@ Presentation -> Domain <- Data
   injection, errors, and validation. It contains no TripMate business feature.
 
 `AuthSessionCubit` is a deliberately small local demo session, not production
-authentication. Feature-specific demo Cubits own the operator application,
-password, and travel-preference interactions; the app does not use a single
-global business-state BLoC.
+authentication. Feature-specific demo Cubits own the password interactions;
+the app does not use a single global business-state BLoC.
 
 ## Project Structure
 
@@ -111,7 +110,6 @@ lib/
 |   |       |-- cubit/
 |   |       |   |-- auth_session_cubit.dart
 |   |       |   |-- auth_session_state.dart
-|   |       |   |-- operator_application_cubit.dart
 |   |       |   `-- password_demo_cubit.dart
 |   |       |-- demo/auth_demo_data.dart
 |   |       `-- pages/
@@ -125,7 +123,6 @@ lib/
 |   |           `-- splash_page.dart
 |   |-- tour_operator/presentation/pages/operator_shell_page.dart
 |   `-- traveler/presentation/
-|       |-- cubit/travel_preferences_cubit.dart
 |       `-- pages/
 |           |-- traveler_shell_page.dart
 |           |-- traveler_settings_page.dart

@@ -26,6 +26,8 @@ final class AuthSessionState extends Equatable {
     this.operation = AuthSessionOperation.none,
     this.startResendCooldown = false,
     this.successMessage,
+    this.fullName,
+    this.email,
   });
 
   const AuthSessionState.authenticated(
@@ -34,12 +36,16 @@ final class AuthSessionState extends Equatable {
         TourOperatorApplicationStatus.unresolved,
     AuthSessionOperation operation = AuthSessionOperation.none,
     String? errorMessage,
+    String? fullName,
+    String? email,
   }) : this._(
          status: AuthSessionStatus.authenticated,
          role: role,
          applicationStatus: applicationStatus,
          operation: operation,
          errorMessage: errorMessage,
+         fullName: fullName,
+         email: email,
        );
 
   const AuthSessionState.failure(
@@ -78,6 +84,11 @@ final class AuthSessionState extends Equatable {
   /// Backend-issued Tour Operator application status mapped by Data. Unknown
   /// and non-operator values remain explicitly unresolved.
   final TourOperatorApplicationStatus applicationStatus;
+
+  /// Backend-issued identity snapshot from the real `AuthSession`; null when
+  /// the Backend did not supply it. Never a fallback or inferred value.
+  final String? fullName;
+  final String? email;
   final bool startResendCooldown;
   final AuthSessionStatus status;
   final String? successMessage;
@@ -96,5 +107,7 @@ final class AuthSessionState extends Equatable {
     operation,
     startResendCooldown,
     successMessage,
+    fullName,
+    email,
   ];
 }

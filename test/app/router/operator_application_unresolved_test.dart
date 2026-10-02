@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/app/router/app_router.dart';
 import 'package:trip_mate_mobile/core/constants/app_constants.dart';
@@ -23,7 +24,13 @@ void main() {
       addTearDown(router.dispose);
       addTearDown(session.close);
 
-      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      // Mirrors app.dart: the session cubit is provided above the router.
+      await tester.pumpWidget(
+        BlocProvider<AuthSessionCubit>.value(
+          value: session,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Application status unavailable'), findsOneWidget);
