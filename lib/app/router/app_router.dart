@@ -35,18 +35,21 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_trave
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/poi_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/active_trip_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_itinerary_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_travel_group_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/invite_group_members_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_detail_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_result_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/join_travel_group_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/offline_trip_package_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_details_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_members_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_preferences_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_profile_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_settings_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_shell_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/trip_alerts_page.dart';
 import 'package:trip_mate_mobile/shared/widgets/error_view.dart';
 
 GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
@@ -268,6 +271,51 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
                   ..load(groupId: groupId),
             child: TravelGroupMembersPage(groupId: groupId),
           );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.activeTripLivePattern,
+        name: AppRouteNames.activeTripLive,
+        builder: (_, state) {
+          final itineraryId = int.tryParse(
+            state.pathParameters['itineraryId'] ?? '',
+          );
+          if (itineraryId == null || itineraryId <= 0) {
+            return const ErrorView(message: 'Page not found.');
+          }
+          final title = state.extra is String
+              ? state.extra as String
+              : 'Đà Nẵng Day Trip';
+          return ActiveTripPage(itineraryId: itineraryId, title: title);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.tripAlertsPattern,
+        name: AppRouteNames.tripAlerts,
+        builder: (_, state) {
+          final itineraryId = int.tryParse(
+            state.pathParameters['itineraryId'] ?? '',
+          );
+          if (itineraryId == null || itineraryId <= 0) {
+            return const ErrorView(message: 'Page not found.');
+          }
+          return TripAlertsPage(itineraryId: itineraryId);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.offlinePackagePattern,
+        name: AppRouteNames.offlinePackage,
+        builder: (_, state) {
+          final itineraryId = int.tryParse(
+            state.pathParameters['itineraryId'] ?? '',
+          );
+          if (itineraryId == null || itineraryId <= 0) {
+            return const ErrorView(message: 'Page not found.');
+          }
+          final title = state.extra is String
+              ? state.extra as String
+              : 'Đà Nẵng City Explorer';
+          return OfflineTripPackagePage(itineraryId: itineraryId, title: title);
         },
       ),
       GoRoute(

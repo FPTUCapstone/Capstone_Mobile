@@ -180,4 +180,30 @@ void main() {
     expect(find.text('12:00'), findsOneWidget);
     expect(find.text('13:00'), findsOneWidget);
   });
+
+  testWidgets(
+    'renders Start Navigation and Download for Offline Use action buttons',
+    (tester) async {
+      final itinerary = _makeItinerary(
+        items: [
+          GeneratedItineraryItem(
+            sequenceNo: 1,
+            itemKind: ItineraryItemKind.visit,
+            plannedArrival: DateTime.utc(2026, 10, 20, 5),
+            plannedDeparture: DateTime.utc(2026, 10, 20, 6),
+            stayDurationMinutes: 60,
+            isMandatory: false,
+            poiName: 'Da Nang Museum',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(home: ItineraryResultPage(itinerary: itinerary)),
+      );
+
+      expect(find.text('Start Navigation'), findsOneWidget);
+      expect(find.text('Download for Offline Use'), findsOneWidget);
+    },
+  );
 }
