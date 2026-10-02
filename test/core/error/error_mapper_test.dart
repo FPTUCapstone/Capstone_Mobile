@@ -257,6 +257,21 @@ void main() {
     }
   });
 
+  test('maps HTTP 404 to NotFoundFailure', () {
+    final failure = ErrorMapper.toFailure(
+      DioException(
+        requestOptions: RequestOptions(path: '/itineraries/10'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/itineraries/10'),
+          statusCode: 404,
+        ),
+      ),
+    );
+
+    expect(failure, isA<NotFoundFailure>());
+    expect(failure.message, 'The requested resource could not be found.');
+  });
+
   test('maps planning HTTP outcomes to safe business failures', () {
     Failure failureFor(int statusCode) => ErrorMapper.toFailure(
       DioException(
@@ -294,5 +309,21 @@ void main() {
       failure.message,
       'The selected time is too short for the required stops.',
     );
+  });
+
+  test('preserves the UC-11 infeasible itinerary reason', () {
+    final failure = ErrorMapper.toFailure(
+      responseError(
+        statusCode: 422,
+        path: '/api/v1/itineraries/10/items',
+        data: {
+          'title': 'The selected order cannot produce an itinerary.',
+          'errorCode': 'itinerary.constraints_infeasible',
+        },
+      ),
+    );
+
+    expect(failure, isA<ConstraintFailure>());
+    expect(failure.message, 'The selected order cannot produce an itinerary.');
   });
 }

@@ -30,6 +30,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/invite_group_members_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/itinerary_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/poi_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_cubit.dart';
@@ -37,6 +38,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_pre
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_itinerary_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_travel_group_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/invite_group_members_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_detail_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_result_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/join_travel_group_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_details_page.dart';
@@ -164,6 +166,22 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
           ],
           child: const CreateItineraryPage(),
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.itineraryDetail,
+        name: AppRouteNames.itineraryDetail,
+        builder: (_, state) {
+          final itineraryId = int.tryParse(
+            state.pathParameters['itineraryId'] ?? '',
+          );
+          if (itineraryId == null || itineraryId <= 0) {
+            return const ErrorView(message: 'Your itinerary is unavailable.');
+          }
+          return BlocProvider(
+            create: (_) => ItineraryDetailCubit(repository: serviceLocator()),
+            child: ItineraryDetailPage(itineraryId: itineraryId),
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.itineraryResult,
