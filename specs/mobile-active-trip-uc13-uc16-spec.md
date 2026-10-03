@@ -108,7 +108,7 @@ Suggested Itinerary (UC-11)
 
 ### 6. Provisional Route Architecture
 
-> **[PROVISIONAL_ROUTE_IDENTITY]**  
+> **[PROVISIONAL_ROUTE_IDENTITY]**
 > The routes below use `itineraryId` to integrate naturally with the existing UC-11 navigation context (`ItineraryResultPage`). This identifier strategy is provisional for Mobile UI delivery. It does not assert that `itineraryId` will be the final server-side navigation session token once backend contracts are established.
 
 Proposed route constants for `AppRoutes`:
@@ -320,7 +320,7 @@ All backend capabilities for UC-13 through UC-16 are currently absent from `Caps
 
 ### 17. SRS Message Conflict Register
 
-> **[SRS_MESSAGE_ID_CONFLICT]**  
+> **[SRS_MESSAGE_ID_CONFLICT]**
 > Conflicting numeric message IDs across Report 3 SRS sections are formally cataloged below. **Implementation rule**: Use semantic UI states; defer hard-coded numeric message IDs until the specification is authoritatively harmonized.
 
 | Conflicted ID | Use Case & Detailed Flow Context | Global Message Catalog Context | Conflict Description | Implementation Decision |
