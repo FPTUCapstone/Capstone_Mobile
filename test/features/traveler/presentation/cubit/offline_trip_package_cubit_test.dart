@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/offline_trip_package.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/offline_trip_package_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/offline_trip_package_state.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/demo/active_trip_demo_fixtures.dart';
 
 void main() {
@@ -292,5 +293,328 @@ void main() {
       final cleared = pkg.copyWith(clearDateRange: true);
       expect(cleared.dateRange, isNull);
     });
+  });
+
+  group('Review Round 4 Finding P2: Offline refresh preserves installed package', () {
+    test(
+      'refreshSupersededPackage preserves installed package availability in all emitted states and promotes atomically at 100%',
+      () async {
+        final supersededPkg = ActiveTripDemoFixtures.createSampleOfflinePackage(
+          itineraryId: 101,
+          version: 1,
+          status: OfflinePackageStatus.superseded,
+          lastDownloadedAt: DateTime(2026, 10, 1, 10),
+        );
+        final cubit = OfflineTripPackageCubit(
+          itineraryId: 101,
+          initialPackage: supersededPkg,
+          isDemoMode: true,
+        );
+
+        expect(cubit.state.package.isAvailableOffline, isTrue);
+        expect(cubit.state.isAvailableOffline, isTrue);
+        expect(cubit.state.isRefreshing, isFalse);
+
+        final emittedStates = <OfflineTripPackageState>[];
+        final subscription = cubit.stream.listen(emittedStates.add);
+
+        await cubit.refreshSupersededPackage();
+        await pumpEventQueue();
+        await subscription.cancel();
+
+        // 4 intermediate states (checkingStorage, 15%, 55%, 88%) + 1 final promoted state (100%)
+        expect(emittedStates.length, 5);
+
+        // Verify intermediate states: installed package stays superseded and available offline
+        for (int i = 0; i < 4; i++) {
+          final s = emittedStates[i];
+          expect(
+            s.package.status,
+            OfflinePackageStatus.superseded,
+            reason: 'State $i package status must be superseded',
+          );
+          expect(
+            s.package.version,
+            1,
+            reason: 'State $i package version must remain 1',
+          );
+          expect(
+            s.package.isAvailableOffline,
+            isTrue,
+            reason: 'State $i package must remain available offline',
+          );
+          expect(
+            s.isAvailableOffline,
+            isTrue,
+            reason: 'State $i cubit state must report available offline',
+          );
+          expect(
+            s.isRefreshing,
+            isTrue,
+            reason: 'State $i must indicate active refresh',
+          );
+          expect(
+            s.replacementPackage,
+            isNotNull,
+            reason: 'State $i must hold replacement package',
+          );
+          expect(
+            s.replacementPackage!.version,
+            2,
+            reason: 'State $i replacement package must have target version',
+          );
+        }
+
+        // Verify final promoted state: replacement atomically becomes the package
+        final finalState = emittedStates.last;
+        expect(finalState.package.status, OfflinePackageStatus.available);
+        expect(finalState.package.version, 2);
+        expect(finalState.package.progressPercent, 100.0);
+        expect(finalState.package.isAvailableOffline, isTrue);
+        expect(finalState.isAvailableOffline, isTrue);
+        expect(finalState.isRefreshing, isFalse);
+        expect(finalState.replacementPackage, isNull);
+
+        await cubit.close();
+      },
+    );
+
+    test(
+      'startDownload on superseded package delegates to refresh to preserve usable copy',
+      () async {
+        final supersededPkg = ActiveTripDemoFixtures.createSampleOfflinePackage(
+          itineraryId: 101,
+          version: 1,
+          status: OfflinePackageStatus.superseded,
+        );
+        final cubit = OfflineTripPackageCubit(
+          itineraryId: 101,
+          initialPackage: supersededPkg,
+          isDemoMode: true,
+        );
+
+        final emittedStates = <OfflineTripPackageState>[];
+        final subscription = cubit.stream.listen(emittedStates.add);
+
+        await cubit.startDownload();
+        await pumpEventQueue();
+        await subscription.cancel();
+
+        // Must never set installed package status to checkingStorage or downloading
+        for (final s in emittedStates) {
+          expect(s.isAvailableOffline, isTrue);
+          expect(s.package.isAvailableOffline, isTrue);
+          expect(s.package.status == OfflinePackageStatus.downloading, isFalse);
+          expect(
+            s.package.status == OfflinePackageStatus.checkingStorage,
+            isFalse,
+          );
+        }
+
+        expect(cubit.state.package.status, OfflinePackageStatus.available);
+        expect(cubit.state.package.version, 2);
+
+        await cubit.close();
+      },
+    );
+
+    test(
+      'refresh failure due to low storage leaves installed package superseded and usable',
+      () async {
+        final supersededPkg = ActiveTripDemoFixtures.createSampleOfflinePackage(
+          itineraryId: 101,
+          version: 1,
+          status: OfflinePackageStatus.superseded,
+        );
+        final cubit = OfflineTripPackageCubit(
+          itineraryId: 101,
+          initialPackage: supersededPkg,
+          initialFreeStorageMb: 50.0, // Insufficient for 150 MB requirement
+          isDemoMode: true,
+        );
+
+        await cubit.refreshSupersededPackage();
+
+        expect(
+          cubit.state.replacementPackage?.status,
+          OfflinePackageStatus.insufficientStorage,
+        );
+        expect(cubit.state.package.status, OfflinePackageStatus.superseded);
+        expect(cubit.state.package.isAvailableOffline, isTrue);
+        expect(cubit.state.isAvailableOffline, isTrue);
+
+        await cubit.close();
+      },
+    );
+
+    test(
+      'refresh failure due to oversized package leaves installed package superseded and usable',
+      () async {
+        final oversizedSupersededPkg =
+            ActiveTripDemoFixtures.createSampleOfflinePackage(
+              itineraryId: 101,
+              version: 1,
+              totalSizeMb: 165.0, // Exceeds 150 MB ceiling
+              status: OfflinePackageStatus.superseded,
+            );
+        final cubit = OfflineTripPackageCubit(
+          itineraryId: 101,
+          initialPackage: oversizedSupersededPkg,
+          isDemoMode: true,
+        );
+
+        await cubit.refreshSupersededPackage();
+
+        expect(
+          cubit.state.replacementPackage?.status,
+          OfflinePackageStatus.insufficientStorage,
+        );
+        expect(cubit.state.package.status, OfflinePackageStatus.superseded);
+        expect(cubit.state.package.isAvailableOffline, isTrue);
+        expect(cubit.state.isAvailableOffline, isTrue);
+
+        await cubit.close();
+      },
+    );
+
+    test(
+      'demoSimulateNetworkInterruption during refresh marks replacement interrupted while installed package remains usable',
+      () async {
+        final supersededPkg = ActiveTripDemoFixtures.createSampleOfflinePackage(
+          itineraryId: 101,
+          version: 1,
+          status: OfflinePackageStatus.superseded,
+        );
+        final cubit = OfflineTripPackageCubit(
+          itineraryId: 101,
+          initialPackage: supersededPkg,
+          initialFreeStorageMb:
+              50.0, // Enters refresh failure state so replacementPackage != null
+          isDemoMode: true,
+        );
+
+        await cubit.refreshSupersededPackage();
+        expect(cubit.state.replacementPackage, isNotNull);
+
+        cubit.demoSimulateNetworkInterruption();
+
+        expect(
+          cubit.state.replacementPackage?.status,
+          OfflinePackageStatus.networkInterrupted,
+        );
+        expect(cubit.state.package.status, OfflinePackageStatus.superseded);
+        expect(cubit.state.package.isAvailableOffline, isTrue);
+        expect(cubit.state.isAvailableOffline, isTrue);
+
+        await cubit.close();
+      },
+    );
+
+    test(
+      'cancelDownload during refresh clears replacementPackage and retains installed package',
+      () async {
+        final supersededPkg = ActiveTripDemoFixtures.createSampleOfflinePackage(
+          itineraryId: 101,
+          version: 1,
+          status: OfflinePackageStatus.superseded,
+        );
+        final cubit = OfflineTripPackageCubit(
+          itineraryId: 101,
+          initialPackage: supersededPkg,
+          initialFreeStorageMb: 50.0,
+          isDemoMode: true,
+        );
+
+        await cubit.refreshSupersededPackage();
+        expect(cubit.state.replacementPackage, isNotNull);
+
+        cubit.cancelDownload();
+
+        expect(cubit.state.replacementPackage, isNull);
+        expect(cubit.state.isRefreshing, isFalse);
+        expect(cubit.state.package.status, OfflinePackageStatus.superseded);
+        expect(cubit.state.package.isAvailableOffline, isTrue);
+        expect(cubit.state.isAvailableOffline, isTrue);
+
+        await cubit.close();
+      },
+    );
+
+    test(
+      'removeOfflineData resets package to notDownloaded and clears active replacement download',
+      () async {
+        final supersededPkg = ActiveTripDemoFixtures.createSampleOfflinePackage(
+          itineraryId: 101,
+          version: 1,
+          status: OfflinePackageStatus.superseded,
+          lastDownloadedAt: DateTime(2026, 10, 1, 10),
+        );
+        final cubit = OfflineTripPackageCubit(
+          itineraryId: 101,
+          initialPackage: supersededPkg,
+          initialFreeStorageMb: 50.0,
+          isDemoMode: true,
+        );
+
+        await cubit.refreshSupersededPackage();
+        expect(cubit.state.replacementPackage, isNotNull);
+
+        cubit.removeOfflineData();
+
+        expect(cubit.state.package.status, OfflinePackageStatus.notDownloaded);
+        expect(cubit.state.package.progressPercent, 0.0);
+        expect(cubit.state.package.lastDownloadedAt, isNull);
+        expect(cubit.state.package.isAvailableOffline, isFalse);
+        expect(cubit.state.replacementPackage, isNull);
+        expect(cubit.state.isRefreshing, isFalse);
+
+        await cubit.close();
+      },
+    );
+
+    test(
+      'initial first-time download is NOT available offline during checkingStorage or downloading',
+      () async {
+        final notDownloadedPkg =
+            ActiveTripDemoFixtures.createSampleOfflinePackage(
+              itineraryId: 101,
+              status: OfflinePackageStatus.notDownloaded,
+            );
+        final cubit = OfflineTripPackageCubit(
+          itineraryId: 101,
+          initialPackage: notDownloadedPkg,
+          isDemoMode: true,
+        );
+
+        final emittedStates = <OfflineTripPackageState>[];
+        final subscription = cubit.stream.listen(emittedStates.add);
+
+        await cubit.startDownload();
+        await pumpEventQueue();
+        await subscription.cancel();
+
+        // Intermediate states (checkingStorage, 15%, 55%, 88%) must all be false for isAvailableOffline
+        for (int i = 0; i < emittedStates.length - 1; i++) {
+          final s = emittedStates[i];
+          expect(
+            s.package.isAvailableOffline,
+            isFalse,
+            reason: 'Intermediate state $i must NOT be available offline',
+          );
+          expect(
+            s.isAvailableOffline,
+            isFalse,
+            reason:
+                'Intermediate state $i state.isAvailableOffline must be false',
+          );
+        }
+
+        // Final state is available
+        expect(emittedStates.last.package.isAvailableOffline, isTrue);
+        expect(emittedStates.last.isAvailableOffline, isTrue);
+
+        await cubit.close();
+      },
+    );
   });
 }
