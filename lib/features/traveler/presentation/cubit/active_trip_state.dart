@@ -67,6 +67,7 @@ final class ActiveTripState extends Equatable {
   bool get hasPendingRerouteProposal =>
       activeRerouteProposal != null &&
       activeRerouteProposal!.status == RerouteStatus.pending;
+  bool get isTerminal => status == ActiveTripStatus.navigationTripCompleted;
 
   ActiveTripState copyWith({
     ActiveTripStatus? status,

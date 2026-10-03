@@ -333,4 +333,186 @@ void main() {
       cubit.close();
     });
   });
+
+  group('Terminal Navigation State Safety (P1-1)', () {
+    test(
+      'stopped trip is terminal: delayed onSystemDetectedArrival does not mutate waypoints or index',
+      () {
+        final cubit = ActiveTripCubit(
+          itineraryId: 101,
+          initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
+          isDemoMode: true,
+        );
+
+        expect(cubit.state.status, ActiveTripStatus.navigationActive);
+        expect(cubit.state.isTerminal, isFalse);
+        expect(cubit.state.currentWaypointIndex, 0);
+        expect(cubit.state.waypoints[0].isReached, isFalse);
+
+        // Stop navigation -> transitions to terminal state
+        cubit.stopNavigation();
+        expect(cubit.state.status, ActiveTripStatus.navigationTripCompleted);
+        expect(cubit.state.isTerminal, isTrue);
+        expect(cubit.state.statusMessage, 'Navigation session ended.');
+
+        final snapshotIndex = cubit.state.currentWaypointIndex;
+        final snapshotWaypoints = cubit.state.waypoints;
+
+        // Delayed system/GPS arrival callback arrives AFTER trip was stopped
+        cubit.onSystemDetectedArrival();
+
+        // State remains strictly terminal and untouched
+        expect(cubit.state.status, ActiveTripStatus.navigationTripCompleted);
+        expect(cubit.state.isTerminal, isTrue);
+        expect(cubit.state.currentWaypointIndex, snapshotIndex);
+        expect(cubit.state.waypoints, snapshotWaypoints);
+        expect(cubit.state.waypoints[0].isReached, isFalse);
+        expect(cubit.state.statusMessage, 'Navigation session ended.');
+
+        cubit.close();
+      },
+    );
+
+    test(
+      'stopped trip is terminal: delayed GPS position updates are discarded',
+      () {
+        final cubit = ActiveTripCubit(
+          itineraryId: 101,
+          initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
+          isDemoMode: true,
+        );
+
+        cubit.updatePosition(latitude: 16.0500, longitude: 108.2000);
+        expect(cubit.state.currentLatitude, 16.0500);
+        expect(cubit.state.currentLongitude, 108.2000);
+
+        cubit.stopNavigation();
+        expect(cubit.state.isTerminal, isTrue);
+
+        // Delayed GPS position update arrives
+        cubit.updatePosition(latitude: 16.0999, longitude: 108.2999);
+
+        // Coordinates remain untouched
+        expect(cubit.state.currentLatitude, 16.0500);
+        expect(cubit.state.currentLongitude, 108.2000);
+
+        cubit.close();
+      },
+    );
+
+    test(
+      'stopped trip is terminal: external setStatus cannot reopen navigation',
+      () {
+        final cubit = ActiveTripCubit(
+          itineraryId: 101,
+          initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
+          isDemoMode: true,
+        );
+
+        cubit.stopNavigation();
+        expect(cubit.state.isTerminal, isTrue);
+
+        // Attempt to reactivate or change status
+        cubit.setStatus(ActiveTripStatus.navigationActive);
+        expect(cubit.state.status, ActiveTripStatus.navigationTripCompleted);
+        expect(cubit.state.isTerminal, isTrue);
+
+        cubit.close();
+      },
+    );
+
+    test(
+      'stopped trip is terminal: reroute actions and alerts are rejected',
+      () {
+        final cubit = ActiveTripCubit(
+          itineraryId: 101,
+          initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
+          isDemoMode: true,
+        );
+
+        final proposal = ActiveTripDemoFixtures.createSampleRerouteProposal();
+        cubit.openRerouteProposal(proposal);
+        expect(cubit.state.isRerouteSheetVisible, isTrue);
+
+        cubit.stopNavigation();
+        expect(cubit.state.isTerminal, isTrue);
+
+        // Attempt to open, accept, decline, or expire proposal on terminal trip
+        cubit.openRerouteProposal();
+        expect(cubit.state.isRerouteSheetVisible, isFalse);
+
+        cubit.acceptRerouteProposal();
+        expect(cubit.state.itineraryVersion, 1);
+
+        cubit.declineRerouteProposal();
+        expect(cubit.state.itineraryVersion, 1);
+
+        cubit.expireRerouteProposal();
+        expect(cubit.state.itineraryVersion, 1);
+
+        // Attempt to add alert
+        final alert = TripAlert(
+          id: 'late-alert',
+          title: 'Late alert',
+          description: 'Should be ignored',
+          severity: AlertSeverity.info,
+          type: TripAlertType.delay,
+          affectedStopName: 'Stop',
+          timestamp: DateTime.now(),
+        );
+        final alertsBefore = cubit.state.alerts.length;
+        cubit.addAlert(alert);
+        expect(cubit.state.alerts.length, alertsBefore);
+
+        cubit.close();
+      },
+    );
+
+    test(
+      'natural trip completion is terminal and rejects subsequent arrivals',
+      () {
+        final cubit = ActiveTripCubit(
+          itineraryId: 101,
+          initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
+          isDemoMode: true,
+        );
+
+        // Advance through all 5 waypoints
+        for (var i = 0; i < 5; i++) {
+          cubit.onSystemDetectedArrival();
+        }
+
+        expect(cubit.state.status, ActiveTripStatus.navigationTripCompleted);
+        expect(cubit.state.isTerminal, isTrue);
+        expect(cubit.state.reachedWaypointsCount, 5);
+
+        // Additional arrival callback
+        cubit.onSystemDetectedArrival();
+        expect(cubit.state.status, ActiveTripStatus.navigationTripCompleted);
+        expect(cubit.state.currentWaypointIndex, 4);
+
+        cubit.close();
+      },
+    );
+
+    test('closeRerouteProposalSheet is idempotent when already closed', () {
+      final cubit = ActiveTripCubit(
+        itineraryId: 101,
+        initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
+        isDemoMode: true,
+      );
+
+      expect(cubit.state.isRerouteSheetVisible, isFalse);
+
+      var emitted = false;
+      final subscription = cubit.stream.listen((_) => emitted = true);
+
+      cubit.closeRerouteProposalSheet();
+      expect(emitted, isFalse);
+      expect(cubit.state.isRerouteSheetVisible, isFalse);
+
+      subscription.cancel();
+      cubit.close();
+    });
+  });
 }

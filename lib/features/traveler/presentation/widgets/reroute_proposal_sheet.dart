@@ -9,34 +9,52 @@ class RerouteProposalSheet extends StatelessWidget {
     required this.proposal,
     required this.onAccept,
     required this.onDecline,
+    required this.onClose,
   });
 
   final RerouteProposal proposal;
   final VoidCallback onAccept;
   final VoidCallback onDecline;
+  final VoidCallback onClose;
+
+  static String formatArrivalTimeDiff(int diffMinutes) {
+    if (diffMinutes < 0) {
+      return '${diffMinutes.abs()} min earlier';
+    } else if (diffMinutes > 0) {
+      return '$diffMinutes min later';
+    } else {
+      return 'No arrival-time change';
+    }
+  }
 
   static Future<void> show(
     BuildContext context, {
     required RerouteProposal proposal,
     required VoidCallback onAccept,
     required VoidCallback onDecline,
+    required VoidCallback onClose,
   }) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => RerouteProposalSheet(
+      builder: (sheetContext) => RerouteProposalSheet(
         proposal: proposal,
         onAccept: () {
-          Navigator.of(context).pop();
+          Navigator.of(sheetContext).pop();
           onAccept();
         },
         onDecline: () {
-          Navigator.of(context).pop();
+          Navigator.of(sheetContext).pop();
           onDecline();
         },
+        onClose: () {
+          Navigator.of(sheetContext).pop();
+        },
       ),
-    );
+    ).whenComplete(() {
+      onClose();
+    });
   }
 
   @override
@@ -94,7 +112,7 @@ class RerouteProposalSheet extends StatelessWidget {
                   IconButton(
                     icon: const Icon(Icons.close),
                     tooltip: 'Close without changing plan',
-                    onPressed: onDecline,
+                    onPressed: onClose,
                   ),
                 ],
               ),
@@ -297,9 +315,10 @@ class RerouteProposalSheet extends StatelessWidget {
                           ),
                           _MetricRow(
                             label: 'Arrival time adjustment',
-                            value:
-                                '${proposal.arrivalTimeDiffMinutes > 0 ? '+' : ''}${proposal.arrivalTimeDiffMinutes} min earlier',
-                            isPositive: true,
+                            value: formatArrivalTimeDiff(
+                              proposal.arrivalTimeDiffMinutes,
+                            ),
+                            isPositive: proposal.arrivalTimeDiffMinutes <= 0,
                           ),
                           if (proposal.distanceDiffKm != null)
                             _MetricRow(

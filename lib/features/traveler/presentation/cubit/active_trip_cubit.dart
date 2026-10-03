@@ -90,7 +90,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
 
   /// System position update from GPS stream.
   void updatePosition({required double latitude, required double longitude}) {
-    if (state.status == ActiveTripStatus.navigationTripCompleted) return;
+    if (state.isTerminal) return;
 
     emit(
       state.copyWith(
@@ -106,8 +106,9 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
   /// Production arrival semantics:
   /// When GPS sensor detects proximity to active waypoint, the SYSTEM marks
   /// it reached and advances to next waypoint.
+  /// If navigation is terminal (stopped or completed), arrival callbacks are rejected.
   void onSystemDetectedArrival() {
-    if (state.waypoints.isEmpty) return;
+    if (state.isTerminal || state.waypoints.isEmpty) return;
     final currentIndex = state.currentWaypointIndex;
     final updatedWaypoints = List<ActiveTripWaypoint>.from(state.waypoints);
 
@@ -126,6 +127,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
           waypoints: updatedWaypoints,
           currentWaypointIndex: currentIndex,
           statusMessage: 'Trip completed! All scheduled stops reached.',
+          isRerouteSheetVisible: false,
         ),
       );
     } else {
@@ -156,6 +158,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
 
   /// Adds an alert to the active feed and surfaces it in the banner if appropriate.
   void addAlert(TripAlert alert) {
+    if (state.isTerminal) return;
     final updatedAlerts = [alert, ...state.alerts];
     emit(state.copyWith(alerts: updatedAlerts, activeBannerAlert: alert));
   }
@@ -166,6 +169,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
   /// - In production mode: does not invent or reopen non-pending proposals.
   /// - In demo mode: generates a sample demo proposal if none is active.
   void openRerouteProposal([RerouteProposal? proposal]) {
+    if (state.isTerminal) return;
     final target = proposal ?? state.activeRerouteProposal;
     if (target == null) {
       if (!state.isDemoMode) return;
@@ -192,6 +196,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
 
   /// Closes proposal sheet without decision.
   void closeRerouteProposalSheet() {
+    if (!state.isRerouteSheetVisible) return;
     emit(state.copyWith(isRerouteSheetVisible: false));
   }
 
@@ -199,6 +204,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
   /// Explicit consent creates a new itinerary version (V+1).
   /// Requires activeRerouteProposal != null and status == pending.
   void acceptRerouteProposal() {
+    if (state.isTerminal) return;
     final proposal = state.activeRerouteProposal;
     if (proposal == null || proposal.status != RerouteStatus.pending) return;
 
@@ -230,6 +236,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
   /// Current route and version remain active.
   /// Requires activeRerouteProposal != null and status == pending.
   void declineRerouteProposal() {
+    if (state.isTerminal) return;
     final proposal = state.activeRerouteProposal;
     if (proposal == null || proposal.status != RerouteStatus.pending) return;
 
@@ -247,6 +254,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
   /// Proposal expires. Current route remains active.
   /// Requires activeRerouteProposal != null and status == pending.
   void expireRerouteProposal() {
+    if (state.isTerminal) return;
     final proposal = state.activeRerouteProposal;
     if (proposal == null || proposal.status != RerouteStatus.pending) return;
 
@@ -263,15 +271,18 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
 
   /// Traveler stops navigation session.
   void stopNavigation() {
+    if (state.isTerminal) return;
     emit(
       state.copyWith(
         status: ActiveTripStatus.navigationTripCompleted,
         statusMessage: 'Navigation session ended.',
+        isRerouteSheetVisible: false,
       ),
     );
   }
 
   void setStatus(ActiveTripStatus newStatus) {
+    if (state.isTerminal) return;
     emit(state.copyWith(status: newStatus));
   }
 
@@ -286,13 +297,13 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
 
   /// DEMO_ONLY: Simulates GPS arrival detection at current waypoint.
   void demoSimulateArrivalAtNextStop() {
-    if (!state.isDemoMode) return;
+    if (!state.isDemoMode || state.isTerminal) return;
     onSystemDetectedArrival();
   }
 
   /// DEMO_ONLY: Injects a severe weather disruption with reroute proposal.
   void demoSimulateWeatherDisruption() {
-    if (!state.isDemoMode) return;
+    if (!state.isDemoMode || state.isTerminal) return;
     final alert = TripAlert(
       id: 'demo-weather-${DateTime.now().millisecondsSinceEpoch}',
       title: 'Severe weather warning',
@@ -318,7 +329,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
 
   /// DEMO_ONLY: Injects route deviation event (>500m).
   void demoSimulateRouteDeviation() {
-    if (!state.isDemoMode) return;
+    if (!state.isDemoMode || state.isTerminal) return;
     final alert = TripAlert(
       id: 'demo-deviation-${DateTime.now().millisecondsSinceEpoch}',
       title: 'Off-route deviation detected',
@@ -342,13 +353,13 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
 
   /// DEMO_ONLY: Toggles GPS acquiring state.
   void demoSimulateGpsAcquiring() {
-    if (!state.isDemoMode) return;
+    if (!state.isDemoMode || state.isTerminal) return;
     emit(state.copyWith(status: ActiveTripStatus.navigationAcquiringPosition));
   }
 
   /// DEMO_ONLY: Simulates GPS unavailable state.
   void demoSimulateGpsLost() {
-    if (!state.isDemoMode) return;
+    if (!state.isDemoMode || state.isTerminal) return;
     emit(
       state.copyWith(status: ActiveTripStatus.navigationPositionUnavailable),
     );
@@ -356,7 +367,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
 
   /// DEMO_ONLY: Simulates permission denied state.
   void demoSimulatePermissionDenied() {
-    if (!state.isDemoMode) return;
+    if (!state.isDemoMode || state.isTerminal) return;
     emit(state.copyWith(status: ActiveTripStatus.navigationPermissionDenied));
   }
 }
