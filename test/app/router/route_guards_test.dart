@@ -147,6 +147,14 @@ void main() {
         await resolve(tester, session, AppRoutes.operator),
         AppRoutes.login,
       );
+      expect(
+        await resolve(tester, session, AppRoutes.activeTripLive(101)),
+        AppRoutes.login,
+      );
+      expect(
+        await resolve(tester, session, AppRoutes.offlinePackage(101)),
+        AppRoutes.login,
+      );
     },
   );
 

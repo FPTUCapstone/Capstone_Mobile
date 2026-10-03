@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
@@ -51,9 +53,65 @@ final class ItineraryResultPage extends StatelessWidget {
           ),
         ],
       ],
-      footer: FilledButton.tonal(
-        onPressed: () => context.go(AppRoutes.createItinerary),
-        child: const Text('Create another itinerary'),
+      footer: Builder(
+        builder: (context) {
+          final isActive = itinerary.status.trim().toLowerCase() == 'active';
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              FilledButton.icon(
+                onPressed: isActive
+                    ? () => context.push(
+                        AppRoutes.activeTripLive(itinerary.itineraryId),
+                        extra: itinerary.title,
+                      )
+                    : null,
+                icon: const Icon(Icons.navigation_rounded),
+                label: const Text('Start Navigation'),
+              ),
+              if (!isActive) ...[
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  'Navigation requires an Active itinerary (current: ${itinerary.status}). Accept this itinerary to activate.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+              if (kDebugMode) ...[
+                const SizedBox(height: AppSpacing.xs),
+                OutlinedButton.icon(
+                  onPressed: () => context.push(
+                    '${AppRoutes.activeTripLive(itinerary.itineraryId)}?demo=true',
+                    extra: itinerary.title,
+                  ),
+                  icon: const Icon(
+                    Icons.bug_report_outlined,
+                    color: AppColors.warning,
+                  ),
+                  label: const Text('Preview Navigation (Demo Mode)'),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.xs),
+              OutlinedButton.icon(
+                onPressed: () => context.push(
+                  AppRoutes.offlinePackage(itinerary.itineraryId),
+                  extra: itinerary.title,
+                ),
+                icon: const Icon(Icons.download_rounded),
+                label: const Text('Download for Offline Use'),
+              ),
+              const SizedBox(height: AppSpacing.xxs),
+              TextButton(
+                onPressed: () => context.go(AppRoutes.createItinerary),
+                child: const Text('Create another itinerary'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

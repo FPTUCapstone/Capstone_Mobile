@@ -4,6 +4,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_gen
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_result_page.dart';
 
 GeneratedItinerary _makeItinerary({
+  String status = 'Draft',
   List<GeneratedItineraryItem> items = const [],
   double totalEstimatedCost = 0,
   int totalDurationMinutes = 240,
@@ -11,7 +12,7 @@ GeneratedItinerary _makeItinerary({
   schedulingRequestId: 1,
   itineraryId: 2,
   title: 'Generated itinerary - 20 Oct 2026',
-  status: 'Draft',
+  status: status,
   totalEstimatedCost: totalEstimatedCost,
   totalDurationMinutes: totalDurationMinutes,
   items: items,
@@ -180,4 +181,75 @@ void main() {
     expect(find.text('12:00'), findsOneWidget);
     expect(find.text('13:00'), findsOneWidget);
   });
+
+  testWidgets(
+    'UC-11: Start Navigation is disabled for non-Active (Draft) itinerary with guidance',
+    (tester) async {
+      final itinerary = _makeItinerary(
+        status: 'Draft',
+        items: [
+          GeneratedItineraryItem(
+            sequenceNo: 1,
+            itemKind: ItineraryItemKind.visit,
+            plannedArrival: DateTime.utc(2026, 10, 20, 5),
+            plannedDeparture: DateTime.utc(2026, 10, 20, 6),
+            stayDurationMinutes: 60,
+            isMandatory: false,
+            poiName: 'Da Nang Museum',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(home: ItineraryResultPage(itinerary: itinerary)),
+      );
+
+      final startNavButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Start Navigation'),
+      );
+      expect(startNavButton.onPressed, isNull);
+      expect(
+        find.textContaining(
+          'Navigation requires an Active itinerary (current: Draft)',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Download for Offline Use'), findsOneWidget);
+      expect(find.text('Preview Navigation (Demo Mode)'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'UC-11: Start Navigation is enabled for Active itinerary without guidance text',
+    (tester) async {
+      final itinerary = _makeItinerary(
+        status: 'Active',
+        items: [
+          GeneratedItineraryItem(
+            sequenceNo: 1,
+            itemKind: ItineraryItemKind.visit,
+            plannedArrival: DateTime.utc(2026, 10, 20, 5),
+            plannedDeparture: DateTime.utc(2026, 10, 20, 6),
+            stayDurationMinutes: 60,
+            isMandatory: false,
+            poiName: 'Da Nang Museum',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(home: ItineraryResultPage(itinerary: itinerary)),
+      );
+
+      final startNavButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Start Navigation'),
+      );
+      expect(startNavButton.onPressed, isNotNull);
+      expect(
+        find.textContaining('Navigation requires an Active itinerary'),
+        findsNothing,
+      );
+      expect(find.text('Download for Offline Use'), findsOneWidget);
+    },
+  );
 }

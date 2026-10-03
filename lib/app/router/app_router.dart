@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -25,6 +26,7 @@ import 'package:trip_mate_mobile/features/poi/presentation/pages/poi_detail_page
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/pages/tour_search_page.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_cubit.dart';
@@ -35,18 +37,21 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_trave
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/poi_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/active_trip_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_itinerary_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_travel_group_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/invite_group_members_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_detail_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_result_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/join_travel_group_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/offline_trip_package_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_details_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_members_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_preferences_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_profile_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_settings_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_shell_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/trip_alerts_page.dart';
 import 'package:trip_mate_mobile/shared/widgets/error_view.dart';
 
 GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
@@ -267,6 +272,81 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
                 serviceLocator<TravelGroupMembersCubit>()
                   ..load(groupId: groupId),
             child: TravelGroupMembersPage(groupId: groupId),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.activeTripLivePattern,
+        name: AppRouteNames.activeTripLive,
+        builder: (_, state) {
+          final itineraryId = int.tryParse(
+            state.pathParameters['itineraryId'] ?? '',
+          );
+          if (itineraryId == null || itineraryId <= 0) {
+            return const ErrorView(message: 'Page not found.');
+          }
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final extraTitle = switch (state.extra) {
+            String title when title.trim().isNotEmpty => title.trim(),
+            GeneratedItinerary it when it.title.trim().isNotEmpty =>
+              it.title.trim(),
+            ItineraryDetail d when (d.title?.trim().isNotEmpty ?? false) =>
+              d.title!.trim(),
+            _ => null,
+          };
+          final title = isDemo
+              ? (extraTitle ?? 'Đà Nẵng Day Trip')
+              : extraTitle;
+          return ActiveTripPage(
+            itineraryId: itineraryId,
+            title: title,
+            isDemoMode: isDemo,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.tripAlertsPattern,
+        name: AppRouteNames.tripAlerts,
+        builder: (_, state) {
+          final itineraryId = int.tryParse(
+            state.pathParameters['itineraryId'] ?? '',
+          );
+          if (itineraryId == null || itineraryId <= 0) {
+            return const ErrorView(message: 'Page not found.');
+          }
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          return TripAlertsPage(itineraryId: itineraryId, isDemoMode: isDemo);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.offlinePackagePattern,
+        name: AppRouteNames.offlinePackage,
+        builder: (_, state) {
+          final itineraryId = int.tryParse(
+            state.pathParameters['itineraryId'] ?? '',
+          );
+          if (itineraryId == null || itineraryId <= 0) {
+            return const ErrorView(message: 'Page not found.');
+          }
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final extraTitle = switch (state.extra) {
+            String title when title.trim().isNotEmpty => title.trim(),
+            GeneratedItinerary it when it.title.trim().isNotEmpty =>
+              it.title.trim(),
+            ItineraryDetail d when (d.title?.trim().isNotEmpty ?? false) =>
+              d.title!.trim(),
+            _ => null,
+          };
+          final title = isDemo
+              ? (extraTitle ?? 'Đà Nẵng City Explorer')
+              : extraTitle;
+          return OfflineTripPackagePage(
+            itineraryId: itineraryId,
+            title: title,
+            isDemoMode: isDemo,
           );
         },
       ),
