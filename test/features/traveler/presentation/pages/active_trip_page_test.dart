@@ -435,6 +435,102 @@ void main() {
         expect(find.text('Đà Nẵng Day Trip'), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'coordinate-only position updates do not trigger presentation shell rebuild',
+      (tester) async {
+        final cubit = ActiveTripCubit(
+          itineraryId: 101,
+          itineraryTitle: 'Đà Nẵng City Explorer',
+          initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
+          initialAlerts: const [],
+          isDemoMode: true,
+        );
+
+        await tester.pumpWidget(
+          buildTestWidget(cubit: cubit, isDemoMode: true),
+        );
+        await tester.pumpAndSettle();
+
+        final canvasBefore = tester.widget<NavigationMapCanvas>(
+          find.byType(NavigationMapCanvas),
+        );
+
+        // Update only coordinates (GPS sensor tick)
+        cubit.updatePosition(latitude: 16.0544, longitude: 108.2022);
+        await tester.pump();
+
+        final canvasAfterGps = tester.widget<NavigationMapCanvas>(
+          find.byType(NavigationMapCanvas),
+        );
+
+        // Shell did not rebuild: widget instance remains identical
+        expect(identical(canvasBefore, canvasAfterGps), isTrue);
+
+        // Presentation-affecting change (e.g. arrival/advance) DOES trigger rebuild
+        cubit.onSystemDetectedArrival();
+        await tester.pump();
+
+        final canvasAfterArrival = tester.widget<NavigationMapCanvas>(
+          find.byType(NavigationMapCanvas),
+        );
+        expect(identical(canvasAfterGps, canvasAfterArrival), isFalse);
+
+        await cubit.close();
+      },
+    );
+
+    testWidgets(
+      'toggling all stops expands and collapses list locally without root shell rebuild',
+      (tester) async {
+        final cubit = ActiveTripCubit(
+          itineraryId: 101,
+          itineraryTitle: 'Đà Nẵng City Explorer',
+          initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
+          initialAlerts: const [],
+          isDemoMode: true,
+        );
+
+        await tester.pumpWidget(
+          buildTestWidget(cubit: cubit, isDemoMode: true),
+        );
+        await tester.pumpAndSettle();
+
+        final canvasBefore = tester.widget<NavigationMapCanvas>(
+          find.byType(NavigationMapCanvas),
+        );
+
+        expect(find.text('View all stops'), findsOneWidget);
+        expect(find.text('Hide stops'), findsNothing);
+
+        // Expand stops
+        await tester.tap(find.text('View all stops'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Hide stops'), findsOneWidget);
+        expect(find.text('View all stops'), findsNothing);
+
+        // Root presentation shell was NOT rebuilt by local expand toggle
+        final canvasAfterExpand = tester.widget<NavigationMapCanvas>(
+          find.byType(NavigationMapCanvas),
+        );
+        expect(identical(canvasBefore, canvasAfterExpand), isTrue);
+
+        // Collapse stops
+        await tester.tap(find.text('Hide stops'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('View all stops'), findsOneWidget);
+        expect(find.text('Hide stops'), findsNothing);
+
+        final canvasAfterCollapse = tester.widget<NavigationMapCanvas>(
+          find.byType(NavigationMapCanvas),
+        );
+        expect(identical(canvasBefore, canvasAfterCollapse), isTrue);
+
+        await cubit.close();
+      },
+    );
   });
 }
 
