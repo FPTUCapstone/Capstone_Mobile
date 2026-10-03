@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +6,7 @@ import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/active_trip_maneuver.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/active_trip_waypoint.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_state.dart';
@@ -35,7 +37,6 @@ class ActiveTripPage extends StatefulWidget {
 }
 
 class _ActiveTripPageState extends State<ActiveTripPage> {
-  bool _showAllStops = false;
   bool _isRerouteSheetOpen = false;
   late bool _isLoadingMetadata;
   String? _metadataError;
@@ -184,6 +185,24 @@ class _ActiveTripPageState extends State<ActiveTripPage> {
           _showCompletionDialog(context, state);
         }
       },
+      // Filters out coordinate-only GPS sensor emissions from invalidating
+      // the static Active Trip presentation tree. High-frequency position updates
+      // are decoupled from the static shell until native map SDK vector rendering
+      // is integrated.
+      buildWhen: (prev, curr) =>
+          prev.status != curr.status ||
+          prev.currentWaypointIndex != curr.currentWaypointIndex ||
+          prev.currentManeuver != curr.currentManeuver ||
+          prev.activeBannerAlert != curr.activeBannerAlert ||
+          !listEquals(prev.alerts, curr.alerts) ||
+          !listEquals(prev.waypoints, curr.waypoints) ||
+          prev.itineraryTitle != curr.itineraryTitle ||
+          prev.itineraryVersion != curr.itineraryVersion ||
+          prev.isOnline != curr.isOnline ||
+          prev.activeRerouteProposal != curr.activeRerouteProposal ||
+          prev.isRerouteSheetVisible != curr.isRerouteSheetVisible ||
+          prev.isDemoMode != curr.isDemoMode ||
+          prev.statusMessage != curr.statusMessage,
       builder: (context, state) {
         final currentWaypoint = state.currentWaypoint;
         final cubit = context.read<ActiveTripCubit>();
@@ -364,9 +383,6 @@ class _ActiveTripPageState extends State<ActiveTripPage> {
                   child: _BottomWaypointPanel(
                     state: state,
                     currentWaypoint: currentWaypoint,
-                    showAllStops: _showAllStops,
-                    onToggleAllStops: () =>
-                        setState(() => _showAllStops = !_showAllStops),
                     onStopNavigation: () => _confirmStopNavigation(context),
                   ),
                 ),
@@ -746,23 +762,28 @@ class _ManeuverBanner extends StatelessWidget {
   }
 }
 
-class _BottomWaypointPanel extends StatelessWidget {
+class _BottomWaypointPanel extends StatefulWidget {
   const _BottomWaypointPanel({
     required this.state,
     required this.currentWaypoint,
-    required this.showAllStops,
-    required this.onToggleAllStops,
     required this.onStopNavigation,
   });
 
   final ActiveTripState state;
-  final dynamic currentWaypoint;
-  final bool showAllStops;
-  final VoidCallback onToggleAllStops;
+  final ActiveTripWaypoint? currentWaypoint;
   final VoidCallback onStopNavigation;
 
   @override
+  State<_BottomWaypointPanel> createState() => _BottomWaypointPanelState();
+}
+
+class _BottomWaypointPanelState extends State<_BottomWaypointPanel> {
+  bool _showAllStops = false;
+
+  @override
   Widget build(BuildContext context) {
+    final state = widget.state;
+    final currentWaypoint = widget.currentWaypoint;
     final reachedCount = state.reachedWaypointsCount;
     final totalCount = state.totalWaypointsCount;
 
@@ -886,7 +907,7 @@ class _BottomWaypointPanel extends StatelessWidget {
           ],
 
           // Collapsible all stops list
-          if (showAllStops) ...[
+          if (_showAllStops) ...[
             const SizedBox(height: AppSpacing.sm),
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 180),
@@ -945,20 +966,21 @@ class _BottomWaypointPanel extends StatelessWidget {
             children: [
               Expanded(
                 child: TextButton.icon(
-                  onPressed: onToggleAllStops,
+                  onPressed: () =>
+                      setState(() => _showAllStops = !_showAllStops),
                   icon: Icon(
-                    showAllStops
+                    _showAllStops
                         ? Icons.keyboard_arrow_up
                         : Icons.format_list_bulleted,
                     size: 18,
                   ),
-                  label: Text(showAllStops ? 'Hide stops' : 'View all stops'),
+                  label: Text(_showAllStops ? 'Hide stops' : 'View all stops'),
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: onStopNavigation,
+                  onPressed: widget.onStopNavigation,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.error,
                     side: const BorderSide(color: AppColors.error),
