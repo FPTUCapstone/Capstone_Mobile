@@ -401,6 +401,14 @@ class _DemoPackageContentView extends StatelessWidget {
     final isDownloading =
         pkg.status == OfflinePackageStatus.downloading ||
         pkg.status == OfflinePackageStatus.checkingStorage;
+    final isRefreshing =
+        state.isRefreshing &&
+        (state.replacementPackage?.status == OfflinePackageStatus.downloading ||
+            state.replacementPackage?.status ==
+                OfflinePackageStatus.checkingStorage);
+    final activeDownloadPkg = isRefreshing
+        ? (state.replacementPackage ?? pkg)
+        : pkg;
 
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -422,7 +430,12 @@ class _DemoPackageContentView extends StatelessWidget {
                             ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                     ),
-                    _StatusBadgeForPackage(status: pkg.status),
+                    _StatusBadgeForPackage(
+                      status: isRefreshing
+                          ? OfflinePackageStatus.downloading
+                          : pkg.status,
+                      customLabel: isRefreshing ? 'UPDATING...' : null,
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.xxs),
@@ -446,7 +459,32 @@ class _DemoPackageContentView extends StatelessWidget {
         const SizedBox(height: AppSpacing.md),
 
         // 2. Error / Notice Alerts
-        if (pkg.status == OfflinePackageStatus.insufficientStorage) ...[
+        if (state.replacementPackage?.status ==
+            OfflinePackageStatus.insufficientStorage) ...[
+          AppAlert(
+            type: AppAlertType.error,
+            message:
+                state.replacementPackage?.errorMessage ??
+                'Insufficient storage space. At least 150MB free space required for offline map data.',
+          ),
+          const SizedBox(height: AppSpacing.md),
+        ] else if (state.replacementPackage?.status ==
+            OfflinePackageStatus.networkInterrupted) ...[
+          AppAlert(
+            type: AppAlertType.warning,
+            message:
+                state.replacementPackage?.errorMessage ??
+                'Download interrupted due to connection loss. Existing offline data remains usable.',
+          ),
+          const SizedBox(height: AppSpacing.md),
+        ] else if (isRefreshing) ...[
+          AppAlert(
+            type: AppAlertType.info,
+            message:
+                'Downloading updated version (v${state.replacementPackage!.version}). Your current offline package (v${pkg.version}) remains usable.',
+          ),
+          const SizedBox(height: AppSpacing.md),
+        ] else if (pkg.status == OfflinePackageStatus.insufficientStorage) ...[
           AppAlert(
             type: AppAlertType.error,
             message:
@@ -556,7 +594,7 @@ class _DemoPackageContentView extends StatelessWidget {
         const SizedBox(height: AppSpacing.md),
 
         // 5. In-Progress Download Status
-        if (isDownloading) ...[
+        if (isDownloading || isRefreshing) ...[
           Card(
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.md),
@@ -566,15 +604,17 @@ class _DemoPackageContentView extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        state.downloadStepDescription,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                      Expanded(
+                        child: Text(
+                          state.downloadStepDescription,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                       Text(
-                        '${pkg.progressPercent.toInt()}%',
+                        '${activeDownloadPkg.progressPercent.toInt()}%',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: AppColors.primary,
@@ -584,7 +624,10 @@ class _DemoPackageContentView extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   LinearProgressIndicator(
-                    value: (pkg.progressPercent / 100.0).clamp(0.0, 1.0),
+                    value: (activeDownloadPkg.progressPercent / 100.0).clamp(
+                      0.0,
+                      1.0,
+                    ),
                   ),
                 ],
               ),
@@ -594,7 +637,16 @@ class _DemoPackageContentView extends StatelessWidget {
         ],
 
         // 6. Primary Action Buttons
-        if (pkg.status == OfflinePackageStatus.notDownloaded ||
+        if (isDownloading || isRefreshing) ...[
+          OutlinedButton.icon(
+            onPressed: () => cubit.cancelDownload(),
+            icon: const Icon(Icons.close),
+            label: Text(isRefreshing ? 'Cancel Update' : 'Cancel Download'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+            ),
+          ),
+        ] else if (pkg.status == OfflinePackageStatus.notDownloaded ||
             pkg.status == OfflinePackageStatus.networkInterrupted ||
             pkg.status == OfflinePackageStatus.insufficientStorage) ...[
           FilledButton.icon(
@@ -602,15 +654,6 @@ class _DemoPackageContentView extends StatelessWidget {
             icon: const Icon(Icons.download_rounded),
             label: const Text('Download for Offline Use'),
             style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
-            ),
-          ),
-        ] else if (isDownloading) ...[
-          OutlinedButton.icon(
-            onPressed: () => cubit.cancelDownload(),
-            icon: const Icon(Icons.close),
-            label: const Text('Cancel Download'),
-            style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
             ),
           ),
@@ -633,6 +676,19 @@ class _DemoPackageContentView extends StatelessWidget {
             icon: const Icon(Icons.refresh_rounded),
             label: const Text('Refresh Offline Data'),
             style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          OutlinedButton.icon(
+            onPressed: () => _confirmRemove(context, cubit),
+            icon: const Icon(Icons.delete_outline, color: AppColors.error),
+            label: const Text(
+              'Remove Offline Data',
+              style: TextStyle(color: AppColors.error),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: AppColors.error),
               minimumSize: const Size.fromHeight(50),
             ),
           ),
@@ -673,12 +729,16 @@ class _DemoPackageContentView extends StatelessWidget {
 }
 
 class _StatusBadgeForPackage extends StatelessWidget {
-  const _StatusBadgeForPackage({required this.status});
+  const _StatusBadgeForPackage({required this.status, this.customLabel});
 
   final OfflinePackageStatus status;
+  final String? customLabel;
 
   @override
   Widget build(BuildContext context) {
+    if (customLabel != null) {
+      return StatusBadge(label: customLabel!, type: StatusBadgeType.info);
+    }
     return switch (status) {
       OfflinePackageStatus.available => const StatusBadge(
         label: 'AVAILABLE OFFLINE',

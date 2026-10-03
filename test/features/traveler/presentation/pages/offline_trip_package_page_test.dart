@@ -320,6 +320,220 @@ void main() {
 
       await cubit.close();
     });
+
+    testWidgets(
+      'Review Round 4 P2: renders UPDATING badge, progress, and usable notice during refresh without hiding installed metadata',
+      (tester) async {
+        final supersededPackage =
+            ActiveTripDemoFixtures.createSampleOfflinePackage(
+              itineraryId: 101,
+              status: OfflinePackageStatus.superseded,
+              version: 1,
+              title: 'Đà Nẵng City Explorer',
+              lastDownloadedAt: DateTime(2026, 10, 1, 9),
+            );
+        final replacementPackage = OfflineTripPackage(
+          itineraryId: 101,
+          title: 'Đà Nẵng City Explorer',
+          version: 2,
+          status: OfflinePackageStatus.downloading,
+          totalSizeMb: 118.5,
+          progressPercent: 55.0,
+        );
+        final cubit = OfflineTripPackageCubit(
+          itineraryId: 101,
+          initialPackage: supersededPackage,
+          initialReplacementPackage: replacementPackage,
+          initialDownloadStepDescription:
+              'Downloading updated POI photos & information...',
+          isDemoMode: true,
+        );
+
+        await tester.pumpWidget(
+          buildTestWidget(cubit: cubit, isDemoMode: true),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('UPDATING...'), findsOneWidget);
+        expect(find.text('Đà Nẵng City Explorer'), findsOneWidget);
+        expect(find.textContaining('Last downloaded:'), findsOneWidget);
+        expect(
+          find.text(
+            'Downloading updated version (v2). Your current offline package (v1) remains usable.',
+          ),
+          findsOneWidget,
+        );
+
+        await tester.scrollUntilVisible(
+          find.text('55%'),
+          100,
+          scrollable: find.byType(Scrollable),
+        );
+        expect(find.text('55%'), findsOneWidget);
+        expect(
+          find.text('Downloading updated POI photos & information...'),
+          findsOneWidget,
+        );
+
+        await tester.scrollUntilVisible(
+          find.text('Cancel Update'),
+          100,
+          scrollable: find.byType(Scrollable),
+        );
+        expect(find.text('Cancel Update'), findsOneWidget);
+
+        await cubit.close();
+      },
+    );
+
+    testWidgets(
+      'Review Round 4 P2: cancelling active update restores superseded view with current copy usable',
+      (tester) async {
+        final supersededPackage =
+            ActiveTripDemoFixtures.createSampleOfflinePackage(
+              itineraryId: 101,
+              status: OfflinePackageStatus.superseded,
+              version: 1,
+              title: 'Đà Nẵng City Explorer',
+            );
+        final replacementPackage = OfflineTripPackage(
+          itineraryId: 101,
+          title: 'Đà Nẵng City Explorer',
+          version: 2,
+          status: OfflinePackageStatus.downloading,
+          totalSizeMb: 118.5,
+          progressPercent: 55.0,
+        );
+        final cubit = OfflineTripPackageCubit(
+          itineraryId: 101,
+          initialPackage: supersededPackage,
+          initialReplacementPackage: replacementPackage,
+          isDemoMode: true,
+        );
+
+        await tester.pumpWidget(
+          buildTestWidget(cubit: cubit, isDemoMode: true),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.scrollUntilVisible(
+          find.text('Cancel Update'),
+          100,
+          scrollable: find.byType(Scrollable),
+        );
+        expect(find.text('Cancel Update'), findsOneWidget);
+        await tester.tap(find.text('Cancel Update'));
+        await tester.pumpAndSettle();
+
+        await tester.scrollUntilVisible(
+          find.text('UPDATE AVAILABLE'),
+          -100,
+          scrollable: find.byType(Scrollable),
+        );
+        expect(find.text('UPDATE AVAILABLE'), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.text('Refresh Offline Data'),
+          100,
+          scrollable: find.byType(Scrollable),
+        );
+        expect(find.text('Refresh Offline Data'), findsOneWidget);
+        expect(
+          find.text(
+            'A newer itinerary version exists on the server. Your existing offline copy remains usable.',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Cancel Update'), findsNothing);
+
+        await cubit.close();
+      },
+    );
+
+    testWidgets(
+      'Review Round 4 P2: update failure due to insufficient storage alerts user while keeping installed copy',
+      (tester) async {
+        final supersededPackage =
+            ActiveTripDemoFixtures.createSampleOfflinePackage(
+              itineraryId: 101,
+              status: OfflinePackageStatus.superseded,
+              version: 1,
+              title: 'Đà Nẵng City Explorer',
+            );
+        final replacementPackage = OfflineTripPackage(
+          itineraryId: 101,
+          title: 'Đà Nẵng City Explorer',
+          version: 2,
+          status: OfflinePackageStatus.insufficientStorage,
+          errorMessage:
+              'Insufficient storage space. At least 150MB free space required for offline data.',
+          totalSizeMb: 118.5,
+        );
+        final cubit = OfflineTripPackageCubit(
+          itineraryId: 101,
+          initialPackage: supersededPackage,
+          initialReplacementPackage: replacementPackage,
+          isDemoMode: true,
+        );
+
+        await tester.pumpWidget(
+          buildTestWidget(cubit: cubit, isDemoMode: true),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(
+            'Insufficient storage space. At least 150MB free space required for offline data.',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Đà Nẵng City Explorer'), findsOneWidget);
+
+        await cubit.close();
+      },
+    );
+
+    testWidgets(
+      'Review Round 4 P2: update failure due to network interruption alerts user that existing offline data remains usable',
+      (tester) async {
+        final supersededPackage =
+            ActiveTripDemoFixtures.createSampleOfflinePackage(
+              itineraryId: 101,
+              status: OfflinePackageStatus.superseded,
+              version: 1,
+              title: 'Đà Nẵng City Explorer',
+            );
+        final replacementPackage = OfflineTripPackage(
+          itineraryId: 101,
+          title: 'Đà Nẵng City Explorer',
+          version: 2,
+          status: OfflinePackageStatus.networkInterrupted,
+          errorMessage:
+              'Download interrupted due to connection loss. Existing offline data remains usable.',
+          totalSizeMb: 118.5,
+        );
+        final cubit = OfflineTripPackageCubit(
+          itineraryId: 101,
+          initialPackage: supersededPackage,
+          initialReplacementPackage: replacementPackage,
+          isDemoMode: true,
+        );
+
+        await tester.pumpWidget(
+          buildTestWidget(cubit: cubit, isDemoMode: true),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(
+            'Download interrupted due to connection loss. Existing offline data remains usable.',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Đà Nẵng City Explorer'), findsOneWidget);
+
+        await cubit.close();
+      },
+    );
   });
 }
 
