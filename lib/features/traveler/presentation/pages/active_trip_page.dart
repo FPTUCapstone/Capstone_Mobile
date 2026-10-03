@@ -36,6 +36,7 @@ class ActiveTripPage extends StatefulWidget {
 
 class _ActiveTripPageState extends State<ActiveTripPage> {
   bool _showAllStops = false;
+  bool _isRerouteSheetOpen = false;
   late bool _isLoadingMetadata;
   String? _metadataError;
   String? _resolvedTitle;
@@ -157,15 +158,26 @@ class _ActiveTripPageState extends State<ActiveTripPage> {
           prev.isRerouteSheetVisible != curr.isRerouteSheetVisible ||
           prev.status != curr.status,
       listener: (context, state) {
-        if (state.isRerouteSheetVisible &&
-            state.activeRerouteProposal != null) {
+        if (!state.isRerouteSheetVisible) {
+          _isRerouteSheetOpen = false;
+        } else if (state.activeRerouteProposal != null &&
+            !_isRerouteSheetOpen) {
+          _isRerouteSheetOpen = true;
           RerouteProposalSheet.show(
             context,
             proposal: state.activeRerouteProposal!,
-            onAccept: () =>
-                context.read<ActiveTripCubit>().acceptRerouteProposal(),
-            onDecline: () =>
-                context.read<ActiveTripCubit>().declineRerouteProposal(),
+            onAccept: () {
+              _isRerouteSheetOpen = false;
+              context.read<ActiveTripCubit>().acceptRerouteProposal();
+            },
+            onDecline: () {
+              _isRerouteSheetOpen = false;
+              context.read<ActiveTripCubit>().declineRerouteProposal();
+            },
+            onClose: () {
+              _isRerouteSheetOpen = false;
+              context.read<ActiveTripCubit>().closeRerouteProposalSheet();
+            },
           );
         }
         if (state.status == ActiveTripStatus.navigationTripCompleted) {

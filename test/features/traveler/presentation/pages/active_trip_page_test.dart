@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/reroute_proposal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/demo/active_trip_demo_fixtures.dart';
@@ -241,6 +242,94 @@ void main() {
 
         expect(find.byType(RerouteProposalSheet), findsNothing);
         expect(cubit.state.itineraryVersion, 1);
+
+        await cubit.close();
+      },
+    );
+
+    testWidgets(
+      'closing RerouteProposalSheet via close icon keeps proposal pending and allows reopening',
+      (tester) async {
+        final cubit = ActiveTripCubit(
+          itineraryId: 101,
+          itineraryTitle: 'Đà Nẵng City Explorer',
+          initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
+          initialAlerts: const [],
+          isDemoMode: true,
+        );
+
+        await tester.pumpWidget(
+          buildTestWidget(cubit: cubit, isDemoMode: true),
+        );
+        await tester.pumpAndSettle();
+
+        // 1. Open proposal sheet
+        cubit.openRerouteProposal();
+        await tester.pumpAndSettle();
+        expect(find.byType(RerouteProposalSheet), findsOneWidget);
+
+        // 2. Tap close icon (tooltip: 'Close without changing plan')
+        final closeButton = find.byTooltip('Close without changing plan');
+        expect(closeButton, findsOneWidget);
+        await tester.tap(closeButton);
+        await tester.pumpAndSettle();
+
+        // Sheet is dismissed
+        expect(find.byType(RerouteProposalSheet), findsNothing);
+
+        // Crucial: proposal must NOT be marked declined! It must remain pending!
+        expect(
+          cubit.state.activeRerouteProposal?.status,
+          RerouteStatus.pending,
+        );
+        expect(cubit.state.isRerouteSheetVisible, isFalse);
+
+        // 3. User can reopen the pending proposal
+        cubit.openRerouteProposal();
+        await tester.pumpAndSettle();
+
+        expect(find.byType(RerouteProposalSheet), findsOneWidget);
+
+        await cubit.close();
+      },
+    );
+
+    testWidgets(
+      'external dismissal of RerouteProposalSheet keeps proposal pending and synchronizes visibility',
+      (tester) async {
+        final cubit = ActiveTripCubit(
+          itineraryId: 101,
+          itineraryTitle: 'Đà Nẵng City Explorer',
+          initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
+          initialAlerts: const [],
+          isDemoMode: true,
+        );
+
+        await tester.pumpWidget(
+          buildTestWidget(cubit: cubit, isDemoMode: true),
+        );
+        await tester.pumpAndSettle();
+
+        cubit.openRerouteProposal();
+        await tester.pumpAndSettle();
+        expect(find.byType(RerouteProposalSheet), findsOneWidget);
+        expect(cubit.state.isRerouteSheetVisible, isTrue);
+
+        // Simulate external dismissal (e.g. tapping barrier / popping modal)
+        Navigator.of(tester.element(find.byType(RerouteProposalSheet))).pop();
+        await tester.pumpAndSettle();
+
+        expect(find.byType(RerouteProposalSheet), findsNothing);
+        expect(cubit.state.isRerouteSheetVisible, isFalse);
+        expect(
+          cubit.state.activeRerouteProposal?.status,
+          RerouteStatus.pending,
+        );
+
+        // Reopen works because state was properly synchronized
+        cubit.openRerouteProposal();
+        await tester.pumpAndSettle();
+        expect(find.byType(RerouteProposalSheet), findsOneWidget);
 
         await cubit.close();
       },
