@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_member.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_details_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/widgets/leave_travel_group_dialog.dart';
 
 void main() {
   const group = TravelGroup(
@@ -142,4 +144,123 @@ void main() {
     expect(find.text('Invite Members'), findsOneWidget);
     expect(find.text('View members'), findsOneWidget);
   });
+
+  testWidgets(
+    'Tapping Leave Group opens LeaveTravelGroupDialog for Non-Host (Case A)',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: TravelGroupDetailsPage(
+            groupId: 42,
+            group: group,
+            isHost: false,
+          ),
+        ),
+      );
+
+      expect(find.byKey(const Key('leave_group_button')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('leave_group_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LeaveTravelGroupDialog), findsOneWidget);
+      expect(
+        find.byKey(const Key('leave_travel_group_dialog_case_a')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(LeaveTravelGroupDialog.confirmationWarningMessage),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'Tapping Leave Group opens LeaveTravelGroupDialog for Host with members (Case B)',
+    (tester) async {
+      final members = [
+        TravelGroupMember(
+          memberId: 101,
+          displayName: 'Alice Host',
+          isHost: true,
+          joinedAtUtc: DateTime.utc(2026, 9, 21, 9),
+          locationSharingEnabled: false,
+        ),
+        TravelGroupMember(
+          memberId: 102,
+          displayName: 'Bob Member',
+          isHost: false,
+          joinedAtUtc: DateTime.utc(2026, 9, 21, 10),
+          locationSharingEnabled: false,
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TravelGroupDetailsPage(
+            groupId: 42,
+            group: group,
+            isHost: true,
+            members: members,
+          ),
+        ),
+      );
+
+      expect(find.byKey(const Key('leave_group_button')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('leave_group_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LeaveTravelGroupDialog), findsOneWidget);
+      expect(
+        find.byKey(const Key('leave_travel_group_dialog_case_b')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(LeaveTravelGroupDialog.hostSuccessionMessage('Bob Member')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'Tapping Leave Group opens LeaveTravelGroupDialog for Final Host (Case C)',
+    (tester) async {
+      final members = [
+        TravelGroupMember(
+          memberId: 101,
+          displayName: 'Solo Host',
+          isHost: true,
+          joinedAtUtc: DateTime.utc(2026, 9, 21, 9),
+          locationSharingEnabled: false,
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TravelGroupDetailsPage(
+            groupId: 42,
+            group: group,
+            isHost: true,
+            currentUserId: 101,
+            members: members,
+          ),
+        ),
+      );
+
+      expect(find.byKey(const Key('leave_group_button')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('leave_group_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LeaveTravelGroupDialog), findsOneWidget);
+      expect(
+        find.byKey(const Key('leave_travel_group_dialog_case_c')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'You are the final member of this travel group. Leaving will close the group for everyone.',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 }

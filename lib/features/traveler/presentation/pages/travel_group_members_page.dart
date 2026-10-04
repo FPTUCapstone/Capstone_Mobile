@@ -1,19 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/travel_group_details_route_args.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_member.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_state.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/widgets/remove_group_member_dialog.dart';
 import 'package:trip_mate_mobile/shared/widgets/error_view.dart';
 
-/// Read-only UC19 screen for active travel-group members.
+/// Read-only UC19 screen for active travel-group members, with UC-20 member
+/// removal entry point for the Group Host (Screen #59).
 final class TravelGroupMembersPage extends StatelessWidget {
-  const TravelGroupMembersPage({super.key, required this.groupId});
+  const TravelGroupMembersPage({
+    super.key,
+    required this.groupId,
+    this.isHost = false,
+    this.currentUserId,
+  });
 
   final int groupId;
+  final bool isHost;
+  final int? currentUserId;
+
+  bool _resolveIsHost(BuildContext context) {
+    if (isHost) return true;
+    try {
+      final extra = GoRouterState.of(context).extra;
+      if (extra is bool) return extra;
+      if (extra is TravelGroupDetailsRouteArgs) return extra.isHost;
+    } catch (_) {
+      // Running outside GoRouter context (e.g. unit/widget test)
+    }
+    return false;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final viewerIsHost = _resolveIsHost(context);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Group members')),
       body: BlocBuilder<TravelGroupMembersCubit, TravelGroupMembersState>(
@@ -22,6 +47,8 @@ final class TravelGroupMembersPage extends StatelessWidget {
             const Center(child: CircularProgressIndicator()),
           TravelGroupMembersSuccess(:final members) => _MembersContent(
             members: members,
+            isViewerHost: viewerIsHost,
+            currentUserId: currentUserId,
           ),
           TravelGroupMembersPermissionDenied() => const ErrorView(
             message: 'You do not have permission to view this group’s members.',
@@ -41,15 +68,33 @@ final class TravelGroupMembersPage extends StatelessWidget {
 }
 
 final class _MembersContent extends StatelessWidget {
-  const _MembersContent({required this.members});
+  const _MembersContent({
+    required this.members,
+    this.isViewerHost = false,
+    this.currentUserId,
+  });
 
   final TravelGroupMembers members;
+  final bool isViewerHost;
+  final int? currentUserId;
 
   @override
   Widget build(BuildContext context) {
     if (members.members.isEmpty) {
       return const Center(child: Text('There are no active members yet.'));
     }
+
+    // Host authority audit: Authoritative loaded group members define the true Host.
+    // If currentUserId is known and doesn't match the loaded host, reject Host authority
+    // to prevent displaying Host-only actions from stale or spoofed route extra.
+    final authoritativeHost = members.members
+        .where((m) => m.isHost)
+        .firstOrNull;
+    final bool effectiveViewerIsHost =
+        isViewerHost &&
+        (currentUserId == null ||
+            authoritativeHost == null ||
+            authoritativeHost.memberId == currentUserId);
 
     return ListView.separated(
       padding: const EdgeInsets.all(16),
@@ -59,7 +104,12 @@ final class _MembersContent extends StatelessWidget {
         if (index == 0) {
           return _MembersHeader(members: members);
         }
-        return _MemberTile(member: members.members[index - 1]);
+        return _MemberTile(
+          member: members.members[index - 1],
+          groupId: members.groupId,
+          isViewerHost: effectiveViewerIsHost,
+          currentUserId: currentUserId,
+        );
       },
     );
   }
@@ -92,13 +142,25 @@ final class _MembersHeader extends StatelessWidget {
 }
 
 final class _MemberTile extends StatelessWidget {
-  const _MemberTile({required this.member});
+  const _MemberTile({
+    required this.member,
+    required this.groupId,
+    this.isViewerHost = false,
+    this.currentUserId,
+  });
 
   final TravelGroupMember member;
+  final int groupId;
+  final bool isViewerHost;
+  final int? currentUserId;
 
   @override
   Widget build(BuildContext context) {
     final avatarUrl = member.avatarUrl;
+    final isSelf = currentUserId != null && member.memberId == currentUserId;
+    // BR-45: Only Group Host may remove members. Group Host cannot remove itself.
+    final showRemoveAction = isViewerHost && !member.isHost && !isSelf;
+
     return Card(
       child: ListTile(
         isThreeLine: true,
@@ -116,9 +178,26 @@ final class _MemberTile extends StatelessWidget {
           'Location sharing: ${member.locationSharingEnabled ? 'Enabled' : 'Disabled'}',
         ),
         trailing: member.isHost
-            ? Chip(
-                avatar: const Icon(Icons.star_outline, size: 18),
-                label: const Text('Group Host'),
+            ? const Chip(
+                avatar: Icon(Icons.star_outline, size: 18),
+                label: Text('Group Host'),
+              )
+            : showRemoveAction
+            ? TextButton(
+                key: Key('remove_member_button_${member.memberId}'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                  minimumSize: const Size(48, 48),
+                ),
+                onPressed: () => showDialog<bool>(
+                  context: context,
+                  builder: (_) => RemoveGroupMemberDialog(
+                    groupId: groupId,
+                    memberId: member.memberId,
+                    memberName: member.displayName,
+                  ),
+                ),
+                child: const Text('Remove'),
               )
             : null,
       ),
