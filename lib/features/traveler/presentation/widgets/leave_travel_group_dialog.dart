@@ -24,6 +24,7 @@ final class LeaveTravelGroupDialog extends StatefulWidget {
     this.currentUserId,
     this.members,
     this.repository,
+    this.isServerSupported = false,
   });
 
   final int groupId;
@@ -32,6 +33,7 @@ final class LeaveTravelGroupDialog extends StatefulWidget {
   final int? currentUserId;
   final List<TravelGroupMember>? members;
   final TravelGroupRepository? repository;
+  final bool isServerSupported;
 
   /// MSG61 locked message template.
   static String hostSuccessionMessage(String nextMemberName) =>
@@ -43,7 +45,7 @@ final class LeaveTravelGroupDialog extends StatefulWidget {
 
   /// Truthful capability notice explaining why leave cannot be persisted yet.
   static const String serverUnavailableNotice =
-      'This action is waiting for server support and cannot be completed yet.';
+      'Server support pending: Leaving travel group is waiting for backend capability and cannot be completed yet.';
 
   @override
   State<LeaveTravelGroupDialog> createState() => _LeaveTravelGroupDialogState();
@@ -139,7 +141,8 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
     }
 
     // Determine Case A, B, or C, or Ambiguous Tie
-    if (!widget.isHost) {
+    final effectiveIsHost = _isEffectiveHost();
+    if (!effectiveIsHost) {
       return _buildCaseANonHost(theme);
     }
 
@@ -240,7 +243,7 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
             foregroundColor: theme.colorScheme.onError,
             minimumSize: const Size(48, 48),
           ),
-          onPressed: _handleConfirmLeave,
+          onPressed: widget.isServerSupported ? _handleConfirmLeave : null,
           child: const Text('Leave Group'),
         ),
       ],
@@ -348,7 +351,7 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
             foregroundColor: theme.colorScheme.onError,
             minimumSize: const Size(48, 48),
           ),
-          onPressed: _handleConfirmLeave,
+          onPressed: widget.isServerSupported ? _handleConfirmLeave : null,
           child: const Text('Transfer and leave'),
         ),
       ],
@@ -400,7 +403,7 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
             foregroundColor: theme.colorScheme.onError,
             minimumSize: const Size(48, 48),
           ),
-          onPressed: _handleConfirmLeave,
+          onPressed: widget.isServerSupported ? _handleConfirmLeave : null,
           child: const Text('Close group and leave'),
         ),
       ],
@@ -438,16 +441,20 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
     );
   }
 
+  bool _isEffectiveHost() {
+    if (!widget.isHost) return false;
+    final members = _resolvedMembers;
+    if (members != null && members.isNotEmpty && widget.currentUserId != null) {
+      final authoritativeHost = members.where((m) => m.isHost).firstOrNull;
+      if (authoritativeHost != null) {
+        return authoritativeHost.memberId == widget.currentUserId;
+      }
+    }
+    return widget.isHost;
+  }
+
   void _handleConfirmLeave() {
-    // Production Truthfulness: Server mutation does not exist yet.
-    // Do NOT navigate away, do NOT show fake MSG129 success, do NOT mutate state.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        key: Key('leave_group_unavailable_snack'),
-        content: Text(LeaveTravelGroupDialog.serverUnavailableNotice),
-      ),
-    );
-    Navigator.of(context).pop(false);
+    Navigator.of(context).pop(true);
   }
 }
 
