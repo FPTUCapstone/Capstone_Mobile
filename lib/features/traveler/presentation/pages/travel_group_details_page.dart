@@ -88,6 +88,17 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
             icon: const Icon(Icons.group_outlined),
             label: const Text('View members'),
           ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            key: const Key('location_sharing_button'),
+            onPressed: () => context.pushNamed(
+              AppRouteNames.groupLocationSharing,
+              pathParameters: {'groupId': widget.groupId.toString()},
+              extra: currentGroup?.name,
+            ),
+            icon: const Icon(Icons.share_location_outlined),
+            label: const Text('Location Sharing'),
+          ),
           if (currentGroup != null && widget.isHost) ...[
             if (currentGroup.inviteCode?.isNotEmpty ?? false) ...[
               const SizedBox(height: 24),
