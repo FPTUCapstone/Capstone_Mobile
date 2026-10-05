@@ -205,10 +205,17 @@ void main() {
 
     // 4. Primary Setting Card & Switch
     expect(find.text('Share my live location'), findsOneWidget);
-    expect(find.text('With members of this group only'), findsOneWidget);
+    expect(
+      find.text(
+        'With members of this group only (Editing disabled pending server integration)',
+      ),
+      findsOneWidget,
+    );
     final switchFinder = find.byType(Switch);
     expect(switchFinder, findsOneWidget);
-    expect(tester.widget<Switch>(switchFinder).value, isFalse);
+    final switchWidget = tester.widget<Switch>(switchFinder);
+    expect(switchWidget.value, isFalse);
+    expect(switchWidget.onChanged, isNull);
 
     // 5. Audience Card
     expect(find.text('Who can see my location'), findsOneWidget);
@@ -396,12 +403,32 @@ void main() {
       await tester.tap(find.byType(Switch));
       await tester.pumpAndSettle();
 
-      // Verify effective sharing becomes active
-      expect(find.text('Sharing is Active'), findsOneWidget);
+      // Verify effective sharing becomes active with truthful demo labeling
+      expect(find.text('Demo Preview: Sharing Active'), findsOneWidget);
       expect(
         find.text('Live location sharing is now active with group members.'),
         findsOneWidget,
       );
+
+      // Verify toggling simulated broadcast off changes status to Unavailable
+      await tester.ensureVisible(find.text('Simulate Broadcast Off'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Simulate Broadcast Off'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Location Sharing Unavailable'), findsOneWidget);
+      expect(
+        find.textContaining('server broadcast integration is pending'),
+        findsOneWidget,
+      );
+
+      // Verify toggling simulated broadcast back on restores Active status
+      await tester.ensureVisible(find.text('Simulate Broadcast On'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Simulate Broadcast On'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Demo Preview: Sharing Active'), findsOneWidget);
     },
   );
 
@@ -455,6 +482,97 @@ void main() {
       expect(find.text('Location Sharing'), findsOneWidget);
       expect(find.text('Pending Server Integration'), findsOneWidget);
       expect(caughtDetails, isNull);
+    },
+  );
+
+  testWidgets(
+    'production mode with storedOptIn true and granted permission renders Location Sharing Unavailable and disabled switch',
+    (tester) async {
+      final membersWithOptIn = TravelGroupMembers(
+        groupId: 55,
+        groupName: 'Hoi An Ancient Tour',
+        itineraryId: 12,
+        members: [
+          TravelGroupMember(
+            memberId: 77,
+            displayName: 'Minh Traveler',
+            isHost: true,
+            joinedAtUtc: DateTime.utc(2026, 9, 25),
+            locationSharingEnabled: true,
+          ),
+        ],
+      );
+      final locationService = _FakeLocationService(
+        permission: LocationPermission.whileInUse,
+      );
+      final repo = _FakeGroupRepository(membersWithOptIn);
+      final storage = _FakeStorage(_jwtToken(77));
+
+      await tester.pumpWidget(
+        createWidget(
+          locationService: locationService,
+          repository: repo,
+          storage: storage,
+          isDemoMode: false,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Hero card must be truthful: NOT "Sharing is Active", but "Location Sharing Unavailable"
+      expect(find.text('Location Sharing Unavailable'), findsOneWidget);
+      expect(
+        find.textContaining('server broadcast integration is pending'),
+        findsOneWidget,
+      );
+      expect(find.text('Sharing is Active'), findsNothing);
+      expect(
+        find.textContaining('Your location is shared with members'),
+        findsNothing,
+      );
+
+      // Switch is visually ON but strictly disabled (onChanged == null)
+      final switchFinder = find.byType(Switch);
+      expect(switchFinder, findsOneWidget);
+      final switchWidget = tester.widget<Switch>(switchFinder);
+      expect(switchWidget.value, isTrue);
+      expect(switchWidget.onChanged, isNull);
+      expect(
+        find.text(
+          'With members of this group only (Consent is ON — editing disabled pending server integration)',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'inactive member in production mode disables switch and shows inactive hero',
+    (tester) async {
+      final locationService = _FakeLocationService(
+        permission: LocationPermission.whileInUse,
+      );
+      final repo = _FakeGroupRepository(groupMembers);
+      final storage = _FakeStorage(_jwtToken(999)); // Not in group
+
+      await tester.pumpWidget(
+        createWidget(
+          locationService: locationService,
+          repository: repo,
+          storage: storage,
+          isDemoMode: false,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Membership Inactive'), findsOneWidget);
+      final switchWidget = tester.widget<Switch>(find.byType(Switch));
+      expect(switchWidget.onChanged, isNull);
+      expect(
+        find.text(
+          'With members of this group only (Editing disabled pending server integration)',
+        ),
+        findsOneWidget,
+      );
     },
   );
 }

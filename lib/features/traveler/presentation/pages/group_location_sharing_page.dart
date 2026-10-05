@@ -243,13 +243,20 @@ class _GroupLocationSharingPageState extends State<GroupLocationSharingPage>
     final String title;
     final String subtitle;
 
-    if (state.effectiveSharing) {
+    if (state.isActivelySharing) {
       icon = Icons.location_on;
       color = AppColors.success;
-      title = 'Sharing is Active';
+      title = 'Demo Preview: Sharing Active';
       subtitle = state.groupName != null
-          ? 'Your location is shared with members of ${state.groupName}.'
-          : 'Your location is shared with active members of this group.';
+          ? 'Simulated preview: Your location is being shared with members of ${state.groupName}.'
+          : 'Simulated preview: Your location is being shared with active members of this group.';
+    } else if (state.sharingPrerequisitesSatisfied) {
+      icon = Icons.pause_circle_outline;
+      color = AppColors.warning;
+      title = 'Location Sharing Unavailable';
+      subtitle =
+          'Consent is enabled and device permission is granted. '
+          'Live location sharing is paused because server broadcast integration is pending.';
     } else if (state.storedOptIn && !state.devicePermissionGranted) {
       icon = Icons.location_off;
       color = AppColors.warning;
@@ -261,7 +268,8 @@ class _GroupLocationSharingPageState extends State<GroupLocationSharingPage>
       icon = Icons.person_off_outlined;
       color = AppColors.muted;
       title = 'Membership Inactive';
-      subtitle = 'Only active members of this group can share location.';
+      subtitle =
+          'Only active members of this group can configure location sharing.';
     } else {
       icon = Icons.location_off_outlined;
       color = AppColors.muted;
@@ -312,6 +320,21 @@ class _GroupLocationSharingPageState extends State<GroupLocationSharingPage>
   }
 
   Widget _buildPrimarySettingCard(GroupLocationSharingState state) {
+    final bool canChangePreference =
+        state.isDemoMode && state.isActiveMember && !state.pendingBeIntegration;
+
+    final String subtitleText;
+    if (state.pendingBeIntegration) {
+      subtitleText = state.storedOptIn
+          ? 'With members of this group only (Consent is ON — editing disabled pending server integration)'
+          : 'With members of this group only (Editing disabled pending server integration)';
+    } else if (!state.isActiveMember) {
+      subtitleText =
+          'With members of this group only (Only active members can configure sharing)';
+    } else {
+      subtitleText = 'With members of this group only';
+    }
+
     return Card(
       elevation: 0,
       color: Colors.white,
@@ -330,15 +353,17 @@ class _GroupLocationSharingPageState extends State<GroupLocationSharingPage>
               color: AppColors.ink,
             ),
           ),
-          subtitle: const Text(
-            'With members of this group only',
-            style: TextStyle(fontSize: 13, color: AppColors.muted),
+          subtitle: Text(
+            subtitleText,
+            style: const TextStyle(fontSize: 13, color: AppColors.muted),
           ),
           value: state.storedOptIn,
           activeThumbColor: AppColors.primary,
-          onChanged: (value) {
-            _cubit.toggleLocationSharing(value);
-          },
+          onChanged: canChangePreference
+              ? (value) {
+                  _cubit.toggleLocationSharing(value);
+                }
+              : null,
         ),
       ),
     );
@@ -390,7 +415,7 @@ class _GroupLocationSharingPageState extends State<GroupLocationSharingPage>
                       ),
                       const SizedBox(height: 2),
                       const Text(
-                        'Visible only to confirmed active travelers in this group',
+                        'Visible only to confirmed active travelers in this group when sharing is operational',
                         style: TextStyle(fontSize: 12, color: AppColors.muted),
                       ),
                     ],
@@ -603,6 +628,17 @@ class _GroupLocationSharingPageState extends State<GroupLocationSharingPage>
                 selected: !state.isActiveMember,
                 onSelected: (_) =>
                     _cubit.setDemoActiveMembership(!state.isActiveMember),
+              ),
+              FilterChip(
+                label: Text(
+                  state.liveLocationDeliveryConfirmed
+                      ? 'Simulate Broadcast Off'
+                      : 'Simulate Broadcast On',
+                ),
+                selected: state.liveLocationDeliveryConfirmed,
+                onSelected: (_) => _cubit.setDemoDeliveryConfirmed(
+                  !state.liveLocationDeliveryConfirmed,
+                ),
               ),
             ],
           ),

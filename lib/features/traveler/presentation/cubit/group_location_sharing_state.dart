@@ -16,6 +16,7 @@ final class GroupLocationSharingState extends Equatable {
     this.errorMessage,
     this.noticeMessage,
     this.pendingBeIntegration = false,
+    this.liveLocationDeliveryConfirmed = false,
   });
 
   final int groupId;
@@ -46,16 +47,39 @@ final class GroupLocationSharingState extends Equatable {
   /// Flag indicating backend preference mutation is pending server integration.
   final bool pendingBeIntegration;
 
-  /// Whether device location permission is currently granted.
+  /// Whether the device has an active location stream and confirmed coordinate
+  /// delivery to the server/group.
+  ///
+  /// In current production, no broadcast transport exists, so this is strictly
+  /// false in production mode.
+  final bool liveLocationDeliveryConfirmed;
+
+  /// Whether device location permission is currently granted and GPS is on.
   bool get devicePermissionGranted =>
       isLocationServiceEnabled &&
       (devicePermission == LocationPermission.whileInUse ||
           devicePermission == LocationPermission.always);
 
-  /// Canonical invariant per BR-50:
-  /// effectiveSharing = activeMembership AND storedOptIn AND devicePermissionGranted
-  bool get effectiveSharing =>
+  /// Canonical prerequisites per BR-50 and BR-51:
+  /// Active membership, explicit stored opt-in consent, and granted device OS
+  /// location permissions with GPS enabled.
+  ///
+  /// Note: Fulfilling prerequisites proves user eligibility and consent, but
+  /// does not prove that live coordinates are actively transmitting or delivered.
+  bool get sharingPrerequisitesSatisfied =>
       isActiveMember && storedOptIn && devicePermissionGranted;
+
+  /// Truthful active sharing state. Requires both all prerequisites satisfied
+  /// AND confirmed live coordinate delivery to the server/group.
+  bool get isActivelySharing =>
+      sharingPrerequisitesSatisfied && liveLocationDeliveryConfirmed;
+
+  /// Operational sharing state. Requires both prerequisites satisfied AND
+  /// confirmed live coordinate delivery.
+  ///
+  /// In production mode, since no live location transport is yet integrated,
+  /// this remains strictly false.
+  bool get effectiveSharing => isActivelySharing;
 
   bool get isPermissionPermanentlyDenied =>
       devicePermission == LocationPermission.deniedForever;
@@ -76,6 +100,7 @@ final class GroupLocationSharingState extends Equatable {
     String? noticeMessage,
     bool clearNoticeMessage = false,
     bool? pendingBeIntegration,
+    bool? liveLocationDeliveryConfirmed,
   }) {
     return GroupLocationSharingState(
       groupId: groupId ?? this.groupId,
@@ -94,6 +119,8 @@ final class GroupLocationSharingState extends Equatable {
           ? null
           : (noticeMessage ?? this.noticeMessage),
       pendingBeIntegration: pendingBeIntegration ?? this.pendingBeIntegration,
+      liveLocationDeliveryConfirmed:
+          liveLocationDeliveryConfirmed ?? this.liveLocationDeliveryConfirmed,
     );
   }
 
@@ -110,5 +137,6 @@ final class GroupLocationSharingState extends Equatable {
     errorMessage,
     noticeMessage,
     pendingBeIntegration,
+    liveLocationDeliveryConfirmed,
   ];
 }

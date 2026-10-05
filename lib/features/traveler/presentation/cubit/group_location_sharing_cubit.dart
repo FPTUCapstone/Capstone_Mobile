@@ -10,11 +10,13 @@ import 'package:trip_mate_mobile/features/traveler/presentation/helpers/session_
 
 /// Cubit managing UC-22 Group Location Sharing consent and OS permission state.
 ///
-/// Invariants:
-/// - effectiveSharing = activeMembership AND storedOptIn AND devicePermissionGranted
-/// - Canonical Backend currently has no merged write endpoint (NO_BACKEND).
-///   Production mode exposes PENDING_BE_INTEGRATION and refuses fake persistence.
-/// - Demo mode enables previewing permission permutations and opt-in toggles.
+/// Invariants & Semantics (Review Remediation):
+/// - sharingPrerequisitesSatisfied = activeMembership AND storedOptIn AND devicePermissionGranted
+/// - isActivelySharing = sharingPrerequisitesSatisfied AND liveLocationDeliveryConfirmed
+/// - In current production, no live location broadcast transport exists (NO_BACKEND),
+///   so liveLocationDeliveryConfirmed is strictly false in production.
+/// - Switch editing is disabled in production while pending backend integration.
+/// - Demo mode enables previewing permission permutations, opt-in toggles, and simulated delivery.
 final class GroupLocationSharingCubit extends Cubit<GroupLocationSharingState> {
   GroupLocationSharingCubit({
     required int groupId,
@@ -254,6 +256,7 @@ final class GroupLocationSharingCubit extends Cubit<GroupLocationSharingState> {
       emit(
         state.copyWith(
           storedOptIn: true,
+          liveLocationDeliveryConfirmed: true,
           noticeMessage: sharingEnabledNotice,
           clearErrorMessage: true,
         ),
@@ -262,6 +265,7 @@ final class GroupLocationSharingCubit extends Cubit<GroupLocationSharingState> {
       emit(
         state.copyWith(
           storedOptIn: false,
+          liveLocationDeliveryConfirmed: false,
           noticeMessage: sharingDisabledNotice,
           clearErrorMessage: true,
         ),
@@ -275,10 +279,16 @@ final class GroupLocationSharingCubit extends Cubit<GroupLocationSharingState> {
     bool isServiceEnabled = true,
   }) {
     if (!state.isDemoMode) return;
+    final nowGranted =
+        isServiceEnabled &&
+        (permission == LocationPermission.whileInUse ||
+            permission == LocationPermission.always);
     emit(
       state.copyWith(
         devicePermission: permission,
         isLocationServiceEnabled: isServiceEnabled,
+        liveLocationDeliveryConfirmed:
+            nowGranted && state.storedOptIn && state.isActiveMember,
         clearErrorMessage: true,
       ),
     );
@@ -287,13 +297,38 @@ final class GroupLocationSharingCubit extends Cubit<GroupLocationSharingState> {
   /// Demo helper: simulate membership change.
   void setDemoActiveMembership(bool isActive) {
     if (!state.isDemoMode) return;
-    emit(state.copyWith(isActiveMember: isActive, clearErrorMessage: true));
+    emit(
+      state.copyWith(
+        isActiveMember: isActive,
+        liveLocationDeliveryConfirmed:
+            isActive && state.storedOptIn && state.devicePermissionGranted,
+        clearErrorMessage: true,
+      ),
+    );
   }
 
   /// Demo helper: directly set storedOptIn.
   void setDemoStoredOptIn(bool optIn) {
     if (!state.isDemoMode) return;
-    emit(state.copyWith(storedOptIn: optIn, clearErrorMessage: true));
+    emit(
+      state.copyWith(
+        storedOptIn: optIn,
+        liveLocationDeliveryConfirmed:
+            optIn && state.devicePermissionGranted && state.isActiveMember,
+        clearErrorMessage: true,
+      ),
+    );
+  }
+
+  /// Demo helper: simulate live delivery confirmation state.
+  void setDemoDeliveryConfirmed(bool confirmed) {
+    if (!state.isDemoMode) return;
+    emit(
+      state.copyWith(
+        liveLocationDeliveryConfirmed: confirmed,
+        clearErrorMessage: true,
+      ),
+    );
   }
 
   /// Clears inline notification and error messages.
