@@ -51,6 +51,7 @@ final class TourSearchItemModel {
     required this.departureAtUtc,
     required this.availabilityStatus,
     required this.remainingSlots,
+    this.thumbnailUrl,
   });
 
   factory TourSearchItemModel.fromJson(Map<String, Object?> json) {
@@ -73,6 +74,7 @@ final class TourSearchItemModel {
           : null,
       availabilityStatus: _requiredString(json, 'availabilityStatus'),
       remainingSlots: _nullableInt(json['remainingSlots']),
+      thumbnailUrl: _nullableString(json['thumbnailUrl']),
     );
   }
 
@@ -87,6 +89,7 @@ final class TourSearchItemModel {
   final DateTime? departureAtUtc;
   final String availabilityStatus;
   final int? remainingSlots;
+  final String? thumbnailUrl;
 
   TourSummary toEntity() => TourSummary(
     tourId: tourId,
@@ -100,6 +103,7 @@ final class TourSearchItemModel {
     departureAtUtc: departureAtUtc,
     availabilityStatus: AvailabilityStatus.fromString(availabilityStatus),
     remainingSlots: remainingSlots,
+    thumbnailUrl: thumbnailUrl,
   );
 }
 
