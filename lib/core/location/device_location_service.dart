@@ -27,20 +27,52 @@ final class LocationPermissionDeniedException extends DeviceLocationException {
 
 abstract interface class DeviceLocationService {
   Future<DeviceLocation> getCurrentLocation();
+
+  /// Checks the current location permission state on the device.
+  Future<LocationPermission> checkPermission();
+
+  /// Requests location permission from the operating system.
+  Future<LocationPermission> requestPermission();
+
+  /// Checks whether location services (GPS) are enabled on the device.
+  Future<bool> isLocationServiceEnabled();
+
+  /// Opens the application settings screen so the user can grant permissions.
+  Future<bool> openAppSettings();
+
+  /// Opens the device location settings screen to enable GPS.
+  Future<bool> openLocationSettings();
 }
 
 final class GeolocatorDeviceLocationService implements DeviceLocationService {
   const GeolocatorDeviceLocationService();
 
   @override
+  Future<LocationPermission> checkPermission() => Geolocator.checkPermission();
+
+  @override
+  Future<LocationPermission> requestPermission() =>
+      Geolocator.requestPermission();
+
+  @override
+  Future<bool> isLocationServiceEnabled() =>
+      Geolocator.isLocationServiceEnabled();
+
+  @override
+  Future<bool> openAppSettings() => Geolocator.openAppSettings();
+
+  @override
+  Future<bool> openLocationSettings() => Geolocator.openLocationSettings();
+
+  @override
   Future<DeviceLocation> getCurrentLocation() async {
-    if (!await Geolocator.isLocationServiceEnabled()) {
+    if (!await isLocationServiceEnabled()) {
       throw const LocationServiceDisabledException();
     }
 
-    var permission = await Geolocator.checkPermission();
+    var permission = await checkPermission();
     if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+      permission = await requestPermission();
     }
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {

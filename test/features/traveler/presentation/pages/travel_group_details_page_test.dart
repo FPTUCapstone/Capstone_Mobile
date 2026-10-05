@@ -264,4 +264,36 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'Location Sharing button navigates to group location sharing settings',
+    (tester) async {
+      final router = GoRouter(
+        initialLocation: '/traveler/groups/42',
+        routes: [
+          GoRoute(
+            path: AppRoutes.travelGroupDetails,
+            name: AppRouteNames.travelGroupDetails,
+            builder: (_, _) =>
+                const TravelGroupDetailsPage(groupId: 42, group: group),
+          ),
+          GoRoute(
+            path: AppRoutes.groupLocationSharing,
+            name: AppRouteNames.groupLocationSharing,
+            builder: (_, _) =>
+                const Scaffold(body: Text('Location sharing settings')),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      expect(find.byKey(const Key('location_sharing_button')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('location_sharing_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Location sharing settings'), findsOneWidget);
+      expect(router.canPop(), isTrue);
+    },
+  );
 }
