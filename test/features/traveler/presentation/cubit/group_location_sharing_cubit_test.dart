@@ -160,21 +160,33 @@ void main() {
 
   group('GroupLocationSharingState invariants (BR-50 & BR-51)', () {
     test(
-      'effectiveSharing is TRUE only when activeMembership AND storedOptIn AND devicePermissionGranted',
+      'effectiveSharing is TRUE only when prerequisites satisfied AND liveLocationDeliveryConfirmed is true',
       () {
-        // All three true
-        const fullActive = GroupLocationSharingState(
+        // Prerequisites met, but no live broadcast delivery confirmed (e.g. production mode)
+        const prereqsMetNoBroadcast = GroupLocationSharingState(
           groupId: 42,
           isActiveMember: true,
           storedOptIn: true,
           devicePermission: LocationPermission.whileInUse,
           isLocationServiceEnabled: true,
+          liveLocationDeliveryConfirmed: false,
         );
-        expect(fullActive.devicePermissionGranted, isTrue);
+        expect(prereqsMetNoBroadcast.devicePermissionGranted, isTrue);
+        expect(prereqsMetNoBroadcast.sharingPrerequisitesSatisfied, isTrue);
+        expect(prereqsMetNoBroadcast.liveLocationDeliveryConfirmed, isFalse);
+        expect(prereqsMetNoBroadcast.isActivelySharing, isFalse);
+        expect(prereqsMetNoBroadcast.effectiveSharing, isFalse);
+
+        // Confirmed live broadcast delivery
+        final fullActive = prereqsMetNoBroadcast.copyWith(
+          liveLocationDeliveryConfirmed: true,
+        );
+        expect(fullActive.isActivelySharing, isTrue);
         expect(fullActive.effectiveSharing, isTrue);
 
         // Stored opt-in false
         final noOptIn = fullActive.copyWith(storedOptIn: false);
+        expect(noOptIn.sharingPrerequisitesSatisfied, isFalse);
         expect(noOptIn.effectiveSharing, isFalse);
 
         // Device permission denied
@@ -182,15 +194,18 @@ void main() {
           devicePermission: LocationPermission.denied,
         );
         expect(noPermission.devicePermissionGranted, isFalse);
+        expect(noPermission.sharingPrerequisitesSatisfied, isFalse);
         expect(noPermission.effectiveSharing, isFalse);
 
         // Location service (GPS) disabled
         final gpsOff = fullActive.copyWith(isLocationServiceEnabled: false);
         expect(gpsOff.devicePermissionGranted, isFalse);
+        expect(gpsOff.sharingPrerequisitesSatisfied, isFalse);
         expect(gpsOff.effectiveSharing, isFalse);
 
         // Inactive membership
         final inactiveMember = fullActive.copyWith(isActiveMember: false);
+        expect(inactiveMember.sharingPrerequisitesSatisfied, isFalse);
         expect(inactiveMember.effectiveSharing, isFalse);
       },
     );
@@ -274,7 +289,12 @@ void main() {
 
         expect(cubit.state.isActiveMember, isTrue);
         expect(cubit.state.storedOptIn, isTrue);
-        expect(cubit.state.effectiveSharing, isTrue);
+        expect(cubit.state.sharingPrerequisitesSatisfied, isTrue);
+        // Production mode has no confirmed broadcast transport, so delivery is
+        // unconfirmed and effective active sharing remains strictly false.
+        expect(cubit.state.liveLocationDeliveryConfirmed, isFalse);
+        expect(cubit.state.isActivelySharing, isFalse);
+        expect(cubit.state.effectiveSharing, isFalse);
       },
     );
 
@@ -571,6 +591,11 @@ void main() {
       cubit.setDemoActiveMembership(false);
       expect(cubit.state.isActiveMember, isFalse);
       expect(cubit.state.effectiveSharing, isFalse);
+
+      cubit.setDemoDeliveryConfirmed(true);
+      expect(cubit.state.liveLocationDeliveryConfirmed, isTrue);
+      cubit.setDemoDeliveryConfirmed(false);
+      expect(cubit.state.liveLocationDeliveryConfirmed, isFalse);
 
       cubit.clearMessages();
       expect(cubit.state.errorMessage, isNull);
