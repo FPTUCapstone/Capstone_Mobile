@@ -200,6 +200,7 @@ void main() {
             groupId: 42,
             group: group,
             isHost: true,
+            currentUserId: 101,
             members: members,
           ),
         ),

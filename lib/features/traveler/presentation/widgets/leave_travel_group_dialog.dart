@@ -60,7 +60,7 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
   void initState() {
     super.initState();
     _resolvedMembers = widget.members;
-    if (widget.isHost && _resolvedMembers == null) {
+    if (_resolvedMembers == null && widget.currentUserId != null) {
       _fetchMembers();
     }
   }
@@ -442,15 +442,16 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
   }
 
   bool _isEffectiveHost() {
-    if (!widget.isHost) return false;
+    final userId = widget.currentUserId;
+    if (userId == null) return false;
+
     final members = _resolvedMembers;
-    if (members != null && members.isNotEmpty && widget.currentUserId != null) {
-      final authoritativeHost = members.where((m) => m.isHost).firstOrNull;
-      if (authoritativeHost != null) {
-        return authoritativeHost.memberId == widget.currentUserId;
-      }
-    }
-    return widget.isHost;
+    if (members == null || members.isEmpty) return false;
+
+    final hosts = members.where((m) => m.isHost).toList();
+    if (hosts.length != 1) return false;
+
+    return hosts.first.memberId == userId;
   }
 
   void _handleConfirmLeave() {

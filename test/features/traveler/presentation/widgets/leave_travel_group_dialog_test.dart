@@ -480,6 +480,207 @@ void main() {
         );
       },
     );
+
+    group('Fail-closed Host Identity (Review Remediation Round 2)', () {
+      testWidgets(
+        'Test A: widget.isHost is true but currentUserId is null -> Host status is NOT granted (Case A)',
+        (tester) async {
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: LeaveTravelGroupDialog(
+                  groupId: 42,
+                  groupName: 'Da Nang crew',
+                  isHost: true,
+                  currentUserId: null,
+                  members: [hostMember, olderMember],
+                ),
+              ),
+            ),
+          );
+
+          expect(
+            find.byKey(const Key('leave_travel_group_dialog_case_b')),
+            findsNothing,
+          );
+          expect(
+            find.byKey(const Key('leave_travel_group_dialog_case_c')),
+            findsNothing,
+          );
+          expect(
+            find.byKey(const Key('leave_travel_group_dialog_case_a')),
+            findsOneWidget,
+          );
+          expect(find.text('Leave travel group'), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'Test B: widget.isHost is true but currentUserId does not match authoritative Host -> Host status is NOT granted (Case A)',
+        (tester) async {
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: LeaveTravelGroupDialog(
+                  groupId: 42,
+                  groupName: 'Da Nang crew',
+                  isHost: true,
+                  currentUserId: 999, // Mismatched user ID
+                  members: [hostMember, olderMember],
+                ),
+              ),
+            ),
+          );
+
+          expect(
+            find.byKey(const Key('leave_travel_group_dialog_case_b')),
+            findsNothing,
+          );
+          expect(
+            find.byKey(const Key('leave_travel_group_dialog_case_c')),
+            findsNothing,
+          );
+          expect(
+            find.byKey(const Key('leave_travel_group_dialog_case_a')),
+            findsOneWidget,
+          );
+          expect(find.text('Leave travel group'), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'Test C: currentUserId exists but zero authoritative Hosts exist in member data -> Host status is NOT granted (Case A)',
+        (tester) async {
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: LeaveTravelGroupDialog(
+                  groupId: 42,
+                  groupName: 'Da Nang crew',
+                  isHost: true,
+                  currentUserId: 101,
+                  members: [olderMember, newerMember], // zero hosts
+                ),
+              ),
+            ),
+          );
+
+          expect(
+            find.byKey(const Key('leave_travel_group_dialog_case_b')),
+            findsNothing,
+          );
+          expect(
+            find.byKey(const Key('leave_travel_group_dialog_case_c')),
+            findsNothing,
+          );
+          expect(
+            find.byKey(const Key('leave_travel_group_dialog_case_a')),
+            findsOneWidget,
+          );
+        },
+      );
+
+      testWidgets(
+        'Test D: currentUserId exists but multiple authoritative Hosts exist in member data -> Host status is NOT granted (Case A)',
+        (tester) async {
+          final secondHostMember = TravelGroupMember(
+            memberId: 104,
+            displayName: 'Second Host',
+            isHost: true,
+            joinedAtUtc: DateTime.utc(2026, 9, 1, 9),
+            locationSharingEnabled: false,
+          );
+
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: LeaveTravelGroupDialog(
+                  groupId: 42,
+                  groupName: 'Da Nang crew',
+                  isHost: true,
+                  currentUserId: 101,
+                  members: [hostMember, secondHostMember, olderMember],
+                ),
+              ),
+            ),
+          );
+
+          expect(
+            find.byKey(const Key('leave_travel_group_dialog_case_b')),
+            findsNothing,
+          );
+          expect(
+            find.byKey(const Key('leave_travel_group_dialog_case_c')),
+            findsNothing,
+          );
+          expect(
+            find.byKey(const Key('leave_travel_group_dialog_case_a')),
+            findsOneWidget,
+          );
+        },
+      );
+
+      testWidgets(
+        'Test E: widget.isHost is false but authenticated currentUserId matches the one authoritative Host -> Host is derived from authoritative data (Case B)',
+        (tester) async {
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: LeaveTravelGroupDialog(
+                  groupId: 42,
+                  groupName: 'Da Nang crew',
+                  isHost: false, // stale UI flag
+                  currentUserId: 101, // matches authoritative hostMember
+                  members: [hostMember, olderMember],
+                ),
+              ),
+            ),
+          );
+
+          expect(
+            find.byKey(const Key('leave_travel_group_dialog_case_a')),
+            findsNothing,
+          );
+          expect(
+            find.byKey(const Key('leave_travel_group_dialog_case_b')),
+            findsOneWidget,
+          );
+          expect(
+            find.text('Transfer host privileges and leave'),
+            findsOneWidget,
+          );
+          expect(find.text('Minh Anh'), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'Test F: exactly one Host and currentUserId matches -> Host behavior is allowed (Case B)',
+        (tester) async {
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: LeaveTravelGroupDialog(
+                  groupId: 42,
+                  groupName: 'Da Nang crew',
+                  isHost: true,
+                  currentUserId: 101,
+                  members: [hostMember, olderMember],
+                ),
+              ),
+            ),
+          );
+
+          expect(
+            find.byKey(const Key('leave_travel_group_dialog_case_b')),
+            findsOneWidget,
+          );
+          expect(
+            find.text('Transfer host privileges and leave'),
+            findsOneWidget,
+          );
+        },
+      );
+    });
   });
 }
 
