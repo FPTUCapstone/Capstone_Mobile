@@ -37,7 +37,7 @@ void main() {
         );
         expect(
           find.text(
-            'Member removal is waiting for server support and cannot be completed yet.',
+            'Server support pending: Member removal is waiting for backend capability and cannot be completed yet.',
           ),
           findsOneWidget,
         );
@@ -51,6 +51,11 @@ void main() {
           find.byKey(const Key('remove_member_confirm_button')),
           findsOneWidget,
         );
+
+        final confirmButton = tester.widget<FilledButton>(
+          find.byKey(const Key('remove_member_confirm_button')),
+        );
+        expect(confirmButton.onPressed, isNull);
       },
     );
 
@@ -95,7 +100,35 @@ void main() {
     );
 
     testWidgets(
-      'UC20-6, UC20-7: Confirm action surfaces unavailable notice and does not report fake success',
+      'UC20-6, UC20-7: Destructive confirm button is disabled when server support is absent',
+      (tester) async {
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(
+              body: RemoveGroupMemberDialog(
+                groupId: 42,
+                memberId: 102,
+                memberName: 'Minh Anh',
+              ),
+            ),
+          ),
+        );
+
+        final confirmButton = tester.widget<FilledButton>(
+          find.byKey(const Key('remove_member_confirm_button')),
+        );
+        expect(confirmButton.onPressed, isNull);
+
+        // Absolutely NO fake MSG60 success
+        expect(
+          find.textContaining('has been removed from the group.'),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
+      'When isServerSupported is true, confirm button is enabled and returns true',
       (tester) async {
         bool? dialogResult;
 
@@ -111,6 +144,7 @@ void main() {
                         groupId: 42,
                         memberId: 102,
                         memberName: 'Minh Anh',
+                        isServerSupported: true,
                       ),
                     );
                   },
@@ -124,30 +158,15 @@ void main() {
         await tester.tap(find.text('Open Dialog'));
         await tester.pumpAndSettle();
 
-        // Tap destructive action
+        final confirmButton = tester.widget<FilledButton>(
+          find.byKey(const Key('remove_member_confirm_button')),
+        );
+        expect(confirmButton.onPressed, isNotNull);
+
         await tester.tap(find.byKey(const Key('remove_member_confirm_button')));
         await tester.pumpAndSettle();
 
-        // Dialog closes with false
-        expect(dialogResult, isFalse);
-
-        // SnackBar surfaces server unavailable notice
-        expect(
-          find.byKey(const Key('remove_member_unavailable_snack')),
-          findsOneWidget,
-        );
-        expect(
-          find.text(
-            'Member removal is waiting for server support and cannot be completed yet.',
-          ),
-          findsOneWidget,
-        );
-
-        // Absolutely NO fake MSG60 success
-        expect(
-          find.textContaining('has been removed from the group.'),
-          findsNothing,
-        );
+        expect(dialogResult, isTrue);
       },
     );
 

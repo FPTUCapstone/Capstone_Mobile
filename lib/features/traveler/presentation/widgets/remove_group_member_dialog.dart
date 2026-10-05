@@ -12,11 +12,13 @@ final class RemoveGroupMemberDialog extends StatelessWidget {
     required this.groupId,
     required this.memberId,
     required this.memberName,
+    this.isServerSupported = false,
   });
 
   final int groupId;
   final int memberId;
   final String memberName;
+  final bool isServerSupported;
 
   /// MSG59 locked message template.
   static String confirmationMessage(String name) =>
@@ -24,7 +26,7 @@ final class RemoveGroupMemberDialog extends StatelessWidget {
 
   /// Truthful capability notice explaining why removal cannot be persisted yet.
   static const String serverUnavailableNotice =
-      'Member removal is waiting for server support and cannot be completed yet.';
+      'Server support pending: Member removal is waiting for backend capability and cannot be completed yet.';
 
   @override
   Widget build(BuildContext context) {
@@ -96,17 +98,11 @@ final class RemoveGroupMemberDialog extends StatelessWidget {
             foregroundColor: theme.colorScheme.onError,
             minimumSize: const Size(48, 48),
           ),
-          onPressed: () {
-            // Production Truthfulness: Server mutation does not exist yet.
-            // Do NOT mutate local state, do NOT show fake MSG60 success.
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                key: Key('remove_member_unavailable_snack'),
-                content: Text(serverUnavailableNotice),
-              ),
-            );
-            Navigator.of(context).pop(false);
-          },
+          onPressed: isServerSupported
+              ? () {
+                  Navigator.of(context).pop(true);
+                }
+              : null,
           child: const Text('Remove Member'),
         ),
       ],

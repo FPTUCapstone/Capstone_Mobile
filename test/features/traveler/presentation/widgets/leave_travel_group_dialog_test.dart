@@ -66,7 +66,7 @@ void main() {
       );
       expect(
         find.text(
-          'This action is waiting for server support and cannot be completed yet.',
+          'Server support pending: Leaving travel group is waiting for backend capability and cannot be completed yet.',
         ),
         findsOneWidget,
       );
@@ -79,6 +79,14 @@ void main() {
       expect(
         find.byKey(const Key('leave_group_confirm_button')),
         findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.byKey(const Key('leave_group_confirm_button')),
+            )
+            .onPressed,
+        isNull,
       );
     });
 
@@ -125,6 +133,14 @@ void main() {
         expect(
           find.byKey(const Key('transfer_and_leave_confirm_button')),
           findsOneWidget,
+        );
+        expect(
+          tester
+              .widget<FilledButton>(
+                find.byKey(const Key('transfer_and_leave_confirm_button')),
+              )
+              .onPressed,
+          isNull,
         );
       },
     );
@@ -182,6 +198,14 @@ void main() {
           find.byKey(const Key('close_group_and_leave_confirm_button')),
           findsOneWidget,
         );
+        expect(
+          tester
+              .widget<FilledButton>(
+                find.byKey(const Key('close_group_and_leave_confirm_button')),
+              )
+              .onPressed,
+          isNull,
+        );
       },
     );
 
@@ -229,7 +253,7 @@ void main() {
     );
 
     testWidgets(
-      'UC21-7, UC21-8, UC21-9, UC21-10: Tapping confirm in Case B surfaces unavailable notice and does not perform fake leave or fake transfer',
+      'UC21-7, UC21-8, UC21-9, UC21-10: Confirm button in Case B is disabled when server support is absent',
       (tester) async {
         bool? dialogResult;
 
@@ -262,29 +286,67 @@ void main() {
 
         expect(find.text('Transfer host privileges and leave'), findsOneWidget);
 
-        // Tap confirm button
+        // Confirm button is disabled
+        final confirmButton = tester.widget<FilledButton>(
+          find.byKey(const Key('transfer_and_leave_confirm_button')),
+        );
+        expect(confirmButton.onPressed, isNull);
+
+        // Cancel button is active and dismisses dialog
+        await tester.tap(find.byKey(const Key('leave_group_cancel_button')));
+        await tester.pumpAndSettle();
+
+        expect(dialogResult, isFalse);
+
+        // Absolutely NO fake MSG129 success
+        expect(find.text('Operation completed successfully.'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'When isServerSupported is true, Case B confirm button is enabled and returns true',
+      (tester) async {
+        bool? dialogResult;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () async {
+                    dialogResult = await showDialog<bool>(
+                      context: context,
+                      builder: (_) => LeaveTravelGroupDialog(
+                        groupId: 42,
+                        groupName: 'Da Nang crew',
+                        isHost: true,
+                        currentUserId: 101,
+                        members: [hostMember, olderMember],
+                        isServerSupported: true,
+                      ),
+                    );
+                  },
+                  child: const Text('Open Dialog'),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Open Dialog'));
+        await tester.pumpAndSettle();
+
+        final confirmButton = tester.widget<FilledButton>(
+          find.byKey(const Key('transfer_and_leave_confirm_button')),
+        );
+        expect(confirmButton.onPressed, isNotNull);
+
         await tester.tap(
           find.byKey(const Key('transfer_and_leave_confirm_button')),
         );
         await tester.pumpAndSettle();
 
-        // Dialog returns false
-        expect(dialogResult, isFalse);
-
-        // SnackBar surfaces unavailable message
-        expect(
-          find.byKey(const Key('leave_group_unavailable_snack')),
-          findsOneWidget,
-        );
-        expect(
-          find.text(
-            'This action is waiting for server support and cannot be completed yet.',
-          ),
-          findsOneWidget,
-        );
-
-        // Absolutely NO fake MSG129 success
-        expect(find.text('Operation completed successfully.'), findsNothing);
+        expect(dialogResult, isTrue);
       },
     );
 
