@@ -1231,23 +1231,17 @@ class _TourDetailBottomBar extends StatelessWidget {
         ),
       );
     } else {
-      // Authenticated Traveler: Show boundary explanation without fabricating booking ID.
+      // Authenticated Traveler in Demo mode: Navigate to UC-27 Tour Booking Page
+      // with the selected schedule and tour detail context.
       final detail = state.tourDetail!;
       final schedule = state.selectedSchedule;
-      showDialog<void>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Quy trình Đặt Tour'),
-          content: Text(
-            'Bạn đã chọn:\n• Tour: ${detail.title}\n• Lịch: ${schedule != null ? _formatDate(schedule.departureAtUtc) : "Mặc định"}\n• Giá: ${_formatVnd(schedule?.price ?? detail.basePrice)}\n\nLưu ý: Quy trình xác nhận và thanh toán sẽ có sẵn trong UC-27 & UC-28.',
-          ),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Đóng'),
-            ),
-          ],
+      context.push(
+        AppRoutes.bookTour(
+          detail.tourId,
+          scheduleId: schedule?.scheduleId,
+          demo: true,
         ),
+        extra: detail,
       );
     }
   }
