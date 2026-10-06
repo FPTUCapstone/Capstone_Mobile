@@ -13,6 +13,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_gr
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_state.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/join_travel_group_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/widgets/qr_scanner_dialog.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
 
@@ -290,4 +291,245 @@ void main() {
       expect(capturedExtra!.itineraryId, 10);
     },
   );
+
+  group('Cancel Button Navigation', () {
+    testWidgets('tapping cancel button pops when canPop is true', (
+      tester,
+    ) async {
+      final router = GoRouter(
+        initialLocation: '/',
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (context, _) => Scaffold(
+              body: ElevatedButton(
+                onPressed: () => context.push('/join'),
+                child: const Text('Go to Join'),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/join',
+            builder: (_, _) => BlocProvider<JoinTravelGroupCubit>.value(
+              value: cubit,
+              child: const JoinTravelGroupPage(),
+            ),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Go to Join'));
+      await tester.pumpAndSettle();
+      expect(find.text('Join Shared Group Trip'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('cancel_button')));
+      await tester.pumpAndSettle();
+      expect(find.text('Go to Join'), findsOneWidget);
+    });
+
+    testWidgets(
+      'tapping cancel button navigates to traveler home when canPop is false',
+      (tester) async {
+        final router = GoRouter(
+          initialLocation: '/join',
+          routes: [
+            GoRoute(
+              path: '/join',
+              builder: (_, _) => BlocProvider<JoinTravelGroupCubit>.value(
+                value: cubit,
+                child: const JoinTravelGroupPage(),
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.traveler,
+              builder: (_, _) => const Text('Traveler Home Page'),
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key('cancel_button')));
+        await tester.pumpAndSettle();
+        expect(find.text('Traveler Home Page'), findsOneWidget);
+      },
+    );
+  });
+
+  group('QrScannerDialog permission handling', () {
+    testWidgets(
+      'shows MSG46 and Open App Settings button when camera is denied',
+      (tester) async {
+        bool openedSettings = false;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: QrScannerDialog(
+                initialPermission: CameraPermissionState.denied,
+                onScanned: (_) {},
+                onOpenAppSettings: () async {
+                  openedSettings = true;
+                  return true;
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('camera_permission_denied_view')),
+          findsOneWidget,
+        );
+        expect(find.text(QrScannerDialog.msg46), findsOneWidget);
+        expect(
+          find.byKey(const Key('open_app_settings_button')),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.byKey(const Key('open_app_settings_button')));
+        await tester.pumpAndSettle();
+        expect(openedSettings, isTrue);
+      },
+    );
+
+    testWidgets(
+      'shows MSG46 and Open App Settings button when permanently denied',
+      (tester) async {
+        bool openedSettings = false;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: QrScannerDialog(
+                initialPermission: CameraPermissionState.permanentlyDenied,
+                onScanned: (_) {},
+                onOpenAppSettings: () async {
+                  openedSettings = true;
+                  return true;
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('camera_permission_denied_view')),
+          findsOneWidget,
+        );
+        expect(find.text(QrScannerDialog.msg46), findsOneWidget);
+        expect(
+          find.byKey(const Key('open_app_settings_button')),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.byKey(const Key('open_app_settings_button')));
+        await tester.pumpAndSettle();
+        expect(openedSettings, isTrue);
+      },
+    );
+  });
+
+  group('Demo Mode Controls in JoinTravelGroupPage', () {
+    testWidgets('toggles demo controls panel and simulates chips', (
+      tester,
+    ) async {
+      final demoCubit = JoinTravelGroupCubit(
+        repository: repository,
+        isDemoMode: true,
+      );
+      addTearDown(demoCubit.close);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BlocProvider<JoinTravelGroupCubit>.value(
+            value: demoCubit,
+            child: const JoinTravelGroupPage(isDemoMode: true),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('demo_controls_toggle_button')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('demo_controls_panel')), findsNothing);
+
+      await tester.tap(find.byKey(const Key('demo_controls_toggle_button')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('demo_controls_panel')), findsOneWidget);
+      expect(find.text('DEMO_ONLY Test Controls'), findsOneWidget);
+
+      await tester.tap(find.text('Simulate Valid (HOIAN8KP)'));
+      await tester.pumpAndSettle();
+      expect(find.text('HOIAN8KP'), findsOneWidget);
+
+      await tester.tap(find.text('Simulate Expired (EXPIRED8)'));
+      await tester.pumpAndSettle();
+      expect(find.text('EXPIRED8'), findsOneWidget);
+
+      await tester.tap(find.text('Simulate Already Member (ALREADY8)'));
+      await tester.pumpAndSettle();
+      expect(find.text('ALREADY8'), findsOneWidget);
+
+      await tester.tap(find.text('Simulate Server Error (SERVER12)'));
+      await tester.pumpAndSettle();
+      expect(find.text('SERVER12'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('demo_controls_toggle_button')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('demo_controls_panel')), findsNothing);
+    });
+  });
+
+  group('Responsive Layout and Accessibility', () {
+    for (final size in [
+      const Size(360, 640),
+      const Size(390, 844),
+      const Size(412, 915),
+    ]) {
+      testWidgets('renders cleanly on ${size.width}x${size.height}', (
+        tester,
+      ) async {
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(buildSubject());
+        await tester.pumpAndSettle();
+
+        expect(find.text('Join Shared Group Trip'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('renders without overflow at 200% font scale', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
+            child: BlocProvider<JoinTravelGroupCubit>.value(
+              value: cubit,
+              child: const JoinTravelGroupPage(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Join Shared Group Trip'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  });
 }
