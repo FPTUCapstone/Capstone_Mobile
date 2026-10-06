@@ -41,7 +41,8 @@ abstract final class AppRoutes {
   static String groupLocationSharingPath(int groupId) =>
       '/traveler/groups/$groupId/location-sharing';
   static String poiDetail(int id) => '/explore/poi/$id';
-  static String tourDetail(String tourId) => '/explore/tours/$tourId';
+  static String tourDetail(String tourId, {bool demo = false}) =>
+      demo ? '/explore/tours/$tourId?demo=true' : '/explore/tours/$tourId';
   static const authPrefix = '/auth';
   static const travelerPrefix = '/traveler';
   static const operatorPrefix = '/operator';

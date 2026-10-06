@@ -27,7 +27,9 @@ final class TourRecommendationsCubit extends Cubit<TourRecommendationsState> {
     }
 
     // Demo Mode: Deterministic fixtures respecting canonical rules:
-    // - approved and public tours only
+    // - BR-56: Demo fixtures represent Administrator-approved and publicly
+    //   published Tours only (authoritative publication enforcement remains
+    //   a Backend responsibility once the recommendation endpoint exists).
     // - similarity threshold > 80% (0.80)
     // - ordered descending by similarity score
     loadDemoPage(1);

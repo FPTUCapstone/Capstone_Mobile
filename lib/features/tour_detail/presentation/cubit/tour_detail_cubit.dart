@@ -10,8 +10,20 @@ import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summa
 /// Cubit managing Tour Details for UC-26.
 ///
 /// Because the canonical Backend currently has no tour detail endpoint (`NO_BACKEND`),
-/// production mode strictly exposes [TourDetailStatus.pendingIntegration].
-/// Demo mode is strictly isolated to debug review (`kDebugMode && ?demo=true`).
+/// production mode strictly exposes [TourDetailStatus.pendingIntegration] and renders
+/// only the [TourSummary] supplied from the canonical UC-24 search path when available.
+///
+/// Business-rule notes:
+/// - **BR-56** (*Only Administrator-approved and publicly published Tours may be
+///   displayed to Traveler or Guest*): Production relies on UC-24 Backend search
+///   for discoverable summary data, while full detail publication validation
+///   remains Backend responsibility once `GET /api/v1/tours/{id}` exists.
+///   Demo fixtures (`kDebugMode && ?demo=true`) represent Approved/Public Tours only.
+/// - **MSG65**: Canonical UC-26 includes MSG65 when a Tour is no longer
+///   existing/public, when all departure schedules are sold out or expired, or
+///   when availability changes before Book Now. In Demo mode, [simulateSoldOut]
+///   models the all-schedules-unavailable state, and [selectSchedule] surfaces
+///   MSG65 if a sold-out schedule is selected.
 final class TourDetailCubit extends Cubit<TourDetailState> {
   TourDetailCubit({TourSummary? initialSummary, this.isDemoMode = false})
     : super(
@@ -63,7 +75,7 @@ final class TourDetailCubit extends Cubit<TourDetailState> {
   }
 
   /// Selects a departure schedule.
-  /// If the selected schedule is sold out, emits MSG65 warning.
+  /// Surfaces [TourDetailState.msg65] warning when a sold-out schedule is chosen.
   void selectSchedule(String scheduleId) {
     final detail = state.tourDetail;
     if (detail == null) return;
@@ -120,7 +132,8 @@ final class TourDetailCubit extends Cubit<TourDetailState> {
     emit(state.copyWith(tourDetail: modified));
   }
 
-  /// Simulates a tour where all departures are sold out (tests MSG65).
+  /// Simulates the canonical all-schedules-unavailable state where all departure
+  /// schedules are sold out (tests MSG65 in Demo Mode).
   void simulateSoldOut() {
     if (!isDemoMode || state.tourDetail == null) return;
     final current = state.tourDetail!;

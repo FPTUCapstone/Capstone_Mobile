@@ -1,7 +1,16 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
+import 'package:trip_mate_mobile/features/tour_detail/presentation/pages/tour_detail_page.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/presentation/cubit/tour_recommendations_state.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/presentation/pages/tour_recommendations_page.dart';
+import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summary.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/widgets/tour_list_card.dart';
 
 Widget _buildTestWidget({
@@ -13,6 +22,38 @@ Widget _buildTestWidget({
       data: MediaQueryData(textScaler: TextScaler.linear(textScaleFactor)),
       child: TourRecommendationsPage(isDemoMode: isDemoMode),
     ),
+  );
+}
+
+GoRouter _buildTourFlowRouter({required String initialLocation}) {
+  return GoRouter(
+    initialLocation: initialLocation,
+    routes: [
+      GoRoute(
+        path: AppRoutes.tourRecommendations,
+        builder: (_, state) {
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          return TourRecommendationsPage(isDemoMode: isDemo);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.tourDetailPattern,
+        builder: (_, state) {
+          final tourId = state.pathParameters['tourId'] ?? '';
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final summary = state.extra is TourSummary
+              ? state.extra as TourSummary
+              : null;
+          return TourDetailPage(
+            tourId: tourId,
+            initialSummary: summary,
+            isDemoMode: isDemo,
+          );
+        },
+      ),
+    ],
   );
 }
 
@@ -60,6 +101,111 @@ void main() {
         final prevBtn = find.byKey(const Key('rec-prev-page-button'));
         expect(prevBtn, findsOneWidget);
         expect(find.text('2 / 2'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'demo continuity: tapping recommended tour navigates to /explore/tours/{id}?demo=true and renders full Demo TourDetailPage',
+      (tester) async {
+        final authCubit = AuthSessionCubit();
+        addTearDown(authCubit.close);
+        final router = _buildTourFlowRouter(
+          initialLocation: '${AppRoutes.tourRecommendations}?demo=true',
+        );
+        addTearDown(router.dispose);
+
+        await tester.pumpWidget(
+          BlocProvider<AuthSessionCubit>.value(
+            value: authCubit,
+            child: MaterialApp.router(routerConfig: router),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Verify Demo recommendation cards render
+        expect(find.byType(TourListCard), findsWidgets);
+
+        // Tap the first recommended tour card (rec-101)
+        await tester.tap(find.byType(TourListCard).first);
+        await tester.pumpAndSettle();
+
+        // Verify pushed route URI preserves ?demo=true
+        final detailUri = GoRouterState.of(
+          tester.element(find.byType(TourDetailPage)),
+        ).uri;
+        expect(detailUri.toString(), '/explore/tours/rec-101?demo=true');
+        expect(detailUri.queryParameters['demo'], 'true');
+
+        // Verify UC-26 renders full Demo detail (TourDetailStatus.success) and NOT pendingIntegration
+        expect(find.text('Chi tiết Tour'), findsOneWidget);
+        expect(find.text('Lịch khởi hành có sẵn'), findsOneWidget);
+        expect(find.text('Lịch trình chi tiết'), findsOneWidget);
+        expect(find.text('Chính sách hoàn huỷ'), findsOneWidget);
+        expect(find.text('Đánh giá từ du khách'), findsOneWidget);
+        expect(find.text('Chi tiết tour đang kết nối máy chủ'), findsNothing);
+
+        // Verify Back button returns to /traveler/tours/recommendations?demo=true
+        await tester.tap(find.byIcon(Icons.arrow_back));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(TourDetailPage), findsNothing);
+        final recUri = GoRouterState.of(
+          tester.element(find.byType(TourRecommendationsPage)),
+        ).uri;
+        expect(recUri.toString(), '${AppRoutes.tourRecommendations}?demo=true');
+        expect(find.text('Gợi ý Tour dành cho bạn'), findsOneWidget);
+        expect(find.byType(TourListCard), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      'production navigation: AppRoutes.tourDetail without demo keeps clean URL and renders pending integration',
+      (tester) async {
+        expect(AppRoutes.tourDetail('rec-101'), '/explore/tours/rec-101');
+        expect(
+          AppRoutes.tourDetail('rec-101', demo: false),
+          '/explore/tours/rec-101',
+        );
+        expect(
+          AppRoutes.tourDetail('rec-101', demo: true),
+          '/explore/tours/rec-101?demo=true',
+        );
+
+        final authCubit = AuthSessionCubit();
+        addTearDown(authCubit.close);
+        final router = _buildTourFlowRouter(
+          initialLocation: AppRoutes.tourRecommendations,
+        );
+        addTearDown(router.dispose);
+
+        await tester.pumpWidget(
+          BlocProvider<AuthSessionCubit>.value(
+            value: authCubit,
+            child: MaterialApp.router(routerConfig: router),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Production recommendations screen shows pending integration truthfully
+        expect(
+          find.text('Tính năng gợi ý tour đang được tích hợp'),
+          findsOneWidget,
+        );
+
+        // Navigate via production route helper (demo: false)
+        unawaited(router.push(AppRoutes.tourDetail('rec-101')));
+        await tester.pumpAndSettle();
+
+        final prodDetailUri = GoRouterState.of(
+          tester.element(find.byType(TourDetailPage)),
+        ).uri;
+        expect(prodDetailUri.toString(), '/explore/tours/rec-101');
+        expect(prodDetailUri.queryParameters.containsKey('demo'), isFalse);
+
+        // Production Tour Detail remains truthful: pending integration, no Demo data leaks
+        expect(find.text('Chi tiết tour đang kết nối máy chủ'), findsOneWidget);
+        expect(find.text('Lịch khởi hành có sẵn'), findsNothing);
+        expect(find.text('Lịch trình chi tiết'), findsNothing);
       },
     );
 

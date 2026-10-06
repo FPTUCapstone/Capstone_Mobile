@@ -512,7 +512,10 @@ class _RecommendationListSliver extends StatelessWidget {
                       matchingScore: rec.matchingScore,
                       onTap: () {
                         context.push(
-                          AppRoutes.tourDetail(rec.tour.tourId),
+                          AppRoutes.tourDetail(
+                            rec.tour.tourId,
+                            demo: cubit.state.isDemoMode,
+                          ),
                           extra: rec.tour,
                         );
                       },

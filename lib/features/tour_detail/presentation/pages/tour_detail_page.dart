@@ -58,6 +58,10 @@ class _TourDetailView extends StatelessWidget {
           icon: const Icon(Icons.arrow_back),
           tooltip: 'Trở về',
           onPressed: () {
+            // When entered from Recommendations (?demo=true) or Search, pop()
+            // returns directly to the previous route with its query preserved.
+            // For direct entry with no Navigator history, fall back to the
+            // canonical Tour Search route (which does not use ?demo=true).
             if (context.canPop()) {
               context.pop();
             } else {
@@ -1199,10 +1203,11 @@ class _TourDetailBottomBar extends StatelessWidget {
       return;
     }
 
-    // Demo Mode: Check authorization boundary.
+    // BR-54: Guest may view Tour Detail publicly, but authentication is required
+    // before a Booking is created.
     final authSession = context.read<AuthSessionCubit>().state;
     if (!authSession.isAuthenticated) {
-      // Guest: Prompt login.
+      // Guest: Prompt login before proceeding to booking.
       showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(

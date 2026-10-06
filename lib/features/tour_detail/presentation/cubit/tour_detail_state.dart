@@ -87,7 +87,9 @@ final class TourDetailState extends Equatable {
     );
   }
 
-  /// MSG65: The selected departure date has no remaining slots.
+  /// MSG65: Canonical UC-26 availability warning (applicable when a tour is no
+  /// longer available/public, all departure schedules are sold out/expired, or
+  /// the selected departure schedule has no remaining slots before Book Now).
   static const String msg65 =
       'The selected departure date has no remaining slots. Please choose another departure date.';
 

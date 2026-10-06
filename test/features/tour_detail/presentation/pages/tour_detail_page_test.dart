@@ -160,28 +160,52 @@ void main() {
       expect(find.text('Thử lại'), findsOneWidget);
     });
 
-    testWidgets('guest tapping Book Now shows sign in prompt dialog', (
-      tester,
-    ) async {
-      final unauthSession = AuthSessionCubit();
-      addTearDown(unauthSession.close);
+    testWidgets(
+      'simulating all-schedules-unavailable state displays MSG65 and disables Book Now',
+      (tester) async {
+        await tester.pumpWidget(
+          _buildTestWidget(tourId: 'demo-tour-1', isDemoMode: true),
+        );
+        await tester.pumpAndSettle();
 
-      await tester.pumpWidget(
-        _buildTestWidget(
-          tourId: 'demo-tour-1',
-          isDemoMode: true,
-          authCubit: unauthSession,
-        ),
-      );
-      await tester.pumpAndSettle();
+        final chip = find.text('Hết chỗ (MSG65)');
+        expect(chip, findsOneWidget);
+        await tester.tap(chip);
+        await tester.pumpAndSettle();
 
-      final bookNowBtn = find.byKey(const Key('tour-detail-book-now-button'));
-      await tester.tap(bookNowBtn);
-      await tester.pumpAndSettle();
+        expect(find.text(TourDetailState.msg65), findsOneWidget);
+        final bookNowBtn = tester.widget<FilledButton>(
+          find.byKey(const Key('tour-detail-book-now-button')),
+        );
+        expect(bookNowBtn.onPressed, isNull);
+      },
+    );
 
-      expect(find.text('Yêu cầu đăng nhập'), findsOneWidget);
-      expect(find.text('Đăng nhập'), findsOneWidget);
-    });
+    testWidgets(
+      'BR-54: guest can view tour detail publicly but tapping Book Now requires authentication',
+      (tester) async {
+        final unauthSession = AuthSessionCubit();
+        addTearDown(unauthSession.close);
+
+        await tester.pumpWidget(
+          _buildTestWidget(
+            tourId: 'demo-tour-1',
+            isDemoMode: true,
+            authCubit: unauthSession,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Chi tiết Tour'), findsOneWidget);
+
+        final bookNowBtn = find.byKey(const Key('tour-detail-book-now-button'));
+        await tester.tap(bookNowBtn);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Yêu cầu đăng nhập'), findsOneWidget);
+        expect(find.text('Đăng nhập'), findsOneWidget);
+      },
+    );
 
     group('Responsive and accessibility checks', () {
       final viewports = <String, Size>{
