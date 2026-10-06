@@ -439,7 +439,12 @@ class _TourListBody extends StatelessWidget {
                   ? const _LoadingMore()
                   : const SizedBox.shrink();
             }
-            return TourListCard(tour: state.items[index - 1]);
+            final tour = state.items[index - 1];
+            return TourListCard(
+              tour: tour,
+              onTap: () =>
+                  context.push(AppRoutes.tourDetail(tour.tourId), extra: tour),
+            );
           },
         ),
       ),

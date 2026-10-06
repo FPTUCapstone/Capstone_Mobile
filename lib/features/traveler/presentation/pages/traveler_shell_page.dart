@@ -156,6 +156,12 @@ class _TravelerSection extends StatelessWidget {
                 icon: const Icon(Icons.tour_outlined),
                 label: const Text('Tìm kiếm Tour'),
               ),
+              const SizedBox(height: AppSpacing.sm),
+              OutlinedButton.icon(
+                onPressed: () => context.push(AppRoutes.tourRecommendations),
+                icon: const Icon(Icons.recommend_outlined),
+                label: const Text('Gợi ý Tour cho bạn'),
+              ),
             ],
             if (destination.label == 'Trang chủ' ||
                 destination.label == 'Hồ sơ') ...[
