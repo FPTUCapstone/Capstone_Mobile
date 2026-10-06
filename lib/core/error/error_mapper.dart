@@ -44,12 +44,20 @@ abstract final class ErrorMapper {
           'The selected itinerary was not found. Please choose another itinerary.',
         );
       }
+      if (errorCode == 'coupon.tour_not_found') {
+        return const NotFoundFailure(
+          'One or more selected tours are no longer available.',
+        );
+      }
       return const NotFoundFailure();
     }
     if (statusCode == 401) return const AuthenticationFailure();
     if (statusCode == 403) return const PermissionFailure();
     if (statusCode == 404) return const NotFoundFailure();
     if (statusCode == 409) {
+      if (extractErrorCode(responseData) == 'coupon.code_conflict') {
+        return const ConflictFailure('This coupon code is already in use.');
+      }
       final (message, groupId) = _extractConflictDetails(responseData);
       return ConflictFailure(
         message ?? 'Conflict occurred. Please try again.',
@@ -61,6 +69,11 @@ abstract final class ErrorMapper {
     if (statusCode == 422) {
       final data = error.response?.data;
       final errorCode = data is Map ? extractErrorCode(data) : null;
+      if (errorCode == 'coupon.tour_not_eligible') {
+        return const ConstraintFailure(
+          'A selected tour is not approved for coupons. Refresh and choose another tour.',
+        );
+      }
       if (errorCode == 'planning.constraints_infeasible' ||
           errorCode == 'itinerary.constraints_infeasible') {
         final message = _extractSafePlanningMessage(data);

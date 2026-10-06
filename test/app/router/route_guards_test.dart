@@ -68,6 +68,10 @@ void main() {
           builder: (_, _) => const Text('Operator workspace'),
         ),
         GoRoute(
+          path: AppRoutes.createCoupon,
+          builder: (_, _) => const Text('Create coupon'),
+        ),
+        GoRoute(
           path: AppRoutes.operatorApplication,
           builder: (_, _) => const Text('Operator application'),
         ),
@@ -128,6 +132,20 @@ void main() {
       AppRoutes.operatorApplication,
     );
   });
+
+  testWidgets(
+    'non-approved TourOperator cannot open the coupon route directly',
+    (tester) async {
+      const session = AuthSessionState.authenticated(
+        UserRole.tourOperator,
+        applicationStatus: TourOperatorApplicationStatus.pendingApproval,
+      );
+      expect(
+        await resolve(tester, session, AppRoutes.createCoupon),
+        AppRoutes.operatorApplication,
+      );
+    },
+  );
 
   testWidgets('Traveler stays on the traveler area', (tester) async {
     const session = AuthSessionState.authenticated(UserRole.traveler);

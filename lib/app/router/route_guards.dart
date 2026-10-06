@@ -52,7 +52,8 @@ abstract final class RouteGuards {
         return operatorHome;
       }
       // A non-approved operator may never remain on the approved workspace.
-      if (location == AppRoutes.operator &&
+      if (isOperatorRoute &&
+          location != AppRoutes.operatorApplication &&
           session.applicationStatus != TourOperatorApplicationStatus.approved) {
         return AppRoutes.operatorApplication;
       }

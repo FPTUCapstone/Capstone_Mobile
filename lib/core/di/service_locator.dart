@@ -23,6 +23,10 @@ import 'package:trip_mate_mobile/features/auth/password_recovery/domain/reposito
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/cubit/password_recovery_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_cubit.dart';
+import 'package:trip_mate_mobile/features/coupon/data/datasources/coupon_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/coupon/data/repositories/coupon_repository_impl.dart';
+import 'package:trip_mate_mobile/features/coupon/domain/repositories/coupon_repository.dart';
+import 'package:trip_mate_mobile/features/coupon/presentation/cubit/create_coupon_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/data/datasources/poi_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/poi/data/repositories/poi_repository_impl.dart';
 import 'package:trip_mate_mobile/features/poi/data/services/geolocator_poi_location_service.dart';
@@ -133,6 +137,15 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerLazySingleton<TravelGroupRepository>(
       () => TravelGroupRepositoryImpl(dioClient: serviceLocator()),
+    )
+    ..registerLazySingleton<CouponRemoteDataSource>(
+      () => DioCouponRemoteDataSource(serviceLocator()),
+    )
+    ..registerLazySingleton<CouponRepository>(
+      () => CouponRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<CreateCouponCubit>(
+      () => CreateCouponCubit(repository: serviceLocator()),
     )
     ..registerLazySingleton<ItineraryRepository>(
       () => ItineraryRepositoryImpl(dioClient: serviceLocator()),
