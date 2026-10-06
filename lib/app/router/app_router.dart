@@ -220,10 +220,17 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
       GoRoute(
         path: AppRoutes.joinTravelGroup,
         name: AppRouteNames.joinTravelGroup,
-        builder: (_, _) => BlocProvider(
-          create: (_) => JoinTravelGroupCubit(repository: serviceLocator()),
-          child: const JoinTravelGroupPage(),
-        ),
+        builder: (_, state) {
+          final isDemoMode =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          return BlocProvider(
+            create: (_) => JoinTravelGroupCubit(
+              repository: serviceLocator(),
+              isDemoMode: isDemoMode,
+            ),
+            child: JoinTravelGroupPage(isDemoMode: isDemoMode),
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.travelGroupDetails,

@@ -14,11 +14,16 @@ import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
 
-/// Screen for UC-23: Join Shared Group Trip.
+/// Screen for UC-23: Join Shared Group Trip (Screen #62).
 class JoinTravelGroupPage extends StatefulWidget {
-  const JoinTravelGroupPage({super.key, this.scannerLauncher});
+  const JoinTravelGroupPage({
+    super.key,
+    this.scannerLauncher,
+    this.isDemoMode = false,
+  });
 
   final Future<String?> Function(BuildContext)? scannerLauncher;
+  final bool isDemoMode;
 
   @override
   State<JoinTravelGroupPage> createState() => _JoinTravelGroupPageState();
@@ -28,6 +33,7 @@ class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
   final _codeController = TextEditingController();
   String? _inlineError;
   bool _isScanning = false;
+  bool _showDemoPanel = false;
 
   @override
   void initState() {
@@ -152,7 +158,22 @@ class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
 
         return AppPageScaffold(
           title: 'Join Shared Group Trip',
+          actions: [
+            if (widget.isDemoMode)
+              IconButton(
+                key: const Key('demo_controls_toggle_button'),
+                icon: Icon(
+                  _showDemoPanel ? Icons.bug_report : Icons.bug_report_outlined,
+                  color: _showDemoPanel ? Colors.amber.shade800 : null,
+                ),
+                tooltip: 'Demo controls',
+                onPressed: () {
+                  setState(() => _showDemoPanel = !_showDemoPanel);
+                },
+              ),
+          ],
           content: [
+            if (widget.isDemoMode && _showDemoPanel) _buildDemoControlsPanel(),
             const SizedBox(height: AppSpacing.md),
             Center(
               child: Container(
@@ -198,6 +219,10 @@ class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
               ),
               textInputAction: TextInputAction.done,
             ),
+            if (_inlineError != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              AppAlert(message: _inlineError!, type: AppAlertType.error),
+            ],
             const SizedBox(height: AppSpacing.md),
 
             // Primary Join Button
@@ -242,15 +267,98 @@ class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
                 ),
               ),
             ),
+            const SizedBox(height: AppSpacing.md),
 
-            // Inline Error Alert
-            if (_inlineError != null) ...[
-              const SizedBox(height: AppSpacing.lg),
-              AppAlert(message: _inlineError!, type: AppAlertType.error),
-            ],
+            // Cancel Button
+            TextButton(
+              key: const Key('cancel_button'),
+              onPressed: isSubmitting
+                  ? null
+                  : () {
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go(AppRoutes.traveler);
+                      }
+                    },
+              child: const Text('Cancel'),
+            ),
           ],
         );
       },
+    );
+  }
+
+  Widget _buildDemoControlsPanel() {
+    return Container(
+      key: const Key('demo_controls_panel'),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amber.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.build_circle_outlined,
+                color: Colors.amber.shade800,
+                size: 20,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: Text(
+                  'DEMO_ONLY Test Controls',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Colors.amber.shade900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Wrap(
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xs,
+            children: [
+              ActionChip(
+                label: const Text('Simulate Valid (HOIAN8KP)'),
+                onPressed: () {
+                  _codeController.text = 'HOIAN8KP';
+                  setState(() => _inlineError = null);
+                },
+              ),
+              ActionChip(
+                label: const Text('Simulate Expired (EXPIRED8)'),
+                onPressed: () {
+                  _codeController.text = 'EXPIRED8';
+                  setState(() => _inlineError = null);
+                },
+              ),
+              ActionChip(
+                label: const Text('Simulate Already Member (ALREADY8)'),
+                onPressed: () {
+                  _codeController.text = 'ALREADY8';
+                  setState(() => _inlineError = null);
+                },
+              ),
+              ActionChip(
+                label: const Text('Simulate Server Error (SERVER12)'),
+                onPressed: () {
+                  _codeController.text = 'SERVER12';
+                  setState(() => _inlineError = null);
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
