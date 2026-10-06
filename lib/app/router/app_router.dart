@@ -23,6 +23,11 @@ import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubi
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/poi_detail_page.dart';
+import 'package:trip_mate_mobile/features/tour_booking/domain/entities/tour_booking_record.dart';
+import 'package:trip_mate_mobile/features/tour_booking/presentation/pages/electronic_payment_page.dart';
+import 'package:trip_mate_mobile/features/tour_booking/presentation/pages/qr_eticket_page.dart';
+import 'package:trip_mate_mobile/features/tour_booking/presentation/pages/tour_booking_page.dart';
+import 'package:trip_mate_mobile/features/tour_detail/domain/entities/tour_detail.dart';
 import 'package:trip_mate_mobile/features/tour_detail/presentation/pages/tour_detail_page.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/presentation/pages/tour_recommendations_page.dart';
@@ -182,6 +187,63 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
           final isDemo =
               kDebugMode && state.uri.queryParameters['demo'] == 'true';
           return TourRecommendationsPage(isDemoMode: isDemo);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.bookTourPattern,
+        name: AppRouteNames.bookTour,
+        builder: (_, state) {
+          final tourId = state.pathParameters['tourId'] ?? '';
+          final scheduleId = state.uri.queryParameters['scheduleId'];
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final detail = state.extra is TourDetail
+              ? state.extra as TourDetail
+              : null;
+          final summary = state.extra is TourSummary
+              ? state.extra as TourSummary
+              : null;
+          return TourBookingPage(
+            tourId: tourId,
+            scheduleId: scheduleId,
+            initialDetail: detail,
+            initialSummary: summary,
+            isDemoMode: isDemo,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.bookingPaymentPattern,
+        name: AppRouteNames.bookingPayment,
+        builder: (_, state) {
+          final bookingId = state.pathParameters['bookingId'] ?? '';
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final booking = state.extra is TourBookingRecord
+              ? state.extra as TourBookingRecord
+              : null;
+          return ElectronicPaymentPage(
+            bookingId: bookingId,
+            initialBooking: booking,
+            isDemoMode: isDemo,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.bookingEticketPattern,
+        name: AppRouteNames.bookingEticket,
+        builder: (_, state) {
+          final bookingId = state.pathParameters['bookingId'] ?? '';
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final booking = state.extra is TourBookingRecord
+              ? state.extra as TourBookingRecord
+              : null;
+          return QrEticketPage(
+            bookingId: bookingId,
+            initialBooking: booking,
+            isDemoMode: isDemo,
+          );
         },
       ),
       GoRoute(

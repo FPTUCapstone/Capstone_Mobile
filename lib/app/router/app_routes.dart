@@ -12,6 +12,9 @@ abstract final class AppRoutes {
   static const tourDetailPattern = '/explore/tours/:tourId';
   static const traveler = '/traveler';
   static const tourRecommendations = '/traveler/tours/recommendations';
+  static const bookTourPattern = '/traveler/tours/:tourId/book';
+  static const bookingPaymentPattern = '/traveler/bookings/:bookingId/payment';
+  static const bookingEticketPattern = '/traveler/bookings/:bookingId/eticket';
   static const travelerSettings = '/traveler/settings';
   static const travelerProfile = '/traveler/profile';
   static const travelerPreferences = '/traveler/preferences';
@@ -43,6 +46,28 @@ abstract final class AppRoutes {
   static String poiDetail(int id) => '/explore/poi/$id';
   static String tourDetail(String tourId, {bool demo = false}) =>
       demo ? '/explore/tours/$tourId?demo=true' : '/explore/tours/$tourId';
+  static String bookTour(
+    String tourId, {
+    String? scheduleId,
+    bool demo = false,
+  }) {
+    final query = <String, String>{
+      if (scheduleId != null && scheduleId.isNotEmpty) 'scheduleId': scheduleId,
+      if (demo) 'demo': 'true',
+    };
+    if (query.isEmpty) return '/traveler/tours/$tourId/book';
+    return Uri(
+      path: '/traveler/tours/$tourId/book',
+      queryParameters: query,
+    ).toString();
+  }
+
+  static String bookingPayment(String bookingId, {bool demo = false}) => demo
+      ? '/traveler/bookings/$bookingId/payment?demo=true'
+      : '/traveler/bookings/$bookingId/payment';
+  static String bookingEticket(String bookingId, {bool demo = false}) => demo
+      ? '/traveler/bookings/$bookingId/eticket?demo=true'
+      : '/traveler/bookings/$bookingId/eticket';
   static const authPrefix = '/auth';
   static const travelerPrefix = '/traveler';
   static const operatorPrefix = '/operator';
@@ -61,6 +86,9 @@ abstract final class AppRouteNames {
   static const tourDetail = 'tour-detail';
   static const traveler = 'traveler';
   static const tourRecommendations = 'tour-recommendations';
+  static const bookTour = 'book-tour';
+  static const bookingPayment = 'booking-payment';
+  static const bookingEticket = 'booking-eticket';
   static const travelerSettings = 'traveler-settings';
   static const travelerProfile = 'traveler-profile';
   static const travelerPreferences = 'traveler-preferences';
