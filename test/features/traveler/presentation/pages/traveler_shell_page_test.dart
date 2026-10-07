@@ -147,6 +147,46 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'traveler shell provides commercial services entry points on Trang chủ and Đặt chỗ',
+    (tester) async {
+      final cubit = await _authenticatedCubit();
+      addTearDown(cubit.close);
+      await _pumpShell(tester, cubit);
+
+      // Home tab (Trang chủ) shows commercial services entry button
+      expect(
+        find.byKey(const Key('traveler_home_commercial_services_button')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('traveler_home_commercial_services_button')),
+          matching: find.text('Commercial Services'),
+        ),
+        findsOneWidget,
+      );
+
+      // Switch to Đặt chỗ tab (index 3)
+      await tester.tap(find.text('Đặt chỗ'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('traveler_bookings_commercial_services_button')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(
+            const Key('traveler_bookings_commercial_services_button'),
+          ),
+          matching: find.text('Commercial Services'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 }
 
 final class _EmptyPoiRepository implements PoiRepository {
