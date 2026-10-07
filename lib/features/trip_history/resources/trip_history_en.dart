@@ -121,11 +121,15 @@ abstract final class TripHistoryStringsEn {
   static const String photoValidSample = 'Scenic view (valid, 2.1 MB)';
   static const String photoOversizedSample =
       'High-res panorama (oversized, 6.4 MB)';
+  static const String photoUnsupportedSample =
+      'Travel document (unsupported format, 1.5 MB)';
 
   // Review Validation & Feedback Messages (UC-33)
   static const String validationRatingRequired =
       'Please select a rating between 1 and 5 stars.';
   static const String validationFieldRequired = 'This field is required.';
+  static const String validationPhotoInvalidType =
+      'Only JPEG, PNG, and WebP image formats are supported.';
   static const String validationPhotoExceedsLimit =
       'Attached photos must be valid image files and must not exceed 5 MB.';
   static const String validationPhotoMaxCount =

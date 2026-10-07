@@ -17,7 +17,11 @@ void main() {
       demoStore: demoStore,
       isDemoMode: true,
     );
-    cubit = TripHistoryCubit(repository: repository, defaultTravelerId: 1);
+    cubit = TripHistoryCubit(
+      repository: repository,
+      isDemoMode: true,
+      demoTravelerId: DemoTripHistoryStore.demoTravelerId,
+    );
   });
 
   tearDown(() {
@@ -125,5 +129,68 @@ void main() {
       expect(cubit.state.totalPages, equals(1));
       expect(cubit.state.hasNextPage, isFalse);
     });
+
+    test(
+      'production mode: emits pendingIntegration and disables retry without network call',
+      () async {
+        final prodRepo = TripHistoryRepositoryImpl(isDemoMode: false);
+        final prodCubit = TripHistoryCubit(
+          repository: prodRepo,
+          isDemoMode: false,
+        );
+        addTearDown(prodCubit.close);
+
+        await prodCubit.loadInitial();
+
+        expect(
+          prodCubit.state.status,
+          equals(TripHistoryStatus.pendingIntegration),
+        );
+        expect(
+          prodCubit.state.errorMessage,
+          equals(TripHistoryStringsEn.productionIntegrationPending),
+        );
+        expect(prodCubit.state.items, isEmpty);
+
+        // retry() should be a no-op in pendingIntegration mode
+        await prodCubit.retry();
+        expect(
+          prodCubit.state.status,
+          equals(TripHistoryStatus.pendingIntegration),
+        );
+      },
+    );
+
+    test(
+      'demo tenant isolation: foreign traveler cannot see other traveler records',
+      () async {
+        final foreignCubit = TripHistoryCubit(
+          repository: repository,
+          isDemoMode: true,
+          demoTravelerId: 999,
+        );
+        addTearDown(foreignCubit.close);
+
+        await foreignCubit.loadInitial();
+
+        // Foreign traveler has 1 upcoming trip: BK-TOUR-999
+        expect(foreignCubit.state.items.length, equals(1));
+        expect(
+          foreignCubit.state.items.first.bookingCode,
+          equals('BK-TOUR-999'),
+        );
+        expect(
+          foreignCubit.state.items.every((t) => t.travelerId == 999),
+          isTrue,
+        );
+
+        // Foreign traveler cannot see traveler 1's trips
+        expect(foreignCubit.state.items.any((t) => t.travelerId == 1), isFalse);
+
+        // Switch to completed tab: traveler 999 has 0 completed trips, traveler 1's trips are not visible
+        await foreignCubit.switchTab(TripStatus.completed);
+        expect(foreignCubit.state.items, isEmpty);
+      },
+    );
   });
 }

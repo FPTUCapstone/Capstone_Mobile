@@ -14,6 +14,10 @@ class DemoTripHistoryStore {
     reset();
   }
 
+  /// Explicit Demo traveler identity. Exists ONLY inside explicit Demo architecture.
+  /// This must NOT be confused with or used as Production authenticated identity.
+  static const int demoTravelerId = 1;
+
   final DateTime _referenceTime;
   final List<TripHistoryItem> _items = [];
 
@@ -39,7 +43,7 @@ class DemoTripHistoryStore {
         departureDate: now.add(const Duration(days: 12)),
         participantsCount: 2,
         totalAmount: 2400000,
-        travelerId: 1,
+        travelerId: demoTravelerId,
         hasEticket: true,
         providerName: 'Da Nang Green Travel',
         location: 'Ba Na Hills, Da Nang',
@@ -55,7 +59,7 @@ class DemoTripHistoryStore {
         departureDate: now.add(const Duration(days: 17)),
         participantsCount: 2,
         totalAmount: 3200000,
-        travelerId: 1,
+        travelerId: demoTravelerId,
         hasEticket: true,
         providerName: 'Novotel Danang Premier',
         location: 'Hai Chau, Da Nang',
@@ -71,7 +75,7 @@ class DemoTripHistoryStore {
         departureDate: now.subtract(const Duration(days: 7)),
         participantsCount: 2,
         totalAmount: 1800000,
-        travelerId: 1,
+        travelerId: demoTravelerId,
         hasEticket: true,
         review: null,
         providerName: 'Hoi An Heritage Tours',
@@ -88,12 +92,12 @@ class DemoTripHistoryStore {
         departureDate: now.subtract(const Duration(days: 10)),
         participantsCount: 1,
         totalAmount: 950000,
-        travelerId: 1,
+        travelerId: demoTravelerId,
         hasEticket: true,
         review: TripReview(
           id: 'rev-004',
           tripId: 'trip-tour-004',
-          travelerId: 1,
+          travelerId: demoTravelerId,
           rating: 5,
           title: 'Amazing Sunrise & Rich Heritage',
           content:
@@ -115,12 +119,12 @@ class DemoTripHistoryStore {
         departureDate: now.subtract(const Duration(days: 25)),
         participantsCount: 4,
         totalAmount: 1200000,
-        travelerId: 1,
+        travelerId: demoTravelerId,
         hasEticket: true,
         review: TripReview(
           id: 'rev-005',
           tripId: 'trip-srv-005',
-          travelerId: 1,
+          travelerId: demoTravelerId,
           rating: 4,
           title: 'Delicious food and pleasant atmosphere',
           content:
@@ -142,7 +146,7 @@ class DemoTripHistoryStore {
         departureDate: now.subtract(const Duration(days: 35)),
         participantsCount: 2,
         totalAmount: 0,
-        travelerId: 1,
+        travelerId: demoTravelerId,
         hasEticket: false,
         itineraryId: 1,
         location: 'Da Nang City',
@@ -158,7 +162,7 @@ class DemoTripHistoryStore {
         departureDate: now.subtract(const Duration(days: 15)),
         participantsCount: 2,
         totalAmount: 2000000,
-        travelerId: 1,
+        travelerId: demoTravelerId,
         refundInfo: const TripRefundInfo(
           status: RefundStatus.refunded,
           amount: 2000000,
@@ -179,7 +183,7 @@ class DemoTripHistoryStore {
         departureDate: now.subtract(const Duration(days: 8)),
         participantsCount: 1,
         totalAmount: 500000,
-        travelerId: 1,
+        travelerId: demoTravelerId,
         refundInfo: const TripRefundInfo(
           status: RefundStatus.processing,
           amount: 500000,
@@ -200,7 +204,7 @@ class DemoTripHistoryStore {
         departureDate: now.subtract(const Duration(days: 4)),
         participantsCount: 2,
         totalAmount: 1600000,
-        travelerId: 1,
+        travelerId: demoTravelerId,
         refundInfo: const TripRefundInfo(
           status: RefundStatus.nonRefundable,
           amount: 0,
@@ -229,11 +233,11 @@ class DemoTripHistoryStore {
     ];
   }
 
-  /// BR-90: Strictly returns only the records belonging to [travelerId].
+  /// BR-90: Strictly returns only the records belonging to [travelerId] in Demo mode.
   /// CR-01: Paginated.
   /// Default sorting: departureDate descending.
   TripHistoryPageResult getTrips({
-    required int travelerId,
+    int? travelerId,
     TripStatus? status,
     TripType? type,
     DateTime? startDate,
@@ -241,8 +245,9 @@ class DemoTripHistoryStore {
     int page = 1,
     int pageSize = 20,
   }) {
+    final effectiveTravelerId = travelerId ?? demoTravelerId;
     var filtered = _items
-        .where((item) => item.travelerId == travelerId)
+        .where((item) => item.travelerId == effectiveTravelerId)
         .toList(growable: false);
 
     if (status != null) {
@@ -294,21 +299,20 @@ class DemoTripHistoryStore {
     );
   }
 
-  TripHistoryItem? getTripById({
-    required int travelerId,
-    required String tripId,
-  }) {
+  TripHistoryItem? getTripById({int? travelerId, required String tripId}) {
+    final effectiveTravelerId = travelerId ?? demoTravelerId;
     final match = _items.where(
-      (item) => item.id == tripId && item.travelerId == travelerId,
+      (item) => item.id == tripId && item.travelerId == effectiveTravelerId,
     );
     return match.isEmpty ? null : match.first;
   }
 
   TripReview submitReview(TripReviewSubmission submission) {
+    final effectiveTravelerId = submission.travelerId ?? demoTravelerId;
     final tripIndex = _items.indexWhere(
       (item) =>
           item.id == submission.tripId &&
-          item.travelerId == submission.travelerId,
+          item.travelerId == effectiveTravelerId,
     );
 
     if (tripIndex == -1) {
@@ -338,11 +342,16 @@ class DemoTripHistoryStore {
       );
     }
 
-    // BR-94: Content policy screening
+    // BR-94: Content policy screening (Demo simulation)
     _screenContentPolicy(submission.title, submission.content);
 
-    // Photos validation
+    // Photos validation (type & size)
     for (final photo in submission.photos) {
+      if (!photo.isValidType) {
+        throw const ValidationFailure(
+          TripHistoryStringsEn.validationPhotoInvalidType,
+        );
+      }
       if (!photo.isValidSize) {
         throw const ValidationFailure(
           TripHistoryStringsEn.validationPhotoExceedsLimit,
@@ -355,7 +364,7 @@ class DemoTripHistoryStore {
           submission.existingReviewId ??
           'rev-${DateTime.now().millisecondsSinceEpoch}',
       tripId: item.id,
-      travelerId: submission.travelerId,
+      travelerId: effectiveTravelerId,
       rating: submission.rating,
       title: submission.title.trim(),
       content: submission.content.trim(),
@@ -387,10 +396,11 @@ class DemoTripHistoryStore {
   }
 
   TripReview updateReview(TripReviewSubmission submission) {
+    final effectiveTravelerId = submission.travelerId ?? demoTravelerId;
     final tripIndex = _items.indexWhere(
       (item) =>
           item.id == submission.tripId &&
-          item.travelerId == submission.travelerId,
+          item.travelerId == effectiveTravelerId,
     );
 
     if (tripIndex == -1) {

@@ -17,13 +17,15 @@ final class TripReviewState extends Equatable {
     this.isEdit = false,
     this.isReadOnly = false,
     this.readOnlyNotice,
+    this.editNotice,
     this.ratingError,
     this.titleError,
     this.contentError,
     this.photoError,
     this.generalError,
     this.successMessage,
-    this.travelerId = 1,
+    this.isDemoMode = false,
+    this.demoTravelerId,
   });
 
   final TripReviewStatus status;
@@ -36,16 +38,19 @@ final class TripReviewState extends Equatable {
   final bool isEdit;
   final bool isReadOnly;
   final String? readOnlyNotice;
+  final String? editNotice;
   final String? ratingError;
   final String? titleError;
   final String? contentError;
   final String? photoError;
   final String? generalError;
   final String? successMessage;
-  final int travelerId;
+  final bool isDemoMode;
+  final int? demoTravelerId;
 
   bool get isSubmitting => status == TripReviewStatus.submitting;
   bool get isSuccess => status == TripReviewStatus.success;
+  bool get isProductionPending => !isDemoMode;
 
   TripReviewState copyWith({
     TripReviewStatus? status,
@@ -58,13 +63,15 @@ final class TripReviewState extends Equatable {
     bool? isEdit,
     bool? isReadOnly,
     String? Function()? readOnlyNotice,
+    String? Function()? editNotice,
     String? Function()? ratingError,
     String? Function()? titleError,
     String? Function()? contentError,
     String? Function()? photoError,
     String? Function()? generalError,
     String? Function()? successMessage,
-    int? travelerId,
+    bool? isDemoMode,
+    int? Function()? demoTravelerId,
   }) {
     return TripReviewState(
       status: status ?? this.status,
@@ -81,6 +88,7 @@ final class TripReviewState extends Equatable {
       readOnlyNotice: readOnlyNotice != null
           ? readOnlyNotice()
           : this.readOnlyNotice,
+      editNotice: editNotice != null ? editNotice() : this.editNotice,
       ratingError: ratingError != null ? ratingError() : this.ratingError,
       titleError: titleError != null ? titleError() : this.titleError,
       contentError: contentError != null ? contentError() : this.contentError,
@@ -89,7 +97,10 @@ final class TripReviewState extends Equatable {
       successMessage: successMessage != null
           ? successMessage()
           : this.successMessage,
-      travelerId: travelerId ?? this.travelerId,
+      isDemoMode: isDemoMode ?? this.isDemoMode,
+      demoTravelerId: demoTravelerId != null
+          ? demoTravelerId()
+          : this.demoTravelerId,
     );
   }
 
@@ -105,12 +116,14 @@ final class TripReviewState extends Equatable {
     isEdit,
     isReadOnly,
     readOnlyNotice,
+    editNotice,
     ratingError,
     titleError,
     contentError,
     photoError,
     generalError,
     successMessage,
-    travelerId,
+    isDemoMode,
+    demoTravelerId,
   ];
 }

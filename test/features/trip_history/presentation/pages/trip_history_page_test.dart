@@ -21,18 +21,22 @@ void main() {
       demoStore: demoStore,
       isDemoMode: true,
     );
-    cubit = TripHistoryCubit(repository: repository, defaultTravelerId: 1);
+    cubit = TripHistoryCubit(
+      repository: repository,
+      isDemoMode: true,
+      demoTravelerId: DemoTripHistoryStore.demoTravelerId,
+    );
   });
 
   tearDown(() {
     cubit.close();
   });
 
-  Widget buildTestWidget() {
+  Widget buildTestWidget({bool isDemoMode = true}) {
     return MaterialApp(
       home: BlocProvider<TripHistoryCubit>.value(
         value: cubit..loadInitial(),
-        child: const TripHistoryPage(),
+        child: TripHistoryPage(isDemoMode: isDemoMode),
       ),
     );
   }
@@ -238,5 +242,39 @@ void main() {
         expect(tester.takeException(), isNull);
       }
     });
+
+    testWidgets(
+      'production mode: displays PENDING_BE_INTEGRATION banner and hides demo fixtures and retry button',
+      (tester) async {
+        final prodRepo = TripHistoryRepositoryImpl(isDemoMode: false);
+        final prodCubit = TripHistoryCubit(
+          repository: prodRepo,
+          isDemoMode: false,
+        );
+        addTearDown(prodCubit.close);
+
+        await prodCubit.loadInitial();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: BlocProvider<TripHistoryCubit>.value(
+              value: prodCubit,
+              child: const TripHistoryPage(isDemoMode: false),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(TripHistoryStringsEn.productionIntegrationPending),
+          findsOneWidget,
+        );
+        // Does not show fake demo fixtures
+        expect(find.text('BK-TOUR-001'), findsNothing);
+        expect(find.text('BK-SRV-002'), findsNothing);
+        // Does not show retry button
+        expect(find.text(TripHistoryStringsEn.actionRetry), findsNothing);
+      },
+    );
   });
 }

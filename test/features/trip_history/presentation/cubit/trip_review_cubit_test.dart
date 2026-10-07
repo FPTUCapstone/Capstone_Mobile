@@ -21,7 +21,7 @@ void main() {
       demoStore: demoStore,
       isDemoMode: true,
     );
-    cubit = TripReviewCubit(repository: repository);
+    cubit = TripReviewCubit(repository: repository, isDemoMode: true);
   });
 
   tearDown(() {
@@ -149,6 +149,30 @@ void main() {
       },
     );
 
+    test(
+      'BR-16: Photo with unsupported file type triggers validationPhotoInvalidType',
+      () {
+        final trip = demoStore.getTripById(
+          travelerId: 1,
+          tripId: 'trip-tour-003',
+        )!;
+        cubit.initialize(trip: trip, travelerId: 1);
+
+        cubit.addPhoto(
+          const TripReviewPhotoAttachment(
+            name: 'receipt.pdf',
+            sizeBytes: 1024 * 1024,
+          ),
+        );
+
+        expect(
+          cubit.state.photoError,
+          equals(TripHistoryStringsEn.validationPhotoInvalidType),
+        );
+        expect(cubit.state.photos, isEmpty);
+      },
+    );
+
     test('Photos count limit: Cannot add more than 5 photos', () {
       final trip = demoStore.getTripById(
         travelerId: 1,
@@ -214,6 +238,11 @@ void main() {
         expect(cubit.state.isReadOnly, isFalse);
         expect(cubit.state.rating, equals(5));
         expect(cubit.state.title, equals('Amazing Sunrise & Rich Heritage'));
+        expect(
+          cubit.state.editNotice,
+          equals(TripHistoryStringsEn.reviewEditWindowActive),
+        );
+        expect(cubit.state.generalError, isNull);
       },
     );
 
@@ -253,5 +282,42 @@ void main() {
         equals(TripHistoryStringsEn.reviewSubmitSuccess),
       );
     });
+
+    test(
+      'production mode: submit review is immediately disabled with productionReviewMutationDisabled',
+      () async {
+        final prodRepo = TripReviewRepositoryImpl(isDemoMode: false);
+        final prodCubit = TripReviewCubit(
+          repository: prodRepo,
+          isDemoMode: false,
+        );
+        addTearDown(prodCubit.close);
+
+        final trip = TripHistoryItem(
+          id: 'prod-001',
+          bookingCode: 'BK-PROD-001',
+          title: 'Prod Trip',
+          type: TripType.tour,
+          status: TripStatus.completed,
+          departureDate: fixedNow.subtract(const Duration(days: 2)),
+          participantsCount: 1,
+          totalAmount: 100,
+          travelerId: 1,
+        );
+
+        prodCubit.initialize(trip: trip);
+        prodCubit.setRating(5);
+        prodCubit.setTitle('Test');
+        prodCubit.setContent('Test content');
+
+        await prodCubit.submit();
+
+        expect(prodCubit.state.status, equals(TripReviewStatus.failure));
+        expect(
+          prodCubit.state.generalError,
+          equals(TripHistoryStringsEn.productionReviewMutationDisabled),
+        );
+      },
+    );
   });
 }

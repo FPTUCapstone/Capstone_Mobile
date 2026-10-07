@@ -17,9 +17,14 @@ import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/loading_indicator.dart';
 
 class TripHistoryPage extends StatefulWidget {
-  const TripHistoryPage({this.initialTab = TripStatus.upcoming, super.key});
+  const TripHistoryPage({
+    this.initialTab = TripStatus.upcoming,
+    this.isDemoMode = false,
+    super.key,
+  });
 
   final TripStatus initialTab;
+  final bool isDemoMode;
 
   @override
   State<TripHistoryPage> createState() => _TripHistoryPageState();
@@ -138,8 +143,18 @@ class _TripHistoryPageState extends State<TripHistoryPage>
     );
   }
 
-  void _navigateToReview(BuildContext context, TripHistoryItem item) {
-    context.push(AppRoutes.tripReview(item.id), extra: item);
+  Future<void> _navigateToReview(
+    BuildContext context,
+    TripHistoryItem item,
+  ) async {
+    final cubit = context.read<TripHistoryCubit>();
+    final result = await context.push<bool>(
+      AppRoutes.tripReview(item.id, isDemo: widget.isDemoMode),
+      extra: item,
+    );
+    if (result == true && mounted) {
+      await cubit.switchTab(TripStatus.completed);
+    }
   }
 
   @override
@@ -197,6 +212,31 @@ class _TripHistoryPageState extends State<TripHistoryPage>
   ) {
     if (state.isLoading) {
       return const Center(child: LoadingIndicator());
+    }
+
+    if (state.isPendingIntegration) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.cloud_sync_outlined,
+                size: 56,
+                color: AppColors.primary,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              AppAlert(
+                message:
+                    state.errorMessage ??
+                    TripHistoryStringsEn.productionIntegrationPending,
+                type: AppAlertType.info,
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     if (state.isFailure) {

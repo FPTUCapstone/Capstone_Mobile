@@ -39,7 +39,11 @@ abstract final class AppRoutes {
       '/traveler/trips/$itineraryId/alerts';
   static String offlinePackage(int itineraryId) =>
       '/traveler/trips/$itineraryId/offline';
-  static String tripReview(String tripId) => '/traveler/trips/$tripId/review';
+  static String tripHistoryPath({bool isDemo = false}) =>
+      isDemo ? '/traveler/trips?demo=true' : '/traveler/trips';
+  static String tripReview(String tripId, {bool isDemo = false}) => isDemo
+      ? '/traveler/trips/$tripId/review?demo=true'
+      : '/traveler/trips/$tripId/review';
   static String groupLocationSharingPath(int groupId) =>
       '/traveler/groups/$groupId/location-sharing';
   static String poiDetail(int id) => '/explore/poi/$id';

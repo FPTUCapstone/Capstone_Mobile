@@ -22,20 +22,21 @@ void main() {
       demoStore: demoStore,
       isDemoMode: true,
     );
-    cubit = TripReviewCubit(repository: repository);
+    cubit = TripReviewCubit(repository: repository, isDemoMode: true);
   });
 
   tearDown(() {
     cubit.close();
   });
 
-  Widget buildTestWidget(TripHistoryItem trip) {
+  Widget buildTestWidget(TripHistoryItem trip, {bool isDemoMode = true}) {
     return MaterialApp(
       home: BlocProvider<TripReviewCubit>.value(
         value: cubit,
         child: TripReviewPage(
           trip: trip,
-          travelerId: 1,
+          isDemoMode: isDemoMode,
+          demoTravelerId: DemoTripHistoryStore.demoTravelerId,
           referenceTime: fixedNow,
         ),
       ),
@@ -220,5 +221,79 @@ void main() {
         expect(tester.takeException(), isNull);
       }
     });
+
+    testWidgets(
+      'demo mode: selecting unsupported sample photo triggers validationPhotoInvalidType',
+      (tester) async {
+        final trip = demoStore.getTripById(
+          travelerId: 1,
+          tripId: 'trip-tour-003',
+        )!;
+
+        await tester.pumpWidget(buildTestWidget(trip));
+        await tester.pumpAndSettle();
+
+        final addPhotoBtn = find.text(TripHistoryStringsEn.actionAddPhoto);
+        await tester.ensureVisible(addPhotoBtn);
+        await tester.tap(addPhotoBtn);
+        await tester.pumpAndSettle();
+
+        final unsupportedOption = find.text(
+          TripHistoryStringsEn.photoUnsupportedSample,
+        );
+        expect(unsupportedOption, findsOneWidget);
+        await tester.tap(unsupportedOption);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(TripHistoryStringsEn.validationPhotoInvalidType),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'production mode: displays disabled notice and disables submit button',
+      (tester) async {
+        final prodRepo = TripReviewRepositoryImpl(isDemoMode: false);
+        final prodCubit = TripReviewCubit(
+          repository: prodRepo,
+          isDemoMode: false,
+        );
+        addTearDown(prodCubit.close);
+
+        final trip = demoStore.getTripById(
+          travelerId: 1,
+          tripId: 'trip-tour-003',
+        )!;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: BlocProvider<TripReviewCubit>.value(
+              value: prodCubit,
+              child: TripReviewPage(
+                trip: trip,
+                isDemoMode: false,
+                referenceTime: fixedNow,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(TripHistoryStringsEn.productionReviewMutationDisabled),
+          findsOneWidget,
+        );
+
+        final submitBtn = tester.widget<FilledButton>(
+          find.widgetWithText(
+            FilledButton,
+            TripHistoryStringsEn.actionSubmitReview,
+          ),
+        );
+        expect(submitBtn.onPressed, isNull);
+      },
+    );
   });
 }
