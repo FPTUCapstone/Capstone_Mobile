@@ -88,7 +88,9 @@ class _CommercialServiceBookingPageState
     CommercialServiceBookingState state,
   ) async {
     final cubit = context.read<CommercialServiceBookingCubit>();
-    final optionName = state.selectedOption?.name ?? 'Unselected option';
+    final optionName =
+        state.selectedOption?.name ??
+        CommercialServiceEn.booking.unselectedOption;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -150,7 +152,10 @@ class _CommercialServiceBookingPageState
         title: Text(CommercialServiceEn.booking.cancelDialogTitle),
         content: SingleChildScrollView(
           child: Text(
-            'Are you sure you want to cancel request ${request.requestId} for ${request.serviceName}?',
+            CommercialServiceEn.booking.cancelDialogBodyWithDetails(
+              request.requestId,
+              request.serviceName,
+            ),
           ),
         ),
         actions: [
@@ -200,11 +205,11 @@ class _CommercialServiceBookingPageState
               key: const Key('commercial_booking_back_button'),
               onPressed: () =>
                   _handleBack(context, state.poiId, state.isDemoMode),
-              tooltip: 'Back',
+              tooltip: CommercialServiceEn.a11y.backButtonTooltip,
               icon: const Icon(Icons.arrow_back),
             ),
-            title: const Text(
-              'Commercial Service Booking',
+            title: Text(
+              CommercialServiceEn.booking.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -375,8 +380,10 @@ class _CommercialServiceBookingPageState
                               button: true,
                               enabled: isDemoInteractable,
                               label: isDemoInteractable
-                                  ? 'Submit Request'
-                                  : 'Submit Request disabled pending server integration',
+                                  ? CommercialServiceEn.booking.submitButton
+                                  : CommercialServiceEn
+                                        .booking
+                                        .submitButtonDisabledSemantics,
                               child: FilledButton.icon(
                                 key: const Key(
                                   'commercial_booking_submit_button',
@@ -388,7 +395,9 @@ class _CommercialServiceBookingPageState
                                       )
                                     : null,
                                 icon: const Icon(Icons.send_outlined),
-                                label: const Text('Submit Request'),
+                                label: Text(
+                                  CommercialServiceEn.booking.submitButton,
+                                ),
                                 style: FilledButton.styleFrom(
                                   minimumSize: const Size(180, 48),
                                   backgroundColor: PoiPalette.teal,
@@ -405,7 +414,9 @@ class _CommercialServiceBookingPageState
                                 state.isDemoMode,
                               ),
                               icon: const Icon(Icons.arrow_back),
-                              label: const Text('Back'),
+                              label: Text(
+                                CommercialServiceEn.a11y.backButtonTooltip,
+                              ),
                               style: OutlinedButton.styleFrom(
                                 minimumSize: const Size(110, 48),
                               ),
@@ -430,8 +441,7 @@ class _ProductionPendingBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       container: true,
-      label:
-          'Pending Server Integration: Commercial service booking API is not available in Production.',
+      label: CommercialServiceEn.booking.productionPendingSemantics,
       child: Container(
         key: const Key('commercial_booking_production_pending_banner'),
         padding: const EdgeInsets.all(14),
@@ -536,12 +546,12 @@ class _DemoSimulationControlsCard extends StatelessWidget {
             children: [
               ActionChip(
                 key: const Key('demo_preset_past_date_button'),
-                label: const Text('Set Past Date (2020-01-01)'),
+                label: Text(CommercialServiceEn.demo.presetPastDate),
                 onPressed: () => onPresetDate('2020-01-01'),
               ),
               ActionChip(
                 key: const Key('demo_preset_valid_date_button'),
-                label: const Text('Set Valid Date (2026-10-15)'),
+                label: Text(CommercialServiceEn.demo.presetValidDate),
                 onPressed: () => onPresetDate('2026-10-15'),
               ),
             ],
@@ -561,19 +571,20 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final serviceName =
-        composite?.poi.name ?? 'Commercial Service (POI #$poiId)';
+        composite?.poi.name ??
+        CommercialServiceEn.booking.serviceNameFallback(poiId);
     final categoryLabel =
         composite?.commercialCategory?.canonicalName ??
         composite?.poi.categoryName ??
-        'Pending Server Integration';
+        CommercialServiceEn.search.pendingServerIntegration;
     final addressLabel =
-        composite?.poi.address ?? 'Address pending server integration';
+        composite?.poi.address ?? CommercialServiceEn.booking.addressPending;
     final priceLabel =
         (composite != null &&
             composite!.isCommercialDataBackedByServer &&
             composite!.priceRangeLabel != null)
         ? composite!.priceRangeLabel!
-        : 'Pending Server Integration — Commercial pricing is not returned by GET /api/v1/pois/{id}.';
+        : CommercialServiceEn.booking.pricingNotReturnedNotice;
 
     return Container(
       key: const Key('commercial_booking_summary_card'),
@@ -587,20 +598,32 @@ class _SummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Service Summary',
+            CommercialServiceEn.booking.serviceSummaryTitle,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: PoiPalette.navy,
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 10),
-          _SummaryLine(label: 'Service Name', value: serviceName),
+          _SummaryLine(
+            label: CommercialServiceEn.booking.serviceNameLabel,
+            value: serviceName,
+          ),
           const SizedBox(height: 6),
-          _SummaryLine(label: 'Category', value: categoryLabel),
+          _SummaryLine(
+            label: CommercialServiceEn.booking.categoryLabel,
+            value: categoryLabel,
+          ),
           const SizedBox(height: 6),
-          _SummaryLine(label: 'Address', value: addressLabel),
+          _SummaryLine(
+            label: CommercialServiceEn.booking.addressLabel,
+            value: addressLabel,
+          ),
           const SizedBox(height: 6),
-          _SummaryLine(label: 'Price Information', value: priceLabel),
+          _SummaryLine(
+            label: CommercialServiceEn.booking.priceInformationLabel,
+            value: priceLabel,
+          ),
         ],
       ),
     );
@@ -686,7 +709,7 @@ class _BookingInputFormCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Booking Details',
+            CommercialServiceEn.booking.bookingDetails,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: PoiPalette.navy,
               fontWeight: FontWeight.w800,
@@ -694,7 +717,7 @@ class _BookingInputFormCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Selected Service Option *',
+            CommercialServiceEn.booking.selectedOptionLabel,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
               color: PoiPalette.navy,
               fontWeight: FontWeight.w700,
@@ -703,7 +726,7 @@ class _BookingInputFormCard extends StatelessWidget {
           const SizedBox(height: 8),
           if (options.isEmpty)
             Text(
-              'Pending Server Integration — No bookable service options are available in Production.',
+              CommercialServiceEn.booking.noBookableOptionsNotice,
               key: const Key('commercial_booking_no_options_notice'),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: PoiPalette.muted,
@@ -719,8 +742,12 @@ class _BookingInputFormCard extends StatelessWidget {
                     child: Semantics(
                       button: true,
                       selected: selectedOption?.optionId == option.optionId,
-                      label:
-                          'Select ${option.name}, ${_formatVnd(option.unitPriceVnd)} per ${option.priceUnitLabel}, ${option.availableQuantity} available',
+                      label: CommercialServiceEn.a11y.selectOptionSemantics(
+                        option.name,
+                        _formatVnd(option.unitPriceVnd),
+                        option.priceUnitLabel,
+                        option.availableQuantity,
+                      ),
                       child: InkWell(
                         key: Key(
                           'commercial_booking_option_${option.optionId}',
@@ -771,7 +798,7 @@ class _BookingInputFormCard extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '${_formatVnd(option.unitPriceVnd)} / ${option.priceUnitLabel} · ${option.availableQuantity} available',
+                                      '${_formatVnd(option.unitPriceVnd)} / ${option.priceUnitLabel} · ${option.availableQuantity} ${CommercialServiceEn.detail.availableUnitsSuffix}',
                                       style: const TextStyle(
                                         color: PoiPalette.teal,
                                         fontWeight: FontWeight.w600,
@@ -796,8 +823,8 @@ class _BookingInputFormCard extends StatelessWidget {
             enabled: enabled,
             onChanged: onDateChanged,
             decoration: InputDecoration(
-              labelText: 'Requested Date (YYYY-MM-DD) *',
-              hintText: '2026-10-15',
+              labelText: CommercialServiceEn.booking.requestedDateLabel,
+              hintText: CommercialServiceEn.booking.requestedDateHint,
               errorText: state.fieldErrors['requestedDate'],
               border: const OutlineInputBorder(),
             ),
@@ -809,8 +836,8 @@ class _BookingInputFormCard extends StatelessWidget {
             enabled: enabled,
             onChanged: onTimeChanged,
             decoration: InputDecoration(
-              labelText: 'Requested Time (HH:mm) *',
-              hintText: '14:00',
+              labelText: CommercialServiceEn.booking.requestedTimeLabel,
+              hintText: CommercialServiceEn.booking.requestedTimeHint,
               errorText:
                   state.fieldErrors['requestedTime'] ??
                   state.fieldErrors['availability'],
@@ -846,7 +873,7 @@ class _BookingInputFormCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Quantity *',
+                      CommercialServiceEn.booking.quantityLabel,
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: PoiPalette.navy,
                         fontWeight: FontWeight.w700,
@@ -854,7 +881,7 @@ class _BookingInputFormCard extends StatelessWidget {
                     ),
                     if (selectedOption != null)
                       Text(
-                        'Available: ${selectedOption.availableQuantity}',
+                        '${CommercialServiceEn.booking.availableUnitsPrefix} ${selectedOption.availableQuantity}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: PoiPalette.muted,
                         ),
@@ -864,7 +891,7 @@ class _BookingInputFormCard extends StatelessWidget {
               ),
               IconButton(
                 key: const Key('commercial_booking_quantity_decrement'),
-                tooltip: 'Decrease quantity',
+                tooltip: CommercialServiceEn.a11y.decreaseQuantityTooltip,
                 constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                 onPressed: enabled && state.quantity > 1
                     ? () => onQuantityChanged(state.quantity - 1)
@@ -872,7 +899,8 @@ class _BookingInputFormCard extends StatelessWidget {
                 icon: const Icon(Icons.remove_circle_outline),
               ),
               Semantics(
-                label: 'Selected quantity ${state.quantity}',
+                label:
+                    '${CommercialServiceEn.a11y.quantitySelectedLabel} ${state.quantity}',
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Text(
@@ -886,7 +914,7 @@ class _BookingInputFormCard extends StatelessWidget {
               ),
               IconButton(
                 key: const Key('commercial_booking_quantity_increment'),
-                tooltip: 'Increase quantity',
+                tooltip: CommercialServiceEn.a11y.increaseQuantityTooltip,
                 constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                 onPressed: enabled
                     ? () => onQuantityChanged(state.quantity + 1)
@@ -913,10 +941,10 @@ class _BookingInputFormCard extends StatelessWidget {
             enabled: enabled,
             maxLines: 2,
             onChanged: onSpecialRequestChanged,
-            decoration: const InputDecoration(
-              labelText: 'Special Request (Optional)',
-              hintText: 'Early check-in, dietary preference, child seat...',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: CommercialServiceEn.booking.specialRequestsLabel,
+              hintText: CommercialServiceEn.booking.specialRequestsHint,
+              border: const OutlineInputBorder(),
             ),
           ),
         ],
@@ -960,7 +988,7 @@ class _ContactInformationCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Contact Information',
+            CommercialServiceEn.booking.contactInformation,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: PoiPalette.navy,
               fontWeight: FontWeight.w800,
@@ -973,7 +1001,7 @@ class _ContactInformationCard extends StatelessWidget {
             enabled: enabled,
             onChanged: onFullNameChanged,
             decoration: InputDecoration(
-              labelText: 'Contact Full Name *',
+              labelText: CommercialServiceEn.booking.contactNameLabel,
               errorText: state.fieldErrors['contactFullName'],
               border: const OutlineInputBorder(),
             ),
@@ -986,7 +1014,7 @@ class _ContactInformationCard extends StatelessWidget {
             keyboardType: TextInputType.phone,
             onChanged: onPhoneChanged,
             decoration: InputDecoration(
-              labelText: 'Contact Phone Number *',
+              labelText: CommercialServiceEn.booking.contactPhoneLabel,
               errorText: state.fieldErrors['contactPhoneNumber'],
               border: const OutlineInputBorder(),
             ),
@@ -999,7 +1027,7 @@ class _ContactInformationCard extends StatelessWidget {
             keyboardType: TextInputType.emailAddress,
             onChanged: onEmailChanged,
             decoration: InputDecoration(
-              labelText: 'Contact Email *',
+              labelText: CommercialServiceEn.booking.contactEmailLabel,
               errorText: state.fieldErrors['contactEmail'],
               border: const OutlineInputBorder(),
             ),
@@ -1160,7 +1188,7 @@ class _ActiveRequestPanel extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(
-                'Booking Request ${request.requestId}',
+                '${CommercialServiceEn.booking.bookingRequestPrefix} ${request.requestId}',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: PoiPalette.navy,
                   fontWeight: FontWeight.w800,
@@ -1169,34 +1197,40 @@ class _ActiveRequestPanel extends StatelessWidget {
               Chip(
                 key: const Key('commercial_booking_request_status_chip'),
                 label: Text(
-                  request.status.canonicalLabel,
+                  request.status.localizedLabel,
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          _SummaryLine(label: 'Service Name', value: request.serviceName),
+          _SummaryLine(
+            label: CommercialServiceEn.booking.serviceNameLabel,
+            value: request.serviceName,
+          ),
           const SizedBox(height: 4),
           _SummaryLine(
-            label: 'Category',
+            label: CommercialServiceEn.booking.categoryLabel,
             value: request.category.canonicalName,
           ),
           const SizedBox(height: 4),
           _SummaryLine(
-            label: 'Selected Option',
+            label: CommercialServiceEn.booking.selectedOptionSummaryLabel,
             value: request.selectedOption.name,
           ),
           const SizedBox(height: 4),
           _SummaryLine(
-            label: 'Date & Time',
+            label: CommercialServiceEn.booking.dateTimeSummaryLabel,
             value: '${request.requestedDateIso} · ${request.requestedTime}',
           ),
           const SizedBox(height: 4),
-          _SummaryLine(label: 'Quantity', value: '${request.quantity}'),
+          _SummaryLine(
+            label: CommercialServiceEn.booking.quantitySummaryLabel,
+            value: '${request.quantity}',
+          ),
           const SizedBox(height: 4),
           _SummaryLine(
-            label: 'Contact',
+            label: CommercialServiceEn.booking.contactSummaryLabel,
             value:
                 '${request.contactInfo.fullName} · ${request.contactInfo.phoneNumber} · ${request.contactInfo.email}',
           ),
@@ -1261,7 +1295,9 @@ class _ActiveRequestPanel extends StatelessWidget {
                   key: const Key('commercial_booking_cancel_request_button'),
                   onPressed: onCancelPending,
                   icon: const Icon(Icons.cancel_outlined),
-                  label: const Text('Cancel Pending Request'),
+                  label: Text(
+                    CommercialServiceEn.booking.cancelPendingRequestButton,
+                  ),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(180, 48),
                     foregroundColor: const Color(0xFFC62828),
@@ -1271,7 +1307,7 @@ class _ActiveRequestPanel extends StatelessWidget {
                   key: const Key('commercial_booking_simulate_confirm_button'),
                   onPressed: onSimulateConfirm,
                   icon: const Icon(Icons.verified_outlined),
-                  label: const Text('Simulate Provider Confirm'),
+                  label: Text(CommercialServiceEn.demo.simulateConfirmButton),
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(180, 48),
                   ),
@@ -1280,7 +1316,7 @@ class _ActiveRequestPanel extends StatelessWidget {
                   key: const Key('commercial_booking_simulate_reject_button'),
                   onPressed: onSimulateReject,
                   icon: const Icon(Icons.do_not_disturb_on_outlined),
-                  label: const Text('Simulate Provider Reject'),
+                  label: Text(CommercialServiceEn.demo.simulateRejectButton),
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(180, 48),
                   ),
@@ -1294,7 +1330,7 @@ class _ActiveRequestPanel extends StatelessWidget {
               key: const Key('commercial_booking_new_request_button'),
               onPressed: onStartNewRequest,
               icon: const Icon(Icons.refresh),
-              label: const Text('Submit Another Request'),
+              label: Text(CommercialServiceEn.booking.newRequestButton),
               style: FilledButton.styleFrom(
                 minimumSize: const Size(180, 48),
                 backgroundColor: PoiPalette.teal,

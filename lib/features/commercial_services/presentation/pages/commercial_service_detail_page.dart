@@ -36,7 +36,7 @@ class CommercialServiceDetailPage extends StatelessWidget {
             _CommercialStatusMessagePage(
               key: const Key('commercial_service_msg34_view'),
               icon: Icons.location_off_outlined,
-              title: 'Point of Interest Unavailable',
+              title: CommercialServiceEn.detail.poiUnavailableTitle,
               message: state.errorMessage ?? CommercialServiceMessages.msg34,
               isDemoMode: state.isDemoMode,
               demoScenario: state.demoScenario,
@@ -48,7 +48,7 @@ class CommercialServiceDetailPage extends StatelessWidget {
           CommercialServiceDetailStatus.failure => _CommercialStatusMessagePage(
             key: const Key('commercial_service_msg127_view'),
             icon: Icons.cloud_off_outlined,
-            title: 'Unable to Load Commercial Service',
+            title: CommercialServiceEn.detail.unableToLoadTitle,
             message: state.errorMessage ?? CommercialServiceMessages.msg127,
             isDemoMode: state.isDemoMode,
             demoScenario: state.demoScenario,
@@ -99,13 +99,13 @@ class _CommercialServiceLoadedBody extends StatelessWidget {
         leading: IconButton(
           key: const Key('commercial_service_back_button'),
           onPressed: onBack,
-          tooltip: 'Back',
+          tooltip: CommercialServiceEn.a11y.backButtonTooltip,
           icon: const Icon(Icons.arrow_back),
         ),
         title: Text(
           composite.isCommercialPoi
-              ? 'Commercial Service Detail'
-              : 'Point of Interest Detail',
+              ? CommercialServiceEn.detail.title
+              : CommercialServiceEn.detail.poiDetailTitle,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -144,8 +144,8 @@ class _CommercialServiceLoadedBody extends StatelessWidget {
                               CommercialServiceEn.detail.commercialServiceBadge,
                         ),
                       if (!composite.isCommercialPoi)
-                        const _CategoryBadge(
-                          label: 'Ordinary POI (Non-Commercial)',
+                        _CategoryBadge(
+                          label: CommercialServiceEn.detail.ordinaryPoiBadge,
                         ),
                     ],
                   ),
@@ -177,7 +177,7 @@ class _CommercialServiceLoadedBody extends StatelessWidget {
                     Semantics(
                       container: true,
                       label:
-                          'Production Partial Backend Notice: Base POI details are live from Backend, while commercial options, pricing, and display-time availability are pending server integration.',
+                          CommercialServiceEn.detail.productionPartialSemantics,
                       child: Container(
                         key: const Key(
                           'commercial_service_production_partial_banner',
@@ -249,44 +249,54 @@ class _CommercialServiceLoadedBody extends StatelessWidget {
                   ],
                   const SizedBox(height: 16),
                   _SectionBox(
-                    title: 'Service Information',
+                    title: CommercialServiceEn.detail.serviceInformation,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _InfoRow(
                           icon: Icons.category_outlined,
-                          label: 'Category',
+                          label: CommercialServiceEn.detail.categoryLabel,
                           value: poi.categoryName,
                         ),
                         const Divider(height: 20),
                         _InfoRow(
                           icon: Icons.place_outlined,
-                          label: 'Address',
-                          value: poi.address ?? 'Address not provided',
+                          label: CommercialServiceEn.detail.addressLabel,
+                          value:
+                              poi.address ??
+                              CommercialServiceEn.detail.addressNotProvided,
                         ),
                         const Divider(height: 20),
                         _InfoRow(
                           icon: Icons.my_location_outlined,
-                          label: 'Coordinates',
-                          value:
-                              '${poi.latitude.toStringAsFixed(4)}, ${poi.longitude.toStringAsFixed(4)}',
+                          label: CommercialServiceEn.detail.coordinatesLabel,
+                          value: CommercialServiceEn.detail.coordinatesValue(
+                            poi.latitude,
+                            poi.longitude,
+                          ),
                         ),
                         if (composite.isCommercialPoi) ...[
                           const Divider(height: 20),
                           _InfoRow(
                             icon: Icons.phone_outlined,
-                            label: 'Contact Information',
+                            label: CommercialServiceEn
+                                .detail
+                                .contactInformationLabel,
                             value:
                                 composite.contactInfo ??
-                                'Pending Server Integration (Not returned by POI endpoint)',
+                                CommercialServiceEn
+                                    .detail
+                                    .pendingNotReturnedByPoi,
                           ),
                           const Divider(height: 20),
                           _InfoRow(
                             icon: Icons.payments_outlined,
-                            label: 'Price Range',
+                            label: CommercialServiceEn.detail.priceRangeLabel,
                             value:
                                 composite.priceRangeLabel ??
-                                'Pending Server Integration (Not returned by POI endpoint)',
+                                CommercialServiceEn
+                                    .detail
+                                    .pendingNotReturnedByPoi,
                           ),
                         ],
                         if (poi.description != null &&
@@ -317,7 +327,7 @@ class _CommercialServiceLoadedBody extends StatelessWidget {
                   ],
                   const SizedBox(height: 16),
                   _SectionBox(
-                    title: 'Opening Hours',
+                    title: CommercialServiceEn.detail.openingHoursTitle,
                     child: _OpeningHoursList(hours: poi.openingHours),
                   ),
                   const SizedBox(height: 20),
@@ -329,7 +339,7 @@ class _CommercialServiceLoadedBody extends StatelessWidget {
                         key: const Key('commercial_service_view_map_button'),
                         onPressed: () => _showMapSheet(context, poi),
                         icon: const Icon(Icons.map_outlined),
-                        label: const Text('View on Map'),
+                        label: Text(CommercialServiceEn.detail.viewOnMap),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(140, 48),
                         ),
@@ -337,7 +347,7 @@ class _CommercialServiceLoadedBody extends StatelessWidget {
                       OutlinedButton.icon(
                         onPressed: onBack,
                         icon: const Icon(Icons.arrow_back),
-                        label: const Text('Back'),
+                        label: Text(CommercialServiceEn.a11y.backButtonTooltip),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(110, 48),
                         ),
@@ -369,8 +379,11 @@ class _CommercialServiceLoadedBody extends StatelessWidget {
                       button: true,
                       enabled: composite.canBookService,
                       label: composite.canBookService
-                          ? 'Book Service for ${poi.name}'
-                          : 'Book Service disabled for ${poi.name}',
+                          ? CommercialServiceEn.a11y.bookServiceForSemantics(
+                              poi.name,
+                            )
+                          : CommercialServiceEn.a11y
+                                .bookServiceDisabledSemantics(poi.name),
                       child: FilledButton.icon(
                         key: const Key('commercial_service_book_button'),
                         onPressed: composite.canBookService
@@ -460,7 +473,10 @@ class _CategorySpecificSection extends StatelessWidget {
       title: '${category.specificSectionTitle} (${category.canonicalName})',
       child: !composite.isCommercialDataBackedByServer
           ? Text(
-              'Pending Server Integration — ${category.specificSectionTitle} and bookable service options are not returned by GET /api/v1/pois/{id}. No fake ${category.unitLabel} are displayed in Production.',
+              CommercialServiceEn.detail.categorySpecificPendingNotice(
+                category.specificSectionTitle,
+                category.unitLabel,
+              ),
               key: const Key('commercial_options_pending_notice'),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: PoiPalette.muted,
@@ -473,7 +489,9 @@ class _CategorySpecificSection extends StatelessWidget {
                 if (category == CommercialServiceCategory.restaurant &&
                     composite.restaurantInfo != null) ...[
                   Text(
-                    'Table Capacity: ${composite.restaurantInfo!.totalTableCapacity} seats',
+                    CommercialServiceEn.detail.tableCapacity(
+                      composite.restaurantInfo!.totalTableCapacity,
+                    ),
                     key: const Key('restaurant_table_capacity_text'),
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       color: PoiPalette.navy,
@@ -482,7 +500,7 @@ class _CategorySpecificSection extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Menu Highlights:',
+                    CommercialServiceEn.detail.menuHighlights,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       color: PoiPalette.teal,
                       fontWeight: FontWeight.w700,
@@ -544,8 +562,12 @@ class _OptionCard extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label:
-          '${option.name}, ${_formatVnd(option.unitPriceVnd)} ${option.priceUnitLabel}, ${option.availableQuantity} available',
+      label: CommercialServiceEn.a11y.selectOptionSemantics(
+        option.name,
+        _formatVnd(option.unitPriceVnd),
+        option.priceUnitLabel,
+        option.availableQuantity,
+      ),
       child: Material(
         key: Key('commercial_option_${option.optionId}'),
         color: selected ? PoiPalette.tealSoft : PoiPalette.background,
@@ -610,7 +632,7 @@ class _OptionCard extends StatelessWidget {
                         style: const TextStyle(color: PoiPalette.muted),
                       ),
                     Text(
-                      '· ${option.availableQuantity} available',
+                      '· ${option.availableQuantity} ${CommercialServiceEn.detail.availableUnitsSuffix}',
                       style: const TextStyle(
                         color: PoiPalette.navy,
                         fontWeight: FontWeight.w600,
@@ -673,8 +695,13 @@ class _AvailabilitySection extends StatelessWidget {
             Semantics(
               container: true,
               label: availability.isAvailableForDate
-                  ? 'Available on ${availability.intendedDateIso} with ${availability.totalAvailableUnits} units'
-                  : 'Unavailable on ${availability.intendedDateIso}',
+                  ? CommercialServiceEn.a11y.availableDateSemantics(
+                      availability.intendedDateIso,
+                      availability.totalAvailableUnits,
+                    )
+                  : CommercialServiceEn.a11y.unavailableDateSemantics(
+                      availability.intendedDateIso,
+                    ),
               child: Container(
                 key: const Key('commercial_service_availability_indicator'),
                 padding: const EdgeInsets.all(12),
@@ -701,8 +728,14 @@ class _AvailabilitySection extends StatelessWidget {
                         Expanded(
                           child: Text(
                             availability.isAvailableForDate
-                                ? 'Available on ${availability.intendedDateIso} (${availability.totalAvailableUnits} units open)'
-                                : 'No availability on ${availability.intendedDateIso}',
+                                ? CommercialServiceEn.detail.availableOnDate(
+                                    availability.intendedDateIso,
+                                    availability.totalAvailableUnits,
+                                  )
+                                : CommercialServiceEn.detail
+                                      .noAvailabilityOnDate(
+                                        availability.intendedDateIso,
+                                      ),
                             style: TextStyle(
                               color: availability.isAvailableForDate
                                   ? PoiPalette.navy
@@ -716,7 +749,9 @@ class _AvailabilitySection extends StatelessWidget {
                     if (availability.availableTimeSlots.isNotEmpty) ...[
                       const SizedBox(height: 6),
                       Text(
-                        'Time slots: ${availability.availableTimeSlots.join(', ')}',
+                        CommercialServiceEn.detail.timeSlots(
+                          availability.availableTimeSlots.join(', '),
+                        ),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
@@ -799,7 +834,9 @@ class _CommercialPoiMapSheet extends StatelessWidget {
                           left: point.dx - 24,
                           top: point.dy - 24,
                           child: Semantics(
-                            label: 'Map marker for ${poi.name}',
+                            label: CommercialServiceEn.a11y.mapMarkerFor(
+                              poi.name,
+                            ),
                             child: const CircleAvatar(
                               radius: 24,
                               backgroundColor: PoiPalette.teal,
@@ -815,7 +852,10 @@ class _CommercialPoiMapSheet extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Coordinates: ${poi.latitude.toStringAsFixed(4)}, ${poi.longitude.toStringAsFixed(4)}',
+              CommercialServiceEn.detail.coordinatesValue(
+                poi.latitude,
+                poi.longitude,
+              ),
               style: Theme.of(
                 context,
               ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
@@ -828,7 +868,7 @@ class _CommercialPoiMapSheet extends StatelessWidget {
             FilledButton.icon(
               onPressed: () => Navigator.of(context).pop(),
               icon: const Icon(Icons.arrow_back),
-              label: const Text('Return to Commercial Service Detail'),
+              label: Text(CommercialServiceEn.detail.returnToDetail),
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(48),
                 backgroundColor: PoiPalette.teal,
@@ -867,14 +907,18 @@ class _DemoScenarioBanner extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.science_outlined, color: PoiPalette.teal, size: 18),
-              SizedBox(width: 8),
+              const Icon(
+                Icons.science_outlined,
+                color: PoiPalette.teal,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'DEMO MODE (kDebugMode && ?demo=true) — UC-30 Scenarios',
-                  style: TextStyle(
+                  CommercialServiceEn.demo.demoModeHeader,
+                  style: const TextStyle(
                     color: PoiPalette.navy,
                     fontWeight: FontWeight.w800,
                   ),
@@ -903,14 +947,14 @@ class _DemoScenarioBanner extends StatelessWidget {
             children: [
               ActionChip(
                 key: const Key('demo_date_available_chip'),
-                label: const Text('Date: 2026-10-15 (Available)'),
+                label: Text(CommercialServiceEn.demo.presetDateAvailable),
                 onPressed: () => onSelectDate(
                   DemoCommercialServiceStore.defaultIntendedDateIso,
                 ),
               ),
               ActionChip(
                 key: const Key('demo_date_unavailable_chip'),
-                label: const Text('Date: 2026-10-20 (Unavailable)'),
+                label: Text(CommercialServiceEn.demo.presetDateUnavailable),
                 onPressed: () => onSelectDate(
                   DemoCommercialServiceStore.unavailableDemoDateIso,
                 ),
@@ -942,7 +986,7 @@ class _CommercialPhotoGallery extends StatelessWidget {
           children: [
             PoiImage(
               url: primaryUrl,
-              semanticLabel: 'Gallery photo for $poiName',
+              semanticLabel: CommercialServiceEn.a11y.galleryPhotoFor(poiName),
             ),
             if (photos.isNotEmpty)
               Positioned(
@@ -959,7 +1003,7 @@ class _CommercialPhotoGallery extends StatelessWidget {
                       vertical: 6,
                     ),
                     child: Text(
-                      '${photos.length} photo(s)',
+                      CommercialServiceEn.detail.photoCount(photos.length),
                       style: const TextStyle(color: Colors.white),
                     ),
                   ),
@@ -1083,16 +1127,6 @@ class _OpeningHoursList extends StatelessWidget {
 
   final List<PoiOpeningHour> hours;
 
-  static const _days = [
-    'Sunday',
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-  ];
-
   @override
   Widget build(BuildContext context) {
     final byDay = {for (final hour in hours) hour.dayOfWeek: hour};
@@ -1103,7 +1137,9 @@ class _OpeningHoursList extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: Row(
               children: [
-                Expanded(child: Text(_days[day])),
+                Expanded(
+                  child: Text(CommercialServiceEn.detail.daysOfWeek[day]),
+                ),
                 Flexible(
                   child: Text(
                     _formatHour(byDay[day]),
@@ -1128,7 +1164,7 @@ class _OpeningHoursList extends StatelessWidget {
         hour.isClosed ||
         hour.openTime == null ||
         hour.closeTime == null) {
-      return 'Closed';
+      return CommercialServiceEn.detail.closed;
     }
     final open = hour.openTime!.length >= 5
         ? hour.openTime!.substring(0, 5)

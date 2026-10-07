@@ -2,10 +2,12 @@ import 'package:equatable/equatable.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_capability.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_category.dart';
 
+import 'package:trip_mate_mobile/features/commercial_services/resources/commercial_service_en.dart';
+
 /// Canonical lifecycle statuses of a commercial service booking request
 /// (`Report 3 SRS Section 3.6.2`, `BR-89`, `PC-01`).
 ///
-/// `BR-89`: A commercial service booking request is created with the status
+/// `BR-89` (detailed UC-31): A commercial service booking request is created with the status
 /// `Pending Confirmation` and becomes `Confirmed` only after the commercial
 /// service provider has confirmed it; the submission of a request alone never
 /// guarantees the service.
@@ -18,6 +20,17 @@ enum CommercialBookingStatus {
   const CommercialBookingStatus(this.canonicalLabel);
 
   final String canonicalLabel;
+
+  String get localizedLabel => switch (this) {
+    CommercialBookingStatus.pendingConfirmation =>
+      CommercialServiceEn.booking.statusPendingConfirmation,
+    CommercialBookingStatus.confirmed =>
+      CommercialServiceEn.booking.statusConfirmed,
+    CommercialBookingStatus.rejected =>
+      CommercialServiceEn.booking.statusRejected,
+    CommercialBookingStatus.cancelled =>
+      CommercialServiceEn.booking.statusCancelled,
+  };
 }
 
 /// Traveler contact information group for UC-31 (`Contact Full Name`,
