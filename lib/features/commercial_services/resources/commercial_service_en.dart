@@ -46,6 +46,7 @@ abstract final class CommercialServiceEn {
   static const booking = _BookingStrings();
   static const messages = _MessageStrings();
   static const demo = _DemoStrings();
+  static const entryPoints = _EntryPointStrings();
   static const a11y = _AccessibilityStrings();
   static const accessibility = _AccessibilityStrings();
 }
@@ -289,6 +290,20 @@ final class _DemoStrings {
   final String presetDateUnavailable = 'Date: 2026-10-20 (Unavailable)';
   final String presetPastDate = 'Set Past Date (2020-01-01)';
   final String presetValidDate = 'Set Valid Date (2026-10-15)';
+}
+
+final class _EntryPointStrings {
+  const _EntryPointStrings();
+
+  String poiSectionTitle(String categoryName) =>
+      'Commercial Service ($categoryName)';
+
+  final String poiSectionDescription =
+      'This point of interest offers commercial services. View service details, pricing, and availability.';
+
+  final String viewServiceButton = 'View Commercial Service';
+
+  final String demoServiceButton = 'Demo Commercial Service Flow';
 }
 
 final class _AccessibilityStrings {

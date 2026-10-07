@@ -191,5 +191,323 @@ void main() {
         );
       },
     );
+
+    test(
+      'Commercial entry points in poi_detail_page.dart use CommercialServiceEn and do not expose BR-87',
+      () {
+        final poiDetailFile = File(
+          'lib/features/poi/presentation/pages/poi_detail_page.dart',
+        );
+        expect(poiDetailFile.existsSync(), isTrue);
+
+        final content = poiDetailFile.readAsStringSync();
+
+        // Check import
+        expect(
+          content,
+          contains(
+            "import 'package:trip_mate_mobile/features/commercial_services/resources/commercial_service_en.dart';",
+          ),
+          reason: 'poi_detail_page.dart must import CommercialServiceEn',
+        );
+
+        // Verify commercial section uses CommercialServiceEn.entryPoints
+        expect(
+          content,
+          matches(
+            RegExp(
+              r'CommercialServiceEn\s*\.\s*entryPoints\s*\.\s*poiSectionTitle',
+            ),
+          ),
+          reason:
+              'poi_detail_page.dart must use CommercialServiceEn.entryPoints.poiSectionTitle',
+        );
+        expect(
+          content,
+          matches(
+            RegExp(
+              r'CommercialServiceEn\s*\.\s*entryPoints\s*\.\s*poiSectionDescription',
+            ),
+          ),
+          reason:
+              'poi_detail_page.dart must use CommercialServiceEn.entryPoints.poiSectionDescription',
+        );
+        expect(
+          content,
+          matches(
+            RegExp(
+              r'CommercialServiceEn\s*\.\s*entryPoints\s*\.\s*viewServiceButton',
+            ),
+          ),
+          reason:
+              'poi_detail_page.dart must use CommercialServiceEn.entryPoints.viewServiceButton',
+        );
+        expect(
+          content,
+          matches(
+            RegExp(
+              r'CommercialServiceEn\s*\.\s*entryPoints\s*\.\s*demoServiceButton',
+            ),
+          ),
+          reason:
+              'poi_detail_page.dart must use CommercialServiceEn.entryPoints.demoServiceButton',
+        );
+
+        // Disallowed raw rendered literals
+        expect(
+          content,
+          isNot(contains("'View Commercial Service'")),
+          reason:
+              'poi_detail_page.dart must not contain raw string literal "View Commercial Service"',
+        );
+        expect(
+          content,
+          isNot(contains("'Demo Commercial Service Flow'")),
+          reason:
+              'poi_detail_page.dart must not contain raw string literal "Demo Commercial Service Flow"',
+        );
+        expect(
+          content,
+          isNot(
+            contains(
+              'This Point of Interest belongs to a commercial service category (BR-87)',
+            ),
+          ),
+          reason:
+              'poi_detail_page.dart must not expose BR-87 or raw commercial category description in source',
+        );
+        expect(
+          content,
+          isNot(contains('(BR-87)')),
+          reason:
+              'poi_detail_page.dart must never render "(BR-87)" to end users',
+        );
+      },
+    );
+
+    test(
+      'Commercial entry points in itinerary_detail_page.dart use CommercialServiceEn',
+      () {
+        final itineraryFile = File(
+          'lib/features/traveler/presentation/pages/itinerary_detail_page.dart',
+        );
+        expect(itineraryFile.existsSync(), isTrue);
+
+        final content = itineraryFile.readAsStringSync();
+
+        // Check import
+        expect(
+          content,
+          contains(
+            "import 'package:trip_mate_mobile/features/commercial_services/resources/commercial_service_en.dart';",
+          ),
+          reason: 'itinerary_detail_page.dart must import CommercialServiceEn',
+        );
+
+        // Verify button uses CommercialServiceEn.entryPoints.viewServiceButton
+        expect(
+          content,
+          matches(
+            RegExp(
+              r'CommercialServiceEn\s*\.\s*entryPoints\s*\.\s*viewServiceButton',
+            ),
+          ),
+          reason:
+              'itinerary_detail_page.dart must use CommercialServiceEn.entryPoints.viewServiceButton',
+        );
+
+        // Disallowed raw commercial label
+        expect(
+          content,
+          isNot(contains("'View Commercial Service'")),
+          reason:
+              'itinerary_detail_page.dart must not contain raw string literal "View Commercial Service"',
+        );
+      },
+    );
+
+    test(
+      'Rendered strings in CommercialServiceEn contain zero raw numeric BR / MSG identifiers',
+      () {
+        // Collect all string instances from CommercialServiceEn namespaces
+        final strings = <String>[
+          // Search
+          CommercialServiceEn.search.title,
+          CommercialServiceEn.search.searchHint,
+          CommercialServiceEn.search.categoryAll,
+          CommercialServiceEn.search.categoryHotel,
+          CommercialServiceEn.search.categoryVehicle,
+          CommercialServiceEn.search.categoryRestaurant,
+          CommercialServiceEn.search.productionNotice,
+          CommercialServiceEn.search.catalogPendingTitle,
+          CommercialServiceEn.search.catalogPendingNotice,
+          CommercialServiceEn.search.catalogPendingExplanation,
+          CommercialServiceEn.search.demoNotice,
+          CommercialServiceEn.search.categoryPendingTooltip,
+          CommercialServiceEn.search.emptyMessage,
+          CommercialServiceEn.search.resetFilters,
+          CommercialServiceEn.search.retry,
+          CommercialServiceEn.search.loading,
+          CommercialServiceEn.search.pendingServerIntegration,
+          CommercialServiceEn.search.fromPrice,
+          CommercialServiceEn.search.available,
+          CommercialServiceEn.search.fullyBooked,
+          CommercialServiceEn.search.availabilityMissing,
+          CommercialServiceEn.search.viewDetails,
+
+          // Detail
+          CommercialServiceEn.detail.title,
+          CommercialServiceEn.detail.poiDetailTitle,
+          CommercialServiceEn.detail.poiUnavailableTitle,
+          CommercialServiceEn.detail.unableToLoadTitle,
+          CommercialServiceEn.detail.serviceInformation,
+          CommercialServiceEn.detail.categoryLabel,
+          CommercialServiceEn.detail.addressLabel,
+          CommercialServiceEn.detail.addressNotProvided,
+          CommercialServiceEn.detail.coordinatesLabel,
+          CommercialServiceEn.detail.contactInformationLabel,
+          CommercialServiceEn.detail.priceRangeLabel,
+          CommercialServiceEn.detail.pendingNotReturnedByPoi,
+          CommercialServiceEn.detail.openingHoursTitle,
+          CommercialServiceEn.detail.viewOnMap,
+          CommercialServiceEn.detail.returnToDetail,
+          CommercialServiceEn.detail.ordinaryPoiBadge,
+          CommercialServiceEn.detail.productionPartialSemantics,
+          CommercialServiceEn.detail.overview,
+          CommercialServiceEn.detail.options,
+          CommercialServiceEn.detail.contact,
+          CommercialServiceEn.detail.availabilityTitle,
+          CommercialServiceEn.detail.intendedDatePrefix,
+          CommercialServiceEn.detail.bookService,
+          CommercialServiceEn.detail.closedForBooking,
+          CommercialServiceEn.detail.availabilityUnavailableNotice,
+          CommercialServiceEn.detail.nonCommercialNotice,
+          CommercialServiceEn.detail.inactivePoiNotice,
+          CommercialServiceEn.detail.productionPendingNotice,
+          CommercialServiceEn.detail.availabilityNotice,
+          CommercialServiceEn.detail.bookServiceRequiresAvailability,
+          CommercialServiceEn.detail.commercialServiceBadge,
+          CommercialServiceEn.detail.availableUnitsSuffix,
+          CommercialServiceEn.detail.locationMapProjection,
+          CommercialServiceEn.detail.menuHighlights,
+          CommercialServiceEn.detail.closed,
+          ...CommercialServiceEn.detail.daysOfWeek,
+          CommercialServiceEn.detail.categorySpecificPendingNotice(
+            'Rooms',
+            'rooms',
+          ),
+          CommercialServiceEn.detail.tableCapacity(4),
+          CommercialServiceEn.detail.availableOnDate('2026-10-15', 5),
+          CommercialServiceEn.detail.noAvailabilityOnDate('2026-10-15'),
+          CommercialServiceEn.detail.timeSlots('09:00 - 18:00'),
+          CommercialServiceEn.detail.coordinatesValue(16.0544, 108.2022),
+
+          // Booking
+          CommercialServiceEn.booking.title,
+          CommercialServiceEn.booking.submitButton,
+          CommercialServiceEn.booking.serviceSummaryTitle,
+          CommercialServiceEn.booking.bookingDetails,
+          CommercialServiceEn.booking.contactInformation,
+          CommercialServiceEn.booking.selectedOptionLabel,
+          CommercialServiceEn.booking.requestedDateLabel,
+          CommercialServiceEn.booking.requestedTimeLabel,
+          CommercialServiceEn.booking.quantityLabel,
+          CommercialServiceEn.booking.contactNameLabel,
+          CommercialServiceEn.booking.contactPhoneLabel,
+          CommercialServiceEn.booking.contactEmailLabel,
+          CommercialServiceEn.booking.specialRequestsLabel,
+          CommercialServiceEn.booking.specialRequestsHint,
+          CommercialServiceEn.booking.productionPendingNotice,
+          CommercialServiceEn.booking.estimatedAmountPending,
+          CommercialServiceEn.booking.estimatedAmountTitle,
+          CommercialServiceEn.booking.demoPreviewAmountTitle,
+          CommercialServiceEn.booking.demoPreviewAmountCaption,
+          CommercialServiceEn.booking.cancelButton,
+          CommercialServiceEn.booking.confirmDialogTitle,
+          CommercialServiceEn.booking.confirmDialogBody,
+          CommercialServiceEn.booking.cancelDialogTitle,
+          CommercialServiceEn.booking.cancelDialogBody,
+          CommercialServiceEn.booking.statusPendingConfirmation,
+          CommercialServiceEn.booking.statusConfirmed,
+          CommercialServiceEn.booking.statusRejected,
+          CommercialServiceEn.booking.statusCancelled,
+
+          // Messages
+          CommercialServiceEn.messages.requiredField,
+          CommercialServiceEn.messages.poiInactive,
+          CommercialServiceEn.messages.requestCreated,
+          CommercialServiceEn.messages.availabilityUnavailable,
+          CommercialServiceEn.messages.quantityExceeded,
+          CommercialServiceEn.messages.providerConfirmed,
+          CommercialServiceEn.messages.providerRejected,
+          CommercialServiceEn.messages.requestCancelled,
+          CommercialServiceEn.messages.serviceClosed,
+          CommercialServiceEn.messages.requestedDatePast,
+          CommercialServiceEn.messages.permissionDenied,
+          CommercialServiceEn.messages.systemError,
+          CommercialServiceEn.messages.ordinaryPoiNoBooking,
+
+          // Demo
+          CommercialServiceEn.demo.controlsTitle,
+          CommercialServiceEn.demo.simulateConfirmButton,
+          CommercialServiceEn.demo.simulateRejectButton,
+          CommercialServiceEn.demo.simulateClosedService,
+          CommercialServiceEn.demo.simulateSlotUnavailable,
+          CommercialServiceEn.demo.simulateSystemFailure,
+          CommercialServiceEn.demo.scenarioInactivePoi,
+          CommercialServiceEn.demo.scenarioClosedForBooking,
+          CommercialServiceEn.demo.scenarioSystemFailure,
+          CommercialServiceEn.demo.demoModeHeader,
+          CommercialServiceEn.demo.presetDateAvailable,
+          CommercialServiceEn.demo.presetDateUnavailable,
+          CommercialServiceEn.demo.presetPastDate,
+          CommercialServiceEn.demo.presetValidDate,
+
+          // Entry Points
+          CommercialServiceEn.entryPoints.poiSectionTitle('Hotel'),
+          CommercialServiceEn.entryPoints.poiSectionDescription,
+          CommercialServiceEn.entryPoints.viewServiceButton,
+          CommercialServiceEn.entryPoints.demoServiceButton,
+
+          // Accessibility
+          CommercialServiceEn.a11y.backButtonTooltip,
+          CommercialServiceEn.a11y.clearSearchTooltip,
+          CommercialServiceEn.a11y.decreaseQuantityTooltip,
+          CommercialServiceEn.a11y.increaseQuantityTooltip,
+          CommercialServiceEn.a11y.quantitySelectedLabel,
+          CommercialServiceEn.a11y.closeMapTooltip,
+          CommercialServiceEn.a11y.bookServiceForSemantics('Test POI'),
+          CommercialServiceEn.a11y.bookServiceDisabledSemantics('Test POI'),
+          CommercialServiceEn.a11y.selectOptionSemantics(
+            'Option',
+            '100000',
+            'night',
+            2,
+          ),
+          CommercialServiceEn.a11y.availableDateSemantics('2026-10-15', 3),
+          CommercialServiceEn.a11y.unavailableDateSemantics('2026-10-15'),
+          CommercialServiceEn.a11y.mapMarkerFor('Test POI'),
+          CommercialServiceEn.a11y.galleryPhotoFor('Test POI'),
+        ];
+
+        final forbiddenPatterns = RegExp(
+          r'\b(BR-(?:34|55|63|76|87|88|89)|MSG(?:69|70|71|72|73|74|75|76|127|01))\b',
+        );
+
+        final violations = <String>[];
+        for (final str in strings) {
+          if (forbiddenPatterns.hasMatch(str)) {
+            violations.add('Rendered string exposes numeric code: "$str"');
+          }
+        }
+
+        expect(
+          violations,
+          isEmpty,
+          reason:
+              'Rendered UI strings must never expose internal numeric BR or MSG codes to end users:\n${violations.join('\n')}',
+        );
+      },
+    );
   });
 }

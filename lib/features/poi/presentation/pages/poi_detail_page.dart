@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_category.dart';
+import 'package:trip_mate_mobile/features/commercial_services/resources/commercial_service_en.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_detail.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_state.dart';
@@ -138,15 +139,18 @@ class _PoiDetailContent extends StatelessWidget {
                       if (isActiveCommercialPoi) ...[
                         const SizedBox(height: 16),
                         _SectionCard(
-                          title: 'Commercial Service (${detail.categoryName})',
+                          title: CommercialServiceEn.entryPoints
+                              .poiSectionTitle(detail.categoryName),
                           child: Column(
                             key: const Key(
                               'poi_detail_commercial_service_card',
                             ),
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'This Point of Interest belongs to a commercial service category (BR-87). View commercial service details, pricing, and availability.',
+                              Text(
+                                CommercialServiceEn
+                                    .entryPoints
+                                    .poiSectionDescription,
                               ),
                               const SizedBox(height: 12),
                               Wrap(
@@ -163,8 +167,10 @@ class _PoiDetailContent extends StatelessWidget {
                                       ),
                                     ),
                                     icon: const Icon(Icons.storefront_outlined),
-                                    label: const Text(
-                                      'View Commercial Service',
+                                    label: Text(
+                                      CommercialServiceEn
+                                          .entryPoints
+                                          .viewServiceButton,
                                     ),
                                     style: FilledButton.styleFrom(
                                       minimumSize: const Size(210, 48),
@@ -183,8 +189,10 @@ class _PoiDetailContent extends StatelessWidget {
                                         ),
                                       ),
                                       icon: const Icon(Icons.science_outlined),
-                                      label: const Text(
-                                        'Demo Commercial Service Flow',
+                                      label: Text(
+                                        CommercialServiceEn
+                                            .entryPoints
+                                            .demoServiceButton,
                                       ),
                                       style: OutlinedButton.styleFrom(
                                         minimumSize: const Size(210, 48),

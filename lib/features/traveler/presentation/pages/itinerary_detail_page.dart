@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_category.dart';
+import 'package:trip_mate_mobile/features/commercial_services/resources/commercial_service_en.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/itinerary_detail_cubit.dart';
@@ -218,7 +219,9 @@ final class _DetailItemCard extends StatelessWidget {
                         AppRoutes.commercialServiceDetail(item.poiId!),
                       ),
                       icon: const Icon(Icons.storefront_outlined, size: 18),
-                      label: const Text('View Commercial Service'),
+                      label: Text(
+                        CommercialServiceEn.entryPoints.viewServiceButton,
+                      ),
                     ),
                   ],
                 ],
