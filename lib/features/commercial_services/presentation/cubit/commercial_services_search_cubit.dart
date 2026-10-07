@@ -135,16 +135,9 @@ final class CommercialServicesSearchCubit
       );
       final result = await getPois(query);
 
-      var list = result.items
+      final list = result.items
           .map(CommercialServiceListItem.fromPoiSummary)
           .toList(growable: false);
-
-      // If a specific commercial category is selected, filter by that category
-      if (state.selectedCategory != null) {
-        list = list
-            .where((item) => item.category == state.selectedCategory)
-            .toList(growable: false);
-      }
 
       if (list.isEmpty) {
         emit(

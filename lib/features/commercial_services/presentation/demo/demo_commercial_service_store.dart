@@ -2,6 +2,7 @@ import 'package:trip_mate_mobile/features/commercial_services/domain/entities/co
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_capability.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_category.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_list_item.dart';
+import 'package:trip_mate_mobile/features/commercial_services/resources/commercial_service_en.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_detail.dart';
 
 /// Deterministic Demo scenarios for UC-30 (`View Commercial Service`) in Debug
@@ -10,14 +11,14 @@ enum DemoCommercialServiceScenario {
   availableHotel(poiId: 901, label: 'Available Hotel'),
   availableVehicleRental(poiId: 902, label: 'Available Vehicle Rental'),
   availableRestaurant(poiId: 903, label: 'Available Restaurant'),
-  inactivePoi(poiId: 904, label: 'Inactive POI (MSG34)'),
+  inactivePoi(poiId: 904, label: 'Inactive POI'),
   unsupportedCategory(poiId: 905, label: 'Unsupported Category (No Book CTA)'),
   availabilityUnavailable(
     poiId: 906,
     label: 'Availability Missing (Book Disabled)',
   ),
-  closedForBooking(poiId: 907, label: 'Closed for Booking (MSG75)'),
-  systemFailure(poiId: 908, label: 'System Failure (MSG127)');
+  closedForBooking(poiId: 907, label: 'Closed for Booking'),
+  systemFailure(poiId: 908, label: 'System Failure');
 
   const DemoCommercialServiceScenario({
     required this.poiId,
@@ -309,8 +310,7 @@ final class DemoCommercialServiceStore {
     final updated = current.copyWith(
       status: CommercialBookingStatus.cancelled,
       updatedAtUtc: nowUtc ?? DateTime.now().toUtc(),
-      refundChannelNotice:
-          'BR-76: Where a payment has been collected for this commercial service booking, any refund is returned through the original payment channel.',
+      refundChannelNotice: CommercialServiceEn.booking.cancelSuccessNotice,
     );
     _requestsById[requestId] = updated;
     return updated;

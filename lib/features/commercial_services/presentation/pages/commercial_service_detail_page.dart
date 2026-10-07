@@ -9,6 +9,7 @@ import 'package:trip_mate_mobile/features/commercial_services/domain/entities/co
 import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_service_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_service_detail_state.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/demo/demo_commercial_service_store.dart';
+import 'package:trip_mate_mobile/features/commercial_services/resources/commercial_service_en.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_detail.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_summary.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/theme/poi_palette.dart';
@@ -138,8 +139,9 @@ class _CommercialServiceLoadedBody extends StatelessWidget {
                     children: [
                       _CategoryBadge(label: poi.categoryName, emphasized: true),
                       if (composite.commercialCategory != null)
-                        const _CategoryBadge(
-                          label: 'Commercial Service (BR-87)',
+                        _CategoryBadge(
+                          label:
+                              CommercialServiceEn.detail.commercialServiceBadge,
                         ),
                       if (!composite.isCommercialPoi)
                         const _CategoryBadge(
@@ -186,15 +188,20 @@ class _CommercialServiceLoadedBody extends StatelessWidget {
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: const Color(0xFFFFB300)),
                         ),
-                        child: const Row(
+                        child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.info_outline, color: Color(0xFFE65100)),
-                            SizedBox(width: 10),
+                            const Icon(
+                              Icons.info_outline,
+                              color: Color(0xFFE65100),
+                            ),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                'Base POI information is loaded from the live TripMate server. Commercial service options, pricing, and display-time availability are pending server integration (BR-88).',
-                                style: TextStyle(
+                                CommercialServiceEn
+                                    .detail
+                                    .productionPendingNotice,
+                                style: const TextStyle(
                                   color: Color(0xFF4E342E),
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -343,7 +350,7 @@ class _CommercialServiceLoadedBody extends StatelessWidget {
           ),
         ),
       ),
-      // BR-87: A point of interest of any other category never exposes a
+      // A point of interest of any other category never exposes a
       // commercial booking action.
       bottomNavigationBar: composite.isCommercialPoi
           ? SafeArea(
@@ -378,7 +385,7 @@ class _CommercialServiceLoadedBody extends StatelessWidget {
                               )
                             : null,
                         icon: const Icon(Icons.event_available_outlined),
-                        label: const Text('Book Service'),
+                        label: Text(CommercialServiceEn.detail.bookService),
                         style: FilledButton.styleFrom(
                           minimumSize: const Size.fromHeight(48),
                           backgroundColor: PoiPalette.teal,
@@ -389,10 +396,12 @@ class _CommercialServiceLoadedBody extends StatelessWidget {
                       const SizedBox(height: 6),
                       Text(
                         !composite.isCommercialDataBackedByServer
-                            ? 'Book Service is unavailable until commercial options and display-time availability are integrated (BR-88).'
+                            ? CommercialServiceEn.detail.productionPendingNotice
                             : (composite.isOpenForBooking == false
                                   ? CommercialServiceMessages.msg75
-                                  : 'Book Service requires verified display-time availability for the selected date (BR-88).'),
+                                  : CommercialServiceEn
+                                        .detail
+                                        .bookServiceRequiresAvailability),
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: PoiPalette.muted,
@@ -631,12 +640,12 @@ class _AvailabilitySection extends StatelessWidget {
   Widget build(BuildContext context) {
     final availability = composite.availability;
     return _SectionBox(
-      title: 'Display-Time Availability (BR-55)',
+      title: CommercialServiceEn.detail.availabilityTitle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Intended Service Date: $intendedDateIso',
+            '${CommercialServiceEn.detail.intendedDatePrefix} $intendedDateIso',
             style: Theme.of(
               context,
             ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
@@ -644,7 +653,7 @@ class _AvailabilitySection extends StatelessWidget {
           const SizedBox(height: 8),
           if (!composite.isCommercialDataBackedByServer)
             Text(
-              'Pending Server Integration — Commercial availability for the intended date cannot be retrieved yet. Book Service remains disabled (BR-88).',
+              CommercialServiceEn.detail.productionPendingNotice,
               key: const Key('commercial_availability_pending_notice'),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: PoiPalette.muted,
@@ -653,7 +662,7 @@ class _AvailabilitySection extends StatelessWidget {
             )
           else if (availability == null || !availability.isRetrieved)
             Text(
-              'Commercial availability could not be retrieved at display time (BR-88). Booking is disabled.',
+              CommercialServiceEn.detail.availabilityUnavailableNotice,
               key: const Key('commercial_availability_missing_notice'),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: PoiPalette.muted,
@@ -673,7 +682,6 @@ class _AvailabilitySection extends StatelessWidget {
                   color: availability.isAvailableForDate
                       ? PoiPalette.tealSoft
                       : const Color(0xFFFFEBEE),
-                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -714,7 +722,7 @@ class _AvailabilitySection extends StatelessWidget {
                     ],
                     const SizedBox(height: 6),
                     Text(
-                      'BR-55: Retrieved at display time only. This indicator is not a reservation or slot hold.',
+                      CommercialServiceEn.detail.availabilityNotice,
                       style: Theme.of(
                         context,
                       ).textTheme.bodySmall?.copyWith(color: PoiPalette.muted),
@@ -749,7 +757,7 @@ class _CommercialPoiMapSheet extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Bản đồ minh họa vị trí · ${poi.name}',
+                    '${CommercialServiceEn.detail.locationMapProjection} · ${poi.name}',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -761,7 +769,7 @@ class _CommercialPoiMapSheet extends StatelessWidget {
                 IconButton(
                   key: const Key('commercial_map_sheet_close_button'),
                   onPressed: () => Navigator.of(context).pop(),
-                  tooltip: 'Close map',
+                  tooltip: CommercialServiceEn.a11y.closeMapTooltip,
                   icon: const Icon(Icons.close),
                 ),
               ],
@@ -1163,10 +1171,10 @@ class _CommercialStatusMessagePage extends StatelessWidget {
         leading: IconButton(
           key: const Key('commercial_service_status_back_button'),
           onPressed: onBack,
-          tooltip: 'Back',
+          tooltip: CommercialServiceEn.a11y.backButtonTooltip,
           icon: const Icon(Icons.arrow_back),
         ),
-        title: const Text('Commercial Service'),
+        title: Text(CommercialServiceEn.detail.title),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -1212,7 +1220,7 @@ class _CommercialStatusMessagePage extends StatelessWidget {
                       key: const Key('commercial_service_retry_button'),
                       onPressed: onRetry,
                       icon: const Icon(Icons.refresh),
-                      label: const Text('Retry'),
+                      label: Text(CommercialServiceEn.search.retry),
                       style: FilledButton.styleFrom(
                         minimumSize: const Size(160, 48),
                         backgroundColor: PoiPalette.teal,
@@ -1224,7 +1232,7 @@ class _CommercialStatusMessagePage extends StatelessWidget {
                     key: const Key('commercial_service_inactive_back_button'),
                     onPressed: onBack,
                     icon: const Icon(Icons.arrow_back),
-                    label: const Text('Back'),
+                    label: Text(CommercialServiceEn.a11y.backButtonTooltip),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(160, 48),
                     ),

@@ -160,6 +160,13 @@ void main() {
         find.byKey(const Key('traveler_home_commercial_services_button')),
         findsOneWidget,
       );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('traveler_home_commercial_services_button')),
+          matching: find.text('Commercial Services'),
+        ),
+        findsOneWidget,
+      );
 
       // Switch to Đặt chỗ tab (index 3)
       await tester.tap(find.text('Đặt chỗ'));
@@ -167,6 +174,15 @@ void main() {
 
       expect(
         find.byKey(const Key('traveler_bookings_commercial_services_button')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(
+            const Key('traveler_bookings_commercial_services_button'),
+          ),
+          matching: find.text('Commercial Services'),
+        ),
         findsOneWidget,
       );
     },

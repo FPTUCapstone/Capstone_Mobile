@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_capability.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_category.dart';
+import 'package:trip_mate_mobile/features/commercial_services/resources/commercial_service_en.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_summary.dart';
 
 /// Lightweight summary model for Screen #71 (`Commercial Services Search & List`).
@@ -8,7 +9,7 @@ import 'package:trip_mate_mobile/features/poi/domain/entities/poi_summary.dart';
 /// In Production, items are constructed from real `PoiSummary` objects returned
 /// by `GET /api/v1/pois` (UC-12). In Demo mode (`kDebugMode && ?demo=true`),
 /// items are constructed from deterministic demo fixtures with display-time
-/// commercial availability (`BR-55`) and price ranges (`BR-63`).
+/// commercial availability and price ranges.
 final class CommercialServiceListItem extends Equatable {
   const CommercialServiceListItem({
     required this.id,
@@ -46,8 +47,9 @@ final class CommercialServiceListItem extends Equatable {
       reviewCount: poi.reviewCount,
       isOpenNow: poi.isOpenNow,
       thumbnailUrl: poi.thumbnailUrl,
-      priceRangeLabel: 'Pending Server Integration',
-      availabilityStatusLabel: 'Pending Server Integration',
+      priceRangeLabel: CommercialServiceEn.search.pendingServerIntegration,
+      availabilityStatusLabel:
+          CommercialServiceEn.search.pendingServerIntegration,
       isOpenForBooking: true,
       isCommercialDataBackedByServer: false,
     );
@@ -64,10 +66,11 @@ final class CommercialServiceListItem extends Equatable {
         : null;
 
     final availabilityLabel = switch (composite.availability) {
-      null => 'Availability Missing',
-      final a when !a.isRetrieved => 'Availability Missing',
-      final a when a.isAvailableForDate => 'Available',
-      _ => 'Fully Booked',
+      null => CommercialServiceEn.search.availabilityMissing,
+      final a when !a.isRetrieved =>
+        CommercialServiceEn.search.availabilityMissing,
+      final a when a.isAvailableForDate => CommercialServiceEn.search.available,
+      _ => CommercialServiceEn.search.fullyBooked,
     };
 
     return CommercialServiceListItem(

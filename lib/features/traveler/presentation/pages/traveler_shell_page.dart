@@ -6,6 +6,7 @@ import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
+import 'package:trip_mate_mobile/features/commercial_services/resources/commercial_service_en.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
@@ -163,7 +164,7 @@ class _TravelerSection extends StatelessWidget {
                 onPressed: () =>
                     context.push(AppRoutes.commercialServicesSearch),
                 icon: const Icon(Icons.storefront_outlined),
-                label: const Text('Dịch vụ thương mại'),
+                label: Text(CommercialServiceEn.search.title),
               ),
             ],
             if (destination.label == 'Trang chủ' ||
@@ -199,7 +200,7 @@ class _TravelerSection extends StatelessWidget {
                 onPressed: () =>
                     context.push(AppRoutes.commercialServicesSearch),
                 icon: const Icon(Icons.storefront_outlined),
-                label: const Text('Dịch vụ thương mại (Screen #71)'),
+                label: Text(CommercialServiceEn.search.title),
               ),
             ],
           ],

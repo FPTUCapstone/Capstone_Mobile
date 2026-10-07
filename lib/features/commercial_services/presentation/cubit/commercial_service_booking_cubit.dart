@@ -277,7 +277,7 @@ final class CommercialServiceBookingCubit
     if (parsedDate == null) {
       emit(
         state.copyWith(
-          fieldErrors: const {'requestedDate': CommercialServiceMessages.msg01},
+          fieldErrors: {'requestedDate': CommercialServiceMessages.msg01},
           validationMessage: CommercialServiceMessages.msg01,
           clearStatusMessage: true,
           clearError: true,
@@ -294,7 +294,7 @@ final class CommercialServiceBookingCubit
     if (parsedDate.isBefore(todayDateUtc)) {
       emit(
         state.copyWith(
-          fieldErrors: const {'requestedDate': CommercialServiceMessages.msg76},
+          fieldErrors: {'requestedDate': CommercialServiceMessages.msg76},
           validationMessage: CommercialServiceMessages.msg76,
           clearStatusMessage: true,
           clearError: true,
@@ -332,7 +332,7 @@ final class CommercialServiceBookingCubit
       emit(
         state.copyWith(
           composite: refreshedComposite,
-          fieldErrors: const {'availability': CommercialServiceMessages.msg70},
+          fieldErrors: {'availability': CommercialServiceMessages.msg70},
           validationMessage: CommercialServiceMessages.msg70,
           clearStatusMessage: true,
           clearError: true,
@@ -346,7 +346,7 @@ final class CommercialServiceBookingCubit
     if (state.quantity > selectedOption.availableQuantity) {
       emit(
         state.copyWith(
-          fieldErrors: const {'quantity': CommercialServiceMessages.msg71},
+          fieldErrors: {'quantity': CommercialServiceMessages.msg71},
           validationMessage: CommercialServiceMessages.msg71,
           clearStatusMessage: true,
           clearError: true,

@@ -7,6 +7,7 @@ import 'package:trip_mate_mobile/features/commercial_services/domain/entities/co
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_capability.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_service_booking_cubit.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_service_booking_state.dart';
+import 'package:trip_mate_mobile/features/commercial_services/resources/commercial_service_en.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/theme/poi_palette.dart';
 
 class CommercialServiceBookingPage extends StatefulWidget {
@@ -92,24 +93,24 @@ class _CommercialServiceBookingPageState
       context: context,
       builder: (dialogContext) => AlertDialog(
         key: const Key('commercial_booking_submit_confirm_dialog'),
-        title: const Text('Confirm Booking Request (CR-05)'),
+        title: Text(CommercialServiceEn.booking.confirmDialogTitle),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Are you sure you want to submit this commercial service booking request? The initial status will be Pending Confirmation (BR-89).',
-              ),
+              Text(CommercialServiceEn.booking.confirmDialogBody),
               const SizedBox(height: 12),
               Text(
-                'Option: $optionName',
+                '${CommercialServiceEn.booking.optionPrefix} $optionName',
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
               Text(
-                'Date & Time: ${state.requestedDateIso} at ${state.requestedTime}',
+                '${CommercialServiceEn.booking.dateTimePrefix} ${state.requestedDateIso} at ${state.requestedTime}',
               ),
-              Text('Quantity: ${state.quantity}'),
+              Text(
+                '${CommercialServiceEn.booking.quantityPrefix} ${state.quantity}',
+              ),
             ],
           ),
         ),
@@ -118,7 +119,7 @@ class _CommercialServiceBookingPageState
             key: const Key('commercial_booking_confirm_dialog_cancel'),
             style: TextButton.styleFrom(minimumSize: const Size(88, 48)),
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: Text(CommercialServiceEn.booking.confirmDialogCancel),
           ),
           FilledButton(
             key: const Key('commercial_booking_confirm_dialog_accept'),
@@ -127,7 +128,7 @@ class _CommercialServiceBookingPageState
               backgroundColor: PoiPalette.teal,
             ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Confirm Submit'),
+            child: Text(CommercialServiceEn.booking.confirmDialogAccept),
           ),
         ],
       ),
@@ -146,11 +147,10 @@ class _CommercialServiceBookingPageState
       context: context,
       builder: (dialogContext) => AlertDialog(
         key: const Key('commercial_booking_cancel_confirm_dialog'),
-        title: const Text('Cancel Pending Request (CR-05)'),
+        title: Text(CommercialServiceEn.booking.cancelDialogTitle),
         content: SingleChildScrollView(
           child: Text(
-            'Are you sure you want to cancel request ${request.requestId} for ${request.serviceName}? '
-            'Once cancelled, this request will transition to Cancelled status (BR-89, BR-76).',
+            'Are you sure you want to cancel request ${request.requestId} for ${request.serviceName}?',
           ),
         ),
         actions: [
@@ -158,7 +158,7 @@ class _CommercialServiceBookingPageState
             key: const Key('commercial_booking_cancel_dialog_keep'),
             style: TextButton.styleFrom(minimumSize: const Size(88, 48)),
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Keep Request'),
+            child: Text(CommercialServiceEn.booking.cancelDialogKeep),
           ),
           FilledButton(
             key: const Key('commercial_booking_cancel_dialog_accept'),
@@ -167,7 +167,7 @@ class _CommercialServiceBookingPageState
               backgroundColor: const Color(0xFFC62828),
             ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Confirm Cancel'),
+            child: Text(CommercialServiceEn.booking.cancelDialogConfirm),
           ),
         ],
       ),
@@ -440,15 +440,15 @@ class _ProductionPendingBanner extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: const Color(0xFFFFB300)),
         ),
-        child: const Row(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.info_outline, color: Color(0xFFE65100)),
-            SizedBox(width: 10),
+            const Icon(Icons.info_outline, color: Color(0xFFE65100)),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Pending Server Integration (NO_BACKEND): Commercial service booking endpoints and server-calculated amounts are not yet exposed by Capstone_BE. Submit Request is disabled in Production so no fake booking ID or fake charge is created (BR-63, BR-88, BR-89).',
-                style: TextStyle(
+                CommercialServiceEn.booking.productionPendingNotice,
+                style: const TextStyle(
                   color: Color(0xFF4E342E),
                   fontWeight: FontWeight.w600,
                 ),
@@ -495,7 +495,7 @@ class _DemoSimulationControlsCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Debug Demo Booking Controls (UC-31)',
+                  CommercialServiceEn.demo.controlsTitle,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     color: PoiPalette.navy,
                     fontWeight: FontWeight.w800,
@@ -511,19 +511,19 @@ class _DemoSimulationControlsCard extends StatelessWidget {
             children: [
               FilterChip(
                 key: const Key('demo_toggle_service_closed'),
-                label: const Text('Simulate Closed (MSG75)'),
+                label: Text(CommercialServiceEn.demo.simulateClosedService),
                 selected: state.simulateServiceClosed,
                 onSelected: onToggleClosed,
               ),
               FilterChip(
                 key: const Key('demo_toggle_datetime_unavailable'),
-                label: const Text('Simulate Slot Unavailable (MSG70)'),
+                label: Text(CommercialServiceEn.demo.simulateSlotUnavailable),
                 selected: state.simulateDateTimeUnavailable,
                 onSelected: onToggleDateTimeUnavailable,
               ),
               FilterChip(
                 key: const Key('demo_toggle_system_failure'),
-                label: const Text('Simulate Failure (MSG127)'),
+                label: Text(CommercialServiceEn.demo.simulateSystemFailure),
                 selected: state.simulateSystemFailure,
                 onSelected: onToggleSystemFailure,
               ),
@@ -1030,7 +1030,7 @@ class _EstimatedAmountCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Estimated Amount',
+            CommercialServiceEn.booking.estimatedAmountTitle,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: PoiPalette.navy,
               fontWeight: FontWeight.w800,
@@ -1039,7 +1039,7 @@ class _EstimatedAmountCard extends StatelessWidget {
           const SizedBox(height: 8),
           if (!state.isDemoMode || previewAmount == null)
             Text(
-              'Pending Server Integration (BR-63: Server computes authoritative booking amount)',
+              CommercialServiceEn.booking.estimatedAmountPending,
               key: const Key('commercial_booking_amount_pending_text'),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: PoiPalette.muted,
@@ -1057,7 +1057,7 @@ class _EstimatedAmountCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Demo Preview Amount (BR-63: Server computes authoritative amount in Production)',
+              CommercialServiceEn.booking.demoPreviewAmountCaption,
               key: const Key('commercial_booking_demo_amount_caption'),
               style: Theme.of(
                 context,
@@ -1202,7 +1202,7 @@ class _ActiveRequestPanel extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           _SummaryLine(
-            label: 'Demo Preview Amount (BR-63)',
+            label: CommercialServiceEn.booking.demoPreviewAmountTitle,
             value: _formatVnd(request.estimatedAmountVnd),
           ),
           if (request.status == CommercialBookingStatus.confirmed) ...[
@@ -1214,15 +1214,15 @@ class _ActiveRequestPanel extends StatelessWidget {
                 color: PoiPalette.tealSoft,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Row(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.event_available, color: PoiPalette.teal),
-                  SizedBox(width: 8),
+                  const Icon(Icons.event_available, color: PoiPalette.teal),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Confirmed service is reflected in your booking history and linked itinerary stop (PC-03, BR-89).',
-                      style: TextStyle(
+                      CommercialServiceEn.booking.itineraryReflectionNotice,
+                      style: const TextStyle(
                         color: PoiPalette.navy,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1241,9 +1241,9 @@ class _ActiveRequestPanel extends StatelessWidget {
                 color: PoiPalette.background,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                'Cancellation recorded (BR-89). If any payment was captured, refunds are processed through the original payment channel (BR-76).',
-                style: TextStyle(
+              child: Text(
+                CommercialServiceEn.booking.cancelSuccessNotice,
+                style: const TextStyle(
                   color: PoiPalette.muted,
                   fontWeight: FontWeight.w600,
                 ),

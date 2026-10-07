@@ -1,52 +1,67 @@
-/// Canonical application messages for UC-30 (View Commercial Service) and
-/// UC-31 (Book Commercial Service) aligned with Report 3 SRS Sections 3.6.1
+import 'package:trip_mate_mobile/features/commercial_services/resources/commercial_service_en.dart';
+
+/// Semantic application messages for UC-30 (View Commercial Service) and
+/// UC-31 (Book Commercial Service) aligned with Report 3 SRS V2 Sections 3.6.1
 /// and 3.6.2.
+///
+/// Note on internal SRS conflicts:
+/// - SRS_INTERNAL_CONFLICT_COMMERCIAL_MESSAGE_IDS: Detailed UC-31 assigns
+///   MSG69–MSG76 to commercial booking operations, whereas Appendix 5.3 reuses
+///   the same numeric IDs for Tour Package management.
+/// - Numeric message IDs are strictly omitted from rendered user-facing copy
+///   to avoid surfacing internal SRS contradictions to users.
 abstract final class CommercialServiceMessages {
-  /// `MSG01`: A required booking field is empty.
-  static const String msg01 = 'This field is required. (MSG01)';
+  /// Required booking field left empty (detailed UC-31 Abnormal Case 3.a1).
+  static String get msg01 => CommercialServiceEn.messages.requiredField;
+  static String get requiredField => msg01;
 
-  /// `MSG34`: The point of interest is not Active or no longer exists (`BR-34`).
-  static const String msg34 =
-      'This point of interest is no longer active or does not exist. (MSG34)';
+  /// POI is not Active or no longer exists (detailed UC-30 BR-34).
+  static String get msg34 => CommercialServiceEn.messages.poiInactive;
+  static String get poiInactive => msg34;
 
-  /// `MSG69`: The commercial service booking request is created with status
-  /// `Pending Confirmation` (`BR-89`).
-  static const String msg69 =
-      'Your booking request has been created with status Pending Confirmation and transmitted to the commercial service provider. (MSG69)';
+  /// Commercial service booking request created in `Pending Confirmation` status
+  /// (detailed UC-31 Normal Flow step 7).
+  static String get msg69 => CommercialServiceEn.messages.requestCreated;
+  static String get requestCreated => msg69;
 
-  /// `MSG70`: The requested date or the requested time is not available (`BR-88`).
-  static const String msg70 =
-      'The requested date or requested time is not available for this service. (MSG70)';
+  /// Requested date or requested time is unavailable (detailed UC-31 Abnormal Case 7.a1).
+  static String get msg70 =>
+      CommercialServiceEn.messages.availabilityUnavailable;
+  static String get availabilityUnavailable => msg70;
 
-  /// `MSG71`: The requested quantity exceeds the available quantity (`BR-88`).
-  static const String msg71 =
-      'The requested quantity exceeds the available quantity for this service. (MSG71)';
+  /// Requested quantity exceeds available units (detailed UC-31 Abnormal Case 7.a2).
+  static String get msg71 => CommercialServiceEn.messages.quantityExceeded;
+  static String get quantityExceeded => msg71;
 
-  /// `MSG72`: The commercial service provider confirms the request (`BR-89`).
-  static const String msg72 =
-      'The commercial service provider has confirmed your booking request. The confirmed service is now reflected in your associated itinerary. (MSG72)';
+  /// Commercial service provider confirms the request (detailed UC-31 Alternative Flow).
+  static String get msg72 => CommercialServiceEn.messages.providerConfirmed;
+  static String get providerConfirmed => msg72;
 
-  /// `MSG73`: The commercial service provider rejects the request (`BR-89`).
-  static const String msg73 =
-      'The commercial service provider has rejected your booking request. No service has been reserved. (MSG73)';
+  /// Commercial service provider rejects the request (detailed UC-31 Alternative Flow).
+  static String get msg73 => CommercialServiceEn.messages.providerRejected;
+  static String get providerRejected => msg73;
 
-  /// `MSG74`: The Traveler cancels a `Pending Confirmation` request (`BR-76`).
-  static const String msg74 =
-      'Your booking request has been cancelled. Where a payment has been collected, the refund is returned through the original payment channel. (MSG74)';
+  /// Traveler cancels a pending request (detailed UC-31 Alternative Flow).
+  static String get msg74 => CommercialServiceEn.messages.requestCancelled;
+  static String get requestCancelled => msg74;
 
-  /// `MSG75`: The service is not currently open for booking (`BR-88`).
-  static const String msg75 =
-      'This commercial service is not currently open for booking. (MSG75)';
+  /// Service is not currently open for booking (detailed UC-31 Abnormal Case 7.a3).
+  static String get msg75 => CommercialServiceEn.messages.serviceClosed;
+  static String get serviceClosed => msg75;
 
-  /// `MSG76`: The requested date is in the past.
-  static const String msg76 =
-      'The requested date cannot be in the past. (MSG76)';
+  /// Requested booking date is in the past (detailed UC-31 Abnormal Case 2.a1).
+  static String get msg76 => CommercialServiceEn.messages.requestedDatePast;
+  static String get requestedDatePast => msg76;
 
-  /// `MSG126`: Role/permission denial.
-  static const String msg126 =
-      'You do not have permission to access this function. (MSG126)';
+  /// Access denied / permission restriction.
+  static String get msg126 => CommercialServiceEn.messages.permissionDenied;
+  static String get permissionDenied => msg126;
 
-  /// `MSG127`: Generic system or network failure.
-  static const String msg127 =
-      'TripMate is temporarily unable to process your request. Please check your connection and try again. (MSG127)';
+  /// Generic system or network failure (detailed UC-31 Abnormal Case 8.a1).
+  static String get msg127 => CommercialServiceEn.messages.systemError;
+  static String get systemError => msg127;
+
+  /// Ordinary POI without commercial booking capabilities.
+  static String get ordinaryPoiNoBooking =>
+      CommercialServiceEn.messages.ordinaryPoiNoBooking;
 }

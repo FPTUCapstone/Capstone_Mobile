@@ -7,6 +7,7 @@ import 'package:trip_mate_mobile/features/commercial_services/domain/entities/co
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_messages.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_services_search_cubit.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_services_search_state.dart';
+import 'package:trip_mate_mobile/features/commercial_services/resources/commercial_service_en.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/theme/poi_palette.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/widgets/poi_image.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/widgets/poi_status_and_rating.dart';
@@ -16,7 +17,7 @@ import 'package:trip_mate_mobile/features/poi/presentation/widgets/poi_status_an
 /// Implements UC-30 search and browse requirements under Report 3 V2 Section 3.6.1.
 ///
 /// Multi-criteria search supports:
-/// - Category filtering: `Hotel`, `Vehicle Rental`, `Restaurant` (`BR-87`)
+/// - Category filtering: `Hotel`, `Vehicle Rental`, `Restaurant`
 /// - Keyword search (`REAL_BACKEND` on `GET /api/v1/pois`)
 /// - Intended date availability (`NO_BACKEND` in Production; interactive in Demo)
 /// - Commercial price range (`NO_BACKEND` in Production; interactive in Demo)
@@ -81,7 +82,7 @@ class _CommercialServicesSearchPageState
             foregroundColor: Colors.white,
             leading: IconButton(
               key: const Key('commercial_search_back_button'),
-              tooltip: 'Back',
+              tooltip: CommercialServiceEn.a11y.backButtonTooltip,
               icon: const Icon(Icons.arrow_back),
               onPressed: () {
                 if (context.canPop()) {
@@ -91,8 +92,8 @@ class _CommercialServicesSearchPageState
                 }
               },
             ),
-            title: const Text(
-              'Commercial Services (Screen #71)',
+            title: Text(
+              CommercialServiceEn.search.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -113,13 +114,16 @@ class _CommercialServicesSearchPageState
                         textInputAction: TextInputAction.search,
                         onSubmitted: _onSearchSubmitted,
                         decoration: InputDecoration(
-                          hintText: 'Search hotels, rentals, restaurants...',
+                          hintText: CommercialServiceEn.search.searchHint,
                           prefixIcon: const Icon(Icons.search),
                           suffixIcon: _searchController.text.isNotEmpty
                               ? IconButton(
                                   key: const Key(
                                     'commercial_search_clear_button',
                                   ),
+                                  tooltip: CommercialServiceEn
+                                      .a11y
+                                      .clearSearchTooltip,
                                   icon: const Icon(Icons.clear),
                                   onPressed: () {
                                     _searchController.clear();
@@ -140,57 +144,105 @@ class _CommercialServicesSearchPageState
                         ),
                       ),
                       const SizedBox(height: 10),
-                      // BR-87 Canonical Category Filter Chips
+                      // Canonical Category Filter Chips
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           children: [
-                            ChoiceChip(
-                              key: const Key('commercial_category_chip_all'),
-                              label: const Text('All'),
-                              selected: state.selectedCategory == null,
-                              onSelected: (_) => cubit.selectCategory(null),
-                            ),
-                            const SizedBox(width: 8),
-                            ChoiceChip(
-                              key: const Key('commercial_category_chip_hotel'),
-                              label: const Text('Hotel'),
-                              selected:
-                                  state.selectedCategory ==
-                                  CommercialServiceCategory.hotel,
-                              onSelected: (selected) => cubit.selectCategory(
-                                selected
-                                    ? CommercialServiceCategory.hotel
+                            Tooltip(
+                              message: !state.isDemoMode
+                                  ? CommercialServiceEn
+                                        .search
+                                        .categoryPendingTooltip
+                                  : '',
+                              child: ChoiceChip(
+                                key: const Key('commercial_category_chip_all'),
+                                label: Text(
+                                  CommercialServiceEn.search.categoryAll,
+                                ),
+                                selected: state.selectedCategory == null,
+                                onSelected: state.isDemoMode
+                                    ? (_) => cubit.selectCategory(null)
                                     : null,
                               ),
                             ),
                             const SizedBox(width: 8),
-                            ChoiceChip(
-                              key: const Key(
-                                'commercial_category_chip_vehicle',
-                              ),
-                              label: const Text('Vehicle Rental'),
-                              selected:
-                                  state.selectedCategory ==
-                                  CommercialServiceCategory.vehicleRental,
-                              onSelected: (selected) => cubit.selectCategory(
-                                selected
-                                    ? CommercialServiceCategory.vehicleRental
+                            Tooltip(
+                              message: !state.isDemoMode
+                                  ? CommercialServiceEn
+                                        .search
+                                        .categoryPendingTooltip
+                                  : '',
+                              child: ChoiceChip(
+                                key: const Key(
+                                  'commercial_category_chip_hotel',
+                                ),
+                                label: Text(
+                                  CommercialServiceEn.search.categoryHotel,
+                                ),
+                                selected:
+                                    state.selectedCategory ==
+                                    CommercialServiceCategory.hotel,
+                                onSelected: state.isDemoMode
+                                    ? (selected) => cubit.selectCategory(
+                                        selected
+                                            ? CommercialServiceCategory.hotel
+                                            : null,
+                                      )
                                     : null,
                               ),
                             ),
                             const SizedBox(width: 8),
-                            ChoiceChip(
-                              key: const Key(
-                                'commercial_category_chip_restaurant',
+                            Tooltip(
+                              message: !state.isDemoMode
+                                  ? CommercialServiceEn
+                                        .search
+                                        .categoryPendingTooltip
+                                  : '',
+                              child: ChoiceChip(
+                                key: const Key(
+                                  'commercial_category_chip_vehicle',
+                                ),
+                                label: Text(
+                                  CommercialServiceEn.search.categoryVehicle,
+                                ),
+                                selected:
+                                    state.selectedCategory ==
+                                    CommercialServiceCategory.vehicleRental,
+                                onSelected: state.isDemoMode
+                                    ? (selected) => cubit.selectCategory(
+                                        selected
+                                            ? CommercialServiceCategory
+                                                  .vehicleRental
+                                            : null,
+                                      )
+                                    : null,
                               ),
-                              label: const Text('Restaurant'),
-                              selected:
-                                  state.selectedCategory ==
-                                  CommercialServiceCategory.restaurant,
-                              onSelected: (selected) => cubit.selectCategory(
-                                selected
-                                    ? CommercialServiceCategory.restaurant
+                            ),
+                            const SizedBox(width: 8),
+                            Tooltip(
+                              message: !state.isDemoMode
+                                  ? CommercialServiceEn
+                                        .search
+                                        .categoryPendingTooltip
+                                  : '',
+                              child: ChoiceChip(
+                                key: const Key(
+                                  'commercial_category_chip_restaurant',
+                                ),
+                                label: Text(
+                                  CommercialServiceEn.search.categoryRestaurant,
+                                ),
+                                selected:
+                                    state.selectedCategory ==
+                                    CommercialServiceCategory.restaurant,
+                                onSelected: state.isDemoMode
+                                    ? (selected) => cubit.selectCategory(
+                                        selected
+                                            ? CommercialServiceCategory
+                                                  .restaurant
+                                            : null,
+                                      )
                                     : null,
                               ),
                             ),
@@ -211,18 +263,18 @@ class _CommercialServicesSearchPageState
                       horizontal: 16,
                       vertical: 8,
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.info_outline,
                           size: 18,
                           color: Color(0xFFE65100),
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Live catalog from Backend (GET /api/v1/pois). Commercial date availability & price filters are Pending Server Integration.',
-                            style: TextStyle(
+                            CommercialServiceEn.search.productionNotice,
+                            style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF4E342E),
                               fontWeight: FontWeight.w600,
@@ -251,7 +303,7 @@ class _CommercialServicesSearchPageState
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Demo Mode active: Multi-criteria filtering (category, date ${state.selectedDateIso.isNotEmpty ? state.selectedDateIso : '2026-10-15'}, price) enabled with deterministic fixtures.',
+                            CommercialServiceEn.search.demoNotice,
                             style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF004D40),
@@ -298,7 +350,7 @@ class _CommercialServicesSearchPageState
                               key: const Key('commercial_search_retry_button'),
                               onPressed: cubit.retry,
                               icon: const Icon(Icons.refresh),
-                              label: const Text('Retry'),
+                              label: Text(CommercialServiceEn.search.retry),
                             ),
                           ],
                         ),
@@ -317,10 +369,10 @@ class _CommercialServicesSearchPageState
                               color: PoiPalette.muted,
                             ),
                             const SizedBox(height: 12),
-                            const Text(
-                              'No commercial services found matching your criteria.',
+                            Text(
+                              CommercialServiceEn.search.emptyMessage,
                               textAlign: TextAlign.center,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                                 color: PoiPalette.navy,
@@ -330,7 +382,9 @@ class _CommercialServicesSearchPageState
                             OutlinedButton(
                               key: const Key('commercial_search_reset_button'),
                               onPressed: cubit.resetFilters,
-                              child: const Text('Reset filters'),
+                              child: Text(
+                                CommercialServiceEn.search.resetFilters,
+                              ),
                             ),
                           ],
                         ),
@@ -508,7 +562,7 @@ class _CommercialServiceCard extends StatelessWidget {
                       const Spacer(),
                       if (item.startingPriceVnd != null)
                         Text(
-                          'From ${formatVnd(item.startingPriceVnd!)}',
+                          '${CommercialServiceEn.search.fromPrice} ${formatVnd(item.startingPriceVnd!)}',
                           style: const TextStyle(
                             fontWeight: FontWeight.w700,
                             color: PoiPalette.teal,
@@ -517,7 +571,7 @@ class _CommercialServiceCard extends StatelessWidget {
                       else if (item.priceRangeLabel != null)
                         Text(
                           item.priceRangeLabel!,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 12,
                             fontStyle: FontStyle.italic,
                             color: PoiPalette.muted,
@@ -537,7 +591,7 @@ class _CommercialServiceCard extends StatelessWidget {
                         foregroundColor: PoiPalette.teal,
                         side: const BorderSide(color: PoiPalette.teal),
                       ),
-                      child: const Text('View Commercial Details'),
+                      child: Text(CommercialServiceEn.search.viewDetails),
                     ),
                   ),
                 ],

@@ -172,35 +172,69 @@ void main() {
       },
     );
 
-    test('filters list by selected category (BR-87)', () async {
-      final mockGetPois = _makeGetPois((query) async {
-        return PagedPoiResult(
-          items: fakePoiSummaries,
-          totalCount: 4,
-          page: 1,
-          pageSize: 20,
-          totalPages: 1,
+    test(
+      'preserves paginated backend results without client-side category truncation (PENDING_BE_INTEGRATION regression test)',
+      () async {
+        final mockGetPois = _makeGetPois((query) async {
+          return PagedPoiResult(
+            items: fakePoiSummaries,
+            totalCount: 4,
+            page: 1,
+            pageSize: 20,
+            totalPages: 1,
+          );
+        });
+
+        final cubit = CommercialServicesSearchCubit(
+          getPois: mockGetPois,
+          isDemoMode: false,
         );
-      });
 
-      final cubit = CommercialServicesSearchCubit(
-        getPois: mockGetPois,
-        isDemoMode: false,
-      );
+        await cubit.loadInitial();
+        expect(cubit.state.items.length, 4);
 
-      await cubit.loadInitial();
-      expect(cubit.state.items.length, 4);
+        // When category is selected in production, client-side filtering must NOT
+        // truncate the paginated backend page to prevent false empty states
+        await cubit.selectCategory(CommercialServiceCategory.hotel);
+        expect(cubit.state.items.length, 4);
+        expect(cubit.state.selectedCategory, CommercialServiceCategory.hotel);
+      },
+    );
 
-      // Select Hotel
-      await cubit.selectCategory(CommercialServiceCategory.hotel);
-      expect(cubit.state.items.length, 1);
-      expect(cubit.state.items.first.id, 101);
+    test(
+      'pagination regression: backend page without hotel does not claim false empty state through client-side filtering',
+      () async {
+        final nonHotelSummaries = [
+          fakePoiSummaries[1], // Vehicle Rental
+          fakePoiSummaries[2], // Restaurant
+          fakePoiSummaries[3], // Attraction
+        ];
 
-      // Select Restaurant
-      await cubit.selectCategory(CommercialServiceCategory.restaurant);
-      expect(cubit.state.items.length, 1);
-      expect(cubit.state.items.first.id, 103);
-    });
+        final mockGetPois = _makeGetPois((query) async {
+          return PagedPoiResult(
+            items: nonHotelSummaries,
+            totalCount: 50,
+            page: 1,
+            pageSize: 20,
+            totalPages: 3,
+          );
+        });
+
+        final cubit = CommercialServicesSearchCubit(
+          getPois: mockGetPois,
+          isDemoMode: false,
+        );
+
+        await cubit.loadInitial();
+        expect(cubit.state.items.length, 3);
+        expect(cubit.state.status, CommercialServicesSearchStatus.success);
+
+        // Selecting a category does NOT discard the page or produce a false empty result
+        await cubit.selectCategory(CommercialServiceCategory.hotel);
+        expect(cubit.state.items.length, 3);
+        expect(cubit.state.status, CommercialServicesSearchStatus.success);
+      },
+    );
 
     test('emits empty status when no items match criteria', () async {
       final mockGetPois = _makeGetPois((query) async {
