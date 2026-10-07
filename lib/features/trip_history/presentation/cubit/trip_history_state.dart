@@ -2,7 +2,13 @@ import 'package:equatable/equatable.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enums.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
 
-enum TripHistoryStatus { initial, loading, success, failure }
+enum TripHistoryStatus {
+  initial,
+  loading,
+  success,
+  failure,
+  pendingIntegration,
+}
 
 final class TripHistoryState extends Equatable {
   const TripHistoryState({
@@ -18,7 +24,8 @@ final class TripHistoryState extends Equatable {
     this.items = const <TripHistoryItem>[],
     this.errorMessage,
     this.validationError,
-    this.travelerId = 1,
+    this.isDemoMode = false,
+    this.demoTravelerId,
   });
 
   final TripHistoryStatus status;
@@ -33,11 +40,14 @@ final class TripHistoryState extends Equatable {
   final List<TripHistoryItem> items;
   final String? errorMessage;
   final String? validationError;
-  final int travelerId;
+  final bool isDemoMode;
+  final int? demoTravelerId;
 
   bool get isLoading => status == TripHistoryStatus.loading;
   bool get isSuccess => status == TripHistoryStatus.success;
   bool get isFailure => status == TripHistoryStatus.failure;
+  bool get isPendingIntegration =>
+      status == TripHistoryStatus.pendingIntegration;
   bool get isEmpty => isSuccess && items.isEmpty;
   bool get hasNextPage => page < totalPages;
   bool get hasPreviousPage => page > 1;
@@ -55,7 +65,8 @@ final class TripHistoryState extends Equatable {
     List<TripHistoryItem>? items,
     String? Function()? errorMessage,
     String? Function()? validationError,
-    int? travelerId,
+    bool? isDemoMode,
+    int? Function()? demoTravelerId,
   }) {
     return TripHistoryState(
       status: status ?? this.status,
@@ -74,7 +85,10 @@ final class TripHistoryState extends Equatable {
       validationError: validationError != null
           ? validationError()
           : this.validationError,
-      travelerId: travelerId ?? this.travelerId,
+      isDemoMode: isDemoMode ?? this.isDemoMode,
+      demoTravelerId: demoTravelerId != null
+          ? demoTravelerId()
+          : this.demoTravelerId,
     );
   }
 
@@ -92,6 +106,7 @@ final class TripHistoryState extends Equatable {
     items,
     errorMessage,
     validationError,
-    travelerId,
+    isDemoMode,
+    demoTravelerId,
   ];
 }

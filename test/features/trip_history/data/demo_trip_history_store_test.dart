@@ -243,6 +243,31 @@ void main() {
     });
 
     test(
+      'BR-16: An attached photo must have a supported format (JPEG, PNG, WebP)',
+      () {
+        expect(
+          () => store.submitReview(
+            const TripReviewSubmission(
+              tripId: 'trip-tour-003',
+              bookingCode: 'BK-TOUR-003',
+              travelerId: 1,
+              rating: 5,
+              title: 'Tour with PDF attachment',
+              content: 'Invalid photo format test.',
+              photos: [
+                TripReviewPhotoAttachment(
+                  name: 'document.pdf',
+                  sizeBytes: 1024 * 1024,
+                ),
+              ],
+            ),
+          ),
+          throwsA(isA<ValidationFailure>()),
+        );
+      },
+    );
+
+    test(
       'BR-95: A published review may be edited within 7 days; read-only afterwards',
       () {
         // rev-004 was submitted 2 days ago (< 7 days) -> can edit

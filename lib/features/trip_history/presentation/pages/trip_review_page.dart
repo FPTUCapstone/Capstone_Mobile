@@ -15,13 +15,15 @@ import 'package:trip_mate_mobile/shared/widgets/loading_indicator.dart';
 class TripReviewPage extends StatefulWidget {
   const TripReviewPage({
     required this.trip,
-    this.travelerId = 1,
+    this.isDemoMode = false,
+    this.demoTravelerId,
     this.referenceTime,
     super.key,
   });
 
   final TripHistoryItem trip;
-  final int travelerId;
+  final bool isDemoMode;
+  final int? demoTravelerId;
   final DateTime? referenceTime;
 
   @override
@@ -42,7 +44,7 @@ class _TripReviewPageState extends State<TripReviewPage> {
       final cubit = context.read<TripReviewCubit>();
       cubit.initialize(
         trip: widget.trip,
-        travelerId: widget.travelerId,
+        travelerId: widget.demoTravelerId,
         referenceTime: widget.referenceTime,
       );
 
@@ -106,6 +108,19 @@ class _TripReviewPageState extends State<TripReviewPage> {
                   );
                 },
               ),
+              ListTile(
+                leading: const Icon(Icons.description, color: AppColors.error),
+                title: const Text(TripHistoryStringsEn.photoUnsupportedSample),
+                onTap: () {
+                  Navigator.of(sheetCtx).pop();
+                  context.read<TripReviewCubit>().addPhoto(
+                    const TripReviewPhotoAttachment(
+                      name: 'travel_document.pdf',
+                      sizeBytes: 1572864, // Unsupported type
+                    ),
+                  );
+                },
+              ),
             ],
           ),
         ),
@@ -135,6 +150,10 @@ class _TripReviewPageState extends State<TripReviewPage> {
               backgroundColor: AppColors.success,
             ),
           );
+          // Return to Trip History Screen #73 on success
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop(true);
+          }
         }
       },
       builder: (context, state) {
@@ -247,18 +266,25 @@ class _TripReviewPageState extends State<TripReviewPage> {
                 ),
                 const SizedBox(height: AppSpacing.md),
 
-                // 2. Status Banners (Read-only, Edit Window, Errors)
+                // 2. Production Pending Integration Notice
+                if (!widget.isDemoMode) ...[
+                  const AppAlert(
+                    message:
+                        TripHistoryStringsEn.productionReviewMutationDisabled,
+                    type: AppAlertType.info,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                ],
+
+                // 3. Status Banners (Read-only, Edit Window, Errors)
                 if (state.isReadOnly) ...[
                   const AppAlert(
                     message: TripHistoryStringsEn.reviewReadOnlyNotice,
                     type: AppAlertType.info,
                   ),
                   const SizedBox(height: AppSpacing.md),
-                ] else if (state.isEdit) ...[
-                  const AppAlert(
-                    message: TripHistoryStringsEn.reviewEditWindowActive,
-                    type: AppAlertType.info,
-                  ),
+                ] else if (state.isEdit && state.editNotice != null) ...[
+                  AppAlert(message: state.editNotice!, type: AppAlertType.info),
                   const SizedBox(height: AppSpacing.md),
                 ],
 
@@ -270,64 +296,74 @@ class _TripReviewPageState extends State<TripReviewPage> {
                   const SizedBox(height: AppSpacing.md),
                 ],
 
-                // 3. Rating Control (1 to 5 stars, BR-93)
+                // 4. Rating Section (1 to 5 Stars)
                 Text(
                   TripHistoryStringsEn.ratingSectionTitle,
                   style: Theme.of(
                     context,
                   ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: AppSpacing.xs),
-                StarRatingSelector(
-                  rating: state.rating,
-                  isReadOnly: state.isReadOnly,
-                  errorText: state.ratingError,
-                  onRatingChanged: cubit.setRating,
-                ),
-                const SizedBox(height: AppSpacing.md),
-
-                // 4. Review Title Input
+                const SizedBox(height: AppSpacing.xxs),
                 Text(
-                  TripHistoryStringsEn.reviewTitleLabel,
+                  TripHistoryStringsEn.ratingPrompt,
                   style: Theme.of(
                     context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                  ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
                 ),
                 const SizedBox(height: AppSpacing.xs),
+                Center(
+                  child: StarRatingSelector(
+                    rating: state.rating,
+                    onRatingChanged: state.isReadOnly
+                        ? null
+                        : (r) => cubit.setRating(r),
+                  ),
+                ),
+                if (state.ratingError != null) ...[
+                  const SizedBox(height: AppSpacing.xxs),
+                  Center(
+                    child: Text(
+                      state.ratingError!,
+                      style: const TextStyle(
+                        color: AppColors.error,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: AppSpacing.md),
+
+                // 5. Review Title & Content Inputs
                 TextField(
                   controller: _titleController,
-                  enabled: !state.isReadOnly,
+                  enabled: !state.isReadOnly && widget.isDemoMode,
+                  onChanged: cubit.setTitle,
                   decoration: InputDecoration(
+                    labelText: TripHistoryStringsEn.reviewTitleLabel,
                     hintText: TripHistoryStringsEn.reviewTitleHint,
                     errorText: state.titleError,
                     border: const OutlineInputBorder(),
                   ),
-                  onChanged: cubit.setTitle,
                 ),
                 const SizedBox(height: AppSpacing.md),
 
-                // 5. Review Content Input
-                Text(
-                  TripHistoryStringsEn.reviewContentLabel,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: AppSpacing.xs),
                 TextField(
                   controller: _contentController,
-                  enabled: !state.isReadOnly,
-                  maxLines: 4,
+                  enabled: !state.isReadOnly && widget.isDemoMode,
+                  onChanged: cubit.setContent,
+                  maxLines: 5,
                   decoration: InputDecoration(
+                    labelText: TripHistoryStringsEn.reviewContentLabel,
                     hintText: TripHistoryStringsEn.reviewContentHint,
                     errorText: state.contentError,
                     border: const OutlineInputBorder(),
+                    alignLabelWithHint: true,
                   ),
-                  onChanged: cubit.setContent,
                 ),
                 const SizedBox(height: AppSpacing.md),
 
-                // 6. Photo Attachments Section
+                // 6. Photo Attachments Area
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -348,7 +384,9 @@ class _TripReviewPageState extends State<TripReviewPage> {
                         ],
                       ),
                     ),
-                    if (!state.isReadOnly && state.photos.length < 5) ...[
+                    if (!state.isReadOnly &&
+                        widget.isDemoMode &&
+                        state.photos.length < 5) ...[
                       const SizedBox(width: AppSpacing.xs),
                       OutlinedButton.icon(
                         onPressed: () => _showAddPhotoSheet(context),
@@ -384,7 +422,7 @@ class _TripReviewPageState extends State<TripReviewPage> {
                           photo.name,
                           style: const TextStyle(fontSize: 12),
                         ),
-                        onDeleted: state.isReadOnly
+                        onDeleted: state.isReadOnly || !widget.isDemoMode
                             ? null
                             : () => cubit.removePhoto(index),
                         deleteIcon: const Icon(Icons.close, size: 14),
@@ -399,7 +437,10 @@ class _TripReviewPageState extends State<TripReviewPage> {
                     width: double.infinity,
                     height: 48,
                     child: FilledButton(
-                      onPressed: state.isSubmitting ? null : cubit.submit,
+                      // In production mode, submit is disabled pending backend integration
+                      onPressed: (!widget.isDemoMode || state.isSubmitting)
+                          ? null
+                          : cubit.submit,
                       child: state.isSubmitting
                           ? const LoadingIndicator()
                           : Text(submitButtonText),

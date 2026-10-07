@@ -14,7 +14,19 @@ final class TripReviewPhotoAttachment extends Equatable {
   /// BR-16: An attached photo must be an image file whose size does not exceed 5 MB.
   static const int maxSizeBytes = 5 * 1024 * 1024; // 5 MB
 
+  /// Supported image extensions for Demo validation (aligning with provisional backend direction).
+  static const supportedExtensions = {'jpg', 'jpeg', 'png', 'webp'};
+
+  bool get isValidType {
+    final dotIndex = name.lastIndexOf('.');
+    if (dotIndex == -1 || dotIndex == name.length - 1) return false;
+    final ext = name.substring(dotIndex + 1).toLowerCase();
+    return supportedExtensions.contains(ext);
+  }
+
   bool get isValidSize => sizeBytes <= maxSizeBytes && sizeBytes > 0;
+
+  bool get isValid => isValidType && isValidSize;
 
   @override
   List<Object?> get props => [name, sizeBytes, path];
@@ -24,7 +36,7 @@ final class TripReviewSubmission extends Equatable {
   const TripReviewSubmission({
     required this.tripId,
     required this.bookingCode,
-    required this.travelerId,
+    this.travelerId,
     required this.rating,
     required this.title,
     required this.content,
@@ -34,7 +46,10 @@ final class TripReviewSubmission extends Equatable {
 
   final String tripId;
   final String bookingCode;
-  final int travelerId;
+
+  /// Optional in Production (Backend derives owner identity from authenticated token).
+  /// Populated in Demo mode for tenant isolation tests only.
+  final int? travelerId;
   final int rating; // 1 to 5
   final String title;
   final String content;
