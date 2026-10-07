@@ -55,6 +55,11 @@ import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_p
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_settings_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_shell_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/trip_alerts_page.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_history_page.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_review_page.dart';
 import 'package:trip_mate_mobile/shared/widgets/error_view.dart';
 
 GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
@@ -380,6 +385,30 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
             itineraryId: itineraryId,
             title: title,
             isDemoMode: isDemo,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.tripHistory,
+        name: AppRouteNames.tripHistory,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<TripHistoryCubit>()..loadInitial(),
+          child: const TripHistoryPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.tripReviewPattern,
+        name: AppRouteNames.tripReview,
+        builder: (_, state) {
+          final trip = state.extra is TripHistoryItem
+              ? state.extra as TripHistoryItem
+              : null;
+          if (trip == null) {
+            return const ErrorView(message: 'Trip information unavailable.');
+          }
+          return BlocProvider(
+            create: (_) => serviceLocator<TripReviewCubit>(),
+            child: TripReviewPage(trip: trip),
           );
         },
       ),
