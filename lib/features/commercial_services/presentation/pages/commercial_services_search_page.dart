@@ -390,6 +390,53 @@ class _CommercialServicesSearchPageState
                         ),
                       ),
                     ),
+                    CommercialServicesSearchStatus.pendingIntegration => Center(
+                      key: const Key('commercial_search_pending_view'),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.storefront_outlined,
+                              size: 56,
+                              color: PoiPalette.muted,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              CommercialServiceEn.search.catalogPendingTitle,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: PoiPalette.navy,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              CommercialServiceEn.search.catalogPendingNotice,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: PoiPalette.muted,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              CommercialServiceEn
+                                  .search
+                                  .catalogPendingExplanation,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: PoiPalette.muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     CommercialServicesSearchStatus.success =>
                       ListView.separated(
                         key: const Key('commercial_search_list'),

@@ -100,7 +100,7 @@ void main() {
 
   group('CommercialServicesSearchCubit - Production Mode', () {
     test(
-      'retrieves real POI list from GetPoisUseCase, preserves category mapping, and marks commercial availability as Pending Server Integration',
+      'queries real GetPoisUseCase (REAL_BACKEND), does not expose ordinary POIs, and emits pendingIntegration for commercial catalog',
       () async {
         PoiQuery? capturedQuery;
         final mockGetPois = _makeGetPois((query) async {
@@ -121,30 +121,18 @@ void main() {
 
         await cubit.loadInitial();
 
-        expect(cubit.state.status, CommercialServicesSearchStatus.success);
-        expect(cubit.state.items.length, 4);
+        expect(
+          cubit.state.status,
+          CommercialServicesSearchStatus.pendingIntegration,
+        );
+        expect(cubit.state.items, isEmpty);
         expect(capturedQuery, isNotNull);
         expect(capturedQuery!.page, 1);
-
-        // Verification of item properties in Production:
-        // No fake commercial price or fake commercial availability
-        final hotelItem = cubit.state.items.firstWhere((i) => i.id == 101);
-        expect(hotelItem.category, CommercialServiceCategory.hotel);
-        expect(hotelItem.isCommercial, isTrue);
-        expect(hotelItem.priceRangeLabel, 'Pending Server Integration');
-        expect(hotelItem.availabilityStatusLabel, 'Pending Server Integration');
-        expect(hotelItem.isCommercialDataBackedByServer, isFalse);
-
-        final nonCommercialItem = cubit.state.items.firstWhere(
-          (i) => i.id == 104,
-        );
-        expect(nonCommercialItem.category, isNull);
-        expect(nonCommercialItem.isCommercial, isFalse);
       },
     );
 
     test(
-      'passes search query to backend GetPoisUseCase (REAL_BACKEND)',
+      'passes search query to backend GetPoisUseCase (REAL_BACKEND) and preserves pendingIntegration status without exposing generic POIs',
       () async {
         PoiQuery? capturedQuery;
         final mockGetPois = _makeGetPois((query) async {
@@ -165,46 +153,21 @@ void main() {
 
         await cubit.submitSearch('Tourane');
 
-        expect(cubit.state.status, CommercialServicesSearchStatus.success);
+        expect(
+          cubit.state.status,
+          CommercialServicesSearchStatus.pendingIntegration,
+        );
         expect(cubit.state.searchQuery, 'Tourane');
         expect(capturedQuery?.search, 'Tourane');
-        expect(cubit.state.items.length, 1);
+        expect(cubit.state.items, isEmpty);
       },
     );
 
     test(
-      'preserves paginated backend results without client-side category truncation (PENDING_BE_INTEGRATION regression test)',
+      'Screen #71 invariant: never renders ordinary non-commercial POIs (Attraction, Museum) and preserves pagination without client-side page-local filtering',
       () async {
-        final mockGetPois = _makeGetPois((query) async {
-          return PagedPoiResult(
-            items: fakePoiSummaries,
-            totalCount: 4,
-            page: 1,
-            pageSize: 20,
-            totalPages: 1,
-          );
-        });
-
-        final cubit = CommercialServicesSearchCubit(
-          getPois: mockGetPois,
-          isDemoMode: false,
-        );
-
-        await cubit.loadInitial();
-        expect(cubit.state.items.length, 4);
-
-        // When category is selected in production, client-side filtering must NOT
-        // truncate the paginated backend page to prevent false empty states
-        await cubit.selectCategory(CommercialServiceCategory.hotel);
-        expect(cubit.state.items.length, 4);
-        expect(cubit.state.selectedCategory, CommercialServiceCategory.hotel);
-      },
-    );
-
-    test(
-      'pagination regression: backend page without hotel does not claim false empty state through client-side filtering',
-      () async {
-        final nonHotelSummaries = [
+        final mixedSummaries = [
+          fakePoiSummaries[0], // Hotel
           fakePoiSummaries[1], // Vehicle Rental
           fakePoiSummaries[2], // Restaurant
           fakePoiSummaries[3], // Attraction
@@ -212,7 +175,7 @@ void main() {
 
         final mockGetPois = _makeGetPois((query) async {
           return PagedPoiResult(
-            items: nonHotelSummaries,
+            items: mixedSummaries,
             totalCount: 50,
             page: 1,
             pageSize: 20,
@@ -226,37 +189,17 @@ void main() {
         );
 
         await cubit.loadInitial();
-        expect(cubit.state.items.length, 3);
-        expect(cubit.state.status, CommercialServicesSearchStatus.success);
-
-        // Selecting a category does NOT discard the page or produce a false empty result
-        await cubit.selectCategory(CommercialServiceCategory.hotel);
-        expect(cubit.state.items.length, 3);
-        expect(cubit.state.status, CommercialServicesSearchStatus.success);
+        // Case B: Standalone commercial catalog is pending integration.
+        // No generic POIs or attractions are exposed in items.
+        expect(
+          cubit.state.status,
+          CommercialServicesSearchStatus.pendingIntegration,
+        );
+        expect(cubit.state.items, isEmpty);
+        // Client-side page-local filtering is NEVER performed.
+        expect(cubit.state.items.where((i) => i.category == null), isEmpty);
       },
     );
-
-    test('emits empty status when no items match criteria', () async {
-      final mockGetPois = _makeGetPois((query) async {
-        return const PagedPoiResult(
-          items: [],
-          totalCount: 0,
-          page: 1,
-          pageSize: 20,
-          totalPages: 1,
-        );
-      });
-
-      final cubit = CommercialServicesSearchCubit(
-        getPois: mockGetPois,
-        isDemoMode: false,
-      );
-
-      await cubit.submitSearch('NonExistentService');
-
-      expect(cubit.state.status, CommercialServicesSearchStatus.empty);
-      expect(cubit.state.items, isEmpty);
-    });
 
     test(
       'emits failure status with MSG127 on network or backend failure',
@@ -280,7 +223,7 @@ void main() {
 
   group('CommercialServicesSearchCubit - Demo Mode', () {
     test(
-      'loads all demo catalog items with display-time availability (BR-55) and VND price (BR-63)',
+      'loads deterministic demo commercial pricing and availability',
       () async {
         final cubit = CommercialServicesSearchCubit(isDemoMode: true);
 

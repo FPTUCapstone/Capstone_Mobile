@@ -11,17 +11,19 @@
 /// - BR-55 (UC-30): availability is retrieved at display time and is NOT a reservation
 /// - BR-88 (UC-31): requested date/time/quantity must be within published availability
 /// - BR-89 (UC-31): request starts Pending Confirmation and only becomes Confirmed after provider confirmation
-/// - BR-63 (UC-31): estimated amount computed by TripMate; client amount ignored
+/// - BR-63 (UC-31): estimated amount is computed by TripMate from service price information; any client-submitted amount is ignored
 /// - BR-76 (UC-31): refund returns through original payment channel if payment was collected
+/// Note: UC-31 canonical input fields (Requested Date, Requested Time, Quantity, Selected Option, Contact Info, Special Request)
+/// are canonical screen data, separate from BR-63 pricing computation.
 ///
-/// Appendix 5.1 defines duplicate/reused identifiers with differing definitions:
-/// - BR-34: if Traveler rejects rerouting proposal, active itinerary/route continues unchanged and Incident remains for audit
-/// - BR-55: updated POI/Route data propagates immediately to consuming itinerary/navigation functions
-/// - BR-63: booking record captures Traveler ID, Tour ID, Tour Operator ID, requested slots, price, initial status and creation timestamp
-/// - BR-76: refund may only be initiated for an eligible cancelled booking under refund policy
-/// - BR-87: commercial services limited to Hotel / Vehicle Rental / Restaurant and each is represented as a POI in the centralized catalog (largely compatible)
-/// - BR-88: commercial booking may reference only a POI in one of the supported commercial categories
-/// - BR-89: commercial booking may originate from itinerary or POI catalog and must store the correct referenced POI
+/// Appendix 5.1 defines enterprise-wide platform rules using duplicate numeric IDs:
+/// - BR-34: if Traveler rejects rerouting proposal, active itinerary/route continues unchanged and Incident remains for audit (strong difference)
+/// - BR-55: updated POI/Route data propagates immediately to consuming itinerary/navigation functions (strong difference)
+/// - BR-63: booking record captures Traveler ID, Tour ID, Tour Operator ID, requested slots, price, initial status and creation timestamp (strong difference)
+/// - BR-76: refund may only be initiated for an eligible cancelled booking under refund policy (strong difference)
+/// - BR-87: commercial services limited to Hotel, Vehicle Rental, Restaurant and each is represented as a POI in the centralized catalog (largely compatible with Detailed UC-30)
+/// - BR-88: commercial booking may reference only a POI in one of the supported commercial categories (related scope)
+/// - BR-89: commercial booking may originate from itinerary or POI catalog and must store the correct referenced POI (related scope)
 ///
 /// 2. SRS_INTERNAL_CONFLICT_COMMERCIAL_MESSAGE_IDS:
 /// Detailed UC-31 defines:
@@ -58,7 +60,12 @@ final class _SearchStrings {
   final String categoryVehicle = 'Vehicle Rental';
   final String categoryRestaurant = 'Restaurant';
   final String productionNotice =
-      'Live catalog from Backend (GET /api/v1/pois). Category, date availability, and price filters are Pending Server Integration.';
+      'Base POI endpoint is real, but standalone commercial-catalog classification remains PENDING_BE_INTEGRATION.';
+  final String catalogPendingTitle = 'Commercial Services';
+  final String catalogPendingNotice =
+      'Commercial service catalog integration is not yet available.';
+  final String catalogPendingExplanation =
+      'Base POI endpoint is real, but standalone commercial-catalog classification remains PENDING_BE_INTEGRATION.';
   final String demoNotice =
       'Demo Mode active: Multi-criteria filtering (category, date, price) enabled with deterministic fixtures.';
   final String categoryPendingTooltip =

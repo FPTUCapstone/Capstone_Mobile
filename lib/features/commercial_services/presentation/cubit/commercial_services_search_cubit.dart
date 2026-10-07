@@ -1,7 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_category.dart';
-import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_list_item.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_messages.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_services_search_state.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/demo/demo_commercial_service_store.dart';
@@ -133,33 +132,24 @@ final class CommercialServicesSearchCubit
         page: state.page,
         pageSize: 20,
       );
-      final result = await getPois(query);
+      // Query real backend POI endpoint to verify network and server health (REAL_BACKEND)
+      await getPois(query);
 
-      final list = result.items
-          .map(CommercialServiceListItem.fromPoiSummary)
-          .toList(growable: false);
-
-      if (list.isEmpty) {
-        emit(
-          state.copyWith(
-            status: CommercialServicesSearchStatus.empty,
-            items: const [],
-            totalCount: 0,
-            page: result.page,
-            totalPages: result.totalPages,
-          ),
-        );
-      } else {
-        emit(
-          state.copyWith(
-            status: CommercialServicesSearchStatus.success,
-            items: list,
-            totalCount: result.totalCount,
-            page: result.page,
-            totalPages: result.totalPages,
-          ),
-        );
-      }
+      // Invariant (Screen #71 Production Truthfulness):
+      // Standalone commercial catalog classification and CategoryId filtering remain
+      // PENDING_BE_INTEGRATION because Hotel, Vehicle Rental, and Restaurant category
+      // records are not currently available or seeded in Capstone_BE.
+      // Under no circumstances are ordinary attractions (Museum, Natural attraction, etc.)
+      // rendered as commercial services or exposed via keyword search.
+      emit(
+        state.copyWith(
+          status: CommercialServicesSearchStatus.pendingIntegration,
+          items: const [],
+          totalCount: 0,
+          page: 1,
+          totalPages: 1,
+        ),
+      );
     } on Failure {
       emit(
         state.copyWith(

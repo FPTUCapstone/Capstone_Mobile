@@ -130,7 +130,7 @@ void main() {
     );
 
     test(
-      'Commercial entry points in traveler_shell_page.dart use CommercialServiceEn',
+      'Commercial entry points in traveler_shell_page.dart use CommercialServiceEn (PR #32 commercial scope)',
       () {
         final shellFile = File(
           'lib/features/traveler/presentation/pages/traveler_shell_page.dart',

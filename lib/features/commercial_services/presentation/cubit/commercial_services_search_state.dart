@@ -8,6 +8,7 @@ enum CommercialServicesSearchStatus {
   success,
   empty,
   failure,
+  pendingIntegration,
 }
 
 final class CommercialServicesSearchState extends Equatable {

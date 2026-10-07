@@ -8,6 +8,7 @@ import 'package:trip_mate_mobile/features/commercial_services/domain/entities/co
 import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_services_search_cubit.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/demo/demo_commercial_service_store.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/pages/commercial_services_search_page.dart';
+import 'package:trip_mate_mobile/features/commercial_services/resources/commercial_service_en.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/paged_poi_result.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_detail.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_query.dart';
@@ -82,7 +83,7 @@ void main() {
 
   group('CommercialServicesSearchPage - Screen #71 Production Truthfulness', () {
     testWidgets(
-      'renders search input, category chips, production truthfulness banner, and real POI items',
+      'renders search input, category chips, production truthfulness banner, and truthful PENDING_BE_INTEGRATION empty state without exposing ordinary POIs',
       (tester) async {
         final repo = _FakePoiRepository(
           onGetPois: (query) async => PagedPoiResult(
@@ -126,7 +127,7 @@ void main() {
         expect(
           find.descendant(
             of: find.byKey(const Key('commercial_search_production_banner')),
-            matching: find.textContaining('Pending Server Integration'),
+            matching: find.textContaining('PENDING_BE_INTEGRATION'),
           ),
           findsOneWidget,
         );
@@ -148,16 +149,27 @@ void main() {
           findsOneWidget,
         );
 
+        // Screen #71 Production Truthfulness:
+        // Must NEVER render ordinary POIs or unverified catalog items.
+        // Standalone commercial catalog capability is truthfully PENDING_BE_INTEGRATION.
+        expect(
+          find.byKey(const Key('commercial_search_pending_view')),
+          findsOneWidget,
+        );
+        expect(
+          find.text(CommercialServiceEn.search.catalogPendingNotice),
+          findsOneWidget,
+        );
         expect(
           find.byKey(const Key('commercial_service_card_10')),
-          findsOneWidget,
+          findsNothing,
         );
-        expect(find.text('Han River Hotel'), findsOneWidget);
+        expect(find.text('Han River Hotel'), findsNothing);
         expect(
           find.byKey(const Key('commercial_service_card_20')),
-          findsOneWidget,
+          findsNothing,
         );
-        expect(find.text('Banh Mi Ba Lan'), findsOneWidget);
+        expect(find.text('Banh Mi Ba Lan'), findsNothing);
       },
     );
 
@@ -209,32 +221,27 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          find.byKey(const Key('commercial_service_card_10')),
+          find.byKey(const Key('commercial_search_pending_view')),
           findsOneWidget,
         );
-        expect(find.text('Han River Hotel'), findsOneWidget);
+        expect(
+          find.text(CommercialServiceEn.search.catalogPendingNotice),
+          findsOneWidget,
+        );
       },
     );
 
     testWidgets(
-      'renders empty state when no items match and reset button clears filters',
+      'renders empty state when no demo items match and reset button clears filters',
       (tester) async {
-        final repo = _FakePoiRepository(
-          onGetPois: (query) async => const PagedPoiResult(
-            page: 1,
-            pageSize: 20,
-            totalCount: 0,
-            totalPages: 0,
-            items: [],
-          ),
-        );
-
+        final repo = _FakePoiRepository();
         final cubit = CommercialServicesSearchCubit(
           getPois: GetPoisUseCase(repo),
-          isDemoMode: false,
+          isDemoMode: true,
         );
         addTearDown(cubit.close);
         await cubit.loadInitial();
+        await cubit.submitSearch('NonExistentHotelXYZ999');
 
         await tester.pumpWidget(_wrapWithCubit(cubit));
         await tester.pumpAndSettle();

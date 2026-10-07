@@ -35,7 +35,7 @@ void main() {
     'CommercialServiceBookingPage - Production truthfulness (NO_BACKEND)',
     () {
       testWidgets(
-        'renders Pending Server Integration banner, BR-63 pending amount text, and disabled Submit Request button',
+        'renders Pending Server Integration banner, non-authoritative pending amount text (BR-63), and disabled Submit Request button',
         (tester) async {
           final cubit = CommercialServiceBookingCubit(
             isDemoMode: false,

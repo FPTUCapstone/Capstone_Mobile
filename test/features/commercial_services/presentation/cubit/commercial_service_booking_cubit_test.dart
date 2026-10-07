@@ -14,7 +14,7 @@ void main() {
 
   group('CommercialServiceBookingCubit - Production mode', () {
     test(
-      'Production mode emits pendingIntegration, returns null demoPreviewEstimatedAmountVnd (BR-63), and refuses to create fake bookings',
+      'Production mode emits pendingIntegration, returns null demoPreviewEstimatedAmountVnd, and refuses to create fake bookings',
       () async {
         final cubit = CommercialServiceBookingCubit(
           isDemoMode: false,
@@ -37,6 +37,32 @@ void main() {
         );
         expect(cubit.state.activeRequest, isNull);
         expect(DemoCommercialServiceStore.instance.allRequests, isEmpty);
+      },
+    );
+
+    test(
+      'BR-63 semantic boundary: client never supplies authoritative estimated amount in Production, demo preview is non-authoritative, and server computes authoritative amount',
+      () async {
+        final prodCubit = CommercialServiceBookingCubit(
+          isDemoMode: false,
+          nowUtcProvider: () => fixedNowUtc,
+        );
+        await prodCubit.load(poiId: 901);
+        // Production: client arithmetic returns null (client must never supply authoritative amount)
+        expect(prodCubit.state.demoPreviewEstimatedAmountVnd, isNull);
+        expect(
+          prodCubit.state.status,
+          CommercialServiceBookingStatus.pendingIntegration,
+        );
+
+        final demoCubit = CommercialServiceBookingCubit(
+          isDemoMode: true,
+          nowUtcProvider: () => fixedNowUtc,
+        );
+        await demoCubit.load(poiId: 901);
+        // Demo: deterministic preview only, non-authoritative
+        expect(demoCubit.state.demoPreviewEstimatedAmountVnd, isNotNull);
+        expect(demoCubit.state.isDemoMode, isTrue);
       },
     );
   });
