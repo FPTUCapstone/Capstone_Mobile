@@ -27,6 +27,9 @@ abstract final class AppRoutes {
   static const activeTripLivePattern = '/traveler/trips/:itineraryId/live';
   static const tripAlertsPattern = '/traveler/trips/:itineraryId/alerts';
   static const offlinePackagePattern = '/traveler/trips/:itineraryId/offline';
+  static const commercialServiceDetailPattern = '/traveler/services/:poiId';
+  static const commercialServiceBookingPattern =
+      '/traveler/services/:poiId/book';
   static const operator = '/operator';
   static const operatorApplication = '/operator/application';
   static const createCoupon = '/operator/coupons/create';
@@ -40,6 +43,41 @@ abstract final class AppRoutes {
   static String groupLocationSharingPath(int groupId) =>
       '/traveler/groups/$groupId/location-sharing';
   static String poiDetail(int id) => '/explore/poi/$id';
+  static String commercialServiceDetail(
+    int poiId, {
+    String? intendedDate,
+    bool demo = false,
+  }) {
+    final query = <String, String>{
+      if (intendedDate != null && intendedDate.trim().isNotEmpty)
+        'intendedDate': intendedDate.trim(),
+      if (demo) 'demo': 'true',
+    };
+    return Uri(
+      path: '/traveler/services/$poiId',
+      queryParameters: query.isEmpty ? null : query,
+    ).toString();
+  }
+
+  static String commercialServiceBooking(
+    int poiId, {
+    String? optionId,
+    String? intendedDate,
+    bool demo = false,
+  }) {
+    final query = <String, String>{
+      if (optionId != null && optionId.trim().isEmpty == false)
+        'optionId': optionId.trim(),
+      if (intendedDate != null && intendedDate.trim().isNotEmpty)
+        'intendedDate': intendedDate.trim(),
+      if (demo) 'demo': 'true',
+    };
+    return Uri(
+      path: '/traveler/services/$poiId/book',
+      queryParameters: query.isEmpty ? null : query,
+    ).toString();
+  }
+
   static const authPrefix = '/auth';
   static const travelerPrefix = '/traveler';
   static const operatorPrefix = '/operator';
@@ -71,6 +109,8 @@ abstract final class AppRouteNames {
   static const activeTripLive = 'active-trip-live';
   static const tripAlerts = 'trip-alerts';
   static const offlinePackage = 'offline-package';
+  static const commercialServiceDetail = 'commercial-service-detail';
+  static const commercialServiceBooking = 'commercial-service-booking';
   static const operator = 'operator';
   static const operatorApplication = 'operator-application';
   static const createCoupon = 'create-coupon';

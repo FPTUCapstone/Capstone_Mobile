@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_category.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/itinerary_detail_cubit.dart';
@@ -158,6 +161,11 @@ final class _DetailItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isRest = item.itemKind == ItineraryItemKind.rest;
+    final isCommercialStop =
+        item.poiId != null &&
+        !item.isUnavailable &&
+        item.category != null &&
+        CommercialServiceCategory.isCommercialCategory(item.category!);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
@@ -196,6 +204,23 @@ final class _DetailItemCard extends StatelessWidget {
                       'This place is currently unavailable.',
                       style: TextStyle(color: theme.colorScheme.error),
                     ),
+                  if (isCommercialStop) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    TextButton.icon(
+                      key: Key(
+                        'itinerary_item_commercial_service_${item.itemId}',
+                      ),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(160, 48),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                      onPressed: () => context.push(
+                        AppRoutes.commercialServiceDetail(item.poiId!),
+                      ),
+                      icon: const Icon(Icons.storefront_outlined, size: 18),
+                      label: const Text('View Commercial Service'),
+                    ),
+                  ],
                 ],
               ),
             ),
