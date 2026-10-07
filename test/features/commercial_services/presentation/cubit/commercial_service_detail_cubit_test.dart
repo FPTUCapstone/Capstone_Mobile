@@ -248,7 +248,7 @@ void main() {
     );
 
     test(
-      'handles MSG34, non-commercial POI, MSG126, MSG75, and MSG127 demo scenarios',
+      'handles MSG34, non-commercial POI, missing availability without MSG126, MSG75, and MSG127 demo scenarios',
       () {
         final cubit = CommercialServiceDetailCubit(isDemoMode: true);
 

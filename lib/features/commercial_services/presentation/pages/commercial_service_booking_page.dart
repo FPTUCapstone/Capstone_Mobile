@@ -78,7 +78,7 @@ class _CommercialServiceBookingPageState
     } else if (poiId > 0) {
       context.go(AppRoutes.commercialServiceDetail(poiId, demo: isDemoMode));
     } else {
-      context.go(AppRoutes.explore);
+      context.go(AppRoutes.commercialServicesSearch);
     }
   }
 

@@ -152,9 +152,18 @@ class _TravelerSection extends StatelessWidget {
             if (destination.label == 'Trang chủ') ...[
               const SizedBox(height: AppSpacing.lg),
               FilledButton.icon(
+                key: const Key('traveler_home_tour_search_button'),
                 onPressed: () => context.push(AppRoutes.tourSearch),
                 icon: const Icon(Icons.tour_outlined),
                 label: const Text('Tìm kiếm Tour'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              FilledButton.icon(
+                key: const Key('traveler_home_commercial_services_button'),
+                onPressed: () =>
+                    context.push(AppRoutes.commercialServicesSearch),
+                icon: const Icon(Icons.storefront_outlined),
+                label: const Text('Dịch vụ thương mại'),
               ),
             ],
             if (destination.label == 'Trang chủ' ||
@@ -181,6 +190,16 @@ class _TravelerSection extends StatelessWidget {
                 onPressed: () => context.push(AppRoutes.createItinerary),
                 icon: const Icon(Icons.auto_awesome_outlined),
                 label: const Text('Create an itinerary'),
+              ),
+            ],
+            if (destination.label == 'Đặt chỗ') ...[
+              const SizedBox(height: AppSpacing.lg),
+              FilledButton.icon(
+                key: const Key('traveler_bookings_commercial_services_button'),
+                onPressed: () =>
+                    context.push(AppRoutes.commercialServicesSearch),
+                icon: const Icon(Icons.storefront_outlined),
+                label: const Text('Dịch vụ thương mại (Screen #71)'),
               ),
             ],
           ],

@@ -1,6 +1,7 @@
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_booking_request.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_capability.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_category.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_list_item.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_detail.dart';
 
 /// Deterministic Demo scenarios for UC-30 (`View Commercial Service`) in Debug
@@ -63,6 +64,59 @@ final class DemoCommercialServiceStore {
 
   CommercialServiceBookingRequest? getRequest(String requestId) =>
       _requestsById[requestId];
+
+  /// Returns catalog items for Screen #71 (`Commercial Services Search & List`)
+  /// in Demo mode (`kDebugMode && ?demo=true`).
+  ///
+  /// Supports multi-criteria filtering: category, keyword, date, and price range.
+  List<CommercialServiceListItem> getDemoCatalogItems({
+    String? keyword,
+    CommercialServiceCategory? category,
+    String? dateIso,
+    int? maxPriceVnd,
+  }) {
+    final effectiveDate = (dateIso != null && dateIso.trim().isNotEmpty)
+        ? dateIso.trim()
+        : defaultIntendedDateIso;
+    final scenarios = [
+      DemoCommercialServiceScenario.availableHotel,
+      DemoCommercialServiceScenario.availableVehicleRental,
+      DemoCommercialServiceScenario.availableRestaurant,
+      DemoCommercialServiceScenario.closedForBooking,
+      DemoCommercialServiceScenario.availabilityUnavailable,
+    ];
+
+    final results = <CommercialServiceListItem>[];
+    for (final s in scenarios) {
+      final composite = resolveComposite(
+        scenario: s,
+        intendedDateIso: effectiveDate,
+      );
+      if (!composite.isActivePoi || !composite.isCommercialPoi) {
+        continue;
+      }
+      if (category != null && composite.commercialCategory != category) {
+        continue;
+      }
+      if (keyword != null && keyword.trim().isNotEmpty) {
+        final query = keyword.trim().toLowerCase();
+        final nameMatch = composite.poi.name.toLowerCase().contains(query);
+        final addrMatch =
+            composite.poi.address?.toLowerCase().contains(query) ?? false;
+        if (!nameMatch && !addrMatch) {
+          continue;
+        }
+      }
+      final item = CommercialServiceListItem.fromComposite(composite);
+      if (maxPriceVnd != null &&
+          item.startingPriceVnd != null &&
+          item.startingPriceVnd! > maxPriceVnd) {
+        continue;
+      }
+      results.add(item);
+    }
+    return results;
+  }
 
   /// Returns a deterministic [CommercialServiceDetailComposite] for the given
   /// [scenario] and [intendedDateIso].

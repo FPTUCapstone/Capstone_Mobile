@@ -117,6 +117,10 @@ void main() {
           builder: (_, _) => const Text('Operator Application'),
         ),
         GoRoute(
+          path: AppRoutes.commercialServicesSearchPattern,
+          builder: (_, _) => const Text('Commercial Services Search'),
+        ),
+        GoRoute(
           path: AppRoutes.commercialServiceDetailPattern,
           builder: (_, _) => const Text('Commercial Service Detail'),
         ),
@@ -132,11 +136,23 @@ void main() {
     return router.routerDelegate.currentConfiguration.last.matchedLocation;
   }
 
-  group('UC-30/31 Route Guards', () {
+  group('UC-30/31 Route Guards (Screen #71 & #72)', () {
     testWidgets(
       'Guest is redirected to Sign In and demo=true never bypasses auth or role guards',
       (tester) async {
         const guest = AuthSessionState.unauthenticated();
+        expect(
+          await resolveRoute(tester, guest, AppRoutes.commercialServicesSearch),
+          AppRoutes.login,
+        );
+        expect(
+          await resolveRoute(
+            tester,
+            guest,
+            '${AppRoutes.commercialServicesSearch}?demo=true',
+          ),
+          AppRoutes.login,
+        );
         expect(
           await resolveRoute(
             tester,
@@ -159,6 +175,22 @@ void main() {
           await resolveRoute(
             tester,
             traveler,
+            AppRoutes.commercialServicesSearch,
+          ),
+          AppRoutes.commercialServicesSearch,
+        );
+        expect(
+          await resolveRoute(
+            tester,
+            traveler,
+            '${AppRoutes.commercialServicesSearch}?demo=true',
+          ),
+          AppRoutes.commercialServicesSearch,
+        );
+        expect(
+          await resolveRoute(
+            tester,
+            traveler,
             AppRoutes.commercialServiceDetail(901, demo: true),
           ),
           '/traveler/services/901',
@@ -175,6 +207,22 @@ void main() {
         const approvedOperator = AuthSessionState.authenticated(
           UserRole.tourOperator,
           applicationStatus: TourOperatorApplicationStatus.approved,
+        );
+        expect(
+          await resolveRoute(
+            tester,
+            approvedOperator,
+            AppRoutes.commercialServicesSearch,
+          ),
+          AppRoutes.operator,
+        );
+        expect(
+          await resolveRoute(
+            tester,
+            approvedOperator,
+            '${AppRoutes.commercialServicesSearch}?demo=true',
+          ),
+          AppRoutes.operator,
         );
         expect(
           await resolveRoute(

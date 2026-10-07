@@ -27,6 +27,8 @@ abstract final class AppRoutes {
   static const activeTripLivePattern = '/traveler/trips/:itineraryId/live';
   static const tripAlertsPattern = '/traveler/trips/:itineraryId/alerts';
   static const offlinePackagePattern = '/traveler/trips/:itineraryId/offline';
+  static const commercialServicesSearch = '/traveler/services';
+  static const commercialServicesSearchPattern = commercialServicesSearch;
   static const commercialServiceDetailPattern = '/traveler/services/:poiId';
   static const commercialServiceBookingPattern =
       '/traveler/services/:poiId/book';
@@ -43,6 +45,23 @@ abstract final class AppRoutes {
   static String groupLocationSharingPath(int groupId) =>
       '/traveler/groups/$groupId/location-sharing';
   static String poiDetail(int id) => '/explore/poi/$id';
+  static String commercialServicesSearchPath({
+    String? search,
+    String? category,
+    bool demo = false,
+  }) {
+    final query = <String, String>{
+      if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+      if (category != null && category.trim().isNotEmpty)
+        'category': category.trim(),
+      if (demo) 'demo': 'true',
+    };
+    return Uri(
+      path: commercialServicesSearch,
+      queryParameters: query.isEmpty ? null : query,
+    ).toString();
+  }
+
   static String commercialServiceDetail(
     int poiId, {
     String? intendedDate,
@@ -109,6 +128,7 @@ abstract final class AppRouteNames {
   static const activeTripLive = 'active-trip-live';
   static const tripAlerts = 'trip-alerts';
   static const offlinePackage = 'offline-package';
+  static const commercialServicesSearch = 'commercial-services-search';
   static const commercialServiceDetail = 'commercial-service-detail';
   static const commercialServiceBooking = 'commercial-service-booking';
   static const operator = 'operator';

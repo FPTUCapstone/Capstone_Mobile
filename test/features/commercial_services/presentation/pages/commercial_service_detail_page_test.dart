@@ -241,7 +241,7 @@ void main() {
     );
 
     testWidgets(
-      'renders MSG126 when availability is unavailable, MSG75 when closed for booking, and MSG127 on system failure',
+      'renders neutral notice without availability indicator and disables booking when availability is unavailable (without MSG126), MSG75 when closed for booking, and MSG127 on system failure',
       (tester) async {
         final cubit = CommercialServiceDetailCubit(isDemoMode: true);
         await cubit.load('906');
@@ -249,8 +249,16 @@ void main() {
         await tester.pumpWidget(_wrapWithCubit(cubit));
         await tester.pumpAndSettle();
 
-        // MSG126
-        expect(find.text(CommercialServiceMessages.msg126), findsOneWidget);
+        // Missing availability notice displayed without MSG126; Book Service disabled (BR-88, 5.a1)
+        expect(
+          find.byKey(const Key('commercial_availability_missing_notice')),
+          findsOneWidget,
+        );
+        expect(find.text(CommercialServiceMessages.msg126), findsNothing);
+        expect(
+          find.byKey(const Key('commercial_service_availability_indicator')),
+          findsNothing,
+        );
         expect(
           tester
               .widget<FilledButton>(

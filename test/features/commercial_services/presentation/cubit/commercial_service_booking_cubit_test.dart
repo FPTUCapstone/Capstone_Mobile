@@ -174,7 +174,7 @@ void main() {
     );
 
     test(
-      'creates Pending Confirmation request (MSG69) and supports Confirm (MSG72), Reject (MSG73), and Cancel (MSG74) transitions (BR-89, BR-63)',
+      'creates Pending Confirmation request (MSG69) and supports Confirm (MSG72), Reject (MSG73), and Cancel (MSG74) transitions (BR-89, V2 status lifecycle)',
       () async {
         final cubit = CommercialServiceBookingCubit(
           isDemoMode: true,

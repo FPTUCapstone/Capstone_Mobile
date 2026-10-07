@@ -70,7 +70,7 @@ class CommercialServiceDetailPage extends StatelessWidget {
     if (context.canPop()) {
       context.pop();
     } else {
-      context.go(AppRoutes.explore);
+      context.go(AppRoutes.commercialServicesSearch);
     }
   }
 }
@@ -652,15 +652,12 @@ class _AvailabilitySection extends StatelessWidget {
               ),
             )
           else if (availability == null || !availability.isRetrieved)
-            Semantics(
-              label: CommercialServiceMessages.msg126,
-              child: Text(
-                CommercialServiceMessages.msg126,
-                key: const Key('commercial_availability_missing_notice'),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFFB71C1C),
-                  fontWeight: FontWeight.w600,
-                ),
+            Text(
+              'Commercial availability could not be retrieved at display time (BR-88). Booking is disabled.',
+              key: const Key('commercial_availability_missing_notice'),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: PoiPalette.muted,
+                fontStyle: FontStyle.italic,
               ),
             )
           else

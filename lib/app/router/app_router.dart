@@ -22,11 +22,14 @@ import 'package:trip_mate_mobile/features/auth/presentation/pages/verify_email_p
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_capability.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_service_booking_cubit.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_service_detail_cubit.dart';
+import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_services_search_cubit.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/pages/commercial_service_booking_page.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/pages/commercial_service_detail_page.dart';
+import 'package:trip_mate_mobile/features/commercial_services/presentation/pages/commercial_services_search_page.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/cubit/create_coupon_cubit.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/pages/create_coupon_page.dart';
 import 'package:trip_mate_mobile/features/poi/domain/usecases/get_poi_detail_use_case.dart';
+import 'package:trip_mate_mobile/features/poi/domain/usecases/get_pois_use_case.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
@@ -386,6 +389,30 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
             itineraryId: itineraryId,
             title: title,
             isDemoMode: isDemo,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.commercialServicesSearch,
+        name: AppRouteNames.commercialServicesSearch,
+        builder: (_, state) {
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final search = state.uri.queryParameters['search'];
+          final category = state.uri.queryParameters['category'];
+          final getPois = serviceLocator.isRegistered<GetPoisUseCase>()
+              ? serviceLocator<GetPoisUseCase>()
+              : null;
+          return BlocProvider(
+            create: (_) =>
+                CommercialServicesSearchCubit(
+                  getPois: getPois,
+                  isDemoMode: isDemo,
+                )..loadInitial(
+                  initialSearch: search,
+                  initialCategoryName: category,
+                ),
+            child: const CommercialServicesSearchPage(),
           );
         },
       ),
