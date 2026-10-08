@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:trip_mate_mobile/core/location/device_location_service.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_poi.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_poi_search_result.dart';
@@ -180,6 +181,23 @@ final class _LocationService implements DeviceLocationService {
   @override
   Future<DeviceLocation> getCurrentLocation() async =>
       const DeviceLocation(latitude: 16.0544, longitude: 108.2022);
+
+  @override
+  Future<LocationPermission> checkPermission() async =>
+      LocationPermission.always;
+
+  @override
+  Future<LocationPermission> requestPermission() async =>
+      LocationPermission.always;
+
+  @override
+  Future<bool> isLocationServiceEnabled() async => true;
+
+  @override
+  Future<bool> openAppSettings() async => true;
+
+  @override
+  Future<bool> openLocationSettings() async => true;
 }
 
 final class _ControlledLocationService implements DeviceLocationService {
@@ -187,6 +205,23 @@ final class _ControlledLocationService implements DeviceLocationService {
 
   @override
   Future<DeviceLocation> getCurrentLocation() => completer.future;
+
+  @override
+  Future<LocationPermission> checkPermission() async =>
+      LocationPermission.always;
+
+  @override
+  Future<LocationPermission> requestPermission() async =>
+      LocationPermission.always;
+
+  @override
+  Future<bool> isLocationServiceEnabled() async => true;
+
+  @override
+  Future<bool> openAppSettings() async => true;
+
+  @override
+  Future<bool> openLocationSettings() async => true;
 }
 
 final class _PoiRepository implements PointOfInterestRepository {

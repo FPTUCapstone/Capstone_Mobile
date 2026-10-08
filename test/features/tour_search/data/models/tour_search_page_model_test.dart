@@ -95,7 +95,68 @@ void main() {
     expect(model.items.first.representativeScheduleId, isNull);
     expect(model.items.first.departureAtUtc, isNull);
     expect(model.items.first.remainingSlots, isNull);
+    expect(model.items.first.thumbnailUrl, isNull);
+    expect(model.toEntity().items.first.thumbnailUrl, isNull);
   });
+
+  test('thumbnailUrl parses real string URL and maps to domain entity', () {
+    final json = <String, Object?>{
+      'tourId': '101',
+      'title': 'Test Tour',
+      'destinations': ['Test'],
+      'operatorName': 'Test Op',
+      'durationDays': 1,
+      'basePrice': 100,
+      'currency': 'VND',
+      'representativeScheduleId': null,
+      'departureAtUtc': null,
+      'availabilityStatus': 'available',
+      'remainingSlots': null,
+      'thumbnailUrl': 'https://example.com/tour-thumb.jpg',
+    };
+
+    final item = TourSearchItemModel.fromJson(json);
+    expect(item.thumbnailUrl, 'https://example.com/tour-thumb.jpg');
+    final entity = item.toEntity();
+    expect(entity.thumbnailUrl, 'https://example.com/tour-thumb.jpg');
+  });
+
+  test(
+    'thumbnailUrl handles explicit null, absent, and non-string types safely',
+    () {
+      final baseJson = <String, Object?>{
+        'tourId': '101',
+        'title': 'Test Tour',
+        'destinations': ['Test'],
+        'operatorName': 'Test Op',
+        'durationDays': 1,
+        'basePrice': 100,
+        'currency': 'VND',
+        'representativeScheduleId': null,
+        'departureAtUtc': null,
+        'availabilityStatus': 'available',
+        'remainingSlots': null,
+      };
+
+      final withNull = TourSearchItemModel.fromJson({
+        ...baseJson,
+        'thumbnailUrl': null,
+      });
+      expect(withNull.thumbnailUrl, isNull);
+      expect(withNull.toEntity().thumbnailUrl, isNull);
+
+      final absent = TourSearchItemModel.fromJson(baseJson);
+      expect(absent.thumbnailUrl, isNull);
+      expect(absent.toEntity().thumbnailUrl, isNull);
+
+      final invalidNum = TourSearchItemModel.fromJson({
+        ...baseJson,
+        'thumbnailUrl': 12345,
+      });
+      expect(invalidNum.thumbnailUrl, isNull);
+      expect(invalidNum.toEntity().thumbnailUrl, isNull);
+    },
+  );
 
   test('departureAtUtc is normalized to UTC for Z and offset timestamps', () {
     final zItem = TourSearchItemModel.fromJson(

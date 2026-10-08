@@ -68,8 +68,16 @@ void main() {
           builder: (_, _) => const Text('Operator workspace'),
         ),
         GoRoute(
+          path: AppRoutes.createCoupon,
+          builder: (_, _) => const Text('Create coupon'),
+        ),
+        GoRoute(
           path: AppRoutes.operatorApplication,
           builder: (_, _) => const Text('Operator application'),
+        ),
+        GoRoute(
+          path: AppRoutes.joinTravelGroup,
+          builder: (_, _) => const Text('Join Group'),
         ),
       ],
     );
@@ -125,6 +133,20 @@ void main() {
     );
   });
 
+  testWidgets(
+    'non-approved TourOperator cannot open the coupon route directly',
+    (tester) async {
+      const session = AuthSessionState.authenticated(
+        UserRole.tourOperator,
+        applicationStatus: TourOperatorApplicationStatus.pendingApproval,
+      );
+      expect(
+        await resolve(tester, session, AppRoutes.createCoupon),
+        AppRoutes.operatorApplication,
+      );
+    },
+  );
+
   testWidgets('Traveler stays on the traveler area', (tester) async {
     const session = AuthSessionState.authenticated(UserRole.traveler);
     expect(
@@ -146,6 +168,69 @@ void main() {
       expect(
         await resolve(tester, session, AppRoutes.operator),
         AppRoutes.login,
+      );
+      expect(
+        await resolve(tester, session, AppRoutes.activeTripLive(101)),
+        AppRoutes.login,
+      );
+      expect(
+        await resolve(tester, session, AppRoutes.offlinePackage(101)),
+        AppRoutes.login,
+      );
+      expect(
+        await resolve(tester, session, AppRoutes.joinTravelGroup),
+        AppRoutes.login,
+      );
+    },
+  );
+
+  testWidgets(
+    'UC-23 Join Travel Group route guard permits Traveler and redirects TourOperator',
+    (tester) async {
+      // Unauthenticated -> Sign In
+      expect(
+        await resolve(
+          tester,
+          const AuthSessionState.unauthenticated(),
+          AppRoutes.joinTravelGroup,
+        ),
+        AppRoutes.login,
+      );
+
+      // Authenticated Traveler -> permitted on Join Travel Group
+      expect(
+        await resolve(
+          tester,
+          const AuthSessionState.authenticated(UserRole.traveler),
+          AppRoutes.joinTravelGroup,
+        ),
+        AppRoutes.joinTravelGroup,
+      );
+
+      // Authenticated TourOperator Approved -> redirected to Operator workspace
+      expect(
+        await resolve(
+          tester,
+          const AuthSessionState.authenticated(
+            UserRole.tourOperator,
+            applicationStatus: TourOperatorApplicationStatus.approved,
+          ),
+          AppRoutes.joinTravelGroup,
+        ),
+        AppRoutes.operator,
+      );
+
+      // Authenticated TourOperator Pending -> redirected to Operator application view
+      expect(
+        await resolve(
+          tester,
+          const AuthSessionState.authenticated(
+            UserRole.tourOperator,
+            applicationStatus: TourOperatorApplicationStatus.pendingApproval,
+          ),
+          AppRoutes.joinTravelGroup,
+        ),
+        AppRoutes.operatorApplication,
       );
     },
   );

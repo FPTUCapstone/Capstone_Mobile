@@ -4,6 +4,7 @@ import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/app/theme/tripmate_visual_tokens.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/tour_operator_application_status.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/widgets/operator_review_process.dart';
 import 'package:trip_mate_mobile/shared/widgets/anchored_action_bar.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
@@ -18,7 +19,8 @@ import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 /// company, document or rejection-reason data exists on Mobile yet, so the
 /// designed regions show that the data is not available, and no resubmission
 /// can be started or simulated. Routing of approved operators is owned by
-/// `RouteGuards`.
+/// `RouteGuards`. A Tour Operator who is not yet approved can sign out here,
+/// since this page is their only signed-in destination.
 class OperatorApplicationPage extends StatelessWidget {
   const OperatorApplicationPage({super.key});
 
@@ -31,14 +33,24 @@ class OperatorApplicationPage extends StatelessWidget {
     return TripMateVisualTheme(
       child: Scaffold(
         appBar: AppBar(title: const Text('My Application')),
-        bottomNavigationBar: status == TourOperatorApplicationStatus.rejected
-            ? const AnchoredActionBar(
-                child: CapabilityNote(
+        bottomNavigationBar: switch (status) {
+          TourOperatorApplicationStatus.approved => null,
+          TourOperatorApplicationStatus.rejected => const AnchoredActionBar(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                CapabilityNote(
                   message:
                       'Resubmission is not available in the mobile app yet.',
                 ),
-              )
-            : null,
+                SizedBox(height: AppSpacing.sm),
+                _OperatorApplicationSignOut(),
+              ],
+            ),
+          ),
+          _ => const AnchoredActionBar(child: _OperatorApplicationSignOut()),
+        },
         body: AppPageScaffold(
           showAppBar: false,
           content: switch (status) {
@@ -103,6 +115,12 @@ class _PendingApplicationView extends StatelessWidget {
         SizedBox(height: AppSpacing.md),
         // The session status says the application is under review.
         OperatorReviewProcess(currentStep: 1),
+        SizedBox(height: AppSpacing.md),
+        AppAlert(
+          message:
+              'You can sign out and return later to check your application '
+              'status.',
+        ),
       ],
     );
   }
@@ -403,5 +421,59 @@ class _UnavailableRegion extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Sign-out for a Tour Operator whose application is not approved yet.
+class _OperatorApplicationSignOut extends StatelessWidget {
+  const _OperatorApplicationSignOut();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<AuthSessionCubit, AuthSessionState>(
+      builder: (context, state) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (state.errorMessage ==
+              AuthSessionCubit.signOutLocalCleanupFailureMessage) ...[
+            AppAlert(message: state.errorMessage!, type: AppAlertType.error),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+          OutlinedButton.icon(
+            onPressed: state.operation == AuthSessionOperation.signOut
+                ? null
+                : () => _confirmSignOut(context),
+            icon: const Icon(Icons.logout),
+            label: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmSignOut(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Sign out of TripMate?'),
+        content: const Text(
+          'Your session on this device will end. Your application stays saved.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      await context.read<AuthSessionCubit>().signOut();
+    }
   }
 }

@@ -1,25 +1,21 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
-import 'package:trip_mate_mobile/app/theme/tripmate_visual_tokens.dart';
-import 'package:trip_mate_mobile/core/utils/validators.dart';
-import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
-import 'package:trip_mate_mobile/features/auth/presentation/widgets/operator_review_process.dart';
-import 'package:trip_mate_mobile/shared/widgets/anchored_action_bar.dart';
-import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
-import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
-import 'package:trip_mate_mobile/shared/widgets/section_card.dart';
-import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_operator_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/services/operator_document_picker.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_password_field.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
 
-/// UC-02 Tour Operator Registration (Screen #40).
-///
-/// The Backend does not yet expose an operator registration or document-upload
-/// capability, so this screen presents the canonical Report 3 form for review
-/// and client-side validation only. Nothing is submitted, uploaded or stored,
-/// and no application state is ever produced locally.
 class OperatorRegistrationPage extends StatefulWidget {
-  const OperatorRegistrationPage({super.key});
+  const OperatorRegistrationPage({required this.documentPicker, super.key});
+
+  final OperatorDocumentPicker documentPicker;
 
   @override
   State<OperatorRegistrationPage> createState() =>
@@ -27,464 +23,619 @@ class OperatorRegistrationPage extends StatefulWidget {
 }
 
 class _OperatorRegistrationPageState extends State<OperatorRegistrationPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmController = TextEditingController();
-  final _companyController = TextEditingController();
-  final _licenceNumberController = TextEditingController();
-  final _taxController = TextEditingController();
-  final _addressController = TextEditingController();
-  final _contactPersonController = TextEditingController();
-  final _contactPhoneController = TextEditingController();
-  var _agreementAccepted = false;
+  Timer? _resendTimer;
+  int _resendSecondsLeft = 0;
+  final _controllers = <String, TextEditingController>{
+    for (final field in [
+      'email',
+      'password',
+      'confirmPassword',
+      'companyName',
+      'businessLicenseNo',
+      'taxCode',
+      'contactPerson',
+      'businessAddress',
+      'contactPhone',
+    ])
+      field: TextEditingController(),
+  };
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    _confirmController.dispose();
-    _companyController.dispose();
-    _licenceNumberController.dispose();
-    _taxController.dispose();
-    _addressController.dispose();
-    _contactPersonController.dispose();
-    _contactPhoneController.dispose();
+    _resendTimer?.cancel();
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return TripMateVisualTheme(
-      child: Builder(
-        builder: (context) {
-          final theme = Theme.of(context);
-          return Scaffold(
-            appBar: AppBar(title: const Text('Business Account')),
-            bottomNavigationBar: const AnchoredActionBar(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  CapabilityNote(
-                    message:
-                        'Operator application submission is not available in '
-                        'the mobile app yet.',
-                  ),
-                  SizedBox(height: AppSpacing.xs),
-                  AppButton(label: 'Submit application', onPressed: null),
-                ],
-              ),
-            ),
-            body: AppPageScaffold(
-              showAppBar: false,
-              content: [
-                SegmentedButton<UserRole>(
-                  segments: const [
-                    ButtonSegment(
-                      value: UserRole.traveler,
-                      label: Text('Traveler'),
-                    ),
-                    ButtonSegment(
-                      value: UserRole.tourOperator,
-                      label: Text('Tour Operator'),
-                    ),
-                  ],
-                  selected: const {UserRole.tourOperator},
-                  showSelectedIcon: false,
-                  onSelectionChanged: (selection) {
-                    if (selection.first == UserRole.traveler) {
-                      context.go(AppRoutes.travelerRegistration);
-                    }
-                  },
-                ),
-                const SizedBox(height: AppSpacing.md),
-                _FormCard(
-                  child: Form(
-                    key: _formKey,
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Tour Operator registration',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            color: theme.colorScheme.secondary,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xxs),
-                        Text(
-                          'Your application is reviewed by an Administrator. '
-                          'You cannot publish tours or receive bookings until '
-                          'it is approved.',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(
-                            vertical: AppSpacing.md,
-                          ),
-                          child: Divider(height: 1),
-                        ),
-                        const SectionHeader(
-                          number: 1,
-                          title: 'Account information',
-                        ),
-                        _LabeledField(
-                          label: 'Email address',
-                          icon: Icons.mail_outline,
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          validator: Validators.email,
-                        ),
-                        _LabeledField(
-                          label: 'Password',
-                          icon: Icons.lock_outline,
-                          controller: _passwordController,
-                          isPassword: true,
-                          validator: Validators.password,
-                        ),
-                        _LabeledField(
-                          label: 'Confirm password',
-                          icon: Icons.lock_reset_outlined,
-                          controller: _confirmController,
-                          isPassword: true,
-                          validator: _confirmPasswordValidator,
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        const SectionHeader(
-                          number: 2,
-                          title: 'Company & legal information',
-                        ),
-                        _LabeledField(
-                          label: 'Company name',
-                          icon: Icons.apartment_outlined,
-                          controller: _companyController,
-                          textCapitalization: TextCapitalization.words,
-                          validator: (value) => Validators.requiredField(
-                            value,
-                            fieldName: 'Company name',
-                          ),
-                        ),
-                        _LabeledField(
-                          label: 'Business licence number',
-                          icon: Icons.badge_outlined,
-                          controller: _licenceNumberController,
-                          validator: (value) => Validators.requiredField(
-                            value,
-                            fieldName: 'Business licence number',
-                          ),
-                        ),
-                        _LabeledField(
-                          label: 'Tax code',
-                          icon: Icons.receipt_long_outlined,
-                          controller: _taxController,
-                          validator: (value) => Validators.requiredField(
-                            value,
-                            fieldName: 'Tax code',
-                          ),
-                        ),
-                        _LabeledField(
-                          label: 'Business address',
-                          icon: Icons.location_on_outlined,
-                          controller: _addressController,
-                          maxLines: 2,
-                          textCapitalization: TextCapitalization.sentences,
-                          validator: (value) => Validators.requiredField(
-                            value,
-                            fieldName: 'Business address',
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        const SectionHeader(number: 3, title: 'Contact person'),
-                        _LabeledField(
-                          label: 'Contact person',
-                          icon: Icons.person_outline,
-                          controller: _contactPersonController,
-                          textCapitalization: TextCapitalization.words,
-                          validator: (value) => Validators.requiredField(
-                            value,
-                            fieldName: 'Contact person',
-                          ),
-                        ),
-                        _LabeledField(
-                          label: 'Contact phone number',
-                          icon: Icons.phone_outlined,
-                          controller: _contactPhoneController,
-                          keyboardType: TextInputType.phone,
-                          validator: (value) {
-                            final requiredError = Validators.requiredField(
-                              value,
-                              fieldName: 'Contact phone number',
-                            );
-                            return requiredError ?? Validators.phone(value);
-                          },
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        const SectionHeader(
-                          number: 4,
-                          title: 'Business documents',
-                        ),
-                        const _UnavailableDocumentZone(
-                          title: 'Business licence document',
-                          requirement: 'Required',
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        const _UnavailableDocumentZone(
-                          title: 'Supporting documents',
-                          requirement: 'Where applicable',
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        CheckboxListTile(
-                          contentPadding: EdgeInsets.zero,
-                          controlAffinity: ListTileControlAffinity.leading,
-                          value: _agreementAccepted,
-                          onChanged: (value) => setState(
-                            () => _agreementAccepted = value ?? false,
-                          ),
-                          title: Text(
-                            'I accept the Terms of Service, the Privacy Policy '
-                            'and the Partner Agreement.',
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                const OperatorReviewProcess(),
-                const SizedBox(height: AppSpacing.sm),
-                TextButton(
-                  onPressed: () => context.go(AppRoutes.login),
-                  child: const Text('Back to Sign In'),
-                ),
-                TextButton(
-                  onPressed: () => context.go(AppRoutes.travelerRegistration),
-                  child: const Text('Create traveler account instead'),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  String? _confirmPasswordValidator(String? value) {
-    final requiredError = Validators.requiredField(
-      value,
-      fieldName: 'Confirm password',
-    );
-    if (requiredError != null) {
-      return requiredError;
-    }
-    if (value != _passwordController.text) {
-      return 'Passwords do not match. Please re-enter.';
-    }
-    return null;
-  }
-}
-
-/// The white, rounded form surface from the Stitch registration design.
-class _FormCard extends StatelessWidget {
-  const _FormCard({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    const radius = BorderRadius.all(
-      Radius.circular(TripMateVisualTokens.cardRadius),
-    );
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        borderRadius: radius,
-        boxShadow: TripMateVisualTokens.cardShadow,
-      ),
-      // A Material surface so the agreement tile can draw its ink.
-      child: Material(
-        color: scheme.surfaceContainerLowest,
-        shape: RoundedRectangleBorder(
-          borderRadius: radius,
-          side: BorderSide(color: scheme.outlineVariant),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: child,
-        ),
-      ),
-    );
-  }
-}
-
-/// A required form field in the Stitch style: a label with a required marker
-/// above a 48px input with a leading icon.
-class _LabeledField extends StatefulWidget {
-  const _LabeledField({
-    required this.label,
-    required this.icon,
-    required this.controller,
-    required this.validator,
-    this.isPassword = false,
-    this.keyboardType,
-    this.maxLines = 1,
-    this.textCapitalization = TextCapitalization.none,
-  });
-
-  final TextEditingController controller;
-  final IconData icon;
-  final bool isPassword;
-  final TextInputType? keyboardType;
-  final String label;
-  final int maxLines;
-  final TextCapitalization textCapitalization;
-  final FormFieldValidator<String> validator;
-
-  @override
-  State<_LabeledField> createState() => _LabeledFieldState();
-}
-
-class _LabeledFieldState extends State<_LabeledField> {
-  var _obscured = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          FieldLabel(widget.label, isRequired: true),
-          TextFormField(
-            key: ValueKey('operator-field:${widget.label}'),
-            controller: widget.controller,
-            keyboardType: widget.keyboardType,
-            maxLines: widget.isPassword ? 1 : widget.maxLines,
-            minLines: 1,
-            obscureText: widget.isPassword && _obscured,
-            textCapitalization: widget.textCapitalization,
-            validator: widget.validator,
-            decoration: InputDecoration(
-              // Stitch inputs sit on the page surface inside the white card.
-              fillColor: Theme.of(context).colorScheme.surface,
-              prefixIcon: Icon(widget.icon, size: 20),
-              suffixIcon: widget.isPassword
-                  ? IconButton(
-                      onPressed: () => setState(() => _obscured = !_obscured),
-                      tooltip: _obscured ? 'Show password' : 'Hide password',
-                      icon: Icon(
-                        _obscured
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off,
-                        size: 20,
-                      ),
-                    )
-                  : null,
+    return BlocBuilder<RegisterOperatorCubit, RegisterOperatorState>(
+      buildWhen: (previous, current) =>
+          previous.step != current.step ||
+          previous.phase != current.phase ||
+          previous.isBusy != current.isBusy ||
+          previous.notice != current.notice ||
+          !mapEquals(previous.errors, current.errors) ||
+          previous.businessLicence != current.businessLicence ||
+          !listEquals(
+            previous.supportingDocuments,
+            current.supportingDocuments,
+          ) ||
+          previous.acceptedTerms != current.acceptedTerms ||
+          previous.emailSent != current.emailSent ||
+          previous.alreadyVerified != current.alreadyVerified ||
+          previous.resumeExistingIdentity != current.resumeExistingIdentity,
+      builder: (context, state) {
+        final content = switch (state.phase) {
+          RegisterOperatorPhase.awaitingVerification => _verificationContent(
+            state,
+          ),
+          RegisterOperatorPhase.submitted => _submittedContent(state),
+          RegisterOperatorPhase.uncertain => _uncertainContent(state),
+          RegisterOperatorPhase.editing => _wizardContent(state),
+        };
+        final footer = switch (state.phase) {
+          RegisterOperatorPhase.editing => _wizardFooter(state),
+          RegisterOperatorPhase.uncertain => _uncertainFooter(state),
+          RegisterOperatorPhase.awaitingVerification => _verificationFooter(
+            state,
+          ),
+          RegisterOperatorPhase.submitted => _submittedFooter(state),
+        };
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(
+              state.phase == RegisterOperatorPhase.awaitingVerification
+                  ? 'Verify your email'
+                  : 'Register Tour Operator',
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The Stitch document drop zone, shown in a neutral unavailable state: the
-/// upload capability does not exist yet, so there is no picker, no file and no
-/// uploaded or failed state.
-class _UnavailableDocumentZone extends StatelessWidget {
-  const _UnavailableDocumentZone({
-    required this.title,
-    required this.requirement,
-  });
-
-  final String requirement;
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return CustomPaint(
-      painter: _DashedBorderPainter(color: scheme.outline),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          children: [
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainerHigh,
-                shape: BoxShape.circle,
-              ),
-              child: SizedBox.square(
-                dimension: 44,
-                child: Icon(
-                  Icons.cloud_off_outlined,
-                  color: scheme.onSurfaceVariant,
+          body: SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: ListView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    AppSpacing.sm,
+                    AppSpacing.md,
+                    AppSpacing.lg,
+                  ),
+                  children: content,
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: scheme.secondary,
-                fontWeight: FontWeight.w700,
+          ),
+          bottomNavigationBar: SafeArea(
+            top: false,
+            child: Center(
+              heightFactor: 1,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    AppSpacing.xs,
+                    AppSpacing.md,
+                    AppSpacing.md,
+                  ),
+                  child: footer,
+                ),
               ),
             ),
-            Text(
-              requirement,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
+          ),
+        );
+      },
+    );
+  }
+
+  List<Widget> _wizardContent(RegisterOperatorState state) => [
+    Text(
+      'Complete the form, verify your email, then submit your application.',
+      style: Theme.of(context).textTheme.bodyMedium,
+    ),
+    const SizedBox(height: AppSpacing.md),
+    _StepIndicator(step: state.step),
+    const SizedBox(height: AppSpacing.lg),
+    Text(switch (state.step) {
+      0 => '1. Account',
+      1 => '2. Company',
+      _ => '3. Documents and terms',
+    }, style: Theme.of(context).textTheme.titleLarge),
+    const SizedBox(height: AppSpacing.md),
+    if (state.notice != null) ...[
+      AppAlert(message: state.notice!, type: AppAlertType.error),
+      const SizedBox(height: AppSpacing.md),
+    ],
+    ...switch (state.step) {
+      0 => _accountFields(state),
+      1 => _companyFields(state),
+      _ => _documentsFields(state),
+    },
+  ];
+
+  List<Widget> _accountFields(RegisterOperatorState state) => [
+    CheckboxListTile(
+      contentPadding: EdgeInsets.zero,
+      value: state.resumeExistingIdentity,
+      onChanged: state.isBusy
+          ? null
+          : (value) => context
+                .read<RegisterOperatorCubit>()
+                .setResumeExistingIdentity(value ?? false),
+      title: const Text('Continue an unfinished registration'),
+      subtitle: const Text(
+        'Use the same email and password. You will need to re-enter the form and choose the documents again.',
+      ),
+    ),
+    const SizedBox(height: AppSpacing.sm),
+    _textField(
+      state,
+      'email',
+      'Email address',
+      keyboardType: TextInputType.emailAddress,
+    ),
+    const SizedBox(height: AppSpacing.md),
+    _passwordField(
+      state,
+      'password',
+      'Password',
+      helperText: '8–72 characters: uppercase, lowercase, number and symbol.',
+    ),
+    const SizedBox(height: AppSpacing.md),
+    _passwordField(state, 'confirmPassword', 'Confirm password'),
+  ];
+
+  List<Widget> _companyFields(RegisterOperatorState state) => [
+    _textField(state, 'companyName', 'Company name'),
+    const SizedBox(height: AppSpacing.md),
+    _textField(
+      state,
+      'businessLicenseNo',
+      'Business licence number',
+      helperText: 'e.g. 79-0123/2026/TCDL-GPLHQT or 01-0456/2025/SDL-GPLHND',
+    ),
+    const SizedBox(height: AppSpacing.md),
+    _textField(
+      state,
+      'taxCode',
+      'Tax code',
+      helperText: '10 digits, or 10 digits-3 digits for a branch',
+    ),
+    const SizedBox(height: AppSpacing.md),
+    _textField(state, 'contactPerson', 'Contact person'),
+    const SizedBox(height: AppSpacing.md),
+    _textField(state, 'businessAddress', 'Business address (optional)'),
+    const SizedBox(height: AppSpacing.md),
+    _textField(
+      state,
+      'contactPhone',
+      'Contact phone (optional)',
+      keyboardType: TextInputType.phone,
+    ),
+  ];
+
+  List<Widget> _documentsFields(RegisterOperatorState state) => [
+    const Text('PDF, JPG or PNG; maximum 5 MB per file.'),
+    const SizedBox(height: AppSpacing.md),
+    OutlinedButton.icon(
+      onPressed: state.isBusy ? null : _pickLicence,
+      icon: const Icon(Icons.upload_file_outlined),
+      label: const Text('Choose business licence'),
+    ),
+    if (state.businessLicence != null)
+      Text(state.businessLicence!.fileName, overflow: TextOverflow.ellipsis),
+    _inlineError(state, 'businessLicenseDocument'),
+    const SizedBox(height: AppSpacing.md),
+    OutlinedButton.icon(
+      onPressed: state.isBusy ? null : _pickSupporting,
+      icon: const Icon(Icons.attach_file_outlined),
+      label: const Text('Choose supporting documents (optional, up to 5)'),
+    ),
+    if (state.supportingDocuments.isNotEmpty)
+      ...state.supportingDocuments.map(
+        (file) => Text(file.fileName, overflow: TextOverflow.ellipsis),
+      ),
+    _inlineError(state, 'supportingDocuments'),
+    const SizedBox(height: AppSpacing.md),
+    CheckboxListTile(
+      contentPadding: EdgeInsets.zero,
+      controlAffinity: ListTileControlAffinity.leading,
+      value: state.acceptedTerms,
+      onChanged: state.isBusy
+          ? null
+          : (accepted) => context
+                .read<RegisterOperatorCubit>()
+                .setAcceptedTerms(accepted ?? false),
+      title: const Text(
+        'I accept the Terms of Service, Privacy Policy and Partner Agreement.',
+      ),
+    ),
+    _inlineError(state, 'acceptTerms'),
+    const SizedBox(height: AppSpacing.sm),
+    const AppAlert(
+      message:
+          'Your application is sent only after you verify the email. After submission it remains Pending Approval until an administrator reviews it.',
+    ),
+  ];
+
+  Widget _textField(
+    RegisterOperatorState state,
+    String key,
+    String label, {
+    TextInputType? keyboardType,
+    String? helperText,
+  }) => AppTextField(
+    controller: _controllers[key],
+    label: label,
+    keyboardType: keyboardType,
+    helperText: helperText,
+    enabled: !state.isBusy,
+    errorText: state.errors[key],
+    textInputAction: TextInputAction.next,
+    onChanged: (value) {
+      // Vietnamese IMEs may replace their composing range on the next keystroke.
+      // Clearing a validation error would rebuild this field mid-composition.
+      final composing = _controllers[key]!.value.composing;
+      if (composing.isValid && !composing.isCollapsed) return;
+      context.read<RegisterOperatorCubit>().updateField(key, value);
+    },
+  );
+
+  void _commitVisibleFields() {
+    final cubit = context.read<RegisterOperatorCubit>();
+    final keys = cubit.state.step == 0
+        ? const ['email', 'password', 'confirmPassword']
+        : const [
+            'companyName',
+            'businessLicenseNo',
+            'taxCode',
+            'contactPerson',
+            'businessAddress',
+            'contactPhone',
+          ];
+    for (final key in keys) {
+      final value = _controllers[key]!.text;
+      if (cubit.state.values[key] != value) cubit.updateField(key, value);
+    }
+  }
+
+  void _nextStep() {
+    _commitVisibleFields();
+    context.read<RegisterOperatorCubit>().next();
+  }
+
+  void _previousStep() {
+    _commitVisibleFields();
+    context.read<RegisterOperatorCubit>().back();
+  }
+
+  Widget _passwordField(
+    RegisterOperatorState state,
+    String key,
+    String label, {
+    String? helperText,
+  }) => AppPasswordField(
+    controller: _controllers[key]!,
+    label: label,
+    enabled: !state.isBusy,
+    errorText: state.errors[key],
+    helperText: helperText,
+    onChanged: (value) =>
+        context.read<RegisterOperatorCubit>().updateField(key, value),
+  );
+
+  Widget _inlineError(RegisterOperatorState state, String key) {
+    final message = state.errors[key];
+    if (message == null) return const SizedBox.shrink();
+    return Text(
+      message,
+      style: TextStyle(color: Theme.of(context).colorScheme.error),
+    );
+  }
+
+  Widget _wizardFooter(RegisterOperatorState state) {
+    final cubit = context.read<RegisterOperatorCubit>();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (state.isBusy) const Center(child: CircularProgressIndicator()),
+        Row(
+          children: [
+            if (state.step > 0) ...[
+              OutlinedButton(
+                onPressed: state.isBusy ? null : _previousStep,
+                child: const Text('Back'),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+            ],
+            Expanded(
+              child: FilledButton(
+                onPressed: state.isBusy
+                    ? null
+                    : state.step == 2
+                    ? cubit.submit
+                    : _nextStep,
+                child: Text(state.step == 2 ? 'Verify email first' : 'Next'),
               ),
             ),
-            const SizedBox(height: AppSpacing.xxs),
-            Text(
-              "Document upload isn't available in the app yet.",
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            const StatusBadge(label: 'Unavailable'),
           ],
         ),
+        if (state.step == 0)
+          TextButton(
+            onPressed: state.isBusy ? null : () => context.go(AppRoutes.login),
+            child: const Text('Back to Sign In'),
+          ),
+        if (state.step == 0)
+          TextButton(
+            onPressed: state.isBusy
+                ? null
+                : () => context.push(AppRoutes.operatorEmailRecovery),
+            child: const Text('Already submitted? Finish email verification'),
+          ),
+      ],
+    );
+  }
+
+  List<Widget> _uncertainContent(RegisterOperatorState state) => [
+    const AppAlert(
+      title: 'Registration status unknown',
+      message:
+          'The server may already have saved your application. Keep this Firebase account and do not submit a new registration automatically.',
+      type: AppAlertType.warning,
+    ),
+    if (state.notice != null) ...[
+      const SizedBox(height: AppSpacing.md),
+      AppAlert(message: state.notice!, type: AppAlertType.info),
+    ],
+  ];
+
+  Widget _uncertainFooter(RegisterOperatorState state) {
+    final cubit = context.read<RegisterOperatorCubit>();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (state.isBusy) const Center(child: CircularProgressIndicator()),
+        if (state.canRetryOriginal)
+          FilledButton(
+            onPressed: state.isBusy ? null : cubit.retryUnknownOutcome,
+            child: const Text('Retry original request with same account'),
+          ),
+        TextButton(
+          onPressed: state.isBusy
+              ? null
+              : () => context.push(
+                  AppRoutes.operatorEmailRecovery,
+                  extra: state.values['email'],
+                ),
+          child: const Text('Already submitted? Finish email confirmation'),
+        ),
+        TextButton(
+          onPressed: state.isBusy ? null : () => context.go(AppRoutes.login),
+          child: const Text('Sign In'),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _verificationContent(RegisterOperatorState state) => [
+    const SizedBox(height: AppSpacing.xl),
+    Icon(
+      Icons.mark_email_unread_outlined,
+      size: 64,
+      color: Theme.of(context).colorScheme.primary,
+    ),
+    const SizedBox(height: AppSpacing.md),
+    Text(
+      state.alreadyVerified ? 'Email verified' : 'Check your email',
+      textAlign: TextAlign.center,
+      style: Theme.of(context).textTheme.headlineSmall,
+    ),
+    const SizedBox(height: AppSpacing.sm),
+    Text(
+      state.alreadyVerified
+          ? 'Your email is verified. Review your details and submit the application below.'
+          : 'Open the verification link, then return here to submit your application. No application has been sent yet.',
+      textAlign: TextAlign.center,
+    ),
+    if (_maskedEmail(state.values['email']) case final maskedEmail?) ...[
+      const SizedBox(height: AppSpacing.md),
+      Center(
+        child: Chip(
+          avatar: const Icon(Icons.mail_outline, size: 18),
+          label: Text(maskedEmail),
+        ),
+      ),
+    ],
+    const SizedBox(height: AppSpacing.lg),
+    const AppAlert(
+      title: 'Application not submitted yet',
+      message:
+          'Keep this app open until you submit. If you leave, continue with the same email and password and select the documents again.',
+      type: AppAlertType.info,
+    ),
+    if (state.notice != null) ...[
+      const SizedBox(height: AppSpacing.md),
+      AppAlert(
+        message: state.notice!,
+        type:
+            state.notice ==
+                    'Verification email sent. Please check your inbox.' ||
+                state.notice?.startsWith('Your email is already verified') ==
+                    true
+            ? AppAlertType.info
+            : AppAlertType.warning,
+      ),
+    ],
+  ];
+
+  Widget _verificationFooter(RegisterOperatorState state) {
+    final cubit = context.read<RegisterOperatorCubit>();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (state.isBusy) const Center(child: CircularProgressIndicator()),
+        if (!state.alreadyVerified)
+          OutlinedButton(
+            onPressed: state.isBusy || _resendSecondsLeft > 0
+                ? null
+                : _resendVerificationEmail,
+            child: Text(
+              _resendSecondsLeft > 0
+                  ? 'Resend in ${_resendSecondsLeft}s'
+                  : 'Resend verification email',
+            ),
+          ),
+        FilledButton(
+          onPressed: state.isBusy ? null : cubit.confirmVerifiedEmail,
+          child: Text(
+            state.alreadyVerified
+                ? 'Submit application'
+                : 'I verified my email — submit application',
+          ),
+        ),
+        TextButton(
+          onPressed: state.isBusy ? null : () => context.go(AppRoutes.login),
+          child: const Text('Sign In'),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _submittedContent(RegisterOperatorState state) => [
+    const SizedBox(height: AppSpacing.xl),
+    Icon(
+      Icons.task_alt_outlined,
+      size: 64,
+      color: Theme.of(context).colorScheme.primary,
+    ),
+    const SizedBox(height: AppSpacing.md),
+    Text(
+      'Application submitted',
+      textAlign: TextAlign.center,
+      style: Theme.of(context).textTheme.headlineSmall,
+    ),
+    const SizedBox(height: AppSpacing.md),
+    const AppAlert(
+      title: 'Pending Approval',
+      message:
+          'An administrator must review your application before you can publish tours or receive bookings.',
+      type: AppAlertType.success,
+    ),
+    if (state.notice != null) ...[
+      const SizedBox(height: AppSpacing.md),
+      AppAlert(message: state.notice!, type: AppAlertType.warning),
+    ],
+  ];
+
+  Widget _submittedFooter(RegisterOperatorState state) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      if (state.outcome?.verificationSynced == false)
+        TextButton(
+          onPressed: () => context.push(
+            AppRoutes.operatorEmailRecovery,
+            extra: state.values['email'],
+          ),
+          child: const Text('Finish email confirmation'),
+        ),
+      TextButton(
+        onPressed: () => context.go(AppRoutes.login),
+        child: const Text('Sign In'),
+      ),
+    ],
+  );
+
+  String? _maskedEmail(String? email) {
+    if (email == null) return null;
+    final separator = email.indexOf('@');
+    if (separator <= 0 || separator == email.length - 1) return null;
+    return '${email[0]}***${email.substring(separator)}';
+  }
+
+  Future<void> _resendVerificationEmail() async {
+    await context.read<RegisterOperatorCubit>().resendEmail();
+    if (!mounted) return;
+    if (context.read<RegisterOperatorCubit>().state.notice !=
+        'Verification email sent. Please check your inbox.') {
+      return;
+    }
+    _resendTimer?.cancel();
+    setState(() => _resendSecondsLeft = 60);
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_resendSecondsLeft <= 1) {
+        timer.cancel();
+        setState(() => _resendSecondsLeft = 0);
+      } else {
+        setState(() => _resendSecondsLeft--);
+      }
+    });
+  }
+
+  Future<void> _pickLicence() async {
+    try {
+      final files = await widget.documentPicker.pick(multiple: false);
+      if (!mounted || files == null || files.isEmpty) return;
+      context.read<RegisterOperatorCubit>().setBusinessLicence(files.first);
+    } catch (_) {
+      _showPickerError();
+    }
+  }
+
+  Future<void> _pickSupporting() async {
+    try {
+      final files = await widget.documentPicker.pick(multiple: true);
+      if (!mounted || files == null) return;
+      context.read<RegisterOperatorCubit>().setSupportingDocuments(files);
+    } catch (_) {
+      _showPickerError();
+    }
+  }
+
+  void _showPickerError() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Could not read the selected file. Please try again.'),
       ),
     );
   }
 }
 
-class _DashedBorderPainter extends CustomPainter {
-  const _DashedBorderPainter({required this.color});
-
-  final Color color;
+class _StepIndicator extends StatelessWidget {
+  const _StepIndicator({required this.step});
+  final int step;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-    final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Offset.zero & size,
-          const Radius.circular(TripMateVisualTokens.cardRadius),
+  Widget build(BuildContext context) => Row(
+    children: List.generate(
+      3,
+      (index) => Expanded(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
+          child: Semantics(
+            label:
+                'Step ${index + 1} of 3: ${['Account', 'Company', 'Documents'][index]}${index == step ? ', current' : ''}',
+            child: LinearProgressIndicator(
+              value: index <= step ? 1 : 0,
+              minHeight: 6,
+              borderRadius: BorderRadius.circular(AppSpacing.xs),
+            ),
+          ),
         ),
-      );
-    for (final metric in path.computeMetrics()) {
-      for (var d = 0.0; d < metric.length; d += 10) {
-        canvas.drawPath(metric.extractPath(d, d + 6), paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedBorderPainter oldDelegate) =>
-      oldDelegate.color != color;
+      ),
+    ),
+  );
 }

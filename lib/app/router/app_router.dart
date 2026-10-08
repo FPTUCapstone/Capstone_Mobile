@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -10,12 +11,18 @@ import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/cubit/password_recovery_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/pages/password_recovery_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_email_recovery_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_operator_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/login_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/operator_application_page.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/pages/operator_email_recovery_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/operator_registration_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/splash_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/traveler_registration_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/verify_email_page.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/services/operator_document_picker.dart';
+import 'package:trip_mate_mobile/features/coupon/presentation/cubit/create_coupon_cubit.dart';
+import 'package:trip_mate_mobile/features/coupon/presentation/pages/create_coupon_page.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
@@ -23,6 +30,7 @@ import 'package:trip_mate_mobile/features/poi/presentation/pages/poi_detail_page
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/pages/tour_search_page.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_cubit.dart';
@@ -32,18 +40,22 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/itinerary_
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/poi_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/active_trip_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_itinerary_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_travel_group_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/group_location_sharing_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/invite_group_members_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_detail_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_result_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/join_travel_group_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/offline_trip_package_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_details_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_members_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_preferences_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_profile_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_settings_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_shell_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/trip_alerts_page.dart';
 import 'package:trip_mate_mobile/shared/widgets/error_view.dart';
 
 GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
@@ -86,7 +98,22 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
       GoRoute(
         path: AppRoutes.operatorRegistration,
         name: AppRouteNames.operatorRegistration,
-        builder: (_, _) => const OperatorRegistrationPage(),
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<RegisterOperatorCubit>(),
+          child: OperatorRegistrationPage(
+            documentPicker: serviceLocator<OperatorDocumentPicker>(),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.operatorEmailRecovery,
+        name: AppRouteNames.operatorEmailRecovery,
+        builder: (_, state) => BlocProvider(
+          create: (_) => serviceLocator<OperatorEmailRecoveryCubit>(),
+          child: OperatorEmailRecoveryPage(
+            email: state.extra is String ? state.extra as String : null,
+          ),
+        ),
       ),
       GoRoute(
         path: AppRoutes.explore,
@@ -203,10 +230,17 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
       GoRoute(
         path: AppRoutes.joinTravelGroup,
         name: AppRouteNames.joinTravelGroup,
-        builder: (_, _) => BlocProvider(
-          create: (_) => JoinTravelGroupCubit(repository: serviceLocator()),
-          child: const JoinTravelGroupPage(),
-        ),
+        builder: (_, state) {
+          final isDemoMode =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          return BlocProvider(
+            create: (_) => JoinTravelGroupCubit(
+              repository: serviceLocator(),
+              isDemoMode: isDemoMode,
+            ),
+            child: JoinTravelGroupPage(isDemoMode: isDemoMode),
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.travelGroupDetails,
@@ -260,9 +294,115 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         },
       ),
       GoRoute(
+        path: AppRoutes.groupLocationSharing,
+        name: AppRouteNames.groupLocationSharing,
+        builder: (_, state) {
+          final groupId = int.tryParse(state.pathParameters['groupId'] ?? '');
+          if (groupId == null || groupId <= 0) {
+            return const ErrorView(message: 'Page not found.');
+          }
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final groupName = switch (state.extra) {
+            String name when name.trim().isNotEmpty => name.trim(),
+            TravelGroup group when group.name.trim().isNotEmpty =>
+              group.name.trim(),
+            _ => null,
+          };
+          return GroupLocationSharingPage(
+            groupId: groupId,
+            groupName: groupName,
+            isDemoMode: isDemo,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.activeTripLivePattern,
+        name: AppRouteNames.activeTripLive,
+        builder: (_, state) {
+          final itineraryId = int.tryParse(
+            state.pathParameters['itineraryId'] ?? '',
+          );
+          if (itineraryId == null || itineraryId <= 0) {
+            return const ErrorView(message: 'Page not found.');
+          }
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final extraTitle = switch (state.extra) {
+            String title when title.trim().isNotEmpty => title.trim(),
+            GeneratedItinerary it when it.title.trim().isNotEmpty =>
+              it.title.trim(),
+            ItineraryDetail d when (d.title?.trim().isNotEmpty ?? false) =>
+              d.title!.trim(),
+            _ => null,
+          };
+          final title = isDemo
+              ? (extraTitle ?? 'Đà Nẵng Day Trip')
+              : extraTitle;
+          return ActiveTripPage(
+            itineraryId: itineraryId,
+            title: title,
+            isDemoMode: isDemo,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.tripAlertsPattern,
+        name: AppRouteNames.tripAlerts,
+        builder: (_, state) {
+          final itineraryId = int.tryParse(
+            state.pathParameters['itineraryId'] ?? '',
+          );
+          if (itineraryId == null || itineraryId <= 0) {
+            return const ErrorView(message: 'Page not found.');
+          }
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          return TripAlertsPage(itineraryId: itineraryId, isDemoMode: isDemo);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.offlinePackagePattern,
+        name: AppRouteNames.offlinePackage,
+        builder: (_, state) {
+          final itineraryId = int.tryParse(
+            state.pathParameters['itineraryId'] ?? '',
+          );
+          if (itineraryId == null || itineraryId <= 0) {
+            return const ErrorView(message: 'Page not found.');
+          }
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final extraTitle = switch (state.extra) {
+            String title when title.trim().isNotEmpty => title.trim(),
+            GeneratedItinerary it when it.title.trim().isNotEmpty =>
+              it.title.trim(),
+            ItineraryDetail d when (d.title?.trim().isNotEmpty ?? false) =>
+              d.title!.trim(),
+            _ => null,
+          };
+          final title = isDemo
+              ? (extraTitle ?? 'Đà Nẵng City Explorer')
+              : extraTitle;
+          return OfflineTripPackagePage(
+            itineraryId: itineraryId,
+            title: title,
+            isDemoMode: isDemo,
+          );
+        },
+      ),
+      GoRoute(
         path: AppRoutes.operator,
         name: AppRouteNames.operator,
         builder: (_, _) => const OperatorShellPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.createCoupon,
+        name: AppRouteNames.createCoupon,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<CreateCouponCubit>(),
+          child: const CreateCouponPage(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.operatorApplication,

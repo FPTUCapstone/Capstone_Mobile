@@ -32,60 +32,74 @@ class TourListCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Title ──────────────────────────────────────────────
-              Text(
-                tour.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: TourSearchPalette.navy,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xxs),
-
-              // ── Destinations ───────────────────────────────────────
-              if (tour.destinations.isNotEmpty)
-                Text(
-                  tour.destinations.join(' • '),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: TourSearchPalette.muted,
-                  ),
-                ),
-              const SizedBox(height: AppSpacing.xs),
-
-              // ── Operator & Duration ────────────────────────────────
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.business_outlined,
-                    size: 16,
-                    color: TourSearchPalette.muted,
-                  ),
-                  const SizedBox(width: AppSpacing.xxs),
-                  Flexible(
-                    child: Text(
-                      tour.operatorName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: TourSearchPalette.navyLight,
-                      ),
-                    ),
-                  ),
+                  _TourThumbnail(tour: tour),
                   const SizedBox(width: AppSpacing.sm),
-                  Icon(
-                    Icons.schedule_outlined,
-                    size: 16,
-                    color: TourSearchPalette.muted,
-                  ),
-                  const SizedBox(width: AppSpacing.xxs),
-                  Text(
-                    '${tour.durationDays} ngày',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: TourSearchPalette.navyLight,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ── Title ──────────────────────────────────────────────
+                        Text(
+                          tour.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: TourSearchPalette.navy,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xxs),
+
+                        // ── Destinations ───────────────────────────────────────
+                        if (tour.destinations.isNotEmpty)
+                          Text(
+                            tour.destinations.join(' • '),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: TourSearchPalette.muted,
+                            ),
+                          ),
+                        const SizedBox(height: AppSpacing.xs),
+
+                        // ── Operator & Duration ────────────────────────────────
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.business_outlined,
+                              size: 16,
+                              color: TourSearchPalette.muted,
+                            ),
+                            const SizedBox(width: AppSpacing.xxs),
+                            Flexible(
+                              child: Text(
+                                tour.operatorName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: TourSearchPalette.navyLight,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            const Icon(
+                              Icons.schedule_outlined,
+                              size: 16,
+                              color: TourSearchPalette.muted,
+                            ),
+                            const SizedBox(width: AppSpacing.xxs),
+                            Text(
+                              '${tour.durationDays} ngày',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: TourSearchPalette.navyLight,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -216,5 +230,62 @@ class _AvailabilityBadge extends StatelessWidget {
       parts.add('$day/$month/${vn.year}');
     }
     return parts.isEmpty ? 'Có chỗ' : parts.join(' • ');
+  }
+}
+
+class _TourThumbnail extends StatelessWidget {
+  const _TourThumbnail({required this.tour});
+
+  final TourSummary tour;
+
+  @override
+  Widget build(BuildContext context) {
+    final rawUrl = tour.thumbnailUrl?.trim();
+    final hasValidUrl = rawUrl != null && rawUrl.isNotEmpty;
+
+    return Container(
+      key: Key('tour-thumbnail-${tour.tourId}'),
+      width: 108,
+      height: 108,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: TourSearchPalette.cardBorder),
+      ),
+      child: hasValidUrl
+          ? Image.network(
+              rawUrl,
+              fit: BoxFit.cover,
+              semanticLabel: 'Ảnh ${tour.title}',
+              errorBuilder: (_, _, _) => const _NeutralThumbnailPlaceholder(),
+              loadingBuilder: (_, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return const _NeutralThumbnailPlaceholder();
+              },
+            )
+          : const _NeutralThumbnailPlaceholder(),
+    );
+  }
+}
+
+class _NeutralThumbnailPlaceholder extends StatelessWidget {
+  const _NeutralThumbnailPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const ExcludeSemantics(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF1F5F9), Color(0xFFE2E8F0)],
+          ),
+        ),
+        child: Center(
+          child: Icon(Icons.image_outlined, size: 34, color: Color(0xFF94A3B8)),
+        ),
+      ),
+    );
   }
 }
