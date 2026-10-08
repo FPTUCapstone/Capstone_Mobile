@@ -128,6 +128,25 @@ final class TripHistoryCubit extends Cubit<TripHistoryState> {
     await _fetchTrips();
   }
 
+  Future<void> refresh({TripStatus? tab}) async {
+    // In production mode, do NOT issue requests when pending integration.
+    if (state.isPendingIntegration) return;
+
+    final targetTab = tab ?? state.selectedTab;
+    final tabChanged = targetTab != state.selectedTab;
+
+    emit(
+      state.copyWith(
+        selectedTab: targetTab,
+        page: tabChanged ? 1 : state.page,
+        status: TripHistoryStatus.loading,
+        errorMessage: () => null,
+      ),
+    );
+
+    await _fetchTrips();
+  }
+
   Future<void> retry() async {
     // In production mode, do NOT retry an endpoint that does not exist.
     if (state.isPendingIntegration) return;
