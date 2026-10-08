@@ -7,12 +7,10 @@ import 'package:trip_mate_mobile/app/router/create_travel_group_route_args.dart'
 import 'package:trip_mate_mobile/app/router/route_guards.dart';
 import 'package:trip_mate_mobile/app/router/travel_group_details_route_args.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
-import 'package:trip_mate_mobile/features/auth/domain/entities/tour_operator_application_status.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/cubit/password_recovery_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/pages/password_recovery_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
-import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_application_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_email_recovery_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_operator_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/login_page.dart';
@@ -42,7 +40,6 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/itinerary_
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/poi_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_cubit.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/active_trip_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_itinerary_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_travel_group_page.dart';
@@ -166,10 +163,7 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
       GoRoute(
         path: AppRoutes.travelerPreferences,
         name: AppRouteNames.travelerPreferences,
-        builder: (_, _) => BlocProvider(
-          create: (_) => TravelPreferencesCubit(),
-          child: const TravelPreferencesPage(),
-        ),
+        builder: (_, _) => const TravelPreferencesPage(),
       ),
       GoRoute(
         path: AppRoutes.createItinerary,
@@ -413,18 +407,7 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
       GoRoute(
         path: AppRoutes.operatorApplication,
         name: AppRouteNames.operatorApplication,
-        builder: (_, state) => BlocProvider(
-          create: (_) => OperatorApplicationCubit(
-            initialStatus: switch (sessionCubit.state.applicationStatus) {
-              TourOperatorApplicationStatus.pendingApproval =>
-                OperatorApplicationStatus.pending,
-              TourOperatorApplicationStatus.rejected =>
-                OperatorApplicationStatus.rejected,
-              _ => OperatorApplicationStatus.unresolved,
-            },
-          ),
-          child: const OperatorApplicationPage(),
-        ),
+        builder: (_, _) => const OperatorApplicationPage(),
       ),
     ],
     errorBuilder: (_, state) => Scaffold(

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/core/constants/app_constants.dart';
 import 'package:trip_mate_mobile/core/error/exceptions.dart';
@@ -11,6 +13,44 @@ import 'package:trip_mate_mobile/features/auth/domain/services/auth_identity_ser
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
 
 enum _MobileRoleSupport { supported, administratorUnsupported, unknown }
+
+/// The restore gate could not be proven closed before a new session was
+/// persisted, so persisting would risk a restorable mixed-account session.
+final class _SessionPersistenceException implements Exception {
+  const _SessionPersistenceException();
+}
+
+/// Account data restored only when it is proven to belong to the persisted
+/// session owner.
+typedef _OwnedSnapshot = ({
+  TourOperatorApplicationStatus applicationStatus,
+  String? fullName,
+  String? email,
+});
+
+/// Every persisted session key, restore gate first so a partial cleanup always
+/// removes restorability before anything else.
+const _sessionKeys = [
+  AppConstants.keepSignedInKey,
+  AppConstants.accessTokenKey,
+  AppConstants.refreshTokenKey,
+  AppConstants.sessionRoleKey,
+  AppConstants.sessionUserIdKey,
+  AppConstants.sessionOwnerSnapshotKey,
+  AppConstants.sessionApplicationStatusKey,
+  AppConstants.sessionFullNameKey,
+  AppConstants.sessionEmailKey,
+];
+
+/// Owner data that must never outlive a session switch: the bound snapshot,
+/// its owner id and the legacy unbound keys.
+const _ownerDataKeys = [
+  AppConstants.sessionOwnerSnapshotKey,
+  AppConstants.sessionUserIdKey,
+  AppConstants.sessionApplicationStatusKey,
+  AppConstants.sessionFullNameKey,
+  AppConstants.sessionEmailKey,
+];
 
 final class AuthSessionCubit extends Cubit<AuthSessionState> {
   AuthSessionCubit([
@@ -39,11 +79,15 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
 
     final role = state.role!;
     final applicationStatus = state.applicationStatus;
+    final fullName = state.fullName;
+    final email = state.email;
     emit(
       AuthSessionState.authenticated(
         role,
         applicationStatus: applicationStatus,
         operation: AuthSessionOperation.signOut,
+        fullName: fullName,
+        email: email,
       ),
     );
 
@@ -69,6 +113,8 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
             AuthSessionState.authenticated(
               role,
               applicationStatus: applicationStatus,
+              fullName: fullName,
+              email: email,
             ),
           );
         }
@@ -88,6 +134,8 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
           role,
           applicationStatus: applicationStatus,
           errorMessage: signOutLocalCleanupFailureMessage,
+          fullName: fullName,
+          email: email,
         ),
       );
       return;
@@ -137,13 +185,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
   /// remaining best-effort deletions.
   Future<void> _attemptLocalInvalidation(SecureStorageService storage) async {
     await _invalidateRestoreGate(storage);
-    for (final key in [
-      AppConstants.accessTokenKey,
-      AppConstants.refreshTokenKey,
-      AppConstants.sessionRoleKey,
-      AppConstants.sessionApplicationStatusKey,
-      AppConstants.keepSignedInKey,
-    ]) {
+    for (final key in [..._sessionKeys.skip(1), AppConstants.keepSignedInKey]) {
       try {
         await storage.delete(key);
       } catch (_) {
@@ -229,24 +271,79 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     );
 
     if (role != null) {
-      // Provisional restore: replays the backend-issued identity persisted at
-      // sign-in. This is not proof the access token is still server-valid; a
-      // later 401 clears it.
-      final storedApplicationStatus = await storage.read(
-        AppConstants.sessionApplicationStatusKey,
-      );
+      // Provisional restore: replays the backend-issued account data persisted
+      // at sign-in. This is not proof the access token is still server-valid; a
+      // later 401 clears it. Account data (identity and Tour Operator
+      // application status) is restored only from the owner snapshot bound to
+      // the persisted session owner; anything unproven stays absent.
+      final owned = await _readOwnedSnapshot(storage, role);
       emit(
         AuthSessionState.authenticated(
           role,
-          applicationStatus: _applicationStatusFromStorage(
-            storedApplicationStatus,
-          ),
+          applicationStatus:
+              owned?.applicationStatus ??
+              TourOperatorApplicationStatus.unresolved,
+          fullName: owned?.fullName,
+          email: owned?.email,
         ),
       );
+      await _deleteLegacyOwnerKeysBestEffort(storage);
       return;
     }
 
     await _clearStoredSessionBestEffort(storage);
+  }
+
+  /// Returns the persisted account data only when its embedded `userId` equals
+  /// the persisted session owner and its role equals the restored role. A
+  /// missing, unreadable, malformed or foreign snapshot yields null, so a
+  /// previous account's data can never be attached to the current session.
+  Future<_OwnedSnapshot?> _readOwnedSnapshot(
+    SecureStorageService storage,
+    UserRole role,
+  ) async {
+    try {
+      final ownerId = int.tryParse(
+        (await storage.read(AppConstants.sessionUserIdKey))?.trim() ?? '',
+      );
+      final raw = await storage.read(AppConstants.sessionOwnerSnapshotKey);
+      if (ownerId == null || raw == null) return null;
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) return null;
+      final snapshotUserId = decoded['userId'];
+      if (snapshotUserId is! int || snapshotUserId != ownerId) return null;
+      if (decoded['role'] != role.name) return null;
+      final applicationStatus = decoded['applicationStatus'];
+      final fullName = decoded['fullName'];
+      final email = decoded['email'];
+      return (
+        applicationStatus: _applicationStatusFromStorage(
+          applicationStatus is String ? applicationStatus : null,
+        ),
+        fullName: _cleanIdentity(fullName is String ? fullName : null),
+        email: _cleanIdentity(email is String ? email : null),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Legacy unbound account keys are never trusted; remove them so their PII
+  /// does not linger on the device.
+  Future<void> _deleteLegacyOwnerKeysBestEffort(
+    SecureStorageService storage,
+  ) async {
+    for (final key in [
+      AppConstants.sessionApplicationStatusKey,
+      AppConstants.sessionFullNameKey,
+      AppConstants.sessionEmailKey,
+    ]) {
+      try {
+        await storage.delete(key);
+      } catch (_) {
+        // Never read again, so a failed delete cannot expose the value.
+      }
+    }
   }
 
   /// Session-expiry hook for the network layer: an authenticated (non-auth-
@@ -336,7 +433,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     } on AppException catch (error) {
       if (error is ServerException &&
           error.code == 'auth.admin_google_sign_in_disabled') {
-        await _clearStoredSession(storage);
+        await _clearStoredSessionBestEffort(storage);
         emit(const AuthSessionState.failure(administratorWebOnlyMessage));
         await _bestEffortProviderSignOut();
         return;
@@ -453,7 +550,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
   }) async {
     switch (_classifyRole(response.role)) {
       case _MobileRoleSupport.administratorUnsupported:
-        await _clearStoredSession(storage);
+        await _clearStoredSessionBestEffort(storage);
         emit(const AuthSessionState.failure(administratorWebOnlyMessage));
         await _bestEffortProviderSignOut();
         return false;
@@ -468,16 +565,26 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
         final role = response.role == 'TourOperator'
             ? UserRole.tourOperator
             : UserRole.traveler;
-        await _saveSession(
-          storage,
-          response,
-          role: role,
-          keepSignedIn: keepSignedIn,
-        );
+        try {
+          await _saveSession(
+            storage,
+            response,
+            role: role,
+            keepSignedIn: keepSignedIn,
+          );
+        } catch (_) {
+          // Persistence failed before the session could be committed. Remove
+          // whatever was partially written; the caller reports a generic
+          // failure and no authenticated state is emitted.
+          await _clearStoredSessionBestEffort(storage);
+          rethrow;
+        }
         emit(
           AuthSessionState.authenticated(
             role,
             applicationStatus: response.applicationStatus,
+            fullName: _cleanIdentity(response.fullName),
+            email: _cleanIdentity(response.email),
           ),
         );
         return true;
@@ -517,41 +624,93 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     required UserRole role,
     bool keepSignedIn = true,
   }) async {
+    // 1. Close the restore gate and prove it closed before anything else is
+    //    replaced, so no interleaving of old and new keys is ever restorable.
+    await _closeRestoreGate(storage);
+
+    // 2. Drop the previous owner's account data. A failed delete is tolerated:
+    //    restore only trusts a snapshot whose userId equals the new owner id,
+    //    and a stale snapshot is overwritten below.
+    for (final key in _ownerDataKeys) {
+      try {
+        await storage.delete(key);
+      } catch (_) {
+        // Ownership binding, not this delete, protects the next restore.
+      }
+    }
+
+    // 3. Credentials and the Backend-issued owner id are required; any failure
+    //    aborts the sign-in and the caller clears the partial write.
     await storage.write(AppConstants.accessTokenKey, response.accessToken);
     await storage.write(AppConstants.refreshTokenKey, response.refreshToken);
     await storage.write(AppConstants.sessionRoleKey, role.name);
-    // Persist application status only when the backend issued one, so a
-    // Traveler session keeps the same stored shape as before.
+    await storage.write(
+      AppConstants.sessionUserIdKey,
+      response.userId.toString(),
+    );
+
+    // 4. Account data is written as one owner-bound record and read back. If it
+    //    cannot be committed and verified, the session stays usable in memory
+    //    but is never made restorable.
     final applicationStatus = response.applicationStatus;
-    if (applicationStatus != TourOperatorApplicationStatus.unresolved) {
-      await storage.write(
-        AppConstants.sessionApplicationStatusKey,
-        applicationStatus.name,
-      );
-    } else {
-      await storage.delete(AppConstants.sessionApplicationStatusKey);
+    final snapshot = jsonEncode({
+      'userId': response.userId,
+      'role': role.name,
+      'applicationStatus':
+          applicationStatus == TourOperatorApplicationStatus.unresolved
+          ? null
+          : applicationStatus.name,
+      'fullName': _cleanIdentity(response.fullName),
+      'email': _cleanIdentity(response.email),
+    });
+    var ownershipCommitted = false;
+    try {
+      await storage.write(AppConstants.sessionOwnerSnapshotKey, snapshot);
+      ownershipCommitted = await _readOwnedSnapshot(storage, role) != null;
+    } catch (_) {
+      ownershipCommitted = false;
     }
-    await storage.write(AppConstants.keepSignedInKey, keepSignedIn.toString());
+
+    // 5. Open the gate last, and only for a fully committed session.
+    if (keepSignedIn && ownershipCommitted) {
+      await storage.write(AppConstants.keepSignedInKey, 'true');
+    } else {
+      try {
+        await storage.write(AppConstants.keepSignedInKey, 'false');
+      } catch (_) {
+        // The gate is already proven closed by step 1.
+      }
+    }
   }
 
-  Future<void> _clearStoredSession(SecureStorageService storage) async {
-    await storage.delete(AppConstants.accessTokenKey);
-    await storage.delete(AppConstants.refreshTokenKey);
-    await storage.delete(AppConstants.sessionRoleKey);
-    await storage.delete(AppConstants.sessionApplicationStatusKey);
-    await storage.delete(AppConstants.keepSignedInKey);
+  /// Makes the restore gate unsatisfiable and verifies it from storage. Throws
+  /// when that cannot be proven, so a new session is never written next to a
+  /// previous session's still-open gate.
+  Future<void> _closeRestoreGate(SecureStorageService storage) async {
+    await _invalidateRestoreGate(storage);
+    final String? gate;
+    try {
+      gate = await storage.read(AppConstants.keepSignedInKey);
+    } catch (_) {
+      throw const _SessionPersistenceException();
+    }
+    if (gate == 'true') throw const _SessionPersistenceException();
   }
 
+  /// Backend-issued identity is trimmed; blank means absent. Never a fallback.
+  static String? _cleanIdentity(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
+
+  /// Clears every persisted session key. The restore gate is invalidated first
+  /// (delete, or persist 'false'), so a key that fails to delete can never
+  /// leave the discarded session restorable.
   Future<void> _clearStoredSessionBestEffort(
     SecureStorageService storage,
   ) async {
-    for (final key in [
-      AppConstants.keepSignedInKey,
-      AppConstants.sessionRoleKey,
-      AppConstants.accessTokenKey,
-      AppConstants.refreshTokenKey,
-      AppConstants.sessionApplicationStatusKey,
-    ]) {
+    await _invalidateRestoreGate(storage);
+    for (final key in _sessionKeys) {
       try {
         await storage.delete(key);
       } catch (_) {

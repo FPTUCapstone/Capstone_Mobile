@@ -60,9 +60,12 @@ Presentation -> Domain <- Data
 - **Core** contains reusable infrastructure such as Dio, storage, dependency
   injection, errors, and validation. It contains no TripMate business feature.
 
-`AuthSessionCubit` manages the app session. Some screens, including the separate
-operator application status page, remain demos; the UC-02 registration wizard
-uses its own Cubit and does not create an authenticated TripMate session.
+`AuthSessionCubit` manages the app session. Account data it persists (name,
+email, Tour Operator application status) is restored only when it is bound to
+the Backend-issued `userId` of the persisted session. The operator application
+status page shows the Backend-issued status from that session; the UC-02
+registration wizard uses its own Cubit and does not create an authenticated
+TripMate session. The app does not use a single global business-state BLoC.
 
 ## Project Structure
 
@@ -111,7 +114,6 @@ lib/
 |   |       |-- cubit/
 |   |       |   |-- auth_session_cubit.dart
 |   |       |   |-- auth_session_state.dart
-|   |       |   |-- operator_application_cubit.dart
 |   |       |   `-- password_demo_cubit.dart
 |   |       |-- demo/auth_demo_data.dart
 |   |       `-- pages/
@@ -125,7 +127,6 @@ lib/
 |   |           `-- splash_page.dart
 |   |-- tour_operator/presentation/pages/operator_shell_page.dart
 |   `-- traveler/presentation/
-|       |-- cubit/travel_preferences_cubit.dart
 |       `-- pages/
 |           |-- traveler_shell_page.dart
 |           |-- traveler_settings_page.dart
