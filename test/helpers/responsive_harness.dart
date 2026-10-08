@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -37,6 +39,8 @@ final class InMemorySecureStorage implements SecureStorageService {
   Future<void> write(String key, String value) async => values[key] = value;
 }
 
+const _harnessUserId = 1;
+
 /// Builds the REAL [AuthSessionCubit] in an authenticated state by restoring a
 /// persisted session through its production restore path. No Backend, no
 /// network: it only lets a page be rendered against a known session snapshot.
@@ -55,17 +59,17 @@ Future<AuthSessionCubit> buildSessionCubit({
       ..[AppConstants.keepSignedInKey] = 'true'
       ..[AppConstants.accessTokenKey] = 'test-access'
       ..[AppConstants.refreshTokenKey] = 'test-refresh'
-      ..[AppConstants.sessionRoleKey] = role.name;
-    if (applicationStatus != null) {
-      store.values[AppConstants.sessionApplicationStatusKey] =
-          applicationStatus.name;
-    }
-    if (fullName != null) {
-      store.values[AppConstants.sessionFullNameKey] = fullName;
-    }
-    if (email != null) {
-      store.values[AppConstants.sessionEmailKey] = email;
-    }
+      ..[AppConstants.sessionRoleKey] = role.name
+      // Account data is restored only from the snapshot bound to the
+      // persisted session owner, exactly as production persists it.
+      ..[AppConstants.sessionUserIdKey] = '$_harnessUserId'
+      ..[AppConstants.sessionOwnerSnapshotKey] = jsonEncode({
+        'userId': _harnessUserId,
+        'role': role.name,
+        'applicationStatus': applicationStatus?.name,
+        'fullName': fullName,
+        'email': email,
+      });
   }
   final cubit = AuthSessionCubit(null, store);
   addTearDown(cubit.close);
