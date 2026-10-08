@@ -2,9 +2,10 @@
 
 TripMate Mobile is the Flutter application for Travelers and Tour Operators in
 the TripMate Smart Travel Planner & Travel Services Platform. This repository
-currently contains the production-oriented application foundation plus a
-local-only Account and Authentication demo for UC-01 through UC-09. The demo
-does not contain backend integrations or production authentication.
+contains the production-oriented application foundation, several integrated
+authentication flows, and remaining local demo screens. UC-02 Tour Operator
+registration is wired to Firebase and the BE endpoint; manual end-to-end
+verification still requires a configured environment.
 
 ## Mobile Scope
 
@@ -54,15 +55,14 @@ Presentation -> Domain <- Data
   business behavior is introduced.
 - **Domain** owns framework-independent entities, repository contracts, use
   cases, and failures. It does not depend on Flutter UI or JSON DTOs.
-- **Data** will own DTOs, data sources, mappers, and repository implementations.
-  It is intentionally not populated until real feature behavior is added.
+- **Data** owns DTOs, data sources, mappers, and repository implementations for
+  integrated features.
 - **Core** contains reusable infrastructure such as Dio, storage, dependency
   injection, errors, and validation. It contains no TripMate business feature.
 
-`AuthSessionCubit` is a deliberately small local demo session, not production
-authentication. Feature-specific demo Cubits own the operator application,
-password, and travel-preference interactions; the app does not use a single
-global business-state BLoC.
+`AuthSessionCubit` manages the app session. Some screens, including the separate
+operator application status page, remain demos; the UC-02 registration wizard
+uses its own Cubit and does not create an authenticated TripMate session.
 
 ## Project Structure
 
@@ -159,7 +159,7 @@ Routes are centralized in `AppRoutes`:
 - `/` — bootstrap redirect
 - `/auth/login` — local demo sign-in
 - `/auth/register/traveler` — Traveler registration demo
-- `/auth/register/operator` — Tour Operator registration demo
+- `/auth/register/operator` — UC-02 Tour Operator registration wizard (requires the UC-02 BE branch and configured Firebase/Web verification)
 - `/auth/reset-password` — password reset demo
 - `/traveler` — Traveler navigation shell
 - `/traveler/settings` — account settings and sign-out confirmation
@@ -183,6 +183,7 @@ Configuration uses compile-time Dart defines. Defaults are safe for local setup:
 ```text
 APP_ENV=development
 API_BASE_URL=https://api.example.invalid
+WEB_VERIFICATION_ORIGIN=<web-origin-for-operator-email-verification>
 ```
 
 Supported environments are `development`, `staging`, and `production`. Supply a
@@ -191,8 +192,22 @@ real non-secret base URL per environment at run or build time:
 ```bash
 flutter run \
   --dart-define=APP_ENV=development \
-  --dart-define=API_BASE_URL=https://api.example.invalid
+  --dart-define=API_BASE_URL=https://api.example.invalid \
+  --dart-define=WEB_VERIFICATION_ORIGIN=https://your-web-origin.example
 ```
+
+UC-02 Operator registration uses `WEB_VERIFICATION_ORIGIN` to build the email
+continue URL `/verify-email?flow=operator`. Set it to the origin of the Web
+application that handles Firebase email verification (scheme, host and optional
+port only). Use HTTPS for deployed environments; local HTTP loopback is accepted
+only in development or staging. If this value is missing, Operator verification
+cannot create a continue URL and must stop safely; no placeholder Web URL is
+used. The origin is a public routing value, not a secret. Never put tokens or
+credentials in it. The UC-02 wizard selects real PDF/JPG/PNG documents and
+sends them to the BE multipart endpoint; the BE stores them in Cloudinary.
+If a POST outcome is unknown, the wizard keeps the Firebase identity and
+requires explicit same-account recovery. The separate
+`/operator/application` page remains demo UI and is not a live status view.
 
 The UC-12 category chips are disabled in production until Backend publishes an approved public category catalogue. `--dart-define=POI_CATEGORY_PREVIEW=true` is only for development preview and cannot enable production category filtering.
 
@@ -247,16 +262,16 @@ flutter build apk --debug
 
 - Implemented: application bootstrap, architecture boundaries, dependency
   injection, routing foundation, role-separated shells, shared theme/widgets,
-  networking/storage abstractions, automated tests, and the local UC-01 through
-  UC-09 mobile demo.
-- Prototype only: registration, sign-in/out, password reset/change, Traveler
-  profile/preferences, and rejected Operator resubmission use in-memory state.
-- Placeholder only: Traveler and Tour Operator features outside UC-01 through
-  UC-09.
-- Not present: production authentication, backend API endpoints, OAuth/OTP
-  integrations, document upload, or persistent demo state.
-- Planned: repository/use-case implementations, DTO mapping, session
-  restoration, backend integration, and feature-specific BLoCs/Cubits.
+  networking/storage abstractions, automated tests, and a UC-02 registration
+  wizard wired to Firebase and the BE multipart contract.
+- UC-02 integration still requires the BE feature branch, Firebase, a reachable
+  Web verification origin, SQL Server, and Cloudinary for manual end-to-end
+  evidence; the Admin application collection queue is a separate dependency.
+- Prototype only: the separate `/operator/application` status view and some
+  screens outside the UC-02 registration flow still use demo data. They are not
+  evidence that an application was saved or approved.
+- UC-02 sends selected documents to the BE multipart endpoint; the BE owns
+  Cloudinary storage. Mobile does not upload directly to Cloudinary.
 
 ## Repository
 

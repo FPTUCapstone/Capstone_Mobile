@@ -284,7 +284,7 @@ void main() {
               .having(
                 (error) => error.message,
                 'message',
-                'We could not confirm your account status. Please contact TripMate support.',
+                'We could not confirm your account status. If you recently registered, verify your email; otherwise contact TripMate support.',
               ),
         ),
       );
