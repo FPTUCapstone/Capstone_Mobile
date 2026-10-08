@@ -13,12 +13,16 @@ import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/cu
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/pages/password_recovery_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_application_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_email_recovery_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_operator_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/login_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/operator_application_page.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/pages/operator_email_recovery_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/operator_registration_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/splash_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/traveler_registration_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/verify_email_page.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/services/operator_document_picker.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/cubit/create_coupon_cubit.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/pages/create_coupon_page.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
@@ -98,10 +102,20 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         path: AppRoutes.operatorRegistration,
         name: AppRouteNames.operatorRegistration,
         builder: (_, _) => BlocProvider(
-          create: (_) => OperatorApplicationCubit(
-            initialStatus: OperatorApplicationStatus.draft,
+          create: (_) => serviceLocator<RegisterOperatorCubit>(),
+          child: OperatorRegistrationPage(
+            documentPicker: serviceLocator<OperatorDocumentPicker>(),
           ),
-          child: const OperatorRegistrationPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.operatorEmailRecovery,
+        name: AppRouteNames.operatorEmailRecovery,
+        builder: (_, state) => BlocProvider(
+          create: (_) => serviceLocator<OperatorEmailRecoveryCubit>(),
+          child: OperatorEmailRecoveryPage(
+            email: state.extra is String ? state.extra as String : null,
+          ),
         ),
       ),
       GoRoute(

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/utils/validators.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_application_cubit.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
@@ -36,9 +38,9 @@ class _OperatorApplicationPageState extends State<OperatorApplicationPage> {
     return BlocBuilder<OperatorApplicationCubit, OperatorApplicationState>(
       builder: (context, state) {
         if (state.status == OperatorApplicationStatus.unresolved) {
-          return const AppPageScaffold(
+          return AppPageScaffold(
             title: 'My Application',
-            content: [
+            content: const [
               AppAlert(
                 title: 'Application status unavailable',
                 message:
@@ -46,6 +48,7 @@ class _OperatorApplicationPageState extends State<OperatorApplicationPage> {
                 type: AppAlertType.warning,
               ),
             ],
+            footer: const _OperatorApplicationSignOut(),
           );
         }
         if (state.status == OperatorApplicationStatus.pending) {
@@ -175,6 +178,8 @@ class _OperatorApplicationPageState extends State<OperatorApplicationPage> {
                 ),
                 child: const Text('Contact TripMate support'),
               ),
+              const SizedBox(height: AppSpacing.sm),
+              const _OperatorApplicationSignOut(),
             ],
           ),
         );
@@ -229,16 +234,69 @@ class _PendingApplicationView extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.sm),
         const Text(
-          'TripMate will review the demo application. Tour publishing and bookings remain unavailable until approval.',
+          'TripMate will review your application. Tour publishing and bookings remain unavailable until approval.',
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: AppSpacing.xl),
         const AppAlert(
           message:
-              'This Pending Approval state is simulated locally. No document or company data was uploaded.',
-          type: AppAlertType.warning,
+              'You can sign out and return later to check your application status.',
         ),
       ],
+      footer: const _OperatorApplicationSignOut(),
     );
+  }
+}
+
+class _OperatorApplicationSignOut extends StatelessWidget {
+  const _OperatorApplicationSignOut();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<AuthSessionCubit, AuthSessionState>(
+      builder: (context, state) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (state.errorMessage ==
+              AuthSessionCubit.signOutLocalCleanupFailureMessage) ...[
+            AppAlert(message: state.errorMessage!, type: AppAlertType.error),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+          OutlinedButton.icon(
+            onPressed: state.operation == AuthSessionOperation.signOut
+                ? null
+                : () => _confirmSignOut(context),
+            icon: const Icon(Icons.logout),
+            label: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmSignOut(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Sign out of TripMate?'),
+        content: const Text(
+          'Your session on this device will end. Your application stays saved.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      await context.read<AuthSessionCubit>().signOut();
+    }
   }
 }

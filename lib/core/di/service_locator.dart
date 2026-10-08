@@ -14,15 +14,23 @@ import 'package:trip_mate_mobile/core/storage/preferences_service.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:trip_mate_mobile/features/auth/data/repositories/tour_operator_registration_repository_impl.dart';
 import 'package:trip_mate_mobile/features/auth/data/services/firebase_auth_service.dart';
+import 'package:trip_mate_mobile/features/auth/data/services/firebase_operator_registration_identity_service.dart';
 import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_repository.dart';
+import 'package:trip_mate_mobile/features/auth/domain/repositories/tour_operator_registration_repository.dart';
 import 'package:trip_mate_mobile/features/auth/domain/services/auth_identity_service.dart';
+import 'package:trip_mate_mobile/features/auth/domain/services/operator_registration_identity_service.dart';
+import 'package:trip_mate_mobile/features/auth/domain/usecases/register_tour_operator.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/data/datasources/password_recovery_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/data/repositories/password_recovery_repository_impl.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/domain/repositories/password_recovery_repository.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/cubit/password_recovery_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_email_recovery_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_operator_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/services/operator_document_picker.dart';
 import 'package:trip_mate_mobile/features/coupon/data/datasources/coupon_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/coupon/data/repositories/coupon_repository_impl.dart';
 import 'package:trip_mate_mobile/features/coupon/domain/repositories/coupon_repository.dart';
@@ -72,6 +80,11 @@ Future<void> configureDependencies({AppConfig? config}) async {
       () => Firebase.apps.isEmpty
           ? const UnavailableFirebaseAuthService()
           : FirebaseAuthServiceImpl(FirebaseAuth.instance, serviceLocator()),
+    )
+    ..registerLazySingleton<OperatorRegistrationIdentityService>(
+      () => Firebase.apps.isEmpty
+          ? const UnavailableOperatorRegistrationIdentityService()
+          : FirebaseOperatorRegistrationIdentityService(FirebaseAuth.instance),
     )
     ..registerLazySingleton<NetworkInfo>(
       () => ConnectivityNetworkInfo(serviceLocator()),
@@ -128,6 +141,26 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerLazySingleton<AuthRepository>(
       () => AuthRepositoryImpl(serviceLocator()),
+    )
+    ..registerLazySingleton<TourOperatorRegistrationRepository>(
+      () => TourOperatorRegistrationRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<RegisterTourOperator>(
+      () => RegisterTourOperator(
+        repository: serviceLocator(),
+        identityService: serviceLocator(),
+        verificationContinueUrl:
+            serviceLocator<AppConfig>().requireOperatorVerificationContinueUrl,
+      ),
+    )
+    ..registerLazySingleton<OperatorDocumentPicker>(
+      FilePickerOperatorDocumentPicker.new,
+    )
+    ..registerFactory<RegisterOperatorCubit>(
+      () => RegisterOperatorCubit(serviceLocator()),
+    )
+    ..registerFactory<OperatorEmailRecoveryCubit>(
+      () => OperatorEmailRecoveryCubit(serviceLocator()),
     )
     ..registerLazySingleton<PasswordRecoveryRemoteDataSource>(
       () => PasswordRecoveryRemoteDataSourceImpl(serviceLocator()),

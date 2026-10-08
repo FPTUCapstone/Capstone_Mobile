@@ -109,10 +109,24 @@ void main() {
     tester,
   ) async {
     final cubit = OperatorApplicationCubit();
+    final session = AuthSessionCubit(
+      null,
+      _MemoryStorage({
+        AppConstants.accessTokenKey: 'access',
+        AppConstants.refreshTokenKey: 'refresh',
+        AppConstants.sessionRoleKey: 'tourOperator',
+        AppConstants.keepSignedInKey: 'true',
+      }),
+    );
     addTearDown(cubit.close);
+    addTearDown(session.close);
+    await session.restoreSession();
     await tester.pumpWidget(
-      BlocProvider<OperatorApplicationCubit>.value(
-        value: cubit,
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<OperatorApplicationCubit>.value(value: cubit),
+          BlocProvider<AuthSessionCubit>.value(value: session),
+        ],
         child: _page(const OperatorApplicationPage()),
       ),
     );
@@ -166,6 +180,55 @@ void main() {
     expect(find.text('REJECTED'), findsNothing);
     expect(find.text('PENDING APPROVAL'), findsOneWidget);
     expect(find.text('Application submitted'), findsOneWidget);
+  });
+
+  testWidgets('pending Operator can sign out after confirmation', (
+    tester,
+  ) async {
+    final storage = _MemoryStorage({
+      AppConstants.accessTokenKey: 'access',
+      AppConstants.refreshTokenKey: 'refresh',
+      AppConstants.sessionRoleKey: 'tourOperator',
+      AppConstants.sessionApplicationStatusKey: 'pendingApproval',
+      AppConstants.keepSignedInKey: 'true',
+    });
+    final session = AuthSessionCubit(null, storage);
+    final application = OperatorApplicationCubit(
+      initialStatus: OperatorApplicationStatus.pending,
+    );
+    addTearDown(session.close);
+    addTearDown(application.close);
+    await session.restoreSession();
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<AuthSessionCubit>.value(value: session),
+          BlocProvider<OperatorApplicationCubit>.value(value: application),
+        ],
+        child: _page(const OperatorApplicationPage()),
+      ),
+    );
+
+    expect(find.text('PENDING APPROVAL'), findsOneWidget);
+    expect(find.textContaining('simulated locally'), findsNothing);
+    await _tapVisible(tester, find.text('Sign out'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sign out of TripMate?'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(session.state.isAuthenticated, isTrue);
+
+    await _tapVisible(tester, find.text('Sign out'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Sign out'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(session.state.isAuthenticated, isFalse);
+    expect(storage.values.containsKey(AppConstants.accessTokenKey), isFalse);
   });
 
   // --- UC-05 BR-13: failed backend revocation still completes local logout.
@@ -235,6 +298,41 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Password recovery destination'), findsOneWidget);
+  });
+
+  testWidgets('login does not show the old Operator verification shortcut', (
+    tester,
+  ) async {
+    final session = AuthSessionCubit();
+    addTearDown(session.close);
+    final router = GoRouter(
+      initialLocation: AppRoutes.login,
+      routes: [
+        GoRoute(path: AppRoutes.login, builder: (_, _) => const LoginPage()),
+        GoRoute(
+          path: AppRoutes.operatorEmailRecovery,
+          builder: (_, state) => Scaffold(body: Text('Verify ${state.extra}')),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      BlocProvider<AuthSessionCubit>.value(
+        value: session,
+        child: MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+      ),
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Email address'),
+      'operator@example.com',
+    );
+    await tester.scrollUntilVisible(
+      find.text('Create an account'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Tour Operator: finish email verification'), findsNothing);
   });
 
   testWidgets('login renders a password-reset success notice', (tester) async {
