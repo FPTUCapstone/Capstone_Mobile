@@ -1,4 +1,6 @@
-# 11 — Open PR and Review Register (revision 2026-10-08)
+# 11 — Open PR and Review Register (revision 2026-10-08; PR #25 refreshed 2026-10-09)
+
+The other recorded states (PR #31, #32, #33, the booking branch and BE PRs #52, #50, #44, #30) were re-checked on 2026-10-09 and are unchanged.
 
 Read-only. Nothing here modifies a PR or branch. GitHub data from `gh` (read-only); code from `git archive` / `git grep` of the cited refs. CodeRabbit posts "review skipped" on every PR in this repository; that is not a review and is not counted.
 
@@ -17,13 +19,13 @@ Merged; re-evaluated on develop `acfde81`. Not reopened, not modified.
 
 | Field | Value |
 |---|---|
-| Branch / head | `fix/mobile-production-truthfulness` / `98e4b01` |
-| State | OPEN, **CONFLICTING**, REVIEW_REQUIRED |
-| Scope | #40, #41, #45, #46 production truthfulness; 23 files |
-| Review | PQKhanh294 (COMMENTED, at `98e4b01`): **P1** — the identity snapshot (full name, email) is stored and cleared best-effort; if clearing fails, a later session for another account can restore the previous account's identity. Requested: never ignore clear/replace failures (invalidate the persisted session), or bind the snapshot to `userId`; add a test covering account A → failed clear → account B → restart. |
+| Branch / head | `fix/mobile-production-truthfulness` / `2e6defd` (refreshed 2026-10-09; previously `98e4b01`) |
+| State | OPEN, MERGEABLE, REVIEW_REQUIRED; re-review requested from PQKhanh294; not approved, not merged |
+| Scope | #41, #45, #46 production truthfulness and session identity; 21 files changed. `develop` `acfde81` was merged in (`2e6defd`), so #40 now carries the PR #34 registration wizard instead of the earlier placeholder |
+| Review | PQKhanh294 (COMMENTED, at `98e4b01`): **P1** — the identity snapshot (full name, email) is stored and cleared best-effort; if clearing fails, a later session for another account can restore the previous account's identity. Requested: never ignore clear/replace failures (invalidate the persisted session), or bind the snapshot to `userId`; add a test covering account A → failed clear → account B → restart. **Remediation pushed** in `a85a8fd` (owner snapshot bound to the Backend `userId`, gate-first persistence, regression tests T1–T12); the P1 stays open until the reviewer re-reviews |
 | MVP UCs | UC-02, UC-03, UC-08, UC-09 |
-| Must preserve | Truthful production behaviour for #40/#41/#45/#46; demo gating |
-| Design dependency | Specs S-40/S-41/S-45/S-46 in `13-v2-completion-specs.md` assume PR #25 behaviour as the baseline |
+| Must preserve | Truthful production behaviour for #41/#45/#46; the PR #34 UC-02 wizard on #40; demo gating |
+| Design dependency | Specs S-41/S-45/S-46 in `13-v2-completion-specs.md` assume PR #25 behaviour as the baseline; S-40 assumes the PR #34 wizard |
 
 ## R-3 PR #31 — UC-25 tour recommendations and UC-26 tour details
 

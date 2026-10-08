@@ -1,7 +1,7 @@
 # 02 — Public, Auth and Account (Screens #35–#46)
 
 > **Revision 2026-10-08 (QA) — how to read this file.** Preservation records P-36, P-38, P-39, P-05 remain valid. The S-35, S-37, S-40, S-41, S-43, S-44, S-45, S-46 sections below remain the **structural design**; `13-v2-completion-specs.md` Part 1 adds the Report 3 V2 layer (fields, rules, messages, conflicts) and **replaces every `SRS_TEXT_REQUIRED` placeholder and every status line**. Where they disagree, `13` wins. Readiness per spec: `13` §6.
-> **Stale statements below:** S-35 forbids featured content — V2 Table 4.2 requires trending tours/featured POIs (see `13` S-35, D-14). S-40 describes a demo licence picker and "Backend NONE" — develop now has the PR #34 wizard calling `/auth/register/operator` (BE PR #52 open); platform mismatch C-04. S-45's hard-coded identity finding is still true on develop (A-08). P-42 has a V2 correction (15-minute code, A-03).
+> **Stale statements below:** S-35 forbids featured content — V2 Table 4.2 requires trending tours/featured POIs (see `13` S-35, D-14). S-40 describes a demo licence picker and "Backend NONE" — develop now has the PR #34 wizard calling `/auth/register/operator` (BE PR #52 open); platform mismatch C-04. S-45's hard-coded identity finding is still true on develop (A-08); S-45 is `DESIGN_PARTIAL` pending D-15. P-42: the BE expires reset codes after 3 minutes while V2 BR-14 requires 15 (`00` C-07, `BACKEND_CONTRACT_GAP`); the copy must state no lifetime until the BE is corrected (`13` S-42, A-03).
 
 Shared standards: `C-RESP`, `C-A11Y`, `C-STATE`, `C-TOKENS`, `C-AUTH`, `C-DEMO`, `C-BE` — see `01-mobile-shells-and-navigation.md` §1.
 Status vocabulary and per-screen status: `09-mobile-mvp-screen-index.md`.

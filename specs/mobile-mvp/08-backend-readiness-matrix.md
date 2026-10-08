@@ -11,7 +11,7 @@ Source: `Capstone_BE` `origin/develop` = `0075fcb`, read-only (controller `[Rout
 | POST | `/api/v1/auth/google` | Google sign-in (mobile) |
 | POST | `/api/v1/auth/login` | Mobile sign-in |
 | POST | `/api/v1/auth/logout` | Mobile sign-out |
-| POST | `/api/v1/auth/password-reset/request`, `/confirm` | Reset password |
+| POST | `/api/v1/auth/password-reset/request`, `/confirm` | Reset password (code lifetime 3 minutes vs V2 15 minutes — `BACKEND_CONTRACT_GAP`, §3 UC-06) |
 | POST | `/api/v1/scheduling-requests` | UC-10 (one-day model; see C-05) |
 | GET | `/api/v1/points-of-interest/search` | Must-see POI search for UC-10 |
 | GET / POST / PUT | `/api/v1/itineraries/{id}`, `/accept`, `/regenerate`, `/items` | UC-11 (out of scope; UC-16 input) |
@@ -44,7 +44,7 @@ Absent on BE develop (searched): `/auth/register/operator`, operator application
 | UC-03 | `NO_BACKEND` (resubmission) | Status only: `applicationStatus` in the login/session response (`/auth/login`), mapped by `RouteGuards` | `OperatorApplicationCubit` (local) | Tour Operator, Pending/Rejected | Not-rejected, missing field/document, duplicate licence/tax | No rejection-reason read, no status refresh, no resubmit contract | Status from session; reason and resubmit unavailable in production |
 | UC-04 | `BE_AVAILABLE_AND_VERIFIED` | `/auth/login`, `/auth/google` | `AuthRemoteDataSource` | Anonymous | Invalid credentials, locked, unverified, server failure | — | Keep |
 | UC-05 | `BE_AVAILABLE_AND_VERIFIED` | `/auth/logout` | `AuthSessionCubit.signOut` | Authenticated | Missing/malformed token still clears client | — | Keep |
-| UC-06 | `BE_AVAILABLE_AND_VERIFIED` | `/auth/password-reset/request`, `/confirm` | `PasswordRecoveryRemoteDataSource` | Anonymous | Non-disclosure on unknown email; invalid/expired/consumed code; policy | Code lifetime copy (C-07) | Copy correction only |
+| UC-06 | `BACKEND_CONTRACT_GAP` | `/auth/password-reset/request`, `/confirm` (endpoints available; `PasswordResetPolicy.OtpTimeToLive` = 3 minutes) | `PasswordRecoveryRemoteDataSource` | Anonymous | Non-disclosure on unknown email; invalid/expired/consumed code; policy | Endpoints work, but codes expire after 3 minutes while V2 §3.2.6 BR-14 requires 15 minutes (`00` C-07 `UC06_OTP_TTL_SRS_VS_BACKEND`); the response carries no expiry value | UI design ready; implementation of the corrected copy blocked by the BE contract. Copy must not state a lifetime (`13` S-42) |
 | UC-07 | `NO_BACKEND` | none | none | Authenticated | Wrong current password, policy, same password | No endpoint | Screen specified; production action must be unavailable |
 | UC-08 | `NO_BACKEND` | none | `TravelerProfilePage` (local) | Traveler | Retrieval failure, required field, phone/DOB format, avatar type/size | No profile contract | Truthful read-only/pending in production |
 | UC-09 | `NO_BACKEND` + `SRS_CONFLICT` | none | `TravelPreferencesCubit` (local) | Traveler | Option-set violation, limit, persistence failure | No contract (preferences + configured option sets, BR-19); attribute set pending BR-numbering adjudication (C-08) | Truthful pending; option groups await D-04 |
@@ -69,7 +69,8 @@ Absent on BE develop (searched): `/auth/register/operator`, operator application
 
 | Primary classification | Count | UCs |
 |---|---|---|
-| `BE_AVAILABLE_AND_VERIFIED` | 10 | 01, 04, 05, 06, 10, 17, 18, 19 (members only), 23, 24 (partial query) |
+| `BE_AVAILABLE_AND_VERIFIED` | 9 | 01, 04, 05, 10, 17, 18, 19 (members only), 23, 24 (partial query) |
+| `BACKEND_CONTRACT_GAP` | 1 | 06 |
 | `BE_AVAILABLE_NOT_INTEGRATED` | 1 | 30 |
 | `BE_PR_OPEN` | 1 | 02 |
 | `NO_BACKEND` | 13 | 03, 07, 08, 09, 16, 20, 21, 22, 25, 26, 27, 28, 29 |
@@ -77,12 +78,14 @@ Absent on BE develop (searched): `/auth/register/operator`, operator application
 
 Secondary `SRS_CONFLICT`: UC-09 (attribute set, C-08) and UC-10 (trip duration, C-05; the one-day BE contract is implementation gap A-12).
 
+`BACKEND_CONTRACT_GAP` = the endpoints exist on BE develop, but their verified behaviour contradicts an unambiguous V2 rule, so the UC is not verified against V2. UC-10 and UC-24 are not in this class: UC-10's input model waits for the SRS adjudication D-02 (C-05), and UC-24's filter support is an open question (Q3), not a verified mismatch.
+
 ## 5. Contract questions for Backend / BA (not decided here)
 
 1. UC-02: release plan for BE PR #52; until then Mobile #40 must not present success.
 2. UC-19: can the members read (or a detail read) add the group status and a self-member marker? Name, itinerary and member count are already returned.
 3. UC-24: which V2 filters and sort options does `GET /tours` support?
 4. UC-30: should `/commercial-services` remain anonymous given V2 §3.6.1?
-5. UC-06: actual reset-code lifetime used by the BE (V2 BR-14: 15 minutes).
+5. UC-06 (`UC06_OTP_TTL_SRS_VS_BACKEND`, **Backend follow-up required**): BE develop issues codes valid for 3 minutes (`PasswordResetPolicy.OtpTimeToLive`, also used in the reset e-mail); V2 §3.2.6 BR-14 requires 15 minutes. The BE owner must reconcile the value with BR-14 and verify the related unit tests and API behaviour. Until then Mobile copy states no lifetime.
 6. UC-16: map data provider and the source of package size/version for the 150 MB rule.
 7. UC-30: will `GET /commercial-services` support the V2 filters location, date and price range (today: `Category`, `Search`, `Page`, `PageSize`)?

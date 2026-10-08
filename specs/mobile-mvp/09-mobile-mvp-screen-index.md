@@ -43,17 +43,17 @@ Status vocabulary: see `00-mobile-mvp-audit.md` §G. "MVP" = belongs to the 25-U
 
 | # | Screen | UC | MVP | Mobile route / page on develop `acfde81` | Status | Evidence / note |
 |---|---|---|---|---|---|---|
-| 35 | Home Page | — | hub | none (Guest lands on `/explore` or `/auth/login`) | `NOT_STARTED` | Spec S-35; V2 content C-11/D-14 |
+| 35 | Home Page | — | hub | none (Guest lands on `/explore` or `/auth/login`) | `NOT_STARTED` | Spec S-35; V2 content C-11/D-14; landing-page platform C-16/D-17 |
 | 36 | Sign In | UC-04 | yes | `/auth/login` `LoginPage` | `IMPLEMENTED_VERIFIED` | PR #13 |
 | 37 | Sign In with Google | UC-01/04 | yes | button on `LoginPage` | `IMPLEMENTED_VERIFIED` | `/auth/google` |
 | 38 | Traveler Registration | UC-01 | yes | `/auth/register/traveler` | `IMPLEMENTED_VERIFIED` | PR #6 |
 | 39 | Confirm Email | UC-01 | yes | `/auth/verify-email` | `IMPLEMENTED_VERIFIED` | PR #6 |
 | 40 | Tour Operator Registration & Verification | UC-02 | yes | `/auth/register/operator` | `IMPLEMENTED_PARTIAL` + `BLOCKED_BY_BACKEND` + `BLOCKED_BY_SRS` | PR #34 merged; BE PR #52 open |
 | 41 | Operator Application Status | UC-03 | yes | `/operator/application` | `IMPLEMENTED_PARTIAL` + `NO_BACKEND` | PR #25 open |
-| 42 | Password Reset | UC-06 | yes | `/auth/forgot-password` | `IMPLEMENTED_PARTIAL` | A-03 code lifetime copy |
+| 42 | Password Reset | UC-06 | yes | `/auth/forgot-password` | `IMPLEMENTED_PARTIAL` + `BACKEND_CONTRACT_GAP` | C-07 BE 3-minute code vs BR-14 15 minutes; A-03 copy |
 | 43 | Change Password | UC-07 | yes | none | `NOT_STARTED` + `BLOCKED_BY_BACKEND` | Spec S-43 |
 | 44 | Traveler Home / Dashboard | — | hub | `/traveler` `TravelerShellPage` | `IMPLEMENTED_PARTIAL` | Vietnamese labels (A-04) |
-| 45 | Traveler Profile | UC-08 | yes | `/traveler/profile` | `IMPLEMENTED_PARTIAL` + `NO_BACKEND` | PR #25 open |
+| 45 | Traveler Profile | UC-08 | yes | `/traveler/profile` | `IMPLEMENTED_PARTIAL` + `NO_BACKEND` | PR #25 open; field rules D-15 (C-17) |
 | 46 | Travel Preferences | UC-09 | yes | `/traveler/preferences` | `IMPLEMENTED_PARTIAL` + `NO_BACKEND` + `BLOCKED_BY_SRS` | C-08 |
 | 47 | Trip / Itinerary Planner | UC-10 | yes | `/traveler/itineraries/create` | `IMPLEMENTED_PARTIAL` (gap A-12) + `BLOCKED_BY_SRS` | SRS C-05; implementation gap A-12 |
 | 48 | Suggested Itinerary | UC-11 | no | `/traveler/itineraries/:id`, `/result` | `IMPLEMENTED_VERIFIED` (out of scope) | PR #21 |

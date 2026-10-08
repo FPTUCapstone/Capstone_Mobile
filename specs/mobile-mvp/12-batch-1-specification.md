@@ -1,6 +1,7 @@
 # 12 — Batch 1 Specification: Production Truthfulness (#40, #41, #45, #46)
 
-> **Revision 2026-10-08 (QA).** This batch is implemented in PR #25 (OPEN, conflicting, reviewer P1 on cross-account identity restore — see `11` R-2). Its behaviour remains the baseline for `13` S-40/S-41/S-45/S-46, which add the Report 3 V2 field lists, conflicts (C-04, C-08) and decisions (D-01, D-04).
+> **Revision 2026-10-08 (QA), PR #25 status refreshed 2026-10-09.** This batch is implemented in PR #25 (OPEN, mergeable, head `2e6defd`; the reviewer P1 on cross-account identity restore has a pushed fix and awaits re-review — see `11` R-2). Its behaviour remains the baseline for `13` S-41/S-45/S-46, which add the Report 3 V2 field lists, conflicts (C-04, C-08, C-17) and decisions (D-01, D-04, D-15). For #40, PR #25 now carries the PR #34 wizard from develop, so the #40 parts of this batch are historical.
+> **Open item §S item 6** (UC-08 required fields and Gender value set) is confirmed as undefined in Report 3 V2 §3.2.8 as well and is now decision D-15 (`13` §5.3).
 > **Corrections to §D below:** (a) item 2 cites "appendix BR-24" — that is the §5.1 appendix numbering; in the UC-section numbering UC-09 is governed by BR-19/BR-20 and BR-24 is the Active-POI rule (see `00` C-08). (b) Item 8 concludes that Mobile is "allowed/required" for UC-02/03 — superseded: V2 interface text allocates them to the Web, Table 4.2 is captioned "Web Application Screen List" and Table 5 is platform-neutral, so the mismatch is recorded as C-04 for BA adjudication (D-01) instead of being resolved here.
 
 Status: **SPECIFICATION ONLY — awaiting developer approval.** No Dart, no branch, no commit.

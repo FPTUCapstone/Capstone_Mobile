@@ -1,7 +1,7 @@
 # 13 — Report 3 V2 Completion Specifications (Mobile MVP)
 
 > Design documentation only. No Flutter code is changed by this document.
-> Revision 2026-10-08. Baseline: Mobile develop `acfde81`, BE develop `0075fcb`, Report 3 V2.
+> Revision 2026-10-08, with the PR #35 review remediation of 2026-10-09 (UC-06 Backend contract gap, C-13…C-17, D-15…D-17, readiness of S-35/S-42/S-45). Baseline: Mobile develop `acfde81`, BE develop `0075fcb`, Report 3 V2.
 > **How this file combines with `02`–`06` (QA revision):** the earlier S-xx sections in `02`–`06`
 > remain the **structural design** (layout, components, C-BE readiness block, deep links, offline,
 > non-goals). This file is the **Report 3 V2 layer**: exact V2 fields, rules, messages, conflicts
@@ -71,7 +71,7 @@ Copy is written as `key: "English text"`. V2 message IDs are given as references
 
 ### S-35 Home Page (Guest)
 
-**A. Identity** — Screen #35 · no distinct UC (`SCREEN_WITHOUT_DISTINCT_UC`) · Guest (Table 5: Guest only) · V2 Table 4.2 describes it as the **"Mobile landing screen for unauthenticated guests"** · `NOT_STARTED` on Mobile.
+**A. Identity** — Screen #35 (Table 4.2 numbering; Table 4.1 #35 Staff Dashboard is a different screen, `00` §B) · no distinct UC (`SCREEN_WITHOUT_DISTINCT_UC`) · Guest (Table 5: Guest only) · V2 Table 4.2 describes it as the **"Mobile landing screen for unauthenticated guests"**; the landing-page platform statements conflict (`00` C-16, D-17) · `NOT_STARTED` on Mobile · Readiness `DESIGN_PARTIAL` (§6): the trending/featured criteria, their data source and the final section titles are pending D-14.
 
 **B. Purpose** — V2 description: display **trending tours, featured POIs, itinerary planning shortcuts and sign-in prompts**. Entry: app launch without a session (today the splash routes to `/explore` or `/auth/login`). Exit: a tour (#65), a POI (#51), the planner (via sign-in, #47), #36, #38. Outcome: user reaches a public function or an auth screen.
 
@@ -93,7 +93,7 @@ Reuse `AppPageScaffold`, `AppButton`, `TourListCard`, `PoiListCard`, `LoadingInd
 
 **G. Data** — `GET /api/v1/tours`, `GET /api/v1/pois` (both anonymous, verified on BE develop). "Trending" and "featured" ordering: **no contract** (D-14). Route proposal `/` for Guest (replace the splash redirect target) — routing change needs the owner's approval.
 
-**H. Acceptance** — (1) A Guest opening the app sees #35 with the sections above. (2) Every tour/POI shown comes from the BE response; nothing is fabricated. (3) Both sections are always present (loading, content, empty or error state) — never omitted as optional. (4) "Trending"/"Featured" titles are used only once D-14 defines the criteria; until then the interim neutral titles apply. (5) An authenticated Traveler is redirected to `/traveler`. (6) All copy is resource-backed English.
+**H. Acceptance** — (1) A Guest opening the app sees #35 with the sections above. (2) Every tour/POI shown comes from the BE response; nothing is fabricated. (3) Both sections are always present (loading, content, empty or error state) — never omitted as optional. (4) No section is titled "Trending" or "Featured", and no BE-ordered list is presented as a ranking, until D-14 defines the criteria and source; the interim neutral titles apply only once that interim rule is approved. (5) An authenticated Traveler is redirected to `/traveler`. (6) All copy is resource-backed English.
 
 Copy: `home.title: "Plan your day trip in Central Vietnam"`, `home.trendingTours: "Trending tours"` (after D-14), `home.featuredPlaces: "Featured places"` (after D-14), `home.toursSection: "Tours"` (interim), `home.placesSection: "Places to explore"` (interim), `home.sectionEmpty: "Nothing to show yet."`, `home.seeAll: "See all"`, `home.planTrip: "Plan a day trip"`, `home.createAccount: "Create an account"`, `home.signIn: "Sign in"`, `home.registerBusiness: "Register your tour business"`, `home.sectionError: "Couldn't load this section."`.
 
@@ -142,16 +142,17 @@ Copy (`V2_MESSAGE_CONFLICT` MSG25): `op.app.notResubmittable: "This application 
 
 ### S-42 Password Reset — correction
 
-**A** — Screen #42 · UC-06 · registered user · Mobile + Web · `IMPLEMENTED_PARTIAL`.
+**A** — Screen #42 · UC-06 · Traveler and Tour Operator on Mobile (§3.2.6 also lists Administrator — `00` C-14, D-16) · Mobile + Web · `IMPLEMENTED_PARTIAL` + `BACKEND_CONTRACT_GAP` (`08` UC-06). UC-06 is **not** V2-compliant and not production-accepted while the gap is open.
 **C/D (preserve)** — Existing single-page three-step flow (email → code → new password) satisfies V2's three screens; no restructuring.
-**Correction** — The code hint says "expires in 3 minutes" (`password_recovery_page.dart:117`); V2 BR-14 requires a **15-minute** single-use code. V2 is authoritative: the target copy is 15 minutes. Defect A-03 stays open in the register; if the BE currently issues a different lifetime, that is a BE defect against BR-14, not a reason to change the requirement. No Flutter change is made by this documentation task.
+**Requirement vs Backend** — V2 §3.2.6 BR-14: the code is single-use and expires **15 minutes** after issue. BE develop `0075fcb` expires it after **3 minutes** (`PasswordResetPolicy.OtpTimeToLive`) and returns no expiry value (`00` C-07 `UC06_OTP_TTL_SRS_VS_BACKEND`, Backend follow-up in `08` §5 Q5). V2 is not changed by the BE value, and the BE value is not V2-compliant.
+**Correction (design)** — The Mobile hint hard-codes "expires in 3 minutes" (`password_recovery_page.dart:117`, A-03). The planned copy states **no duration** until the BE contract is corrected: neither "3 minutes" (contradicts V2) nor "15 minutes" (not what the BE does). Changing the Flutter copy is a separate implementation task; no Flutter change is made by this documentation task.
 **E** — Unknown email still shows the neutral "code sent" state (non-disclosure). Incorrect/expired/consumed code: one shared message.
-**H** — (1) The lifetime shown equals the BE value. (2) An unknown email is indistinguishable from a known one.
-Copy (`V2_MESSAGE_CONFLICT` §3.2.6 MSG14/MSG15): `reset.codeSent: "If an account exists for this email, a reset code has been sent."`, `reset.codeInvalid: "The code is incorrect, expired or already used. Request a new code."`, `reset.success: "Your password has been reset. Sign in with your new password."` (MSG16).
+**H** — (1) The UI states no code lifetime while C-07 is open; once the BE issues V2's 15-minute lifetime and that is verified, a duration may be shown only if it equals the verified BE value. (2) An unknown email is indistinguishable from a known one. (3) An expired code is refused with the shared invalid-code message. UC-06 acceptance against V2 additionally requires the BE follow-up (15-minute lifetime verified by tests and API behaviour).
+Copy (`V2_MESSAGE_CONFLICT` §3.2.6 MSG14/MSG15): `reset.codeSent: "If an account exists for this email, a reset code has been sent."`, `reset.codeHint: "The code can be used once. Check the email for how long it stays valid."`, `reset.codeInvalid: "The code is incorrect, expired or already used. Request a new code."`, `reset.success: "Your password has been reset. Sign in with your new password."` (MSG16).
 
 ### S-43 Change Password — new
 
-**A. Identity** — Screen #43 · UC-07 · Traveler, Tour Operator (Administrator is web) · Mobile + Web · `NOT_STARTED` + `BLOCKED_BY_BACKEND`.
+**A. Identity** — Screen #43 · UC-07 · Traveler, Tour Operator (Table 4.2 #43, Table 5). §2.2.2/§3.2.7 also list Administrator with a Mobile interface, contradicting Table 1 — `00` C-15, decision D-16 pending; this spec covers Traveler and Tour Operator only and designs no Administrator function · Mobile + Web · `NOT_STARTED` + `BLOCKED_BY_BACKEND`.
 
 **B. Purpose** — Replace the password while proving the current one. Entry: Account settings (`/traveler/settings` → "Change password"; operator settings when it exists). Precondition: authenticated. Outcome: password changed, other sessions invalidated, current session holds new tokens (PC-03).
 
@@ -187,23 +188,23 @@ Copy (`V2_MESSAGE_CONFLICT` §3.2.7 MSG03/MSG04 vs catalogue): `pwd.currentWrong
 
 ### S-45 Traveler Profile — completion
 
-**A. Identity** — Screen #45 · UC-08 · Traveler · Mobile + Web · `IMPLEMENTED_PARTIAL` + `NO_BACKEND`; PR #25 open.
+**A. Identity** — Screen #45 · UC-08 · Traveler · Mobile + Web · `IMPLEMENTED_PARTIAL` + `NO_BACKEND`; PR #25 open (P1 fix pushed, re-review pending) · Readiness `DESIGN_PARTIAL` (§6): V2 §3.2.8 defines MSG01 for "a required field is empty" but does not say which fields are required, and defines no Gender value set (decision D-15).
 
 **Defect on develop (A-08, P1 truthfulness):** `traveler_profile_page.dart` pre-fills the form with hard-coded identity constants (a sample full name, phone number, date of birth and city — values intentionally not reproduced here) displayed as the signed-in user's data, and confirms "saved locally for the demo". Reachable in production builds on develop. PR #25 addresses it.
 
 **B. Purpose** — View and edit profile fields used by booking, group and review functions.
 
-**C. Structure** — Read-only: Email Address. Editable: Full Name, Phone Number, Date of Birth (date picker, CR-07), Gender (select), Address, Avatar (`[Change Avatar]`). Buttons: `[Save Changes]`, `[Cancel]`.
+**C. Structure** — Read-only: Email Address. Editable: Full Name, Phone Number, Date of Birth (date picker, CR-07; optional per BR-18 "where provided"), Gender (select; **value set pending D-15** — no values are designed here), Address, Avatar (`[Change Avatar]`). Buttons: `[Save Changes]`, `[Cancel]`. Required markers are not shown until D-15 decides the required-field set.
 
 **D. Interaction** — Edit in place; `[Cancel]` with changes → discard confirmation. Avatar: pick → preview → saved with the form (BR-16: image, ≤ 5 MB). Leaving with unsaved changes → confirmation (catalogue MSG23).
 
-**E. States** — Loading profile; load failure (no editing offered, MSG127); validation (required; phone format; DOB in the past and age ≥ 16 — BR-18); avatar rejected (type/size) keeps other fields saveable; save failure keeps previous values; success SnackBar; **backend pending:** fields read-only, save disabled, info alert — no "saved locally" success (A-06).
+**E. States** — Loading profile; load failure (no editing offered, MSG127); validation (required — field set pending D-15; phone format — §3.2.8 references MSG02, while the §5.3 catalogue entry MSG04 defines "10 digits starting with 0" (C-03); DOB in the past and age ≥ 16 — BR-18); avatar rejected (type/size) keeps other fields saveable; save failure keeps previous values; success SnackBar; **backend pending:** fields read-only, save disabled, info alert — no "saved locally" success (A-06).
 
 **F. A11y** — Avatar button label "Change profile photo"; date picker has a text alternative.
 
 **G. Data** — Contract: none on BE develop. Required data per V2: full name, phone, DOB, gender, address, avatar file/reference, email (read-only).
 
-**H. Acceptance** — (1) Production never shows "saved locally". (2) Email is never editable. (3) Underage DOB is rejected inline. (4) PR #25 P1 fix: another account's name/email is never restored (test required).
+**H. Acceptance** — (1) Production never shows "saved locally". (2) Email is never editable (§3.2.8 BR-17; the contrary §2.2.2/appendix wording is C-17, pending D-15). (3) Underage DOB is rejected inline. (4) PR #25 P1 fix: another account's name/email is never restored (test required).
 
 Copy (`V2_MESSAGE_CONFLICT` §3.2.8 MSG02 for phone/DOB and MSG19 for avatar): `profile.phoneInvalid: "Enter a valid phone number."`, `profile.dobInvalid: "Enter a past date. You must be at least 16 years old."`, `profile.avatarRejected: "Avatar must be an image under 5 MB."`, `profile.saved: "Profile updated successfully."`.
 
@@ -428,8 +429,8 @@ Funnel rule for #64–#70: every step works from BE data only. Availability show
 
 | Journey | Path | Gaps |
 |---|---|---|
-| Public & auth | #35 ✗ → #36/#37 → (#38 → #39) → #44 | #35 missing; #42 copy (A-03) |
-| Account | #44 → Settings → #43 ✗ / #45 / #46 / Sign out | #43 missing; #45/#46 truthful pending (PR #25) |
+| Public & auth | #35 ✗ → #36/#37 → (#38 → #39) → #44 | #35 missing (D-14, D-17); #42 code lifetime: BE contract gap (C-07) and copy (A-03) |
+| Account | #44 → Settings → #43 ✗ / #45 / #46 / Sign out | #43 missing; #45/#46 truthful pending (PR #25, re-review pending); #45 field rules pending D-15 |
 | Operator onboarding | #40 → #41 | BE PR #52; D-01 platform decision |
 | Planning & offline | #44 → #47 → #48 → #49 / #52 | #49 production pending (data source) |
 | Travel groups | #44 → #55 ✗ → #56 / #62 → #57 → #58 / #59 / #60 / #61 | #55 missing; #59/#60/#61 contracts |
@@ -440,9 +441,9 @@ Dead ends today: links to `/traveler/groups` (no route); "Bookings" destination 
 
 ### 5.2 Recommended implementation order
 
-1. PR #25 P1 fix and merge (truthful #40/#41/#45/#46).
+1. PR #25 re-review of the pushed P1 fix, then merge (truthful #41/#45/#46).
 2. D-03 localization layer + extract `ConfirmationDialog`, `EmptyState`, `PriceText`, date formatting helper (`10`).
-3. #55 Travel Groups list (with D-08 contract or truthful pending), #44 copy, #42 copy.
+3. #55 Travel Groups list (with D-08 contract or truthful pending), #44 copy, #42 neutral code-lifetime copy (A-03; the 15-minute lifetime itself needs the BE follow-up C-07).
 4. UC-30: rebase PR #32, integrate `/commercial-services`.
 5. UC-24 completion (BE-supported controls only).
 6. PR #31 (UC-25/26), then a PR for the booking branch (UC-27–29) — production remains truthful pending.
@@ -467,26 +468,31 @@ Status of every row: **PENDING**. The "Recommended resolution" column is a propo
 | D-11 | Tour detail, recommendations, booking, payment, e-ticket, payment return deep link | Backend + Tech Lead | §3.5.2–§3.5.6; `08` UC-25…UC-29 | Deliver contracts in funnel order (detail → booking → payment → ticket) and approve a return-link scheme | #64–#70 cannot leave pending states; S-67/S-69 `DESIGN_PARTIAL` |
 | D-12 | UC-31 booking on #72 and web allocation of UC-30/UC-31 | BA | `00` C-12; MVP scope list | Keep UC-31 out of the MVP and render the #72 booking action disabled; amend §2.2.2/§3.6.x to one platform statement | PR #32 scope stays ambiguous |
 | D-13 | Message catalogue reconciliation | BA (SRS owner) | `00` C-03 | Renumber UC-section references to the §5.3 catalogue meanings | UI keeps semantic copy; traceability to MSG IDs stays weak |
-| D-14 | Criteria and source for "trending tours" and "featured POIs" on #35 | BA + Backend | `00` C-11; Table 4.2 #35 | Define the criteria (e.g. booking volume, curated flag) and expose them through public endpoints | #35 ships with the interim data rule and neutral titles |
+| D-14 | Criteria and source for "trending tours" and "featured POIs" on #35 | BA + Backend | `00` C-11; Table 4.2 #35 | Define the criteria (e.g. booking volume, curated flag) and expose them through public endpoints | S-35 `DESIGN_PARTIAL`; the interim neutral-title rule (S-35 C) is itself unapproved, and no list may be labelled Trending or Featured |
+| D-15 | UC-08 profile field rules: which fields are required, the Gender value set, email editability | BA (SRS owner) | §3.2.8 (MSG01 "a required field is empty" without a required-field list; Gender listed without values; BR-18 DOB "where provided"); `00` C-17 (email editability); `12` §S item 6 | Name the required fields and the Gender values in §3.2.8; confirm BR-17 (email read-only) over §2.2.2 / appendix BR-23 | S-45 `DESIGN_PARTIAL`; required markers, the Gender control and save validation cannot be finalized |
+| D-16 | Administrator (and Staff) in UC-04/UC-06/UC-07 on Mobile; phone/OTP sign-in | BA (SRS owner) + Tech Lead | `00` C-13, C-14, C-15 | State in §3.2.4/§3.2.6/§3.2.7 that Administrator and Staff use the Web Administration Login, Reset Password and Change Password screens, and that Mobile #36/#37/#42/#43 serve Traveler and Tour Operator; decide whether phone/OTP sign-in is in scope | S-42/S-43 stay designed for Traveler and Tour Operator only; if Administrator were placed on Mobile, they become `DESIGN_PARTIAL` and new approved Administrator requirements are needed |
+| D-17 | Platform of the Guest landing page and ownership of #35 | BA (SRS owner) | `00` C-16, C-02 | Record #35 as the Mobile Guest home, distinct from the Web landing page (Table 4.1 #1), and state which UC (if any) owns it | S-35 scope remains provisional |
 
-**Total: 14 pending decisions** (D-01…D-14).
+**Total: 17 pending decisions** (D-01…D-17).
 
 ## 6. Implementation-readiness audit (QA revision)
 
 Checklist per spec (combined with its `02`–`06` structural section where one exists):
 ① exact UC/Screen mapping · ② actor & authorization · ③ entry/exit navigation · ④ complete UI structure · ⑤ interaction · ⑥ loading/empty/error/success states · ⑦ offline behaviour where required · ⑧ backend readiness classification · ⑨ localization & accessibility · ⑩ acceptance criteria · ⑪ component reuse · ⑫ implementation dependency.
 
-`IMPLEMENTATION_READY` = all twelve satisfied **and** no open SRS adjudication on the screen's content. A screen can be design-ready while its implementation is still blocked by a missing backend contract; that blocker is listed separately.
+`IMPLEMENTATION_READY` = all twelve satisfied **and** no open SRS adjudication on the screen's content. A screen can be design-ready while its implementation is still blocked by a missing backend contract; that blocker is listed separately. `IMPLEMENTATION_BLOCKED_BY_BACKEND_CONTRACT` means the UI design is ready but the BE behaviour contradicts V2, so the UC cannot be accepted until the BE follow-up lands.
+
+D-16 (Administrator on Mobile, C-13…C-15) is listed as a blocker of S-42 and S-43, not a readiness failure: every V2 source includes Traveler and Tour Operator on those screens, and both specs are designed for those two roles only. They become `DESIGN_PARTIAL` if the BA places Administrator on Mobile.
 
 | Spec | Screen(s) | Structural source | Fails | Readiness | Implementation blocker |
 |---|---|---|---|---|---|
-| S-35 | #35 | `02` S-35 + `13` (V2 content) | — (mandatory sections fully specified; interim data rule given) | `IMPLEMENTATION_READY` | Route-guard change approval; D-14 for the trending/featured criteria and final titles |
+| S-35 | #35 | `02` S-35 + `13` (V2 content) | ④/⑧ open D-14 (trending/featured criteria, data source, final section titles; interim neutral titles unapproved); open D-17 (C-16) | `DESIGN_PARTIAL` | D-14, D-17; route-guard change approval |
 | S-40 | #40 | `02` S-40 (partly stale) + `13` | ④ (upload area undecided), open D-01 | `DESIGN_PARTIAL` | D-01, BE PR #52, file-picker dependency |
 | S-41 | #41 | `02` S-41 + `13` | open D-01 | `DESIGN_PARTIAL` | D-01, no status/resubmit contract |
-| S-42 | #42 | `02` P-42 + `13` | — (copy correction only) | `IMPLEMENTATION_READY` | none (A-03 copy) |
-| S-43 | #43 | `02` S-43 + `13` | — | `IMPLEMENTATION_READY` | D-06 contract |
+| S-42 | #42 | `02` P-42 + `13` | — (UI design specification only; neutral code-lifetime copy) | `IMPLEMENTATION_READY` | `IMPLEMENTATION_BLOCKED_BY_BACKEND_CONTRACT` (C-07, `08` UC-06). Not V2-compliant or production-accepted. Valid for Traveler and Tour Operator; D-16 (C-14) |
+| S-43 | #43 | `02` S-43 + `13` | — (Traveler and Tour Operator scope) | `IMPLEMENTATION_READY` | D-06 contract; D-16 (C-15) |
 | S-44 | #44 | `02` S-44 + `13` | — | `IMPLEMENTATION_READY` | entries wait for #55/#64/#68 |
-| S-45 | #45 | `02` S-45 + `13` | — | `IMPLEMENTATION_READY` | PR #25 (P1), profile contract |
+| S-45 | #45 | `02` S-45 + `13` | ④/⑤ required-field set and Gender value set undefined, email editability conflict (C-17) — open D-15 | `DESIGN_PARTIAL` | D-15; profile contract; PR #25 (P1 fix pushed, re-review pending) |
 | S-46 | #46 | `02` S-46 + `13` | ④ option groups, open D-04 | `DESIGN_PARTIAL` | D-04, preferences contract |
 | S-47 | #47 | `03` P-47 + `13` gap record | ④/⑤ for the V2 fields, open D-02 | `DESIGN_PARTIAL` | D-02 |
 | S-49 | #49 | `03` O-49 + `13` | — | `IMPLEMENTATION_READY` | D-07 data source |
@@ -504,4 +510,4 @@ Checklist per spec (combined with its `02`–`06` structural section where one e
 | S-69 | #69 | `05` S-69 + `13` | ⑦ offline ticket display undecided (`05` S-69) | `DESIGN_PARTIAL` | D-11, offline-ticket decision |
 | S-71/72 | #71, #72 (one spec group) | `06` S-71/S-72 (stale BE note) + `13` | ④ #71 filter set (V2: category, location, date, price range) exceeds BE support (category + search only) | `DESIGN_PARTIAL` | BE query support (`08` Q7); PR #32 rebase; D-12 for the #72 booking part |
 
-**Counts:** 23 specification groups covering 25 screen IDs — 21 groups cover one screen, 2 groups cover two (S-67: #67 + #70; S-71/72: #71 + #72). The other 7 of the 32 MVP screens (#36, #37, #38, #39, #56, #58, #62) are `IMPLEMENTED_VERIFIED` and covered by preservation records in `02` (P-36, P-38, P-39; #37 within P-36/S-37) and `04` (P-56, P-58, P-62); they need no new spec. `IMPLEMENTATION_READY` **15**, `DESIGN_PARTIAL` **8** (S-40, S-41, S-46, S-47, S-63, S-67, S-69, S-71/72). The earlier claim "23 implementation-ready specifications" was incorrect. S-47 is a gap record, not a new-screen design.
+**Counts:** 23 specification groups covering 25 screen IDs — 21 groups cover one screen, 2 groups cover two (S-67: #67 + #70; S-71/72: #71 + #72). The other 7 of the 32 MVP screens (#36, #37, #38, #39, #56, #58, #62) are `IMPLEMENTED_VERIFIED` and covered by preservation records in `02` (P-36, P-38, P-39; #37 within P-36/S-37) and `04` (P-56, P-58, P-62); they need no new spec. `IMPLEMENTATION_READY` **13**, `DESIGN_PARTIAL` **10** (S-35, S-40, S-41, S-45, S-46, S-47, S-63, S-67, S-69, S-71/72). PR #35 review remediation (2026-10-09): S-35 (D-14, D-17) and S-45 (D-15) moved from `IMPLEMENTATION_READY` to `DESIGN_PARTIAL`; S-42 stays `IMPLEMENTATION_READY` for its UI design only and is `IMPLEMENTATION_BLOCKED_BY_BACKEND_CONTRACT`. The earlier claims "23 implementation-ready specifications" and "15 / 8" were incorrect. S-47 is a gap record, not a new-screen design.
