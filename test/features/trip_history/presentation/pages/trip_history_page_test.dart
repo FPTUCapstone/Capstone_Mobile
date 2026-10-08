@@ -8,12 +8,54 @@ import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_hi
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_review_repository_impl.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enums.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_history_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_history_page.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_review_page.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/widgets/refund_status_dialog.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
+
+class _SpyTripHistoryRepository implements TripHistoryRepository {
+  _SpyTripHistoryRepository(this._delegate);
+
+  final TripHistoryRepository _delegate;
+  int getTripsCallCount = 0;
+  TripStatus? lastQueriedStatus;
+  TripType? lastQueriedType;
+
+  @override
+  Future<TripHistoryPageResult> getTrips({
+    int? travelerId,
+    TripStatus? status,
+    TripType? type,
+    DateTime? startDate,
+    DateTime? endDate,
+    int page = 1,
+    int pageSize = 20,
+  }) {
+    getTripsCallCount++;
+    lastQueriedStatus = status;
+    lastQueriedType = type;
+    return _delegate.getTrips(
+      travelerId: travelerId,
+      status: status,
+      type: type,
+      startDate: startDate,
+      endDate: endDate,
+      page: page,
+      pageSize: pageSize,
+    );
+  }
+
+  @override
+  Future<TripHistoryItem?> getTripById({
+    int? travelerId,
+    required String tripId,
+  }) {
+    return _delegate.getTripById(travelerId: travelerId, tripId: tripId);
+  }
+}
 
 void main() {
   late DateTime fixedNow;
@@ -285,12 +327,25 @@ void main() {
     );
 
     testWidgets(
-      'route-level regression: Write Review -> submit Demo review -> pops true -> refreshes Completed tab',
+      'route-level regression: Write Review -> submit Demo review -> pops true -> refreshes Completed tab via new repository query',
       (tester) async {
         tester.view.physicalSize = const Size(400, 2400);
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
+
+        final spyRepo = _SpyTripHistoryRepository(repository);
+        final testCubit = TripHistoryCubit(
+          repository: spyRepo,
+          isDemoMode: true,
+          demoTravelerId: DemoTripHistoryStore.demoTravelerId,
+        );
+        addTearDown(testCubit.close);
+
+        // Initialize once outside the route builder
+        await testCubit.loadInitial();
+        expect(spyRepo.getTripsCallCount, equals(1));
+        expect(spyRepo.lastQueriedStatus, equals(TripStatus.upcoming));
 
         final reviewRepo = TripReviewRepositoryImpl(
           demoStore: demoStore,
@@ -310,7 +365,7 @@ void main() {
               builder: (_, state) {
                 final isDemo = state.uri.queryParameters['demo'] == 'true';
                 return BlocProvider<TripHistoryCubit>.value(
-                  value: cubit..loadInitial(),
+                  value: testCubit,
                   child: TripHistoryPage(isDemoMode: isDemo),
                 );
               },
@@ -337,15 +392,25 @@ void main() {
         await tester.pumpWidget(MaterialApp.router(routerConfig: router));
         await tester.pumpAndSettle();
 
-        // 1. Initial view: switch to Completed tab where unreviewed BK-TOUR-003 exists
+        // Building the route did NOT trigger another loadInitial()
+        expect(spyRepo.getTripsCallCount, equals(1));
+
+        // 1. Switch to Completed tab where unreviewed BK-TOUR-003 exists
         await tester.tap(find.text(TripHistoryStringsEn.tabCompleted));
         await tester.pumpAndSettle();
+
+        expect(spyRepo.getTripsCallCount, equals(2));
+        expect(spyRepo.lastQueriedStatus, equals(TripStatus.completed));
 
         expect(find.text('BK-TOUR-003'), findsOneWidget);
         final writeReviewBtn = find.text(
           TripHistoryStringsEn.actionWriteReview,
         );
         expect(writeReviewBtn, findsOneWidget);
+        expect(
+          find.text(TripHistoryStringsEn.actionEditReview),
+          findsOneWidget,
+        );
 
         // 2. Tap Write Review to push Screen #74
         await tester.ensureVisible(writeReviewBtn);
@@ -384,10 +449,13 @@ void main() {
         expect(find.byType(TripReviewPage), findsNothing);
         // - TripHistoryPage reacts to true (remains mounted)
         expect(find.byType(TripHistoryPage), findsOneWidget);
-        // - Completed tab is active and refreshed
-        expect(cubit.state.selectedTab, equals(TripStatus.completed));
-        // - Newly submitted review is reflected: BK-TOUR-003 now shows "Edit Review"
+        // - Completed tab is active and a NEW repository query (call #3) was executed
+        expect(testCubit.state.selectedTab, equals(TripStatus.completed));
+        expect(spyRepo.getTripsCallCount, equals(3));
+        expect(spyRepo.lastQueriedStatus, equals(TripStatus.completed));
+        // - Newly submitted review is reflected: BK-TOUR-003 changes from "Write Review" to "Edit Review"
         expect(find.text('BK-TOUR-003'), findsOneWidget);
+        expect(find.text(TripHistoryStringsEn.actionWriteReview), findsNothing);
         expect(
           find.text(TripHistoryStringsEn.actionEditReview),
           findsNWidgets(2),

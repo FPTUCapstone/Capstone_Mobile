@@ -2,9 +2,53 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_history_repository_impl.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enums.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_review_submission.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_history_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_state.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
+
+class _SpyTripHistoryRepository implements TripHistoryRepository {
+  _SpyTripHistoryRepository(this._delegate);
+
+  final TripHistoryRepository _delegate;
+  int getTripsCallCount = 0;
+  TripStatus? lastQueriedStatus;
+  TripType? lastQueriedType;
+
+  @override
+  Future<TripHistoryPageResult> getTrips({
+    int? travelerId,
+    TripStatus? status,
+    TripType? type,
+    DateTime? startDate,
+    DateTime? endDate,
+    int page = 1,
+    int pageSize = 20,
+  }) {
+    getTripsCallCount++;
+    lastQueriedStatus = status;
+    lastQueriedType = type;
+    return _delegate.getTrips(
+      travelerId: travelerId,
+      status: status,
+      type: type,
+      startDate: startDate,
+      endDate: endDate,
+      page: page,
+      pageSize: pageSize,
+    );
+  }
+
+  @override
+  Future<TripHistoryItem?> getTripById({
+    int? travelerId,
+    required String tripId,
+  }) {
+    return _delegate.getTripById(travelerId: travelerId, tripId: tripId);
+  }
+}
 
 void main() {
   late DemoTripHistoryStore demoStore;
@@ -131,16 +175,18 @@ void main() {
     });
 
     test(
-      'production mode: emits pendingIntegration and disables retry without network call',
+      'production mode: emits pendingIntegration and disables retry/refresh without network call',
       () async {
         final prodRepo = TripHistoryRepositoryImpl(isDemoMode: false);
+        final spyProdRepo = _SpyTripHistoryRepository(prodRepo);
         final prodCubit = TripHistoryCubit(
-          repository: prodRepo,
+          repository: spyProdRepo,
           isDemoMode: false,
         );
         addTearDown(prodCubit.close);
 
         await prodCubit.loadInitial();
+        expect(spyProdRepo.getTripsCallCount, equals(1));
 
         expect(
           prodCubit.state.status,
@@ -152,12 +198,69 @@ void main() {
         );
         expect(prodCubit.state.items, isEmpty);
 
-        // retry() should be a no-op in pendingIntegration mode
+        // retry() and refresh() should be no-ops in pendingIntegration mode
         await prodCubit.retry();
+        await prodCubit.refresh(tab: TripStatus.completed);
+        expect(spyProdRepo.getTripsCallCount, equals(1));
         expect(
           prodCubit.state.status,
           equals(TripHistoryStatus.pendingIntegration),
         );
+      },
+    );
+
+    test(
+      'refresh: forces a new repository query even when Completed tab is already selected and preserves active filters',
+      () async {
+        final spyRepo = _SpyTripHistoryRepository(repository);
+        final spyCubit = TripHistoryCubit(
+          repository: spyRepo,
+          isDemoMode: true,
+          demoTravelerId: DemoTripHistoryStore.demoTravelerId,
+        );
+        addTearDown(spyCubit.close);
+
+        await spyCubit.switchTab(TripStatus.completed);
+        expect(spyRepo.getTripsCallCount, equals(1));
+        expect(spyCubit.state.selectedTab, equals(TripStatus.completed));
+
+        // Apply TripType.tour filter
+        await spyCubit.setTripType(TripType.tour);
+        expect(spyRepo.getTripsCallCount, equals(2));
+        expect(spyCubit.state.selectedTripType, equals(TripType.tour));
+
+        // Verify BK-TOUR-003 has no review initially
+        final beforeItem = spyCubit.state.items.firstWhere(
+          (t) => t.bookingCode == 'BK-TOUR-003',
+        );
+        expect(beforeItem.review, isNull);
+
+        // Mutate store by submitting review for BK-TOUR-003
+        demoStore.submitReview(
+          const TripReviewSubmission(
+            tripId: 'trip-tour-003',
+            bookingCode: 'BK-TOUR-003',
+            travelerId: DemoTripHistoryStore.demoTravelerId,
+            rating: 5,
+            title: 'Great tour',
+            content: 'Awesome experience.',
+          ),
+        );
+
+        // Calling refresh(tab: TripStatus.completed) when already on Completed tab
+        // must execute a NEW repository query while preserving the tour filter.
+        await spyCubit.refresh(tab: TripStatus.completed);
+        expect(spyRepo.getTripsCallCount, equals(3));
+        expect(spyRepo.lastQueriedStatus, equals(TripStatus.completed));
+        expect(spyRepo.lastQueriedType, equals(TripType.tour));
+        expect(spyCubit.state.selectedTripType, equals(TripType.tour));
+
+        // Newly submitted review is reflected in state
+        final afterItem = spyCubit.state.items.firstWhere(
+          (t) => t.bookingCode == 'BK-TOUR-003',
+        );
+        expect(afterItem.review, isNotNull);
+        expect(afterItem.review!.title, equals('Great tour'));
       },
     );
 

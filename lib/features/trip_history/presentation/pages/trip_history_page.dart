@@ -153,7 +153,7 @@ class _TripHistoryPageState extends State<TripHistoryPage>
       extra: item,
     );
     if (result == true && mounted) {
-      await cubit.switchTab(TripStatus.completed);
+      await cubit.refresh(tab: TripStatus.completed);
     }
   }
 
