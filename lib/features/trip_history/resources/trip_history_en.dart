@@ -103,6 +103,8 @@ abstract final class TripHistoryStringsEn {
       'The end date cannot be earlier than the start date.';
   static const String permissionDenied =
       'You do not have permission to access this function.';
+  static const String tripInformationUnavailable =
+      'Trip information unavailable.';
 
   // Screen #74 Review Form
   static const String summarySectionTitle = 'Trip Information';

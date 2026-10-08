@@ -63,6 +63,7 @@ import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_h
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_history_page.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_review_page.dart';
+import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 import 'package:trip_mate_mobile/shared/widgets/error_view.dart';
 
 GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
@@ -424,7 +425,9 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
               ? state.extra as TripHistoryItem
               : null;
           if (trip == null) {
-            return const ErrorView(message: 'Trip information unavailable.');
+            return const ErrorView(
+              message: TripHistoryStringsEn.tripInformationUnavailable,
+            );
           }
           final repository = TripReviewRepositoryImpl(
             dioClient: serviceLocator(),

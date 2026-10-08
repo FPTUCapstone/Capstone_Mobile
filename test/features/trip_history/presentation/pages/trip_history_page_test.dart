@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_history_repository_impl.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_review_repository_impl.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enums.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_history_page.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_review_page.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/widgets/refund_status_dialog.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 
@@ -274,6 +281,117 @@ void main() {
         expect(find.text('BK-SRV-002'), findsNothing);
         // Does not show retry button
         expect(find.text(TripHistoryStringsEn.actionRetry), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'route-level regression: Write Review -> submit Demo review -> pops true -> refreshes Completed tab',
+      (tester) async {
+        tester.view.physicalSize = const Size(400, 2400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final reviewRepo = TripReviewRepositoryImpl(
+          demoStore: demoStore,
+          isDemoMode: true,
+        );
+        final reviewCubit = TripReviewCubit(
+          repository: reviewRepo,
+          isDemoMode: true,
+        );
+        addTearDown(reviewCubit.close);
+
+        final router = GoRouter(
+          initialLocation: AppRoutes.tripHistoryPath(isDemo: true),
+          routes: [
+            GoRoute(
+              path: AppRoutes.tripHistory,
+              builder: (_, state) {
+                final isDemo = state.uri.queryParameters['demo'] == 'true';
+                return BlocProvider<TripHistoryCubit>.value(
+                  value: cubit..loadInitial(),
+                  child: TripHistoryPage(isDemoMode: isDemo),
+                );
+              },
+            ),
+            GoRoute(
+              path: AppRoutes.tripReviewPattern,
+              builder: (_, state) {
+                final isDemo = state.uri.queryParameters['demo'] == 'true';
+                final trip = state.extra as TripHistoryItem;
+                return BlocProvider<TripReviewCubit>.value(
+                  value: reviewCubit,
+                  child: TripReviewPage(
+                    trip: trip,
+                    isDemoMode: isDemo,
+                    demoTravelerId: DemoTripHistoryStore.demoTravelerId,
+                    referenceTime: fixedNow,
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+        await tester.pumpAndSettle();
+
+        // 1. Initial view: switch to Completed tab where unreviewed BK-TOUR-003 exists
+        await tester.tap(find.text(TripHistoryStringsEn.tabCompleted));
+        await tester.pumpAndSettle();
+
+        expect(find.text('BK-TOUR-003'), findsOneWidget);
+        final writeReviewBtn = find.text(
+          TripHistoryStringsEn.actionWriteReview,
+        );
+        expect(writeReviewBtn, findsOneWidget);
+
+        // 2. Tap Write Review to push Screen #74
+        await tester.ensureVisible(writeReviewBtn);
+        await tester.tap(writeReviewBtn);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(TripReviewPage), findsOneWidget);
+        expect(find.text(TripHistoryStringsEn.tripReviewTitle), findsOneWidget);
+
+        // 3. Fill in rating and required fields
+        final stars = find.byIcon(Icons.star_outline_rounded);
+        await tester.tap(stars.last); // 5 stars
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.widgetWithText(TextField, TripHistoryStringsEn.reviewTitleHint),
+          'Unforgettable Journey',
+        );
+        await tester.enterText(
+          find.widgetWithText(
+            TextField,
+            TripHistoryStringsEn.reviewContentHint,
+          ),
+          'The tour was exceptionally well-organized and inspiring.',
+        );
+        await tester.pumpAndSettle();
+
+        // 4. Submit review
+        final submitBtn = find.text(TripHistoryStringsEn.actionSubmitReview);
+        await tester.ensureVisible(submitBtn);
+        await tester.tap(submitBtn);
+        await tester.pumpAndSettle();
+
+        // 5. Verify regression requirements:
+        // - Review success pops true (TripReviewPage is dismissed)
+        expect(find.byType(TripReviewPage), findsNothing);
+        // - TripHistoryPage reacts to true (remains mounted)
+        expect(find.byType(TripHistoryPage), findsOneWidget);
+        // - Completed tab is active and refreshed
+        expect(cubit.state.selectedTab, equals(TripStatus.completed));
+        // - Newly submitted review is reflected: BK-TOUR-003 now shows "Edit Review"
+        expect(find.text('BK-TOUR-003'), findsOneWidget);
+        expect(
+          find.text(TripHistoryStringsEn.actionEditReview),
+          findsNWidgets(2),
+        );
       },
     );
   });
