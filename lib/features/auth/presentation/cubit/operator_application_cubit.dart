@@ -1,64 +1,147 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/operator_application.dart';
+import 'package:trip_mate_mobile/features/auth/domain/repositories/operator_application_repository.dart';
+import 'package:trip_mate_mobile/features/auth/domain/usecases/fetch_operator_application.dart';
+import 'package:trip_mate_mobile/features/auth/domain/usecases/resubmit_operator_application.dart';
 
 enum OperatorApplicationStatus {
-  draft,
+  loading,
   rejected,
-  submitting,
   pending,
+  approved,
   unresolved,
 }
 
 final class OperatorApplicationState extends Equatable {
-  const OperatorApplicationState({required this.status, this.licenceFileName});
+  const OperatorApplicationState({
+    required this.status,
+    this.application,
+    this.isSubmitting = false,
+    this.fieldErrors = const {},
+    this.errorMessage,
+    this.successMessage,
+  });
 
-  final String? licenceFileName;
+  const OperatorApplicationState.loading()
+    : this(status: OperatorApplicationStatus.loading);
+
   final OperatorApplicationStatus status;
-
-  bool get hasLicence => licenceFileName != null;
-  bool get isSubmitting => status == OperatorApplicationStatus.submitting;
+  final OperatorApplication? application;
+  final bool isSubmitting;
+  final Map<String, String> fieldErrors;
+  final String? errorMessage;
+  final String? successMessage;
 
   OperatorApplicationState copyWith({
-    String? licenceFileName,
     OperatorApplicationStatus? status,
-  }) {
-    return OperatorApplicationState(
-      licenceFileName: licenceFileName ?? this.licenceFileName,
-      status: status ?? this.status,
-    );
-  }
+    OperatorApplication? application,
+    bool? isSubmitting,
+    Map<String, String>? fieldErrors,
+    String? errorMessage,
+    String? successMessage,
+    bool clearError = false,
+  }) => OperatorApplicationState(
+    status: status ?? this.status,
+    application: application ?? this.application,
+    isSubmitting: isSubmitting ?? this.isSubmitting,
+    fieldErrors: fieldErrors ?? this.fieldErrors,
+    errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+    successMessage: successMessage ?? this.successMessage,
+  );
 
   @override
-  List<Object?> get props => [status, licenceFileName];
+  List<Object?> get props => [
+    status,
+    application,
+    isSubmitting,
+    fieldErrors,
+    errorMessage,
+    successMessage,
+  ];
 }
 
 final class OperatorApplicationCubit extends Cubit<OperatorApplicationState> {
-  OperatorApplicationCubit({
-    OperatorApplicationStatus initialStatus =
-        OperatorApplicationStatus.rejected,
-  }) : super(
-         OperatorApplicationState(
-           status: initialStatus,
-           licenceFileName: initialStatus == OperatorApplicationStatus.rejected
-               ? 'licence-2026-renewed.pdf'
-               : null,
-         ),
-       );
+  OperatorApplicationCubit(this._fetchApplication, this._resubmitApplication)
+    : super(const OperatorApplicationState.loading());
 
-  void selectDemoLicence() {
-    emit(state.copyWith(licenceFileName: 'licence-0401998877.pdf'));
+  final FetchOperatorApplication _fetchApplication;
+  final ResubmitOperatorApplicationUseCase _resubmitApplication;
+
+  Future<void> loadApplication() async {
+    emit(const OperatorApplicationState.loading());
+    try {
+      final application = await _fetchApplication();
+      emit(
+        OperatorApplicationState(
+          status: _status(application.approvalStatus),
+          application: application,
+        ),
+      );
+    } on OperatorApplicationFailure catch (error) {
+      emit(
+        OperatorApplicationState(
+          status: OperatorApplicationStatus.unresolved,
+          errorMessage: _message(error.code),
+        ),
+      );
+    }
   }
 
-  Future<void> submit({bool isResubmission = false}) async {
-    emit(state.copyWith(status: OperatorApplicationStatus.submitting));
-    await Future<void>.delayed(const Duration(milliseconds: 500));
+  Future<bool> resubmit(ResubmitOperatorApplication input) async {
+    if (state.isSubmitting ||
+        state.status != OperatorApplicationStatus.rejected) {
+      return false;
+    }
     emit(
       state.copyWith(
-        licenceFileName: isResubmission
-            ? 'licence-2026-renewed.pdf'
-            : state.licenceFileName,
-        status: OperatorApplicationStatus.pending,
+        isSubmitting: true,
+        fieldErrors: const {},
+        clearError: true,
       ),
     );
+    try {
+      await _resubmitApplication(input);
+      final refreshed = await _fetchApplication();
+      emit(
+        OperatorApplicationState(
+          status: _status(refreshed.approvalStatus),
+          application: refreshed,
+          successMessage: _message('MSG162'),
+        ),
+      );
+      return true;
+    } on OperatorApplicationFailure catch (error) {
+      if (error.code == 'MSG161') {
+        await loadApplication();
+        return false;
+      }
+      emit(
+        state.copyWith(
+          isSubmitting: false,
+          fieldErrors: error.fieldErrors,
+          errorMessage: _message(error.code),
+        ),
+      );
+      return false;
+    }
   }
+
+  static OperatorApplicationStatus _status(String value) => switch (value) {
+    'Rejected' => OperatorApplicationStatus.rejected,
+    'PendingApproval' => OperatorApplicationStatus.pending,
+    'Approved' => OperatorApplicationStatus.approved,
+    _ => OperatorApplicationStatus.unresolved,
+  };
+
+  static String _message(String code) => switch (code) {
+    'MSG159' =>
+      'This business licence number or tax code is already registered.',
+    'MSG161' => 'Only rejected applications can be resubmitted.',
+    'MSG162' =>
+      'Application resubmitted successfully. It is now pending administrator review.',
+    'UNAUTHENTICATED' => 'Your session has expired. Please sign in again.',
+    _ =>
+      'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+  };
 }

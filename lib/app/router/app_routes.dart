@@ -30,6 +30,7 @@ abstract final class AppRoutes {
   static const offlinePackagePattern = '/traveler/trips/:itineraryId/offline';
   static const operator = '/operator';
   static const operatorApplication = '/operator/application';
+  static const operatorApplicationResubmit = '/operator/application/resubmit';
   static const createCoupon = '/operator/coupons/create';
 
   static String activeTripLive(int itineraryId) =>
@@ -75,5 +76,6 @@ abstract final class AppRouteNames {
   static const offlinePackage = 'offline-package';
   static const operator = 'operator';
   static const operatorApplication = 'operator-application';
+  static const operatorApplicationResubmit = 'operator-application-resubmit';
   static const createCoupon = 'create-coupon';
 }
