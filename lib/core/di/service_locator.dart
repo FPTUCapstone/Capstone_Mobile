@@ -14,19 +14,24 @@ import 'package:trip_mate_mobile/core/storage/preferences_service.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:trip_mate_mobile/features/auth/data/repositories/operator_application_repository_impl.dart';
 import 'package:trip_mate_mobile/features/auth/data/repositories/tour_operator_registration_repository_impl.dart';
 import 'package:trip_mate_mobile/features/auth/data/services/firebase_auth_service.dart';
 import 'package:trip_mate_mobile/features/auth/data/services/firebase_operator_registration_identity_service.dart';
 import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_repository.dart';
+import 'package:trip_mate_mobile/features/auth/domain/repositories/operator_application_repository.dart';
 import 'package:trip_mate_mobile/features/auth/domain/repositories/tour_operator_registration_repository.dart';
 import 'package:trip_mate_mobile/features/auth/domain/services/auth_identity_service.dart';
 import 'package:trip_mate_mobile/features/auth/domain/services/operator_registration_identity_service.dart';
+import 'package:trip_mate_mobile/features/auth/domain/usecases/fetch_operator_application.dart';
 import 'package:trip_mate_mobile/features/auth/domain/usecases/register_tour_operator.dart';
+import 'package:trip_mate_mobile/features/auth/domain/usecases/resubmit_operator_application.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/data/datasources/password_recovery_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/data/repositories/password_recovery_repository_impl.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/domain/repositories/password_recovery_repository.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/cubit/password_recovery_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_application_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_email_recovery_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_operator_cubit.dart';
@@ -141,6 +146,18 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerLazySingleton<AuthRepository>(
       () => AuthRepositoryImpl(serviceLocator()),
+    )
+    ..registerLazySingleton<OperatorApplicationRepository>(
+      () => OperatorApplicationRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<FetchOperatorApplication>(
+      () => FetchOperatorApplication(serviceLocator()),
+    )
+    ..registerFactory<ResubmitOperatorApplicationUseCase>(
+      () => ResubmitOperatorApplicationUseCase(serviceLocator()),
+    )
+    ..registerFactory<OperatorApplicationCubit>(
+      () => OperatorApplicationCubit(serviceLocator(), serviceLocator()),
     )
     ..registerLazySingleton<TourOperatorRegistrationRepository>(
       () => TourOperatorRegistrationRepositoryImpl(serviceLocator()),
