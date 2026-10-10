@@ -28,9 +28,7 @@ final class _MockRepository implements OperatorApplicationRepository {
   }
 
   @override
-  Future<void> resubmitApplication(
-    ResubmitOperatorApplication input,
-  ) async {
+  Future<void> resubmitApplication(ResubmitOperatorApplication input) async {
     lastResubmitInput = input;
     if (failureToThrow != null) throw failureToThrow!;
   }
@@ -79,33 +77,33 @@ void main() {
     expect(cubit.state.fieldErrors['businessLicenseNo'], isNull);
   });
 
-  test('maps businessLicenseNo MSG159 error to specific inline field message', () async {
-    repository.failureToThrow = const OperatorApplicationFailure(
-      'MSG159',
-      fieldErrors: {'businessLicenseNo': 'MSG159'},
-    );
+  test(
+    'maps businessLicenseNo MSG159 error to specific inline field message',
+    () async {
+      repository.failureToThrow = const OperatorApplicationFailure(
+        'MSG159',
+        fieldErrors: {'businessLicenseNo': 'MSG159'},
+      );
 
-    final result = await cubit.resubmit(testInput);
+      final result = await cubit.resubmit(testInput);
 
-    expect(result, isFalse);
-    expect(
-      cubit.state.errorMessage,
-      'This business licence number or tax code is already registered.',
-    );
-    expect(
-      cubit.state.fieldErrors['businessLicenseNo'],
-      'This business licence number is already registered.',
-    );
-    expect(cubit.state.fieldErrors['taxCode'], isNull);
-  });
+      expect(result, isFalse);
+      expect(
+        cubit.state.errorMessage,
+        'This business licence number or tax code is already registered.',
+      );
+      expect(
+        cubit.state.fieldErrors['businessLicenseNo'],
+        'This business licence number is already registered.',
+      );
+      expect(cubit.state.fieldErrors['taxCode'], isNull);
+    },
+  );
 
   test('maps both identifier errors when both conflict', () async {
     repository.failureToThrow = const OperatorApplicationFailure(
       'MSG159',
-      fieldErrors: {
-        'taxCode': 'MSG159',
-        'businessLicenseNo': 'MSG159',
-      },
+      fieldErrors: {'taxCode': 'MSG159', 'businessLicenseNo': 'MSG159'},
     );
 
     final result = await cubit.resubmit(testInput);

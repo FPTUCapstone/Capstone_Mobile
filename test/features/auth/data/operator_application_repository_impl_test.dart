@@ -8,7 +8,6 @@ import 'package:trip_mate_mobile/app/config/environment.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/auth/data/repositories/operator_application_repository_impl.dart';
-import 'package:trip_mate_mobile/features/auth/domain/entities/operator_application.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/operator_document_upload.dart';
 import 'package:trip_mate_mobile/features/auth/domain/repositories/operator_application_repository.dart';
 
