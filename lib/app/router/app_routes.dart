@@ -10,7 +10,9 @@ abstract final class AppRoutes {
   static const explore = '/explore';
   static const poiDetailPattern = '/explore/poi/:id';
   static const tourSearch = '/explore/tours';
+  static const tourDetailPattern = '/explore/tours/:tourId';
   static const traveler = '/traveler';
+  static const tourRecommendations = '/traveler/tours/recommendations';
   static const travelerSettings = '/traveler/settings';
   static const travelerProfile = '/traveler/profile';
   static const travelerPreferences = '/traveler/preferences';
@@ -42,6 +44,8 @@ abstract final class AppRoutes {
   static String groupLocationSharingPath(int groupId) =>
       '/traveler/groups/$groupId/location-sharing';
   static String poiDetail(int id) => '/explore/poi/$id';
+  static String tourDetail(String tourId, {bool demo = false}) =>
+      demo ? '/explore/tours/$tourId?demo=true' : '/explore/tours/$tourId';
   static const authPrefix = '/auth';
   static const travelerPrefix = '/traveler';
   static const operatorPrefix = '/operator';
@@ -58,7 +62,9 @@ abstract final class AppRouteNames {
   static const explore = 'explore';
   static const poiDetail = 'poi-detail';
   static const tourSearch = 'tour-search';
+  static const tourDetail = 'tour-detail';
   static const traveler = 'traveler';
+  static const tourRecommendations = 'tour-recommendations';
   static const travelerSettings = 'traveler-settings';
   static const travelerProfile = 'traveler-profile';
   static const travelerPreferences = 'traveler-preferences';

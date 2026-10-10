@@ -5,15 +5,127 @@ import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summa
 import 'package:trip_mate_mobile/features/tour_search/presentation/theme/tour_search_palette.dart';
 
 class TourListCard extends StatelessWidget {
-  const TourListCard({required this.tour, super.key});
+  const TourListCard({
+    required this.tour,
+    this.onTap,
+    this.matchingScore,
+    super.key,
+  });
 
   final TourSummary tour;
+  final VoidCallback? onTap;
+  final double? matchingScore;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cardContent = Padding(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _TourThumbnail(tour: tour),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (matchingScore != null) ...[
+                      _MatchingScoreBadge(score: matchingScore!),
+                      const SizedBox(height: AppSpacing.xxs),
+                    ],
+                    // ── Title ──────────────────────────────────────────────
+                    Text(
+                      tour.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: TourSearchPalette.navy,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xxs),
+
+                    // ── Destinations ───────────────────────────────────────
+                    if (tour.destinations.isNotEmpty)
+                      Text(
+                        tour.destinations.join(' • '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: TourSearchPalette.muted,
+                        ),
+                      ),
+                    const SizedBox(height: AppSpacing.xs),
+
+                    // ── Operator & Duration ────────────────────────────────
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.business_outlined,
+                          size: 16,
+                          color: TourSearchPalette.muted,
+                        ),
+                        const SizedBox(width: AppSpacing.xxs),
+                        Flexible(
+                          child: Text(
+                            tour.operatorName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: TourSearchPalette.navyLight,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        const Icon(
+                          Icons.schedule_outlined,
+                          size: 16,
+                          color: TourSearchPalette.muted,
+                        ),
+                        const SizedBox(width: AppSpacing.xxs),
+                        Text(
+                          '${tour.durationDays} ngày',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: TourSearchPalette.navyLight,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+
+          // ── Price & Availability ───────────────────────────────
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Text(
+                  _formatPrice(tour.basePrice, tour.currency),
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: TourSearchPalette.navy,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              _AvailabilityBadge(tour: tour),
+            ],
+          ),
+        ],
+      ),
+    );
+
     return Semantics(
-      label: '${tour.title}, ${_availabilityLabel(tour)}',
+      label:
+          '${tour.title}, ${_availabilityLabel(tour)}${matchingScore != null ? ', ${(matchingScore! * 100).round()}% phù hợp' : ''}',
+      button: onTap != null,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -27,102 +139,13 @@ class TourListCard extends StatelessWidget {
             ),
           ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _TourThumbnail(tour: tour),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ── Title ──────────────────────────────────────────────
-                        Text(
-                          tour.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: TourSearchPalette.navy,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xxs),
-
-                        // ── Destinations ───────────────────────────────────────
-                        if (tour.destinations.isNotEmpty)
-                          Text(
-                            tour.destinations.join(' • '),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: TourSearchPalette.muted,
-                            ),
-                          ),
-                        const SizedBox(height: AppSpacing.xs),
-
-                        // ── Operator & Duration ────────────────────────────────
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.business_outlined,
-                              size: 16,
-                              color: TourSearchPalette.muted,
-                            ),
-                            const SizedBox(width: AppSpacing.xxs),
-                            Flexible(
-                              child: Text(
-                                tour.operatorName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: TourSearchPalette.navyLight,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            const Icon(
-                              Icons.schedule_outlined,
-                              size: 16,
-                              color: TourSearchPalette.muted,
-                            ),
-                            const SizedBox(width: AppSpacing.xxs),
-                            Text(
-                              '${tour.durationDays} ngày',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: TourSearchPalette.navyLight,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sm),
-
-              // ── Price & Availability ───────────────────────────────
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: Text(
-                      _formatPrice(tour.basePrice, tour.currency),
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: TourSearchPalette.navy,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  _AvailabilityBadge(tour: tour),
-                ],
-              ),
-            ],
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onTap,
+            child: cardContent,
           ),
         ),
       ),
@@ -284,6 +307,43 @@ class _NeutralThumbnailPlaceholder extends StatelessWidget {
         ),
         child: Center(
           child: Icon(Icons.image_outlined, size: 34, color: Color(0xFF94A3B8)),
+        ),
+      ),
+    );
+  }
+}
+
+class _MatchingScoreBadge extends StatelessWidget {
+  const _MatchingScoreBadge({required this.score});
+
+  final double score;
+
+  @override
+  Widget build(BuildContext context) {
+    final percentage = (score * 100).round();
+    return Semantics(
+      label: 'Độ phù hợp $percentage%',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE8F5E9),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: const Color(0xFF81C784), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.auto_awesome, size: 13, color: Color(0xFF2E7D32)),
+            const SizedBox(width: 4),
+            Text(
+              '$percentage% phù hợp',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF2E7D32),
+              ),
+            ),
+          ],
         ),
       ),
     );
