@@ -59,6 +59,15 @@ import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_p
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_settings_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_shell_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/trip_alerts_page.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_history_repository_impl.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_review_repository_impl.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_history_page.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_review_page.dart';
+import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 import 'package:trip_mate_mobile/shared/widgets/error_view.dart';
 
 GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
@@ -394,6 +403,61 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
             itineraryId: itineraryId,
             title: title,
             isDemoMode: isDemo,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.tripHistory,
+        name: AppRouteNames.tripHistory,
+        builder: (_, state) {
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final repository = TripHistoryRepositoryImpl(
+            dioClient: serviceLocator(),
+            demoStore: serviceLocator<DemoTripHistoryStore>(),
+            isDemoMode: isDemo,
+          );
+          return BlocProvider(
+            create: (_) => TripHistoryCubit(
+              repository: repository,
+              isDemoMode: isDemo,
+              demoTravelerId: isDemo
+                  ? DemoTripHistoryStore.demoTravelerId
+                  : null,
+            )..loadInitial(),
+            child: TripHistoryPage(isDemoMode: isDemo),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.tripReviewPattern,
+        name: AppRouteNames.tripReview,
+        builder: (_, state) {
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final trip = state.extra is TripHistoryItem
+              ? state.extra as TripHistoryItem
+              : null;
+          if (trip == null) {
+            return const ErrorView(
+              message: TripHistoryStringsEn.tripInformationUnavailable,
+            );
+          }
+          final repository = TripReviewRepositoryImpl(
+            dioClient: serviceLocator(),
+            demoStore: serviceLocator<DemoTripHistoryStore>(),
+            isDemoMode: isDemo,
+          );
+          return BlocProvider(
+            create: (_) =>
+                TripReviewCubit(repository: repository, isDemoMode: isDemo),
+            child: TripReviewPage(
+              trip: trip,
+              isDemoMode: isDemo,
+              demoTravelerId: isDemo
+                  ? DemoTripHistoryStore.demoTravelerId
+                  : null,
+            ),
           );
         },
       ),
