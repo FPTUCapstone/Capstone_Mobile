@@ -118,8 +118,10 @@ final class OperatorApplicationCubit extends Cubit<OperatorApplicationState> {
       }
       final mappedFieldErrors = <String, String>{};
       for (final entry in error.fieldErrors.entries) {
-        mappedFieldErrors[entry.key] =
-            _fieldErrorMessage(entry.key, entry.value);
+        mappedFieldErrors[entry.key] = _fieldErrorMessage(
+          entry.key,
+          entry.value,
+        );
       }
       emit(
         state.copyWith(
