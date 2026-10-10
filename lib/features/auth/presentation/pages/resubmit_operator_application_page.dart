@@ -58,11 +58,12 @@ class _ResubmitOperatorApplicationPageState
 
   void _prefill(OperatorApplicationState state) {
     final application = state.application;
-    if (_initialized || application == null) return;
+    if (application == null) return;
     if (!application.isRejected) {
       context.go(AppRoutes.operatorApplication);
       return;
     }
+    if (_initialized) return;
     _company.text = application.companyName;
     _licenceNo.text = application.businessLicenseNo;
     _taxCode.text = application.taxCode;
