@@ -116,15 +116,33 @@ final class OperatorApplicationCubit extends Cubit<OperatorApplicationState> {
         await loadApplication();
         return false;
       }
+      final mappedFieldErrors = <String, String>{};
+      for (final entry in error.fieldErrors.entries) {
+        mappedFieldErrors[entry.key] =
+            _fieldErrorMessage(entry.key, entry.value);
+      }
       emit(
         state.copyWith(
           isSubmitting: false,
-          fieldErrors: error.fieldErrors,
+          fieldErrors: mappedFieldErrors,
           errorMessage: _message(error.code),
         ),
       );
       return false;
     }
+  }
+
+  static String _fieldErrorMessage(String field, String code) {
+    if (code == 'MSG159') {
+      if (field == 'taxCode') {
+        return 'This tax code is already registered.';
+      }
+      if (field == 'businessLicenseNo') {
+        return 'This business licence number is already registered.';
+      }
+      return 'This business licence number or tax code is already registered.';
+    }
+    return _message(code);
   }
 
   static OperatorApplicationStatus _status(String value) => switch (value) {
@@ -135,6 +153,10 @@ final class OperatorApplicationCubit extends Cubit<OperatorApplicationState> {
   };
 
   static String _message(String code) => switch (code) {
+    'MSG01' => 'This field is required.',
+    'MSG157' => 'Please upload the required business licence document.',
+    'MSG158' =>
+      'The uploaded file type is not supported or the file exceeds the size limit.',
     'MSG159' =>
       'This business licence number or tax code is already registered.',
     'MSG161' => 'Only rejected applications can be resubmitted.',

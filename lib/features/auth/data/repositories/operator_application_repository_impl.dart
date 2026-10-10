@@ -13,7 +13,7 @@ final class OperatorApplicationRepositoryImpl
   Future<OperatorApplication> fetchApplication() async {
     try {
       final response = await _client.dio.get<Map<String, dynamic>>(
-        '/operator/application',
+        '/api/v1/operator/application',
       );
       return _application(response.data);
     } on DioException catch (error) {
@@ -40,7 +40,7 @@ final class OperatorApplicationRepositoryImpl
     };
     try {
       final response = await _client.dio.put<Map<String, dynamic>>(
-        '/operator/application/resubmit',
+        '/api/v1/operator/application/resubmit',
         data: FormData.fromMap(values, ListFormat.multi),
         options: Options(contentType: 'multipart/form-data'),
       );
@@ -140,7 +140,6 @@ final class OperatorApplicationRepositoryImpl
     );
   }
 
-  String _camelCase(String value) => value.isEmpty
-      ? value
-      : '${value[0].toLowerCase()}${value.substring(1)}';
+  String _camelCase(String value) =>
+      value.isEmpty ? value : '${value[0].toLowerCase()}${value.substring(1)}';
 }

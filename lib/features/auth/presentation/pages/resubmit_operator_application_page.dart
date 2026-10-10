@@ -157,16 +157,33 @@ class _ResubmitOperatorApplicationPageState
               subtitle: Text(document.status),
             ),
           ),
-          OutlinedButton.icon(
-            onPressed: state.isSubmitting ? null : _pickLicence,
-            icon: const Icon(Icons.upload_file),
-            label: Text(
-              _licence?.fileName ?? 'Replace business licence (optional)',
-            ),
-          ),
-          const Text(
-            'Leave empty to submit the latest existing licence for review again.',
-            style: TextStyle(fontSize: 12),
+          Builder(
+            builder: (context) {
+              final hasExistingLicence = application.documents.any(
+                (document) => document.documentType == 'BusinessLicense',
+              );
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: state.isSubmitting ? null : _pickLicence,
+                    icon: const Icon(Icons.upload_file),
+                    label: Text(
+                      _licence?.fileName ??
+                          (hasExistingLicence
+                              ? 'Replace business licence (optional)'
+                              : 'Upload business licence (required)'),
+                    ),
+                  ),
+                  Text(
+                    hasExistingLicence
+                        ? 'Leave empty to submit the latest existing licence for review again.'
+                        : 'A business licence document is required to resubmit.',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: AppSpacing.sm),
           OutlinedButton.icon(
@@ -250,6 +267,21 @@ class _ResubmitOperatorApplicationPageState
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    final application = context
+        .read<OperatorApplicationCubit>()
+        .state
+        .application;
+    final hasExistingLicence =
+        application?.documents.any(
+          (document) => document.documentType == 'BusinessLicense',
+        ) ??
+        false;
+    if (!hasExistingLicence && _licence == null) {
+      setState(() {
+        _pickerError = 'Please upload the required business licence document.';
+      });
+      return;
+    }
     final success = await context.read<OperatorApplicationCubit>().resubmit(
       ResubmitOperatorApplication(
         companyName: _company.text,
