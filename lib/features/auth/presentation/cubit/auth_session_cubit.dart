@@ -267,6 +267,24 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     }
   }
 
+  Future<void> markOperatorApplicationPendingApproval() async {
+    if (!state.isAuthenticated || state.role != UserRole.tourOperator) return;
+    try {
+      await _secureStorage?.write(
+        AppConstants.sessionApplicationStatusKey,
+        TourOperatorApplicationStatus.pendingApproval.name,
+      );
+    } catch (_) {
+      // The in-memory state remains authoritative for this running session.
+    }
+    emit(
+      AuthSessionState.authenticated(
+        UserRole.tourOperator,
+        applicationStatus: TourOperatorApplicationStatus.pendingApproval,
+      ),
+    );
+  }
+
   Future<void> signIn({
     required String email,
     required String password,

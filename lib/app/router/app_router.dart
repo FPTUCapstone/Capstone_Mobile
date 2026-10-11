@@ -7,18 +7,22 @@ import 'package:trip_mate_mobile/app/router/create_travel_group_route_args.dart'
 import 'package:trip_mate_mobile/app/router/route_guards.dart';
 import 'package:trip_mate_mobile/app/router/travel_group_details_route_args.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
-import 'package:trip_mate_mobile/features/auth/domain/entities/tour_operator_application_status.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/cubit/password_recovery_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/pages/password_recovery_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_application_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_email_recovery_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_operator_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/login_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/operator_application_page.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/pages/operator_email_recovery_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/operator_registration_page.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/pages/resubmit_operator_application_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/splash_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/traveler_registration_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/verify_email_page.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/services/operator_document_picker.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_capability.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_service_booking_cubit.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_service_detail_cubit.dart';
@@ -107,10 +111,20 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         path: AppRoutes.operatorRegistration,
         name: AppRouteNames.operatorRegistration,
         builder: (_, _) => BlocProvider(
-          create: (_) => OperatorApplicationCubit(
-            initialStatus: OperatorApplicationStatus.draft,
+          create: (_) => serviceLocator<RegisterOperatorCubit>(),
+          child: OperatorRegistrationPage(
+            documentPicker: serviceLocator<OperatorDocumentPicker>(),
           ),
-          child: const OperatorRegistrationPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.operatorEmailRecovery,
+        name: AppRouteNames.operatorEmailRecovery,
+        builder: (_, state) => BlocProvider(
+          create: (_) => serviceLocator<OperatorEmailRecoveryCubit>(),
+          child: OperatorEmailRecoveryPage(
+            email: state.extra is String ? state.extra as String : null,
+          ),
         ),
       ),
       GoRoute(
@@ -486,16 +500,18 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         path: AppRoutes.operatorApplication,
         name: AppRouteNames.operatorApplication,
         builder: (_, state) => BlocProvider(
-          create: (_) => OperatorApplicationCubit(
-            initialStatus: switch (sessionCubit.state.applicationStatus) {
-              TourOperatorApplicationStatus.pendingApproval =>
-                OperatorApplicationStatus.pending,
-              TourOperatorApplicationStatus.rejected =>
-                OperatorApplicationStatus.rejected,
-              _ => OperatorApplicationStatus.unresolved,
-            },
-          ),
+          create: (_) => serviceLocator<OperatorApplicationCubit>(),
           child: const OperatorApplicationPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.operatorApplicationResubmit,
+        name: AppRouteNames.operatorApplicationResubmit,
+        builder: (_, state) => BlocProvider(
+          create: (_) => serviceLocator<OperatorApplicationCubit>(),
+          child: ResubmitOperatorApplicationPage(
+            picker: serviceLocator<OperatorDocumentPicker>(),
+          ),
         ),
       ),
     ],

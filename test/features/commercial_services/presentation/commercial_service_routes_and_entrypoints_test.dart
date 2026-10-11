@@ -117,6 +117,10 @@ void main() {
           builder: (_, _) => const Text('Operator Application'),
         ),
         GoRoute(
+          path: AppRoutes.operatorApplicationResubmit,
+          builder: (_, _) => const Text('Operator Application Resubmit'),
+        ),
+        GoRoute(
           path: AppRoutes.commercialServicesSearchPattern,
           builder: (_, _) => const Text('Commercial Services Search'),
         ),
@@ -239,6 +243,27 @@ void main() {
             AppRoutes.commercialServiceBooking(901, demo: true),
           ),
           AppRoutes.operator,
+        );
+
+        const rejectedOperator = AuthSessionState.authenticated(
+          UserRole.tourOperator,
+          applicationStatus: TourOperatorApplicationStatus.rejected,
+        );
+        expect(
+          await resolveRoute(
+            tester,
+            rejectedOperator,
+            AppRoutes.operatorApplicationResubmit,
+          ),
+          AppRoutes.operatorApplicationResubmit,
+        );
+        expect(
+          await resolveRoute(
+            tester,
+            rejectedOperator,
+            '${AppRoutes.commercialServicesSearch}?demo=true',
+          ),
+          AppRoutes.operatorApplication,
         );
       },
     );

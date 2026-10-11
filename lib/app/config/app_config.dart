@@ -2,11 +2,14 @@ import 'package:flutter/foundation.dart';
 import 'package:trip_mate_mobile/app/config/environment.dart';
 
 final class AppConfig {
-  const AppConfig({
+  AppConfig({
     required this.environment,
     required this.apiBaseUrl,
     this.poiCategoryPreview = false,
-  });
+    String? webVerificationOrigin,
+  }) : webVerificationOrigin = webVerificationOrigin == null
+           ? null
+           : _parseWebVerificationOrigin(webVerificationOrigin, environment);
 
   factory AppConfig.fromEnvironment() {
     const environmentValue = String.fromEnvironment(
@@ -14,6 +17,9 @@ final class AppConfig {
       defaultValue: 'development',
     );
     const apiBaseUrlValue = String.fromEnvironment('API_BASE_URL');
+    const webVerificationOriginValue = String.fromEnvironment(
+      'WEB_VERIFICATION_ORIGIN',
+    );
     const poiCategoryPreview = bool.fromEnvironment('POI_CATEGORY_PREVIEW');
     final resolvedApiBaseUrl = apiBaseUrlValue.isNotEmpty
         ? apiBaseUrlValue
@@ -22,13 +28,26 @@ final class AppConfig {
     return AppConfig(
       environment: Environment.fromValue(environmentValue),
       apiBaseUrl: _parseBaseUrl(resolvedApiBaseUrl),
+      webVerificationOrigin: webVerificationOriginValue.isEmpty
+          ? null
+          : webVerificationOriginValue,
       poiCategoryPreview: poiCategoryPreview,
     );
   }
 
   final Environment environment;
   final Uri apiBaseUrl;
+  final Uri? webVerificationOrigin;
   final bool poiCategoryPreview;
+
+  /// Fails closed until an actual Web origin is configured for UC-02.
+  Uri requireOperatorVerificationContinueUrl() {
+    final origin = webVerificationOrigin;
+    if (origin == null) {
+      throw StateError('WEB_VERIFICATION_ORIGIN is not configured.');
+    }
+    return origin.resolve('/verify-email?flow=operator-mobile');
+  }
 
   bool get enableNetworkLogs => environment != Environment.production;
   bool get categoryPreviewEnabled =>
@@ -58,5 +77,38 @@ final class AppConfig {
       );
     }
     return uri;
+  }
+
+  static Uri _parseWebVerificationOrigin(
+    String value,
+    Environment environment,
+  ) {
+    final uri = Uri.tryParse(value);
+    final isLocalHost =
+        uri != null &&
+        (uri.host == 'localhost' ||
+            uri.host == '127.0.0.1' ||
+            uri.host == '::1');
+    final isAllowedScheme =
+        uri != null &&
+        (uri.scheme == 'https' ||
+            (uri.scheme == 'http' &&
+                isLocalHost &&
+                environment != Environment.production));
+    if (value.contains(RegExp(r'\s')) ||
+        uri == null ||
+        !isAllowedScheme ||
+        uri.host.isEmpty ||
+        uri.host.endsWith('.invalid') ||
+        uri.userInfo.isNotEmpty ||
+        (uri.path.isNotEmpty && uri.path != '/') ||
+        uri.hasQuery ||
+        uri.hasFragment) {
+      throw FormatException(
+        'WEB_VERIFICATION_ORIGIN must be a valid HTTPS origin '
+        '(local HTTP is allowed only in development or staging).',
+      );
+    }
+    return uri.replace(path: '');
   }
 }
