@@ -1,13 +1,20 @@
 import 'package:dio/dio.dart';
+import 'package:trip_mate_mobile/core/constants/api_constants.dart';
 import 'package:trip_mate_mobile/core/error/exceptions.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
+import 'package:trip_mate_mobile/features/auth/data/mappers/operator_registration_mapper.dart';
 import 'package:trip_mate_mobile/features/auth/data/models/login_request.dart';
+import 'package:trip_mate_mobile/features/auth/data/models/register_operator_response.dart';
 import 'package:trip_mate_mobile/features/auth/data/models/register_traveler_request.dart';
 import 'package:trip_mate_mobile/features/auth/data/models/register_traveler_response.dart';
 import 'package:trip_mate_mobile/features/auth/data/models/session_response_dto.dart';
 import 'package:trip_mate_mobile/features/auth/data/models/sign_out_request.dart';
 
 abstract interface class AuthRemoteDataSource {
+  Future<RegisterOperatorResponse> registerOperator(FormData formData);
+
+  Future<void> confirmOperatorEmail(String firebaseIdToken);
+
   Future<RegisterTravelerResponse> registerTraveler(
     RegisterTravelerRequest request,
     String firebaseIdToken,
@@ -29,6 +36,71 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   const AuthRemoteDataSourceImpl(this._dioClient);
 
   final DioClient _dioClient;
+
+  @override
+  Future<void> confirmOperatorEmail(String firebaseIdToken) async {
+    try {
+      final response = await _dioClient.dio.post<Map<String, dynamic>>(
+        '/api/v1/auth/web/verify-email',
+        options: Options(
+          headers: {'Authorization': 'Bearer $firebaseIdToken'},
+          extra: const {'skipAuth': true},
+        ),
+      );
+      final body = response.data;
+      if (response.statusCode != 200 ||
+          body?['success'] != true ||
+          body?['data'] is! Map<String, dynamic> ||
+          (body!['data'] as Map<String, dynamic>)['emailVerified'] != true) {
+        throw const OperatorVerificationRemoteUnknown();
+      }
+    } on DioException catch (error) {
+      final status = error.response?.statusCode;
+      if (status == 400 || status == 401 || status == 403 || status == 503) {
+        throw OperatorVerificationRemoteRejection(error.response?.data);
+      }
+      throw const OperatorVerificationRemoteUnknown();
+    } on TypeError {
+      throw const OperatorVerificationRemoteUnknown();
+    }
+  }
+
+  @override
+  Future<RegisterOperatorResponse> registerOperator(FormData formData) async {
+    try {
+      final response = await _dioClient.dio.post<Map<String, dynamic>>(
+        '/api/v1/auth/register/operator',
+        data: formData,
+        options: Options(
+          contentType: Headers.multipartFormDataContentType,
+          receiveTimeout: ApiConstants.operatorRegistrationReceiveTimeout,
+          extra: const {'skipAuth': true},
+        ),
+      );
+      return RegisterOperatorResponse.fromEnvelope(
+        response.statusCode,
+        response.data,
+      );
+    } on DioException catch (error) {
+      final status = error.response?.statusCode;
+      if (status == 400 ||
+          status == 401 ||
+          status == 409 ||
+          status == 413 ||
+          status == 415 ||
+          status == 503) {
+        throw OperatorRegistrationRemoteRejection(
+          status!,
+          error.response?.data,
+        );
+      }
+      throw const OperatorRegistrationRemoteUnknown();
+    } on FormatException {
+      throw const OperatorRegistrationRemoteUnknown();
+    } on TypeError {
+      throw const OperatorRegistrationRemoteUnknown();
+    }
+  }
 
   @override
   Future<RegisterTravelerResponse> registerTraveler(
@@ -224,7 +296,7 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     'auth.account_inactive' =>
       'Your account is inactive. Please contact support.',
     'auth.account_state_unresolved' =>
-      'We could not confirm your account status. Please contact TripMate support.',
+      'We could not confirm your account status. If you recently registered, verify your email; otherwise contact TripMate support.',
     'auth.admin_google_sign_in_disabled' =>
       'Administrator accounts are supported on Web only.',
     'auth.admin_mobile_sign_in_disabled' =>
