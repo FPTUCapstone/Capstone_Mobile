@@ -227,24 +227,31 @@ Future<void> configureDependencies({AppConfig? config}) async {
       () => PasswordRecoveryCubit(serviceLocator()),
     )
     ..registerLazySingleton<DemoTripHistoryStore>(DemoTripHistoryStore.new)
-    ..registerFactory<TripHistoryRepository>(
-      () => TripHistoryRepositoryImpl(
+    ..registerFactoryParam<TripHistoryRepository, bool, void>(
+      (isDemoMode, _) => TripHistoryRepositoryImpl(
         dioClient: serviceLocator(),
         demoStore: serviceLocator(),
-        isDemoMode: false,
+        isDemoMode: isDemoMode,
       ),
     )
-    ..registerFactory<TripReviewRepository>(
-      () => TripReviewRepositoryImpl(
+    ..registerFactoryParam<TripReviewRepository, bool, void>(
+      (isDemoMode, _) => TripReviewRepositoryImpl(
         dioClient: serviceLocator(),
         demoStore: serviceLocator(),
-        isDemoMode: false,
+        isDemoMode: isDemoMode,
       ),
     )
-    ..registerFactory<TripHistoryCubit>(
-      () => TripHistoryCubit(repository: serviceLocator(), isDemoMode: false),
+    ..registerFactoryParam<TripHistoryCubit, bool, void>(
+      (isDemoMode, _) => TripHistoryCubit(
+        repository: serviceLocator(param1: isDemoMode),
+        isDemoMode: isDemoMode,
+        demoTravelerId: isDemoMode ? DemoTripHistoryStore.demoTravelerId : null,
+      ),
     )
-    ..registerFactory<TripReviewCubit>(
-      () => TripReviewCubit(repository: serviceLocator(), isDemoMode: false),
+    ..registerFactoryParam<TripReviewCubit, bool, void>(
+      (isDemoMode, _) => TripReviewCubit(
+        repository: serviceLocator(param1: isDemoMode),
+        isDemoMode: isDemoMode,
+      ),
     );
 }

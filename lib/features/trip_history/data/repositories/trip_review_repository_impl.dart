@@ -9,9 +9,9 @@ import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en
 final class TripReviewRepositoryImpl implements TripReviewRepository {
   TripReviewRepositoryImpl({
     this.dioClient,
-    DemoTripHistoryStore? demoStore,
+    required DemoTripHistoryStore demoStore,
     this.isDemoMode = false,
-  }) : _demoStore = demoStore ?? DemoTripHistoryStore();
+  }) : _demoStore = demoStore;
 
   final DioClient? dioClient;
   final DemoTripHistoryStore _demoStore;
@@ -23,9 +23,10 @@ final class TripReviewRepositoryImpl implements TripReviewRepository {
       return _demoStore.submitReview(submission);
     }
 
-    // Production: Backend PR #30 is OPEN and unmerged.
-    // Truthfully disable review submission without executing invented HTTP endpoints
-    // or passing unauthenticated travelerId bodies.
+    // Production review endpoints are merged for authoritative commerce-booking
+    // and service-booking identifiers. UC-32 does not yet supply that typed,
+    // server-owned booking reference, so this screen must not infer one from a
+    // trip ID or booking code and must keep mutations disabled.
     throw const ServerFailure(
       TripHistoryStringsEn.productionReviewMutationDisabled,
     );
@@ -37,7 +38,8 @@ final class TripReviewRepositoryImpl implements TripReviewRepository {
       return _demoStore.updateReview(submission);
     }
 
-    // Production: Backend PR #30 is OPEN and unmerged.
+    // The merged edit endpoint likewise requires an authoritative typed booking
+    // reference that the unavailable UC-32 aggregate contract cannot provide.
     throw const ServerFailure(
       TripHistoryStringsEn.productionReviewMutationDisabled,
     );
@@ -56,8 +58,9 @@ final class TripReviewRepositoryImpl implements TripReviewRepository {
       return trip?.review;
     }
 
-    // Production: Backend develop has no review endpoint.
-    // Do NOT call an invented endpoint and do NOT fail open to null (unreviewed).
+    // Review reads exist per booking kind, but UC-32 cannot yet identify the
+    // correct booking namespace and numeric ID. Do not guess and do not fail
+    // open to null (which would incorrectly mean "unreviewed").
     throw const ServerFailure(
       TripHistoryStringsEn.productionReviewMutationDisabled,
     );
