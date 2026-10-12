@@ -206,6 +206,31 @@ void main() {
       ],
     );
 
+    blocTest<JoinTravelGroupCubit, JoinTravelGroupState>(
+      'maps NetworkFailure to MSG127',
+      build: () => JoinTravelGroupCubit(
+        repository: _MockTravelGroupRepository(failure: const NetworkFailure()),
+      ),
+      act: (cubit) => cubit.submit('A7K4P2QX'),
+      expect: () => [
+        const JoinTravelGroupState.submitting(),
+        const JoinTravelGroupState.failure(
+          'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+        ),
+      ],
+    );
+
+    test('reset restores state to initial', () {
+      final repository = _MockTravelGroupRepository(joinResult: testGroup);
+      final cubit = JoinTravelGroupCubit(repository: repository);
+      cubit.emit(const JoinTravelGroupState.failure('Some error'));
+      expect(cubit.state.status, JoinTravelGroupStatus.failure);
+
+      cubit.reset();
+      expect(cubit.state.status, JoinTravelGroupStatus.initial);
+      expect(cubit.state.errorMessage, isNull);
+    });
+
     test('reuses same idempotency key for retry of identical code', () async {
       final repository = _MockTravelGroupRepository(
         failure: const ServerFailure(),
@@ -245,5 +270,72 @@ void main() {
         );
       },
     );
+
+    group('Demo Mode', () {
+      blocTest<JoinTravelGroupCubit, JoinTravelGroupState>(
+        'HOIAN8KP simulates successful join without calling repository',
+        build: () => JoinTravelGroupCubit(
+          repository: _MockTravelGroupRepository(),
+          isDemoMode: true,
+        ),
+        act: (cubit) => cubit.submit('HOIAN8KP'),
+        expect: () => [
+          const JoinTravelGroupState.submitting(),
+          JoinTravelGroupState.success(
+            const TravelGroup(
+              id: 42,
+              name: 'Hoi An Ancient Tour',
+              itineraryId: 10,
+            ),
+          ),
+        ],
+      );
+
+      blocTest<JoinTravelGroupCubit, JoinTravelGroupState>(
+        'EXPIRED8 simulates MSG56 invalid/expired invitation error',
+        build: () => JoinTravelGroupCubit(
+          repository: _MockTravelGroupRepository(),
+          isDemoMode: true,
+        ),
+        act: (cubit) => cubit.submit('EXPIRED8'),
+        expect: () => [
+          const JoinTravelGroupState.submitting(),
+          const JoinTravelGroupState.failure(
+            'This invitation is invalid, expired, or no longer available. Please check the invitation and try again.',
+          ),
+        ],
+      );
+
+      blocTest<JoinTravelGroupCubit, JoinTravelGroupState>(
+        'ALREADY8 simulates MSG57 already member conflict with groupId 42',
+        build: () => JoinTravelGroupCubit(
+          repository: _MockTravelGroupRepository(),
+          isDemoMode: true,
+        ),
+        act: (cubit) => cubit.submit('ALREADY8'),
+        expect: () => [
+          const JoinTravelGroupState.submitting(),
+          const JoinTravelGroupState.failure(
+            'You are already a member of this travel group.',
+            42,
+          ),
+        ],
+      );
+
+      blocTest<JoinTravelGroupCubit, JoinTravelGroupState>(
+        'SERVER12 simulates MSG127 server failure',
+        build: () => JoinTravelGroupCubit(
+          repository: _MockTravelGroupRepository(),
+          isDemoMode: true,
+        ),
+        act: (cubit) => cubit.submit('SERVER12'),
+        expect: () => [
+          const JoinTravelGroupState.submitting(),
+          const JoinTravelGroupState.failure(
+            'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+          ),
+        ],
+      );
+    });
   });
 }

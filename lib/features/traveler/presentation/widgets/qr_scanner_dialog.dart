@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
@@ -7,7 +8,7 @@ import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
 
 /// Camera permission state for [QrScannerDialog].
-enum CameraPermissionState { undetermined, granted, denied }
+enum CameraPermissionState { undetermined, granted, denied, permanentlyDenied }
 
 /// Modal dialog for scanning QR invitations with camera permission handling
 /// and fallback to manual code entry.
@@ -17,6 +18,7 @@ class QrScannerDialog extends StatefulWidget {
     required this.onScanned,
     this.initialPermission = CameraPermissionState.undetermined,
     this.scannerBuilder,
+    this.onOpenAppSettings,
   });
 
   /// Callback when a valid invitation code is obtained.
@@ -24,6 +26,9 @@ class QrScannerDialog extends StatefulWidget {
 
   /// Initial permission override for testing and custom injection.
   final CameraPermissionState initialPermission;
+
+  /// Optional callback to open app settings when permission is permanently denied.
+  final Future<bool> Function()? onOpenAppSettings;
 
   /// Custom scanner widget builder for widget tests or platform mock injection.
   final Widget Function(
@@ -38,6 +43,7 @@ class QrScannerDialog extends StatefulWidget {
     BuildContext context, {
     CameraPermissionState initialPermission =
         CameraPermissionState.undetermined,
+    Future<bool> Function()? onOpenAppSettings,
     Widget Function(
       BuildContext context, {
       required ValueChanged<String> onDetect,
@@ -49,6 +55,7 @@ class QrScannerDialog extends StatefulWidget {
       context: context,
       builder: (dialogContext) => QrScannerDialog(
         initialPermission: initialPermission,
+        onOpenAppSettings: onOpenAppSettings,
         scannerBuilder: scannerBuilder,
         onScanned: (code) => Navigator.of(dialogContext).pop(code),
       ),
@@ -80,7 +87,8 @@ class _QrScannerDialogState extends State<QrScannerDialog> {
     _permissionState = widget.initialPermission;
 
     if (widget.scannerBuilder == null &&
-        _permissionState != CameraPermissionState.denied) {
+        _permissionState != CameraPermissionState.denied &&
+        _permissionState != CameraPermissionState.permanentlyDenied) {
       _scannerController = MobileScannerController(
         detectionSpeed: DetectionSpeed.noDuplicates,
         facing: CameraFacing.back,
@@ -144,7 +152,9 @@ class _QrScannerDialogState extends State<QrScannerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final isPermissionDenied = _permissionState == CameraPermissionState.denied;
+    final isPermissionDenied =
+        _permissionState == CameraPermissionState.denied ||
+        _permissionState == CameraPermissionState.permanentlyDenied;
 
     return AlertDialog(
       title: const Row(
@@ -171,15 +181,15 @@ class _QrScannerDialogState extends State<QrScannerDialog> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.line),
                   ),
-                  child: const Column(
+                  child: Column(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.videocam_off_rounded,
                         size: 40,
                         color: AppColors.muted,
                       ),
-                      SizedBox(height: AppSpacing.sm),
-                      Text(
+                      const SizedBox(height: AppSpacing.sm),
+                      const Text(
                         QrScannerDialog.msg46,
                         textAlign: TextAlign.center,
                         style: TextStyle(
@@ -187,6 +197,19 @@ class _QrScannerDialogState extends State<QrScannerDialog> {
                           color: AppColors.ink,
                           height: 1.4,
                         ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      OutlinedButton.icon(
+                        key: const Key('open_app_settings_button'),
+                        onPressed: () async {
+                          if (widget.onOpenAppSettings != null) {
+                            await widget.onOpenAppSettings!();
+                          } else {
+                            await Geolocator.openAppSettings();
+                          }
+                        },
+                        icon: const Icon(Icons.settings_outlined, size: 18),
+                        label: const Text('Open App Settings'),
                       ),
                     ],
                   ),

@@ -52,7 +52,11 @@ abstract final class RouteGuards {
         return operatorHome;
       }
       // A non-approved operator may never remain on the approved workspace.
-      if (location == AppRoutes.operator &&
+      if (isOperatorRoute &&
+          location != AppRoutes.operatorApplication &&
+          !(location == AppRoutes.operatorApplicationResubmit &&
+              session.applicationStatus ==
+                  TourOperatorApplicationStatus.rejected) &&
           session.applicationStatus != TourOperatorApplicationStatus.approved) {
         return AppRoutes.operatorApplication;
       }
@@ -81,7 +85,10 @@ abstract final class RouteGuards {
     if (session.role == UserRole.tourOperator &&
         _isInScope(target.path, AppRoutes.operatorPrefix) &&
         (session.applicationStatus == TourOperatorApplicationStatus.approved ||
-            target.path == AppRoutes.operatorApplication)) {
+            target.path == AppRoutes.operatorApplication ||
+            (session.applicationStatus ==
+                    TourOperatorApplicationStatus.rejected &&
+                target.path == AppRoutes.operatorApplicationResubmit))) {
       return target.toString();
     }
     return null;

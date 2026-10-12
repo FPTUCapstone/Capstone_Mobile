@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_state.dart';
 import 'package:trip_mate_mobile/features/traveler/utils/qr_invitation_parser.dart';
@@ -7,13 +8,17 @@ import 'package:uuid/uuid.dart';
 
 /// Cubit handling the Join Shared Group Trip flow (UC-23).
 final class JoinTravelGroupCubit extends Cubit<JoinTravelGroupState> {
-  JoinTravelGroupCubit({required TravelGroupRepository repository, Uuid? uuid})
-    : _repository = repository,
-      _uuid = uuid ?? const Uuid(),
-      super(const JoinTravelGroupState.initial());
+  JoinTravelGroupCubit({
+    required TravelGroupRepository repository,
+    Uuid? uuid,
+    this.isDemoMode = false,
+  }) : _repository = repository,
+       _uuid = uuid ?? const Uuid(),
+       super(const JoinTravelGroupState.initial());
 
   final TravelGroupRepository _repository;
   final Uuid _uuid;
+  final bool isDemoMode;
 
   String? _currentIdempotencyKey;
   String? _lastSubmittedCode;
@@ -50,6 +55,44 @@ final class JoinTravelGroupCubit extends Cubit<JoinTravelGroupState> {
     }
 
     emit(const JoinTravelGroupState.submitting());
+
+    if (isDemoMode) {
+      if (parsedCode == 'EXPIRED8') {
+        emit(
+          const JoinTravelGroupState.failure(
+            'This invitation is invalid, expired, or no longer available. Please check the invitation and try again.',
+          ),
+        );
+        return;
+      }
+      if (parsedCode == 'ALREADY8') {
+        emit(
+          const JoinTravelGroupState.failure(
+            'You are already a member of this travel group.',
+            42,
+          ),
+        );
+        return;
+      }
+      if (parsedCode == 'SERVER12') {
+        emit(
+          const JoinTravelGroupState.failure(
+            'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+          ),
+        );
+        return;
+      }
+      emit(
+        JoinTravelGroupState.success(
+          const TravelGroup(
+            id: 42,
+            name: 'Hoi An Ancient Tour',
+            itineraryId: 10,
+          ),
+        ),
+      );
+      return;
+    }
 
     try {
       final group = await _repository.joinTravelGroup(

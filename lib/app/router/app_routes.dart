@@ -6,6 +6,7 @@ abstract final class AppRoutes {
   static const travelerRegistration = '/auth/register/traveler';
   static const verifyEmail = '/auth/verify-email';
   static const operatorRegistration = '/auth/register/operator';
+  static const operatorEmailRecovery = '/auth/operator/verify-email';
   static const explore = '/explore';
   static const poiDetailPattern = '/explore/poi/:id';
   static const tourSearch = '/explore/tours';
@@ -31,6 +32,8 @@ abstract final class AppRoutes {
   static const offlinePackagePattern = '/traveler/trips/:itineraryId/offline';
   static const operator = '/operator';
   static const operatorApplication = '/operator/application';
+  static const operatorApplicationResubmit = '/operator/application/resubmit';
+  static const createCoupon = '/operator/coupons/create';
 
   static String activeTripLive(int itineraryId) =>
       '/traveler/trips/$itineraryId/live';
@@ -55,6 +58,7 @@ abstract final class AppRouteNames {
   static const travelerRegistration = 'traveler-registration';
   static const verifyEmail = 'verify-email';
   static const operatorRegistration = 'operator-registration';
+  static const operatorEmailRecovery = 'operator-email-recovery';
   static const explore = 'explore';
   static const poiDetail = 'poi-detail';
   static const tourSearch = 'tour-search';
@@ -78,4 +82,6 @@ abstract final class AppRouteNames {
   static const offlinePackage = 'offline-package';
   static const operator = 'operator';
   static const operatorApplication = 'operator-application';
+  static const operatorApplicationResubmit = 'operator-application-resubmit';
+  static const createCoupon = 'create-coupon';
 }

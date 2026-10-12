@@ -163,7 +163,6 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ],
             ),
-            const SizedBox(height: AppSpacing.xs),
             Center(
               child: TextButton.icon(
                 onPressed: () => context.go(AppRoutes.explore),

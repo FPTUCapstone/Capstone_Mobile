@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
@@ -18,6 +20,7 @@ class _OperatorShellPageState extends State<OperatorShellPage> {
     _OperatorDestination('Tours', Icons.tour_outlined),
     _OperatorDestination('Bookings', Icons.book_online_outlined),
     _OperatorDestination('Revenue', Icons.payments_outlined),
+    _OperatorDestination('Coupons', Icons.confirmation_number_outlined),
     _OperatorDestination('Profile', Icons.business_outlined),
   ];
 
@@ -96,6 +99,39 @@ class _OperatorSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (destination.label == 'Coupons') {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                destination.icon,
+                size: 56,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'Offer a discount',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              const Text(
+                'Create a coupon for your approved tours.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              FilledButton.icon(
+                onPressed: () => context.push(AppRoutes.createCoupon),
+                icon: const Icon(Icons.add),
+                label: const Text('Create coupon'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
