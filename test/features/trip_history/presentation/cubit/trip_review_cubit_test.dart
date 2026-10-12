@@ -286,7 +286,10 @@ void main() {
     test(
       'production mode: submit review is immediately disabled with productionReviewMutationDisabled',
       () async {
-        final prodRepo = TripReviewRepositoryImpl(isDemoMode: false);
+        final prodRepo = TripReviewRepositoryImpl(
+          demoStore: demoStore,
+          isDemoMode: false,
+        );
         final prodCubit = TripReviewCubit(
           repository: prodRepo,
           isDemoMode: false,

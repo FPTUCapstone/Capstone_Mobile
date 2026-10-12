@@ -295,7 +295,10 @@ void main() {
     testWidgets(
       'production mode: displays PENDING_BE_INTEGRATION banner and hides demo fixtures and retry button',
       (tester) async {
-        final prodRepo = TripHistoryRepositoryImpl(isDemoMode: false);
+        final prodRepo = TripHistoryRepositoryImpl(
+          demoStore: demoStore,
+          isDemoMode: false,
+        );
         final prodCubit = TripHistoryCubit(
           repository: prodRepo,
           isDemoMode: false,

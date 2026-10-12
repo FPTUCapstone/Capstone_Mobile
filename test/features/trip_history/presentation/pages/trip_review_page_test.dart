@@ -255,7 +255,10 @@ void main() {
     testWidgets(
       'production mode: displays disabled notice and disables submit button',
       (tester) async {
-        final prodRepo = TripReviewRepositoryImpl(isDemoMode: false);
+        final prodRepo = TripReviewRepositoryImpl(
+          demoStore: demoStore,
+          isDemoMode: false,
+        );
         final prodCubit = TripReviewCubit(
           repository: prodRepo,
           isDemoMode: false,
