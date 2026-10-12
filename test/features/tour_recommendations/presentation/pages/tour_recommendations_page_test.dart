@@ -8,8 +8,10 @@ import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_detail/presentation/pages/tour_detail_page.dart';
+import 'package:trip_mate_mobile/features/tour_detail/presentation/resources/tour_detail_strings.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/presentation/cubit/tour_recommendations_state.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/presentation/pages/tour_recommendations_page.dart';
+import 'package:trip_mate_mobile/features/tour_recommendations/presentation/resources/tour_recommendations_strings.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summary.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/widgets/tour_list_card.dart';
 
@@ -65,13 +67,16 @@ void main() {
       await tester.pumpWidget(_buildTestWidget(isDemoMode: false));
       await tester.pumpAndSettle();
 
-      expect(find.text('Gợi ý Tour dành cho bạn'), findsOneWidget);
-      expect(find.text('Đề xuất cá nhân hoá (> 80% phù hợp)'), findsOneWidget);
+      expect(find.text(TourRecommendationsStrings.appBarTitle), findsOneWidget);
+      expect(find.text(TourRecommendationsStrings.bannerTitle), findsOneWidget);
       expect(
-        find.text('Tính năng gợi ý tour đang được tích hợp'),
+        find.text(TourRecommendationsStrings.pendingIntegrationTitle),
         findsOneWidget,
       );
-      expect(find.text('Khám phá tất cả Tour'), findsOneWidget);
+      expect(
+        find.text(TourRecommendationsStrings.exploreAllTours),
+        findsOneWidget,
+      );
       expect(find.byType(TourListCard), findsNothing);
     });
 
@@ -81,9 +86,12 @@ void main() {
         await tester.pumpWidget(_buildTestWidget(isDemoMode: true));
         await tester.pumpAndSettle();
 
-        expect(find.text('Gợi ý Tour dành cho bạn'), findsOneWidget);
+        expect(
+          find.text(TourRecommendationsStrings.appBarTitle),
+          findsOneWidget,
+        );
         expect(find.byType(TourListCard), findsWidgets);
-        expect(find.textContaining('phù hợp'), findsWidgets);
+        expect(find.textContaining('match'), findsWidgets);
 
         // Scroll down to reveal pagination controls
         await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
@@ -137,12 +145,18 @@ void main() {
         expect(detailUri.queryParameters['demo'], 'true');
 
         // Verify UC-26 renders full Demo detail (TourDetailStatus.success) and NOT pendingIntegration
-        expect(find.text('Chi tiết Tour'), findsOneWidget);
-        expect(find.text('Lịch khởi hành có sẵn'), findsOneWidget);
-        expect(find.text('Lịch trình chi tiết'), findsOneWidget);
-        expect(find.text('Chính sách hoàn huỷ'), findsOneWidget);
-        expect(find.text('Đánh giá từ du khách'), findsOneWidget);
-        expect(find.text('Chi tiết tour đang kết nối máy chủ'), findsNothing);
+        expect(find.text(TourDetailStrings.appBarTitle), findsOneWidget);
+        expect(find.text(TourDetailStrings.schedulesTitle), findsOneWidget);
+        expect(find.text(TourDetailStrings.itineraryTitle), findsOneWidget);
+        expect(
+          find.text(TourDetailStrings.cancellationPolicyTitle),
+          findsOneWidget,
+        );
+        expect(find.text(TourDetailStrings.reviewsTitle), findsOneWidget);
+        expect(
+          find.text(TourDetailStrings.pendingIntegrationTitle),
+          findsNothing,
+        );
 
         // Verify Back button returns to /traveler/tours/recommendations?demo=true
         await tester.tap(find.byIcon(Icons.arrow_back));
@@ -153,7 +167,10 @@ void main() {
           tester.element(find.byType(TourRecommendationsPage)),
         ).uri;
         expect(recUri.toString(), '${AppRoutes.tourRecommendations}?demo=true');
-        expect(find.text('Gợi ý Tour dành cho bạn'), findsOneWidget);
+        expect(
+          find.text(TourRecommendationsStrings.appBarTitle),
+          findsOneWidget,
+        );
         expect(find.byType(TourListCard), findsWidgets);
       },
     );
@@ -188,7 +205,7 @@ void main() {
 
         // Production recommendations screen shows pending integration truthfully
         expect(
-          find.text('Tính năng gợi ý tour đang được tích hợp'),
+          find.text(TourRecommendationsStrings.pendingIntegrationTitle),
           findsOneWidget,
         );
 
@@ -203,9 +220,12 @@ void main() {
         expect(prodDetailUri.queryParameters.containsKey('demo'), isFalse);
 
         // Production Tour Detail remains truthful: pending integration, no Demo data leaks
-        expect(find.text('Chi tiết tour đang kết nối máy chủ'), findsOneWidget);
-        expect(find.text('Lịch khởi hành có sẵn'), findsNothing);
-        expect(find.text('Lịch trình chi tiết'), findsNothing);
+        expect(
+          find.text(TourDetailStrings.pendingIntegrationTitle),
+          findsOneWidget,
+        );
+        expect(find.text(TourDetailStrings.schedulesTitle), findsNothing);
+        expect(find.text(TourDetailStrings.itineraryTitle), findsNothing);
       },
     );
 
@@ -216,14 +236,20 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap demo chip for MSG28
-      final chip = find.text('Chưa có sở thích (MSG28)');
+      final chip = find.text(TourRecommendationsStrings.demoChipNoPreferences);
       expect(chip, findsOneWidget);
       await tester.tap(chip);
       await tester.pumpAndSettle();
 
-      expect(find.text('Chưa thiết lập sở thích'), findsOneWidget);
+      expect(
+        find.text(TourRecommendationsStrings.noPreferencesTitle),
+        findsOneWidget,
+      );
       expect(find.text(TourRecommendationsState.msg28), findsOneWidget);
-      expect(find.text('Thiết lập sở thích du lịch'), findsOneWidget);
+      expect(
+        find.text(TourRecommendationsStrings.setupTravelPreferences),
+        findsOneWidget,
+      );
     });
 
     testWidgets('demo mode simulation switches to MSG64 no matches state', (
@@ -232,12 +258,15 @@ void main() {
       await tester.pumpWidget(_buildTestWidget(isDemoMode: true));
       await tester.pumpAndSettle();
 
-      final chip = find.text('Không khớp >80% (MSG64)');
+      final chip = find.text(TourRecommendationsStrings.demoChipNoMatches);
       expect(chip, findsOneWidget);
       await tester.tap(chip);
       await tester.pumpAndSettle();
 
-      expect(find.text('Không có tour đạt mức phù hợp > 80%'), findsOneWidget);
+      expect(
+        find.text(TourRecommendationsStrings.noMatchesTitle),
+        findsOneWidget,
+      );
       expect(find.text(TourRecommendationsState.msg64), findsOneWidget);
     });
 
@@ -247,15 +276,15 @@ void main() {
       await tester.pumpWidget(_buildTestWidget(isDemoMode: true));
       await tester.pumpAndSettle();
 
-      final chip = find.text('Lỗi kết nối (MSG127)');
+      final chip = find.text(TourRecommendationsStrings.demoChipError);
       expect(chip, findsOneWidget);
       await tester.ensureVisible(chip);
       await tester.tap(chip);
       await tester.pumpAndSettle();
 
-      expect(find.text('Không thể tải gợi ý tour'), findsOneWidget);
+      expect(find.text(TourRecommendationsStrings.errorTitle), findsOneWidget);
       expect(find.text(TourRecommendationsState.msg127), findsOneWidget);
-      expect(find.text('Thử lại'), findsOneWidget);
+      expect(find.text(TourRecommendationsStrings.retry), findsOneWidget);
     });
 
     group('Responsive and accessibility checks', () {
@@ -278,7 +307,10 @@ void main() {
           await tester.pumpAndSettle();
 
           expect(tester.takeException(), isNull);
-          expect(find.text('Gợi ý Tour dành cho bạn'), findsOneWidget);
+          expect(
+            find.text(TourRecommendationsStrings.appBarTitle),
+            findsOneWidget,
+          );
         });
       }
 
@@ -298,7 +330,10 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);
-        expect(find.text('Gợi ý Tour dành cho bạn'), findsOneWidget);
+        expect(
+          find.text(TourRecommendationsStrings.appBarTitle),
+          findsOneWidget,
+        );
       });
     });
   });

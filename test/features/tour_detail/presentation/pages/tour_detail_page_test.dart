@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_detail/presentation/cubit/tour_detail_state.dart';
 import 'package:trip_mate_mobile/features/tour_detail/presentation/pages/tour_detail_page.dart';
+import 'package:trip_mate_mobile/features/tour_detail/presentation/resources/tour_detail_strings.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/availability_status.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summary.dart';
 
@@ -57,10 +58,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Chi tiết Tour'), findsOneWidget);
-      expect(find.text('Chi tiết tour đang kết nối máy chủ'), findsOneWidget);
+      expect(find.text(TourDetailStrings.appBarTitle), findsOneWidget);
+      expect(
+        find.text(TourDetailStrings.pendingIntegrationTitle),
+        findsOneWidget,
+      );
       expect(find.text('Tour Miền Tây 2N1Đ'), findsOneWidget);
-      expect(find.text('Quay lại danh sách tour'), findsOneWidget);
+      expect(find.text(TourDetailStrings.backToTourList), findsOneWidget);
     });
 
     testWidgets('demo mode displays complete tour details sections', (
@@ -71,15 +75,18 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Chi tiết Tour'), findsOneWidget);
-      expect(find.textContaining('Đà Nẵng'), findsWidgets);
-      expect(find.text('Saigontourist Miền Trung'), findsOneWidget);
-      expect(find.text('Lịch khởi hành có sẵn'), findsOneWidget);
-      expect(find.text('Lịch trình chi tiết'), findsOneWidget);
-      expect(find.text('Dịch vụ & Tiện ích'), findsOneWidget);
-      expect(find.text('Chính sách hoàn huỷ'), findsOneWidget);
-      expect(find.text('Đánh giá từ du khách'), findsOneWidget);
-      expect(find.text('Đặt tour ngay'), findsOneWidget);
+      expect(find.text(TourDetailStrings.appBarTitle), findsOneWidget);
+      expect(find.textContaining('Da Nang'), findsWidgets);
+      expect(find.text('Central Vietnam Travel'), findsOneWidget);
+      expect(find.text(TourDetailStrings.schedulesTitle), findsOneWidget);
+      expect(find.text(TourDetailStrings.itineraryTitle), findsOneWidget);
+      expect(find.text(TourDetailStrings.servicesTitle), findsOneWidget);
+      expect(
+        find.text(TourDetailStrings.cancellationPolicyTitle),
+        findsOneWidget,
+      );
+      expect(find.text(TourDetailStrings.reviewsTitle), findsOneWidget);
+      expect(find.text(TourDetailStrings.bookNow), findsOneWidget);
     });
 
     testWidgets(
@@ -107,7 +114,7 @@ void main() {
         // MSG65 warning appears
         expect(find.text(TourDetailState.msg65), findsOneWidget);
 
-        // Bottom bar button becomes "Hết chỗ" and is disabled
+        // Bottom bar button becomes "Sold Out" and is disabled
         final bookNowBtn = tester.widget<FilledButton>(
           find.byKey(const Key('tour-detail-book-now-button')),
         );
@@ -124,7 +131,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Tap demo chip for no reviews
-        final chip = find.text('Không có đánh giá (MSG128)');
+        final chip = find.text(TourDetailStrings.demoChipNoReviews);
         expect(chip, findsOneWidget);
         await tester.tap(chip);
         await tester.pumpAndSettle();
@@ -137,8 +144,8 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text(TourDetailState.msg128), findsOneWidget);
-        expect(find.text('Lịch trình chi tiết'), findsWidgets);
-        expect(find.text('Dịch vụ & Tiện ích'), findsWidgets);
+        expect(find.text(TourDetailStrings.itineraryTitle), findsWidgets);
+        expect(find.text(TourDetailStrings.servicesTitle), findsWidgets);
       },
     );
 
@@ -150,14 +157,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final chip = find.text('Lỗi tải (MSG127)');
+      final chip = find.text(TourDetailStrings.demoChipError);
       expect(chip, findsOneWidget);
       await tester.tap(chip);
       await tester.pumpAndSettle();
 
-      expect(find.text('Không thể tải chi tiết tour'), findsOneWidget);
+      expect(find.text(TourDetailStrings.errorTitle), findsOneWidget);
       expect(find.text(TourDetailState.msg127), findsOneWidget);
-      expect(find.text('Thử lại'), findsOneWidget);
+      expect(find.text(TourDetailStrings.retry), findsOneWidget);
     });
 
     testWidgets(
@@ -168,7 +175,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final chip = find.text('Hết chỗ (MSG65)');
+        final chip = find.text(TourDetailStrings.demoChipSoldOut);
         expect(chip, findsOneWidget);
         await tester.tap(chip);
         await tester.pumpAndSettle();
@@ -196,14 +203,14 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('Chi tiết Tour'), findsOneWidget);
+        expect(find.text(TourDetailStrings.appBarTitle), findsOneWidget);
 
         final bookNowBtn = find.byKey(const Key('tour-detail-book-now-button'));
         await tester.tap(bookNowBtn);
         await tester.pumpAndSettle();
 
-        expect(find.text('Yêu cầu đăng nhập'), findsOneWidget);
-        expect(find.text('Đăng nhập'), findsOneWidget);
+        expect(find.text(TourDetailStrings.loginRequiredTitle), findsOneWidget);
+        expect(find.text(TourDetailStrings.loginAction), findsOneWidget);
       },
     );
 
@@ -229,7 +236,7 @@ void main() {
           await tester.pumpAndSettle();
 
           expect(tester.takeException(), isNull);
-          expect(find.text('Chi tiết Tour'), findsOneWidget);
+          expect(find.text(TourDetailStrings.appBarTitle), findsOneWidget);
         });
       }
 
@@ -253,7 +260,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);
-        expect(find.text('Chi tiết Tour'), findsOneWidget);
+        expect(find.text(TourDetailStrings.appBarTitle), findsOneWidget);
       });
     });
   });

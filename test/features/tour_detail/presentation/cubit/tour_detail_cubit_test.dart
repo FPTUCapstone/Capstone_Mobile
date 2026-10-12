@@ -118,5 +118,16 @@ void main() {
       expect(cubit.state.status, TourDetailStatus.error);
       expect(cubit.state.errorMessage, TourDetailState.msg127);
     });
+
+    test('demo mode emits not found error for unknown tour ID', () async {
+      final cubit = TourDetailCubit(isDemoMode: true);
+      addTearDown(cubit.close);
+
+      await cubit.load('unknown-tour-999');
+
+      expect(cubit.state.status, TourDetailStatus.error);
+      expect(cubit.state.errorMessage, TourDetailState.notFoundMessage);
+      expect(cubit.state.tourDetail, isNull);
+    });
   });
 }

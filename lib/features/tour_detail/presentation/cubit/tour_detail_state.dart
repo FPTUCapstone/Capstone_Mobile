@@ -101,6 +101,9 @@ final class TourDetailState extends Equatable {
   static const String msg127 =
       'TripMate is temporarily unable to process your request. Please check your connection and try again.';
 
+  static const String notFoundMessage =
+      'This tour is unavailable or no longer public.';
+
   TourDetailState copyWith({
     TourDetailStatus? status,
     TourDetail? tourDetail,

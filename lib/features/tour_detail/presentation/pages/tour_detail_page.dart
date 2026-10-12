@@ -10,6 +10,7 @@ import 'package:trip_mate_mobile/features/tour_detail/domain/entities/tour_revie
 import 'package:trip_mate_mobile/features/tour_detail/domain/entities/tour_schedule_item.dart';
 import 'package:trip_mate_mobile/features/tour_detail/presentation/cubit/tour_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_detail/presentation/cubit/tour_detail_state.dart';
+import 'package:trip_mate_mobile/features/tour_detail/presentation/resources/tour_detail_strings.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summary.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/theme/tour_search_palette.dart';
 
@@ -50,13 +51,13 @@ class _TourDetailView extends StatelessWidget {
     return Scaffold(
       backgroundColor: TourSearchPalette.background,
       appBar: AppBar(
-        title: const Text('Chi tiết Tour'),
+        title: const Text(TourDetailStrings.appBarTitle),
         backgroundColor: Colors.white,
         foregroundColor: TourSearchPalette.navy,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          tooltip: 'Trở về',
+          tooltip: TourDetailStrings.backTooltip,
           onPressed: () {
             // When entered from Recommendations (?demo=true) or Search, pop()
             // returns directly to the previous route with its query preserved.
@@ -122,7 +123,7 @@ class _TourDetailErrorView extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Không thể tải chi tiết tour',
+              TourDetailStrings.errorTitle,
               style: theme.textTheme.titleMedium?.copyWith(
                 color: TourSearchPalette.navy,
                 fontWeight: FontWeight.w700,
@@ -140,7 +141,7 @@ class _TourDetailErrorView extends StatelessWidget {
             FilledButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
-              label: const Text('Thử lại'),
+              label: const Text(TourDetailStrings.retry),
               style: FilledButton.styleFrom(
                 backgroundColor: TourSearchPalette.teal,
               ),
@@ -192,7 +193,7 @@ class _TourDetailPendingView extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Chi tiết tour đang kết nối máy chủ',
+                        TourDetailStrings.pendingIntegrationTitle,
                         style: theme.textTheme.titleSmall?.copyWith(
                           color: const Color(0xFF1D4ED8),
                           fontWeight: FontWeight.w700,
@@ -200,7 +201,7 @@ class _TourDetailPendingView extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.xxs),
                       Text(
-                        'Dữ liệu chi tiết lịch trình theo ngày, lịch khởi hành và danh sách đánh giá sẽ tự động hiển thị khi API Backend hoàn tất tích hợp.',
+                        TourDetailStrings.pendingIntegrationDescription,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: const Color(0xFF1E40AF),
                         ),
@@ -236,21 +237,21 @@ class _TourDetailPendingView extends StatelessWidget {
                     const SizedBox(height: AppSpacing.xs),
                     if (summary!.destinations.isNotEmpty)
                       Text(
-                        'Điểm đến: ${summary!.destinations.join(" • ")}',
+                        '${TourDetailStrings.destinationsLabel}: ${summary!.destinations.join(" • ")}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: TourSearchPalette.muted,
                         ),
                       ),
                     const SizedBox(height: AppSpacing.xxs),
                     Text(
-                      'Đơn vị tổ chức: ${summary!.operatorName}',
+                      '${TourDetailStrings.operatorLabel}: ${summary!.operatorName}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: TourSearchPalette.muted,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      'Giá từ: ${_formatVnd(summary!.basePrice)}',
+                      '${TourDetailStrings.fromPrice}: ${_formatVnd(summary!.basePrice)}',
                       style: theme.textTheme.titleSmall?.copyWith(
                         color: TourSearchPalette.teal,
                         fontWeight: FontWeight.w700,
@@ -272,7 +273,7 @@ class _TourDetailPendingView extends StatelessWidget {
                 }
               },
               icon: const Icon(Icons.arrow_back),
-              label: const Text('Quay lại danh sách tour'),
+              label: const Text(TourDetailStrings.backToTourList),
             ),
           ),
         ],
@@ -334,7 +335,7 @@ class _TourDetailSuccessView extends StatelessWidget {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        '${detail.durationDays} ngày',
+                        TourDetailStrings.durationDays(detail.durationDays),
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -544,7 +545,7 @@ class _DepartureSchedulesSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Lịch khởi hành có sẵn',
+          TourDetailStrings.schedulesTitle,
           style: theme.textTheme.titleMedium?.copyWith(
             color: TourSearchPalette.navy,
             fontWeight: FontWeight.w700,
@@ -552,7 +553,7 @@ class _DepartureSchedulesSection extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xs),
         if (schedules.isEmpty)
-          const Text('Hiện chưa có lịch khởi hành nào.')
+          const Text(TourDetailStrings.noSchedules)
         else
           Column(
             children: schedules.map((schedule) {
@@ -598,53 +599,64 @@ class _DepartureSchedulesSection extends StatelessWidget {
                         ),
                         const SizedBox(width: AppSpacing.sm),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Wrap(
+                            alignment: WrapAlignment.spaceBetween,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: AppSpacing.xs,
+                            runSpacing: 4,
                             children: [
-                              Text(
-                                _formatDate(schedule.departureAtUtc),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  color: isSoldOut
-                                      ? Colors.grey
-                                      : TourSearchPalette.navy,
-                                ),
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _formatDate(schedule.departureAtUtc),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: isSoldOut
+                                          ? Colors.grey
+                                          : TourSearchPalette.navy,
+                                    ),
+                                  ),
+                                  Text(
+                                    _formatVnd(schedule.price),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: isSoldOut
+                                          ? Colors.grey
+                                          : TourSearchPalette.teal,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              Text(
-                                _formatVnd(schedule.price),
-                                style: TextStyle(
-                                  fontSize: 13,
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
                                   color: isSoldOut
-                                      ? Colors.grey
-                                      : TourSearchPalette.teal,
-                                  fontWeight: FontWeight.w600,
+                                      ? const Color(0xFFFEE2E2)
+                                      : const Color(0xFFDCFCE7),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  isSoldOut
+                                      ? TourDetailStrings.soldOut
+                                      : TourDetailStrings.remainingSlots(
+                                          schedule.remainingSlots,
+                                        ),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: isSoldOut
+                                        ? const Color(0xFFB91C1C)
+                                        : const Color(0xFF15803D),
+                                  ),
                                 ),
                               ),
                             ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isSoldOut
-                                ? const Color(0xFFFEE2E2)
-                                : const Color(0xFFDCFCE7),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            isSoldOut
-                                ? 'Hết chỗ'
-                                : 'Còn ${schedule.remainingSlots} chỗ',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: isSoldOut
-                                  ? const Color(0xFFB91C1C)
-                                  : const Color(0xFF15803D),
-                            ),
                           ),
                         ),
                       ],
@@ -709,7 +721,7 @@ class _ItinerarySection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Lịch trình chi tiết',
+          TourDetailStrings.itineraryTitle,
           style: theme.textTheme.titleMedium?.copyWith(
             color: TourSearchPalette.navy,
             fontWeight: FontWeight.w700,
@@ -741,7 +753,7 @@ class _ItinerarySection extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          'Ngày ${day.dayNumber}',
+                          TourDetailStrings.dayNumber(day.dayNumber),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,
@@ -825,7 +837,7 @@ class _InclusionsExclusionsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Dịch vụ & Tiện ích',
+          TourDetailStrings.servicesTitle,
           style: theme.textTheme.titleMedium?.copyWith(
             color: TourSearchPalette.navy,
             fontWeight: FontWeight.w700,
@@ -842,9 +854,9 @@ class _InclusionsExclusionsSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Bao gồm:',
-                style: TextStyle(
+              Text(
+                '${TourDetailStrings.inclusionsTitle}:',
+                style: const TextStyle(
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF15803D),
                 ),
@@ -876,9 +888,9 @@ class _InclusionsExclusionsSection extends StatelessWidget {
                 ),
               ),
               const Divider(height: 24),
-              const Text(
-                'Không bao gồm:',
-                style: TextStyle(
+              Text(
+                '${TourDetailStrings.exclusionsTitle}:',
+                style: const TextStyle(
                   fontWeight: FontWeight.w700,
                   color: Color(0xFFDC2626),
                 ),
@@ -933,7 +945,7 @@ class _CancellationPolicySection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Chính sách hoàn huỷ',
+          TourDetailStrings.cancellationPolicyTitle,
           style: theme.textTheme.titleMedium?.copyWith(
             color: TourSearchPalette.navy,
             fontWeight: FontWeight.w700,
@@ -987,7 +999,7 @@ class _ReviewsSection extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                'Đánh giá từ du khách',
+                TourDetailStrings.reviewsTitle,
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: TourSearchPalette.navy,
                   fontWeight: FontWeight.w700,
@@ -1146,7 +1158,7 @@ class _TourDetailBottomBar extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Giá vé',
+                  TourDetailStrings.fromPrice,
                   style: TextStyle(
                     fontSize: 11,
                     color: TourSearchPalette.muted,
@@ -1174,7 +1186,11 @@ class _TourDetailBottomBar extends StatelessWidget {
                   vertical: AppSpacing.sm,
                 ),
               ),
-              child: Text(isSoldOut ? 'Hết chỗ' : 'Đặt tour ngay'),
+              child: Text(
+                isSoldOut
+                    ? TourDetailStrings.soldOutButton
+                    : TourDetailStrings.bookNow,
+              ),
             ),
           ],
         ),
@@ -1188,14 +1204,12 @@ class _TourDetailBottomBar extends StatelessWidget {
       showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Đặt Tour (UC-27)'),
-          content: const Text(
-            'Tính năng đặt tour trực tuyến đang trong giai đoạn phát triển. Bạn có thể liên hệ trực tiếp đơn vị tổ chức để được hỗ trợ.',
-          ),
+          title: const Text(TourDetailStrings.bookingDialogTitle),
+          content: const Text(TourDetailStrings.bookingDialogDescription),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Đã hiểu'),
+              child: const Text(TourDetailStrings.bookingDialogUnderstood),
             ),
           ],
         ),
@@ -1211,21 +1225,19 @@ class _TourDetailBottomBar extends StatelessWidget {
       showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Yêu cầu đăng nhập'),
-          content: const Text(
-            'Bạn cần đăng nhập tài khoản Khách du lịch để tiếp tục đặt tour.',
-          ),
+          title: const Text(TourDetailStrings.loginRequiredTitle),
+          content: const Text(TourDetailStrings.loginRequiredDescription),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Để sau'),
+              child: const Text(TourDetailStrings.loginLater),
             ),
             FilledButton(
               onPressed: () {
                 Navigator.of(ctx).pop();
                 context.push(AppRoutes.login);
               },
-              child: const Text('Đăng nhập'),
+              child: const Text(TourDetailStrings.loginAction),
             ),
           ],
         ),
@@ -1237,14 +1249,14 @@ class _TourDetailBottomBar extends StatelessWidget {
       showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Quy trình Đặt Tour'),
+          title: const Text(TourDetailStrings.bookingWorkflowTitle),
           content: Text(
-            'Bạn đã chọn:\n• Tour: ${detail.title}\n• Lịch: ${schedule != null ? _formatDate(schedule.departureAtUtc) : "Mặc định"}\n• Giá: ${_formatVnd(schedule?.price ?? detail.basePrice)}\n\nLưu ý: Quy trình xác nhận và thanh toán sẽ có sẵn trong UC-27 & UC-28.',
+            'Selected:\n• Tour: ${detail.title}\n• Schedule: ${schedule != null ? _formatDate(schedule.departureAtUtc) : "Default"}\n• Price: ${_formatVnd(schedule?.price ?? detail.basePrice)}\n\nNotice: Schedule reservation and payment workflow will be available in UC-27 & UC-28.',
           ),
           actions: [
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Đóng'),
+              child: const Text(TourDetailStrings.close),
             ),
           ],
         ),
@@ -1279,7 +1291,7 @@ class _DemoDetailControlsBar extends StatelessWidget {
               SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  'DEMO SIMULATION CONTROLS (Debug Mode Only)',
+                  TourDetailStrings.demoControlsTitle,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
@@ -1295,13 +1307,16 @@ class _DemoDetailControlsBar extends StatelessWidget {
             child: Row(
               children: [
                 ActionChip(
-                  label: const Text('Có sẵn', style: TextStyle(fontSize: 11)),
+                  label: const Text(
+                    TourDetailStrings.demoChipAvailable,
+                    style: TextStyle(fontSize: 11),
+                  ),
                   onPressed: () => cubit.load('demo-tour-1'),
                 ),
                 const SizedBox(width: 6),
                 ActionChip(
                   label: const Text(
-                    'Không có đánh giá (MSG128)',
+                    TourDetailStrings.demoChipNoReviews,
                     style: TextStyle(fontSize: 11),
                   ),
                   onPressed: cubit.simulateNoReviews,
@@ -1309,7 +1324,7 @@ class _DemoDetailControlsBar extends StatelessWidget {
                 const SizedBox(width: 6),
                 ActionChip(
                   label: const Text(
-                    'Hết chỗ (MSG65)',
+                    TourDetailStrings.demoChipSoldOut,
                     style: TextStyle(fontSize: 11),
                   ),
                   onPressed: cubit.simulateSoldOut,
@@ -1317,7 +1332,7 @@ class _DemoDetailControlsBar extends StatelessWidget {
                 const SizedBox(width: 6),
                 ActionChip(
                   label: const Text(
-                    'Lỗi tải (MSG127)',
+                    TourDetailStrings.demoChipError,
                     style: TextStyle(fontSize: 11),
                   ),
                   onPressed: cubit.simulateError,
@@ -1341,11 +1356,11 @@ String _formatVnd(int price) {
   final length = text.length;
   for (var i = 0; i < length; i++) {
     if (i > 0 && (length - i) % 3 == 0) {
-      buffer.write('.');
+      buffer.write(',');
     }
     buffer.write(text[i]);
   }
-  buffer.write('₫');
+  buffer.write(' VND');
   return buffer.toString();
 }
 

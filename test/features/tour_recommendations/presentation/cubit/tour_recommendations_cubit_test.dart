@@ -66,12 +66,12 @@ void main() {
       expect(cubit.state.currentPage, 1);
       expect(cubit.state.totalPages, 2);
 
-      cubit.loadDemoPage(2);
+      await cubit.loadDemoPage(2);
       expect(cubit.state.currentPage, 2);
       expect(cubit.state.recommendations, isNotEmpty);
 
       // Page boundary clamping
-      cubit.loadDemoPage(99);
+      await cubit.loadDemoPage(99);
       expect(cubit.state.currentPage, 2);
     });
 

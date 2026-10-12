@@ -7,6 +7,7 @@ import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/domain/entities/tour_recommendation.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/presentation/cubit/tour_recommendations_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/presentation/cubit/tour_recommendations_state.dart';
+import 'package:trip_mate_mobile/features/tour_recommendations/presentation/resources/tour_recommendations_strings.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/theme/tour_search_palette.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/widgets/tour_list_card.dart';
 
@@ -35,13 +36,13 @@ class _TourRecommendationsView extends StatelessWidget {
     return Scaffold(
       backgroundColor: TourSearchPalette.background,
       appBar: AppBar(
-        title: const Text('Gợi ý Tour dành cho bạn'),
+        title: const Text(TourRecommendationsStrings.appBarTitle),
         backgroundColor: Colors.white,
         foregroundColor: TourSearchPalette.navy,
         elevation: 0,
         actions: [
           IconButton(
-            tooltip: 'Sở thích du lịch',
+            tooltip: TourRecommendationsStrings.preferencesTooltip,
             icon: const Icon(Icons.tune),
             onPressed: () => context.push(AppRoutes.travelerPreferences),
           ),
@@ -158,7 +159,7 @@ class _RecommendationExplanationBanner extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Đề xuất cá nhân hoá (> 80% phù hợp)',
+                    TourRecommendationsStrings.bannerTitle,
                     style: theme.textTheme.titleSmall?.copyWith(
                       color: const Color(0xFF15803D),
                       fontWeight: FontWeight.w700,
@@ -166,7 +167,7 @@ class _RecommendationExplanationBanner extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.xxs),
                   Text(
-                    'Các tour được chọn lọc tự động dựa trên thẻ sở thích du lịch và lịch trình yêu thích của bạn.',
+                    TourRecommendationsStrings.bannerDescription,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: const Color(0xFF166534),
                     ),
@@ -175,7 +176,7 @@ class _RecommendationExplanationBanner extends StatelessWidget {
                   GestureDetector(
                     onTap: () => context.push(AppRoutes.travelerPreferences),
                     child: const Text(
-                      'Chỉnh sửa sở thích du lịch →',
+                      TourRecommendationsStrings.bannerEditPreferences,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -225,7 +226,7 @@ class _PendingIntegrationView extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Tính năng gợi ý tour đang được tích hợp',
+              TourRecommendationsStrings.pendingIntegrationTitle,
               textAlign: TextAlign.center,
               style: theme.textTheme.titleMedium?.copyWith(
                 color: TourSearchPalette.navy,
@@ -234,7 +235,7 @@ class _PendingIntegrationView extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'Hệ thống AI phân tích và đề xuất tour dựa trên sở thích đang chờ kết nối dịch vụ máy chủ Backend. Bạn có thể khám phá toàn bộ danh sách tour hoặc cập nhật hồ sơ sở thích ngay bây giờ.',
+              TourRecommendationsStrings.pendingIntegrationDescription,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: TourSearchPalette.muted,
@@ -244,7 +245,7 @@ class _PendingIntegrationView extends StatelessWidget {
             FilledButton.icon(
               onPressed: () => context.push(AppRoutes.tourSearch),
               icon: const Icon(Icons.travel_explore),
-              label: const Text('Khám phá tất cả Tour'),
+              label: const Text(TourRecommendationsStrings.exploreAllTours),
               style: FilledButton.styleFrom(
                 backgroundColor: TourSearchPalette.teal,
                 padding: const EdgeInsets.symmetric(
@@ -257,7 +258,9 @@ class _PendingIntegrationView extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: () => context.push(AppRoutes.travelerPreferences),
               icon: const Icon(Icons.tune),
-              label: const Text('Cập nhật sở thích du lịch'),
+              label: const Text(
+                TourRecommendationsStrings.updateTravelPreferences,
+              ),
             ),
           ],
         ),
@@ -291,7 +294,7 @@ class _NoPreferencesView extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Chưa thiết lập sở thích',
+              TourRecommendationsStrings.noPreferencesTitle,
               style: theme.textTheme.titleMedium?.copyWith(
                 color: TourSearchPalette.navy,
                 fontWeight: FontWeight.w700,
@@ -309,7 +312,9 @@ class _NoPreferencesView extends StatelessWidget {
             FilledButton.icon(
               onPressed: () => context.push(AppRoutes.travelerPreferences),
               icon: const Icon(Icons.tune),
-              label: const Text('Thiết lập sở thích du lịch'),
+              label: const Text(
+                TourRecommendationsStrings.setupTravelPreferences,
+              ),
               style: FilledButton.styleFrom(
                 backgroundColor: TourSearchPalette.teal,
               ),
@@ -346,7 +351,7 @@ class _NoMatchesView extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Không có tour đạt mức phù hợp > 80%',
+              TourRecommendationsStrings.noMatchesTitle,
               style: theme.textTheme.titleMedium?.copyWith(
                 color: TourSearchPalette.navy,
                 fontWeight: FontWeight.w700,
@@ -364,7 +369,7 @@ class _NoMatchesView extends StatelessWidget {
             FilledButton.icon(
               onPressed: () => context.push(AppRoutes.tourSearch),
               icon: const Icon(Icons.travel_explore),
-              label: const Text('Khám phá tất cả Tour'),
+              label: const Text(TourRecommendationsStrings.exploreAllTours),
               style: FilledButton.styleFrom(
                 backgroundColor: TourSearchPalette.teal,
               ),
@@ -373,7 +378,7 @@ class _NoMatchesView extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: () => context.push(AppRoutes.travelerPreferences),
               icon: const Icon(Icons.tune),
-              label: const Text('Điều chỉnh sở thích'),
+              label: const Text(TourRecommendationsStrings.adjustPreferences),
             ),
           ],
         ),
@@ -408,7 +413,7 @@ class _ErrorView extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Không thể tải gợi ý tour',
+              TourRecommendationsStrings.errorTitle,
               style: theme.textTheme.titleMedium?.copyWith(
                 color: TourSearchPalette.navy,
                 fontWeight: FontWeight.w700,
@@ -426,7 +431,7 @@ class _ErrorView extends StatelessWidget {
             FilledButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
-              label: const Text('Thử lại'),
+              label: const Text(TourRecommendationsStrings.retry),
               style: FilledButton.styleFrom(
                 backgroundColor: TourSearchPalette.teal,
               ),
@@ -479,7 +484,9 @@ class _RecommendationListSliver extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        'Tìm thấy $totalItems tour phù hợp',
+                        TourRecommendationsStrings.matchingToursCount(
+                          totalItems,
+                        ),
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           color: TourSearchPalette.navy,
                           fontWeight: FontWeight.w700,
@@ -488,7 +495,10 @@ class _RecommendationListSliver extends StatelessWidget {
                     ),
                     const SizedBox(width: AppSpacing.xs),
                     Text(
-                      'Trang $currentPage / $totalPages',
+                      TourRecommendationsStrings.pageIndicator(
+                        currentPage,
+                        totalPages,
+                      ),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: TourSearchPalette.muted,
                         fontWeight: FontWeight.w600,
@@ -608,12 +618,12 @@ class _PaginationControls extends StatelessWidget {
             key: const Key('rec-prev-page-button'),
             onPressed: onPrevious,
             icon: const Icon(Icons.chevron_left, size: 18),
-            label: const Text('Trang trước'),
+            label: const Text(TourRecommendationsStrings.previousPage),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
             child: Text(
-              '$currentPage / $totalPages',
+              TourRecommendationsStrings.pageRatio(currentPage, totalPages),
               style: const TextStyle(
                 fontWeight: FontWeight.w700,
                 color: TourSearchPalette.navy,
@@ -624,7 +634,7 @@ class _PaginationControls extends StatelessWidget {
             key: const Key('rec-next-page-button'),
             onPressed: onNext,
             icon: const Icon(Icons.chevron_right, size: 18),
-            label: const Text('Trang sau'),
+            label: const Text(TourRecommendationsStrings.nextPage),
           ),
         ],
       ),
@@ -659,7 +669,7 @@ class _DemoControlsBar extends StatelessWidget {
               SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  'DEMO SIMULATION CONTROLS (Debug Mode Only)',
+                  TourRecommendationsStrings.demoControlsTitle,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
@@ -676,7 +686,7 @@ class _DemoControlsBar extends StatelessWidget {
               children: [
                 ChoiceChip(
                   label: const Text(
-                    'Thành công (>80%)',
+                    TourRecommendationsStrings.demoChipSuccess,
                     style: TextStyle(fontSize: 11),
                   ),
                   selected: state.status == TourRecommendationsStatus.success,
@@ -685,7 +695,7 @@ class _DemoControlsBar extends StatelessWidget {
                 const SizedBox(width: 6),
                 ChoiceChip(
                   label: const Text(
-                    'Chưa có sở thích (MSG28)',
+                    TourRecommendationsStrings.demoChipNoPreferences,
                     style: TextStyle(fontSize: 11),
                   ),
                   selected:
@@ -695,7 +705,7 @@ class _DemoControlsBar extends StatelessWidget {
                 const SizedBox(width: 6),
                 ChoiceChip(
                   label: const Text(
-                    'Không khớp >80% (MSG64)',
+                    TourRecommendationsStrings.demoChipNoMatches,
                     style: TextStyle(fontSize: 11),
                   ),
                   selected: state.status == TourRecommendationsStatus.noMatches,
@@ -704,7 +714,7 @@ class _DemoControlsBar extends StatelessWidget {
                 const SizedBox(width: 6),
                 ChoiceChip(
                   label: const Text(
-                    'Lỗi kết nối (MSG127)',
+                    TourRecommendationsStrings.demoChipError,
                     style: TextStyle(fontSize: 11),
                   ),
                   selected: state.status == TourRecommendationsStatus.error,
