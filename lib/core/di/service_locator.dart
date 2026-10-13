@@ -62,6 +62,13 @@ import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_history_repository_impl.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_review_repository_impl.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_history_repository.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_review_repository.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
 
 final GetIt serviceLocator = GetIt.instance;
 
@@ -218,5 +225,32 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerFactory<PasswordRecoveryCubit>(
       () => PasswordRecoveryCubit(serviceLocator()),
+    )
+    ..registerLazySingleton<DemoTripHistoryStore>(DemoTripHistoryStore.new)
+    ..registerFactoryParam<TripHistoryRepository, bool, void>(
+      (isDemoMode, _) => TripHistoryRepositoryImpl(
+        demoStore: serviceLocator(),
+        isDemoMode: isDemoMode,
+      ),
+    )
+    ..registerFactoryParam<TripReviewRepository, bool, void>(
+      (isDemoMode, _) => TripReviewRepositoryImpl(
+        demoStore: serviceLocator(),
+        isDemoMode: isDemoMode,
+      ),
+    )
+    ..registerFactoryParam<TripHistoryCubit, bool, void>(
+      (isDemoMode, _) => TripHistoryCubit(
+        repository: serviceLocator(param1: isDemoMode),
+        isDemoMode: isDemoMode,
+        demoTravelerId: isDemoMode ? DemoTripHistoryStore.demoTravelerId : null,
+      ),
+    )
+    ..registerFactoryParam<TripReviewCubit, bool, void>(
+      (isDemoMode, _) => TripReviewCubit(
+        repository: serviceLocator(param1: isDemoMode),
+        historyRepository: serviceLocator(param1: isDemoMode),
+        isDemoMode: isDemoMode,
+      ),
     );
 }

@@ -8,6 +8,7 @@ import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_c
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
+import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 
 class TravelerShellPage extends StatefulWidget {
@@ -181,6 +182,16 @@ class _TravelerSection extends StatelessWidget {
                 onPressed: () => context.push(AppRoutes.createItinerary),
                 icon: const Icon(Icons.auto_awesome_outlined),
                 label: const Text('Create an itinerary'),
+              ),
+            ],
+            if (destination.label == 'Chuyến đi' ||
+                destination.label == 'Đặt chỗ' ||
+                destination.label == 'Hồ sơ') ...[
+              const SizedBox(height: AppSpacing.sm),
+              OutlinedButton.icon(
+                onPressed: () => context.push(AppRoutes.tripHistory),
+                icon: const Icon(Icons.history_outlined),
+                label: const Text(TripHistoryStringsEn.tripHistoryTitle),
               ),
             ],
           ],
