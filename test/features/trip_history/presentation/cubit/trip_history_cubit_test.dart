@@ -177,10 +177,7 @@ void main() {
     test(
       'production mode: emits pendingIntegration and disables retry/refresh without network call',
       () async {
-        final prodRepo = TripHistoryRepositoryImpl(
-          demoStore: demoStore,
-          isDemoMode: false,
-        );
+        final prodRepo = TripHistoryRepositoryImpl(isDemoMode: false);
         final spyProdRepo = _SpyTripHistoryRepository(prodRepo);
         final prodCubit = TripHistoryCubit(
           repository: spyProdRepo,

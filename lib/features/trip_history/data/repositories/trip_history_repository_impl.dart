@@ -9,9 +9,9 @@ import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en
 final class TripHistoryRepositoryImpl implements TripHistoryRepository {
   TripHistoryRepositoryImpl({
     this.dioClient,
-    required DemoTripHistoryStore demoStore,
+    DemoTripHistoryStore? demoStore,
     this.isDemoMode = false,
-  }) : _demoStore = demoStore;
+  }) : _demoStore = demoStore ?? DemoTripHistoryStore();
 
   final DioClient? dioClient;
   final DemoTripHistoryStore _demoStore;
