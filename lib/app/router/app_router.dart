@@ -23,6 +23,12 @@ import 'package:trip_mate_mobile/features/auth/presentation/pages/splash_page.da
 import 'package:trip_mate_mobile/features/auth/presentation/pages/traveler_registration_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/verify_email_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/services/operator_document_picker.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/usecases/get_commercial_service_detail.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/usecases/search_commercial_services.dart';
+import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_service_detail_cubit.dart';
+import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_services_search_cubit.dart';
+import 'package:trip_mate_mobile/features/commercial_services/presentation/pages/commercial_service_detail_page.dart';
+import 'package:trip_mate_mobile/features/commercial_services/presentation/pages/commercial_services_search_page.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/cubit/create_coupon_cubit.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/pages/create_coupon_page.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
@@ -394,6 +400,52 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
             itineraryId: itineraryId,
             title: title,
             isDemoMode: isDemo,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.commercialServicesSearch,
+        name: AppRouteNames.commercialServicesSearch,
+        builder: (_, state) {
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final search = state.uri.queryParameters['search'];
+          final category = state.uri.queryParameters['category'];
+          final searchCommercialServices =
+              serviceLocator.isRegistered<SearchCommercialServices>()
+              ? serviceLocator<SearchCommercialServices>()
+              : null;
+          return BlocProvider(
+            create: (_) =>
+                CommercialServicesSearchCubit(
+                  searchCommercialServices: searchCommercialServices,
+                  isDemoMode: isDemo,
+                )..loadInitial(
+                  initialSearch: search,
+                  initialCategoryName: category,
+                ),
+            child: const CommercialServicesSearchPage(),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.commercialServiceDetailPattern,
+        name: AppRouteNames.commercialServiceDetail,
+        builder: (_, state) {
+          final rawPoiId = state.pathParameters['poiId'] ?? '';
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final intendedDate = state.uri.queryParameters['intendedDate'];
+          final getCommercialServiceDetail =
+              serviceLocator.isRegistered<GetCommercialServiceDetail>()
+              ? serviceLocator<GetCommercialServiceDetail>()
+              : null;
+          return BlocProvider(
+            create: (_) => CommercialServiceDetailCubit(
+              getCommercialServiceDetail: getCommercialServiceDetail,
+              isDemoMode: isDemo,
+            )..load(rawPoiId, intendedDateIso: intendedDate),
+            child: const CommercialServiceDetailPage(),
           );
         },
       ),

@@ -36,6 +36,12 @@ import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_email
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_operator_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/services/operator_document_picker.dart';
+import 'package:trip_mate_mobile/features/commercial_services/data/datasources/demo_commercial_services_data_source.dart';
+import 'package:trip_mate_mobile/features/commercial_services/data/datasources/pending_commercial_services_data_source.dart';
+import 'package:trip_mate_mobile/features/commercial_services/data/repositories/commercial_services_repository_impl.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/repositories/commercial_services_repository.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/usecases/get_commercial_service_detail.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/usecases/search_commercial_services.dart';
 import 'package:trip_mate_mobile/features/coupon/data/datasources/coupon_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/coupon/data/repositories/coupon_repository_impl.dart';
 import 'package:trip_mate_mobile/features/coupon/domain/repositories/coupon_repository.dart';
@@ -218,5 +224,32 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerFactory<PasswordRecoveryCubit>(
       () => PasswordRecoveryCubit(serviceLocator()),
+    )
+    ..registerLazySingleton<DemoCommercialServicesDataSource>(
+      () => const DemoCommercialServicesDataSource(),
+    )
+    ..registerLazySingleton<PendingCommercialServicesDataSource>(
+      () => PendingCommercialServicesDataSource(
+        poiRepository: serviceLocator.isRegistered<PoiRepository>()
+            ? serviceLocator<PoiRepository>()
+            : null,
+      ),
+    )
+    ..registerLazySingleton<CommercialServicesRepository>(
+      () => CommercialServicesRepositoryImpl(
+        pendingDataSource:
+            serviceLocator<PendingCommercialServicesDataSource>(),
+        demoDataSource: serviceLocator<DemoCommercialServicesDataSource>(),
+      ),
+    )
+    ..registerLazySingleton<SearchCommercialServices>(
+      () => SearchCommercialServices(
+        serviceLocator<CommercialServicesRepository>(),
+      ),
+    )
+    ..registerLazySingleton<GetCommercialServiceDetail>(
+      () => GetCommercialServiceDetail(
+        serviceLocator<CommercialServicesRepository>(),
+      ),
     );
 }

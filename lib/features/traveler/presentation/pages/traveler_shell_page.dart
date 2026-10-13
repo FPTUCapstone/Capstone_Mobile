@@ -6,6 +6,7 @@ import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
+import 'package:trip_mate_mobile/features/commercial_services/resources/commercial_service_en.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
@@ -152,9 +153,18 @@ class _TravelerSection extends StatelessWidget {
             if (destination.label == 'Trang chủ') ...[
               const SizedBox(height: AppSpacing.lg),
               FilledButton.icon(
+                key: const Key('traveler_home_tour_search_button'),
                 onPressed: () => context.push(AppRoutes.tourSearch),
                 icon: const Icon(Icons.tour_outlined),
                 label: const Text('Tìm kiếm Tour'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              FilledButton.icon(
+                key: const Key('traveler_home_commercial_services_button'),
+                onPressed: () =>
+                    context.push(AppRoutes.commercialServicesSearch),
+                icon: const Icon(Icons.storefront_outlined),
+                label: Text(CommercialServiceEn.search.title),
               ),
             ],
             if (destination.label == 'Trang chủ' ||
@@ -181,6 +191,16 @@ class _TravelerSection extends StatelessWidget {
                 onPressed: () => context.push(AppRoutes.createItinerary),
                 icon: const Icon(Icons.auto_awesome_outlined),
                 label: const Text('Create an itinerary'),
+              ),
+            ],
+            if (destination.label == 'Đặt chỗ') ...[
+              const SizedBox(height: AppSpacing.lg),
+              FilledButton.icon(
+                key: const Key('traveler_bookings_commercial_services_button'),
+                onPressed: () =>
+                    context.push(AppRoutes.commercialServicesSearch),
+                icon: const Icon(Icons.storefront_outlined),
+                label: Text(CommercialServiceEn.search.title),
               ),
             ],
           ],

@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_category.dart';
+import 'package:trip_mate_mobile/features/commercial_services/resources/commercial_service_en.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_detail.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_state.dart';
@@ -61,6 +64,10 @@ class _PoiDetailContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isActiveCommercialPoi =
+        detail.status.trim().toLowerCase() == 'active' &&
+        CommercialServiceCategory.isCommercialCategory(detail.categoryName);
+
     return Scaffold(
       backgroundColor: PoiPalette.background,
       body: CustomScrollView(
@@ -128,6 +135,74 @@ class _PoiDetailContent extends StatelessWidget {
                       if (detail.address case final address?) ...[
                         const SizedBox(height: 16),
                         _IconText(icon: Icons.place_outlined, text: address),
+                      ],
+                      if (isActiveCommercialPoi) ...[
+                        const SizedBox(height: 16),
+                        _SectionCard(
+                          title: CommercialServiceEn.entryPoints
+                              .poiSectionTitle(detail.categoryName),
+                          child: Column(
+                            key: const Key(
+                              'poi_detail_commercial_service_card',
+                            ),
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                CommercialServiceEn
+                                    .entryPoints
+                                    .poiSectionDescription,
+                              ),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 10,
+                                runSpacing: 10,
+                                children: [
+                                  FilledButton.icon(
+                                    key: const Key(
+                                      'poi_detail_view_commercial_service_button',
+                                    ),
+                                    onPressed: () => context.push(
+                                      AppRoutes.commercialServiceDetail(
+                                        detail.id,
+                                      ),
+                                    ),
+                                    icon: const Icon(Icons.storefront_outlined),
+                                    label: Text(
+                                      CommercialServiceEn
+                                          .entryPoints
+                                          .viewServiceButton,
+                                    ),
+                                    style: FilledButton.styleFrom(
+                                      minimumSize: const Size(210, 48),
+                                      backgroundColor: PoiPalette.teal,
+                                    ),
+                                  ),
+                                  if (kDebugMode)
+                                    OutlinedButton.icon(
+                                      key: const Key(
+                                        'poi_detail_demo_commercial_service_button',
+                                      ),
+                                      onPressed: () => context.push(
+                                        AppRoutes.commercialServiceDetail(
+                                          detail.id,
+                                          demo: true,
+                                        ),
+                                      ),
+                                      icon: const Icon(Icons.science_outlined),
+                                      label: Text(
+                                        CommercialServiceEn
+                                            .entryPoints
+                                            .demoServiceButton,
+                                      ),
+                                      style: OutlinedButton.styleFrom(
+                                        minimumSize: const Size(210, 48),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                       const SizedBox(height: 20),
                       _SectionCard(

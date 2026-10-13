@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
+import 'package:trip_mate_mobile/features/commercial_services/resources/commercial_service_en.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
@@ -157,6 +158,89 @@ void main() {
 
     expect(find.text('This itinerary could not be found.'), findsOneWidget);
   });
+
+  testWidgets(
+    'commercial stop renders action button with CommercialServiceEn label',
+    (tester) async {
+      final commercialItinerary = ItineraryDetail(
+        itineraryId: 12,
+        schedulingRequestId: 25,
+        title: 'Commercial Plan',
+        version: 1,
+        status: 'Active',
+        validFrom: DateTime.utc(2026, 9, 20, 1),
+        validTo: DateTime.utc(2026, 9, 20, 5),
+        canManage: true,
+        totalEstimatedCost: 100_000,
+        totalDurationMinutes: 180,
+        items: [
+          ItineraryDetailItem(
+            itemId: 3,
+            sequenceNo: 1,
+            poiId: 105,
+            poiName: 'Han River Hotel',
+            category: 'Hotel',
+            itemKind: ItineraryItemKind.visit,
+            plannedArrival: DateTime.utc(2026, 9, 20, 1),
+            plannedDeparture: DateTime.utc(2026, 9, 20, 2),
+            travelDurationFromPreviousMinutes: null,
+            stayDurationMinutes: 60,
+            estimatedCost: 100_000,
+            isMandatory: false,
+            recommendationReason: 'Commercial stop',
+            isUnavailable: false,
+          ),
+          ItineraryDetailItem(
+            itemId: 4,
+            sequenceNo: 2,
+            poiId: 106,
+            poiName: 'Non-commercial Beach',
+            category: 'Natural attraction',
+            itemKind: ItineraryItemKind.visit,
+            plannedArrival: DateTime.utc(2026, 9, 20, 2, 15),
+            plannedDeparture: DateTime.utc(2026, 9, 20, 3, 15),
+            travelDurationFromPreviousMinutes: 15,
+            stayDurationMinutes: 60,
+            estimatedCost: null,
+            isMandatory: false,
+            recommendationReason: 'Beach stop',
+            isUnavailable: false,
+          ),
+        ],
+      );
+
+      final cubit = ItineraryDetailCubit(
+        repository: _Repository(commercialItinerary),
+      );
+      addTearDown(cubit.close);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BlocProvider.value(
+            value: cubit,
+            child: const ItineraryDetailPage(itineraryId: 12),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Commercial item renders button with CommercialServiceEn label
+      expect(
+        find.byKey(const Key('itinerary_item_commercial_service_3')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(CommercialServiceEn.entryPoints.viewServiceButton),
+        findsOneWidget,
+      );
+
+      // Non-commercial stop does not render commercial action button
+      expect(
+        find.byKey(const Key('itinerary_item_commercial_service_4')),
+        findsNothing,
+      );
+    },
+  );
 }
 
 final _ownerDetail = ItineraryDetail(
