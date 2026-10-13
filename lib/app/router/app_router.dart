@@ -427,7 +427,9 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
           final trip = state.extra is TripHistoryItem
               ? state.extra as TripHistoryItem
               : null;
-          if (trip == null || routeTripId.isEmpty || trip.id != routeTripId) {
+          if (trip == null ||
+              routeTripId.isEmpty ||
+              trip.id != routeTripId) {
             return const ErrorView(
               message: TripHistoryStringsEn.tripInformationUnavailable,
             );
