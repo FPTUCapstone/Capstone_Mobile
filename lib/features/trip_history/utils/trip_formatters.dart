@@ -13,6 +13,15 @@ abstract final class TripFormatters {
     return '$day/$month/$year';
   }
 
+  /// CR-07: Converts any DateTime to a Vietnam (UTC+7) calendar day.
+  /// Returns a UTC DateTime with time component set to 00:00:00 for stable calendar-day comparison.
+  static DateTime toVietnamCalendarDay(DateTime dateTime) {
+    final vnTime = dateTime.isUtc
+        ? dateTime.add(const Duration(hours: 7))
+        : dateTime.toUtc().add(const Duration(hours: 7));
+    return DateTime.utc(vnTime.year, vnTime.month, vnTime.day);
+  }
+
   /// Formats currency amount in Vietnamese Dong (VND).
   static String formatVnd(int amount) {
     if (amount == 0) return TripHistoryStringsEn.labelFree;

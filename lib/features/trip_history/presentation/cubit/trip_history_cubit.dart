@@ -4,6 +4,7 @@ import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enum
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_history_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_state.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
+import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
 
 final class TripHistoryCubit extends Cubit<TripHistoryState> {
   TripHistoryCubit({
@@ -75,14 +76,18 @@ final class TripHistoryCubit extends Cubit<TripHistoryState> {
   Future<void> setDateRange(DateTime? start, DateTime? end) async {
     // Validation: The submitted date range is logically invalid
     // In Abnormal case 5.a1: MSG29 domain copy is displayed and the previous list remains unchanged.
-    if (start != null && end != null && end.isBefore(start)) {
-      emit(
-        state.copyWith(
-          validationError: () =>
-              TripHistoryStringsEn.validationDateRangeInvalid,
-        ),
-      );
-      return;
+    if (start != null && end != null) {
+      final startCal = TripFormatters.toVietnamCalendarDay(start);
+      final endCal = TripFormatters.toVietnamCalendarDay(end);
+      if (endCal.isBefore(startCal)) {
+        emit(
+          state.copyWith(
+            validationError: () =>
+                TripHistoryStringsEn.validationDateRangeInvalid,
+          ),
+        );
+        return;
+      }
     }
 
     emit(

@@ -8,6 +8,7 @@ import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_state.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
+import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
 
 class _SpyTripHistoryRepository implements TripHistoryRepository {
   _SpyTripHistoryRepository(this._delegate);
@@ -152,13 +153,14 @@ void main() {
         expect(cubit.state.validationError, isNull);
         expect(cubit.state.items.length, greaterThan(0));
         expect(
-          cubit.state.items.every(
-            (i) =>
-                (i.departureDate.isAfter(start) ||
-                    i.departureDate.isAtSameMomentAs(start)) &&
-                (i.departureDate.isBefore(end) ||
-                    i.departureDate.isAtSameMomentAs(end)),
-          ),
+          cubit.state.items.every((i) {
+            final itemDay = TripFormatters.toVietnamCalendarDay(
+              i.departureDate,
+            );
+            final startDay = TripFormatters.toVietnamCalendarDay(start);
+            final endDay = TripFormatters.toVietnamCalendarDay(end);
+            return !itemDay.isBefore(startDay) && !itemDay.isAfter(endDay);
+          }),
           isTrue,
         );
       },

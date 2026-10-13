@@ -404,5 +404,60 @@ void main() {
         );
       },
     );
+
+    test(
+      'P1: loadTripAndReview rejects completed self-planned itinerary with noticeSelfPlannedNoReview',
+      () async {
+        await cubit.loadTripAndReview(
+          tripId: 'trip-itin-006',
+          cachedTrip: null,
+          travelerId: 1,
+        );
+
+        expect(cubit.state.trip, isNull);
+        expect(cubit.state.status, equals(TripReviewStatus.failure));
+        expect(
+          cubit.state.generalError,
+          equals(TripHistoryStringsEn.noticeSelfPlannedNoReview),
+        );
+      },
+    );
+
+    test(
+      'P1: loadTripAndReview rejects supplied cachedTrip with itinerary type',
+      () async {
+        final itinerary = demoStore.getTripById(
+          travelerId: 1,
+          tripId: 'trip-itin-006',
+        )!;
+
+        await cubit.loadTripAndReview(
+          tripId: 'trip-itin-006',
+          cachedTrip: itinerary,
+          travelerId: 1,
+        );
+
+        expect(cubit.state.trip, isNull);
+        expect(cubit.state.status, equals(TripReviewStatus.failure));
+        expect(
+          cubit.state.generalError,
+          equals(TripHistoryStringsEn.noticeSelfPlannedNoReview),
+        );
+      },
+    );
+
+    test(
+      'P1: submit fails closed if trip is null or itinerary without calling repository',
+      () async {
+        // When trip is null
+        await cubit.submit();
+
+        expect(cubit.state.status, equals(TripReviewStatus.failure));
+        expect(
+          cubit.state.generalError,
+          equals(TripHistoryStringsEn.noticeSelfPlannedNoReview),
+        );
+      },
+    );
   });
 }
