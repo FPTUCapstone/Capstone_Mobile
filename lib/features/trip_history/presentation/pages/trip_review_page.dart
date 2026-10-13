@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enums.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_review_submission.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
@@ -180,7 +181,12 @@ class _TripReviewPageState extends State<TripReviewPage> {
           );
         }
 
-        final trip = state.trip ?? widget.initialTrip;
+        final initial = widget.initialTrip;
+        final validInitial =
+            (initial != null && initial.type != TripType.itinerary)
+            ? initial
+            : null;
+        final trip = state.trip ?? validInitial;
 
         if (state.status == TripReviewStatus.loading && trip == null) {
           return Scaffold(

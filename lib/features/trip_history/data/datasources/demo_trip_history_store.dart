@@ -6,6 +6,7 @@ import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_revi
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_review_submission.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_history_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
+import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
 
 /// In-memory deterministic store for demo mode & acceptance test fixtures.
 class DemoTripHistoryStore {
@@ -263,21 +264,23 @@ class DemoTripHistoryStore {
     }
 
     if (startDate != null) {
+      final startDay = TripFormatters.toVietnamCalendarDay(startDate);
       filtered = filtered
           .where(
-            (item) =>
-                item.departureDate.isAfter(startDate) ||
-                item.departureDate.isAtSameMomentAs(startDate),
+            (item) => !TripFormatters.toVietnamCalendarDay(
+              item.departureDate,
+            ).isBefore(startDay),
           )
           .toList(growable: false);
     }
 
     if (endDate != null) {
+      final endDay = TripFormatters.toVietnamCalendarDay(endDate);
       filtered = filtered
           .where(
-            (item) =>
-                item.departureDate.isBefore(endDate) ||
-                item.departureDate.isAtSameMomentAs(endDate),
+            (item) => !TripFormatters.toVietnamCalendarDay(
+              item.departureDate,
+            ).isAfter(endDay),
           )
           .toList(growable: false);
     }
@@ -322,6 +325,13 @@ class DemoTripHistoryStore {
     }
 
     final item = _items[tripIndex];
+
+    // UC-33: Reviews are not applicable to self-planned itineraries
+    if (item.type == TripType.itinerary) {
+      throw const ValidationFailure(
+        TripHistoryStringsEn.noticeSelfPlannedNoReview,
+      );
+    }
 
     // BR-91: Trip must be completed
     if (item.status != TripStatus.completed) {
@@ -410,6 +420,14 @@ class DemoTripHistoryStore {
     }
 
     final item = _items[tripIndex];
+
+    // UC-33: Reviews are not applicable to self-planned itineraries
+    if (item.type == TripType.itinerary) {
+      throw const ValidationFailure(
+        TripHistoryStringsEn.noticeSelfPlannedNoReview,
+      );
+    }
+
     final existingReview = item.review;
 
     if (existingReview == null) {

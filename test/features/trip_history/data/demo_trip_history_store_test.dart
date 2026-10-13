@@ -3,6 +3,7 @@ import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enums.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_review_submission.dart';
+import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 
 void main() {
   late DateTime fixedNow;
@@ -322,6 +323,143 @@ void main() {
           () => store.getTripById(travelerId: 1, tripId: 'trip-tour-999'),
           throwsA(isA<PermissionFailure>()),
         );
+      },
+    );
+
+    test(
+      'P1 / UC-33: Self-planned itineraries cannot be reviewed via submitReview',
+      () {
+        expect(
+          () => store.submitReview(
+            const TripReviewSubmission(
+              tripId: 'trip-itin-006',
+              bookingCode: 'ITIN-2026-006',
+              travelerId: 1,
+              rating: 5,
+              title: 'Self-planned review attempt',
+              content: 'Should not be allowed to review itinerary.',
+            ),
+          ),
+          throwsA(
+            isA<ValidationFailure>().having(
+              (e) => e.message,
+              'message',
+              equals(TripHistoryStringsEn.noticeSelfPlannedNoReview),
+            ),
+          ),
+        );
+      },
+    );
+
+    test(
+      'P1 / UC-33: Self-planned itineraries cannot be reviewed via updateReview',
+      () {
+        expect(
+          () => store.updateReview(
+            const TripReviewSubmission(
+              tripId: 'trip-itin-006',
+              bookingCode: 'ITIN-2026-006',
+              travelerId: 1,
+              rating: 5,
+              title: 'Self-planned review update attempt',
+              content: 'Should not be allowed to update review on itinerary.',
+            ),
+          ),
+          throwsA(
+            isA<ValidationFailure>().having(
+              (e) => e.message,
+              'message',
+              equals(TripHistoryStringsEn.noticeSelfPlannedNoReview),
+            ),
+          ),
+        );
+      },
+    );
+
+    test(
+      'P2 / CR-07: Date range filter inclusively includes trips departing later on the end calendar day',
+      () {
+        // Default fixture trip-tour-003 departs 7 days before fixedNow (2026-10-01 12:00:00)
+        // When user selects date range ending on 2026-10-01 at 00:00:00 (as returned by showDateRangePicker):
+        final startDate = DateTime(2026, 9, 25);
+        final endDateMidnight = DateTime(2026, 10, 1, 0, 0, 0);
+
+        final trips = store.getTrips(
+          travelerId: 1,
+          status: TripStatus.completed,
+          startDate: startDate,
+          endDate: endDateMidnight,
+        );
+
+        // trip-tour-003 (Oct 1 12:00:00) and trip-tour-004 (Sep 28 12:00:00) must be included
+        expect(
+          trips.items.any((t) => t.id == 'trip-tour-003'),
+          isTrue,
+          reason:
+              'Trip departing at 12:00 on the selected end date must be included',
+        );
+        expect(trips.items.any((t) => t.id == 'trip-tour-004'), isTrue);
+      },
+    );
+
+    test(
+      'P2 / CR-07: Same-day date range filter inclusively includes trips departing at any hour on that day',
+      () {
+        // User filters for only 2026-10-01 (same start and end date at midnight)
+        final singleDay = DateTime(2026, 10, 1, 0, 0, 0);
+
+        final trips = store.getTrips(
+          travelerId: 1,
+          status: TripStatus.completed,
+          startDate: singleDay,
+          endDate: singleDay,
+        );
+
+        expect(trips.items.length, equals(1));
+        expect(trips.items.first.id, equals('trip-tour-003'));
+      },
+    );
+
+    test(
+      'P2 / CR-07: Trips departing on the day after the end date are excluded',
+      () {
+        // End date is Sep 30; trip-tour-003 departs Oct 1 -> must be excluded
+        final endDate = DateTime(2026, 9, 30, 0, 0, 0);
+
+        final trips = store.getTrips(
+          travelerId: 1,
+          status: TripStatus.completed,
+          startDate: DateTime(2026, 9, 1),
+          endDate: endDate,
+        );
+
+        expect(trips.items.any((t) => t.id == 'trip-tour-003'), isFalse);
+      },
+    );
+
+    test(
+      'P2 / CR-07: Cross-month and cross-year date range filters work accurately',
+      () {
+        // Cross-month: Sep 20 to Oct 5
+        final crossMonth = store.getTrips(
+          travelerId: 1,
+          status: TripStatus.completed,
+          startDate: DateTime(2026, 9, 20),
+          endDate: DateTime(2026, 10, 5),
+        );
+        // Includes trip-tour-004 (Sep 28) and trip-tour-003 (Oct 1)
+        expect(
+          crossMonth.items.map((t) => t.id),
+          containsAll(['trip-tour-003', 'trip-tour-004']),
+        );
+
+        // Cross-year: Dec 2025 to Jan 2027
+        final crossYear = store.getTrips(
+          travelerId: 1,
+          startDate: DateTime(2025, 12, 1),
+          endDate: DateTime(2027, 1, 1),
+        );
+        expect(crossYear.items.length, equals(9));
       },
     );
   });

@@ -143,6 +143,19 @@ final class TripReviewCubit extends Cubit<TripReviewState> {
       return;
     }
 
+    // P1 / UC-33: Self-planned itineraries cannot be reviewed
+    if (trip.type == TripType.itinerary) {
+      emit(
+        state.copyWith(
+          trip: () => null,
+          demoTravelerId: () => travelerId,
+          generalError: () => TripHistoryStringsEn.noticeSelfPlannedNoReview,
+          status: TripReviewStatus.failure,
+        ),
+      );
+      return;
+    }
+
     // BR-91: The trip is not completed
     if (trip.status != TripStatus.completed) {
       emit(
@@ -291,7 +304,15 @@ final class TripReviewCubit extends Cubit<TripReviewState> {
     }
 
     final trip = state.trip;
-    if (trip == null) return;
+    if (trip == null || trip.type == TripType.itinerary) {
+      emit(
+        state.copyWith(
+          status: TripReviewStatus.failure,
+          generalError: () => TripHistoryStringsEn.noticeSelfPlannedNoReview,
+        ),
+      );
+      return;
+    }
 
     var hasError = false;
     String? ratingError;

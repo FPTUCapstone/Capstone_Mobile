@@ -167,6 +167,58 @@ void main() {
       expect(find.text(TripHistoryStringsEn.tripReviewTitle), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'P1: deep link to self-planned itinerary review displays noticeSelfPlannedNoReview and no form',
+    (tester) async {
+      await pumpReviewRoute(
+        tester,
+        pathTripId: 'trip-itin-006',
+        extra: null,
+        isDemo: true,
+      );
+
+      expect(
+        find.text(TripHistoryStringsEn.noticeSelfPlannedNoReview),
+        findsOneWidget,
+      );
+      expect(find.text(TripHistoryStringsEn.summarySectionTitle), findsNothing);
+      expect(find.text(TripHistoryStringsEn.actionSubmitReview), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'P1: navigation with cached self-planned itinerary extra displays noticeSelfPlannedNoReview and no form',
+    (tester) async {
+      final itineraryTrip = TripHistoryItem(
+        id: 'trip-itin-006',
+        bookingCode: 'ITIN-2026-006',
+        title: 'Da Nang 3-Day Coastal & Food Exploration',
+        type: TripType.itinerary,
+        status: TripStatus.completed,
+        departureDate: DateTime(2026, 9, 3),
+        participantsCount: 2,
+        totalAmount: 0,
+        travelerId: 1,
+        hasEticket: false,
+        itineraryId: 1,
+      );
+
+      await pumpReviewRoute(
+        tester,
+        pathTripId: 'trip-itin-006',
+        extra: itineraryTrip,
+        isDemo: true,
+      );
+
+      expect(
+        find.text(TripHistoryStringsEn.noticeSelfPlannedNoReview),
+        findsOneWidget,
+      );
+      expect(find.text(TripHistoryStringsEn.summarySectionTitle), findsNothing);
+      expect(find.text(TripHistoryStringsEn.actionSubmitReview), findsNothing);
+    },
+  );
 }
 
 final class _TravelerAuthRepository implements AuthRepository {
