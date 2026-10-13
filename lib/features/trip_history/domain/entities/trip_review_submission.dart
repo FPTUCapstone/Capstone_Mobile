@@ -11,8 +11,8 @@ final class TripReviewPhotoAttachment extends Equatable {
   final int sizeBytes;
   final String? path;
 
-  /// Verified Backend contract: each image may contain at most 5,000,000 bytes.
-  static const int maxSizeBytes = 5_000_000;
+  /// BR-16: An attached photo must be an image file whose size does not exceed 5 MB.
+  static const int maxSizeBytes = 5 * 1024 * 1024; // 5 MB
 
   /// Supported image extensions for Demo validation (aligning with provisional backend direction).
   static const supportedExtensions = {'jpg', 'jpeg', 'png', 'webp'};
