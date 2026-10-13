@@ -68,9 +68,6 @@ void main() {
         TripHistoryStringsEn.reviewReadOnlyNotice,
         TripHistoryStringsEn.reviewSubmitSuccess,
         TripHistoryStringsEn.reviewUpdateSuccess,
-        TripHistoryStringsEn.reviewEditWindowActive,
-        TripHistoryStringsEn.validationPhotoInvalidType,
-        TripHistoryStringsEn.photoUnsupportedSample,
         TripHistoryStringsEn.productionIntegrationPending,
         TripHistoryStringsEn.productionReviewMutationDisabled,
       ];

@@ -227,24 +227,22 @@ Future<void> configureDependencies({AppConfig? config}) async {
       () => PasswordRecoveryCubit(serviceLocator()),
     )
     ..registerLazySingleton<DemoTripHistoryStore>(DemoTripHistoryStore.new)
-    ..registerFactory<TripHistoryRepository>(
+    ..registerLazySingleton<TripHistoryRepository>(
       () => TripHistoryRepositoryImpl(
         dioClient: serviceLocator(),
         demoStore: serviceLocator(),
-        isDemoMode: false,
       ),
     )
-    ..registerFactory<TripReviewRepository>(
+    ..registerLazySingleton<TripReviewRepository>(
       () => TripReviewRepositoryImpl(
         dioClient: serviceLocator(),
         demoStore: serviceLocator(),
-        isDemoMode: false,
       ),
     )
     ..registerFactory<TripHistoryCubit>(
-      () => TripHistoryCubit(repository: serviceLocator(), isDemoMode: false),
+      () => TripHistoryCubit(repository: serviceLocator()),
     )
     ..registerFactory<TripReviewCubit>(
-      () => TripReviewCubit(repository: serviceLocator(), isDemoMode: false),
+      () => TripReviewCubit(repository: serviceLocator()),
     );
 }

@@ -17,7 +17,7 @@ abstract interface class TripReviewRepository {
 
   /// Retrieves an existing review for a trip/booking.
   Future<TripReview?> getReviewForTrip({
-    int? travelerId,
+    required int travelerId,
     required String tripId,
   });
 }

@@ -1,5 +1,4 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enums.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_history_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_state.dart';
@@ -8,23 +7,17 @@ import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en
 final class TripHistoryCubit extends Cubit<TripHistoryState> {
   TripHistoryCubit({
     required TripHistoryRepository repository,
-    this.isDemoMode = false,
-    this.demoTravelerId,
+    int defaultTravelerId = 1,
   }) : _repository = repository,
-       super(
-         TripHistoryState(
-           isDemoMode: isDemoMode,
-           demoTravelerId: demoTravelerId,
-         ),
-       );
+       super(TripHistoryState(travelerId: defaultTravelerId));
 
   final TripHistoryRepository _repository;
-  final bool isDemoMode;
-  final int? demoTravelerId;
 
-  Future<void> loadInitial() async {
+  Future<void> loadInitial({int? travelerId}) async {
+    final tId = travelerId ?? state.travelerId;
     emit(
       state.copyWith(
+        travelerId: tId,
         status: TripHistoryStatus.loading,
         errorMessage: () => null,
         validationError: () => null,
@@ -35,11 +28,7 @@ final class TripHistoryCubit extends Cubit<TripHistoryState> {
   }
 
   Future<void> switchTab(TripStatus tab) async {
-    if (state.selectedTab == tab &&
-        !state.isFailure &&
-        !state.isPendingIntegration) {
-      return;
-    }
+    if (state.selectedTab == tab && !state.isFailure) return;
 
     emit(
       state.copyWith(
@@ -54,11 +43,7 @@ final class TripHistoryCubit extends Cubit<TripHistoryState> {
   }
 
   Future<void> setTripType(TripType? type) async {
-    if (state.selectedTripType == type &&
-        !state.isFailure &&
-        !state.isPendingIntegration) {
-      return;
-    }
+    if (state.selectedTripType == type && !state.isFailure) return;
 
     emit(
       state.copyWith(
@@ -74,7 +59,7 @@ final class TripHistoryCubit extends Cubit<TripHistoryState> {
 
   Future<void> setDateRange(DateTime? start, DateTime? end) async {
     // Validation: The submitted date range is logically invalid
-    // In Abnormal case 5.a1: MSG29 domain copy is displayed and the previous list remains unchanged.
+    // In Abnormal case 5.a1: MSG29 is displayed and the previous list remains unchanged.
     if (start != null && end != null && end.isBefore(start)) {
       emit(
         state.copyWith(
@@ -129,9 +114,6 @@ final class TripHistoryCubit extends Cubit<TripHistoryState> {
   }
 
   Future<void> retry() async {
-    // In production mode, do NOT retry an endpoint that does not exist.
-    if (state.isPendingIntegration) return;
-
     emit(
       state.copyWith(
         status: TripHistoryStatus.loading,
@@ -145,7 +127,7 @@ final class TripHistoryCubit extends Cubit<TripHistoryState> {
   Future<void> _fetchTrips() async {
     try {
       final result = await _repository.getTrips(
-        travelerId: state.demoTravelerId,
+        travelerId: state.travelerId,
         status: state.selectedTab,
         type: state.selectedTripType,
         startDate: state.startDate,
@@ -164,18 +146,7 @@ final class TripHistoryCubit extends Cubit<TripHistoryState> {
           errorMessage: () => null,
         ),
       );
-    } on ServerFailure catch (e) {
-      final isPending =
-          e.message == TripHistoryStringsEn.productionIntegrationPending;
-      emit(
-        state.copyWith(
-          status: isPending
-              ? TripHistoryStatus.pendingIntegration
-              : TripHistoryStatus.failure,
-          errorMessage: () => e.message,
-        ),
-      );
-    } catch (_) {
+    } catch (e) {
       emit(
         state.copyWith(
           status: TripHistoryStatus.failure,

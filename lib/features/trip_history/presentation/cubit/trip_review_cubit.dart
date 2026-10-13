@@ -9,27 +9,24 @@ import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_r
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 
 final class TripReviewCubit extends Cubit<TripReviewState> {
-  TripReviewCubit({
-    required TripReviewRepository repository,
-    this.isDemoMode = false,
-  }) : _repository = repository,
-       super(TripReviewState(isDemoMode: isDemoMode));
+  TripReviewCubit({required TripReviewRepository repository})
+    : _repository = repository,
+      super(const TripReviewState());
 
   final TripReviewRepository _repository;
-  final bool isDemoMode;
 
   void initialize({
     required TripHistoryItem trip,
-    int? travelerId,
+    required int travelerId,
     TripReview? existingReview,
     DateTime? referenceTime,
   }) {
-    // In Demo mode, verify traveler ownership against demo tenant
-    if (isDemoMode && travelerId != null && trip.travelerId != travelerId) {
+    // 5.a2. The Traveler is not the owner of the booking -> MSG126
+    if (trip.travelerId != travelerId) {
       emit(
         state.copyWith(
           trip: () => trip,
-          demoTravelerId: () => travelerId,
+          travelerId: travelerId,
           generalError: () => TripHistoryStringsEn.permissionDenied,
           status: TripReviewStatus.failure,
         ),
@@ -37,12 +34,12 @@ final class TripReviewCubit extends Cubit<TripReviewState> {
       return;
     }
 
-    // BR-91: The trip is not completed
+    // 5.a1. The trip is not completed -> MSG52
     if (trip.status != TripStatus.completed) {
       emit(
         state.copyWith(
           trip: () => trip,
-          demoTravelerId: () => travelerId,
+          travelerId: travelerId,
           generalError: () => TripHistoryStringsEn.noticeReviewNotCompleted,
           status: TripReviewStatus.failure,
         ),
@@ -60,7 +57,7 @@ final class TripReviewCubit extends Cubit<TripReviewState> {
         state.copyWith(
           trip: () => trip,
           existingReview: () => review,
-          demoTravelerId: () => travelerId,
+          travelerId: travelerId,
           rating: () => review.rating,
           title: review.title,
           content: review.content,
@@ -76,9 +73,9 @@ final class TripReviewCubit extends Cubit<TripReviewState> {
           isReadOnly: isReadOnly,
           readOnlyNotice: () =>
               isReadOnly ? TripHistoryStringsEn.reviewReadOnlyNotice : null,
-          editNotice: () =>
-              isEditable ? TripHistoryStringsEn.reviewEditWindowActive : null,
-          generalError: () => null,
+          generalError: () => isEditable
+              ? TripHistoryStringsEn.noticeReviewAlreadyExists
+              : null,
           status: TripReviewStatus.initial,
         ),
       );
@@ -89,7 +86,7 @@ final class TripReviewCubit extends Cubit<TripReviewState> {
       state.copyWith(
         trip: () => trip,
         existingReview: () => null,
-        demoTravelerId: () => travelerId,
+        travelerId: travelerId,
         rating: () => null,
         title: '',
         content: '',
@@ -97,7 +94,6 @@ final class TripReviewCubit extends Cubit<TripReviewState> {
         isEdit: false,
         isReadOnly: false,
         readOnlyNotice: () => null,
-        editNotice: () => null,
         generalError: () => null,
         ratingError: () => null,
         titleError: () => null,
@@ -126,21 +122,10 @@ final class TripReviewCubit extends Cubit<TripReviewState> {
   void addPhoto(TripReviewPhotoAttachment photo) {
     if (state.isReadOnly) return;
 
-    // PROVISIONAL_BACKEND_CONTRACT_MAX_5_PHOTOS
     if (state.photos.length >= 5) {
       emit(
         state.copyWith(
           photoError: () => TripHistoryStringsEn.validationPhotoMaxCount,
-        ),
-      );
-      return;
-    }
-
-    // Supported Demo image types: JPEG, PNG, WebP
-    if (!photo.isValidType) {
-      emit(
-        state.copyWith(
-          photoError: () => TripHistoryStringsEn.validationPhotoInvalidType,
         ),
       );
       return;
@@ -171,18 +156,6 @@ final class TripReviewCubit extends Cubit<TripReviewState> {
 
   Future<void> submit() async {
     if (state.isReadOnly || state.isSubmitting) return;
-
-    // In Production mode, mutations are truthfully disabled pending backend integration
-    if (!isDemoMode) {
-      emit(
-        state.copyWith(
-          status: TripReviewStatus.failure,
-          generalError: () =>
-              TripHistoryStringsEn.productionReviewMutationDisabled,
-        ),
-      );
-      return;
-    }
 
     final trip = state.trip;
     if (trip == null) return;
@@ -234,7 +207,7 @@ final class TripReviewCubit extends Cubit<TripReviewState> {
     final submission = TripReviewSubmission(
       tripId: trip.id,
       bookingCode: trip.bookingCode,
-      travelerId: state.demoTravelerId,
+      travelerId: state.travelerId,
       rating: state.rating!,
       title: state.title.trim(),
       content: state.content.trim(),
@@ -271,13 +244,6 @@ final class TripReviewCubit extends Cubit<TripReviewState> {
         ),
       );
     } on PermissionFailure catch (e) {
-      emit(
-        state.copyWith(
-          status: TripReviewStatus.failure,
-          generalError: () => e.message,
-        ),
-      );
-    } on ServerFailure catch (e) {
       emit(
         state.copyWith(
           status: TripReviewStatus.failure,
