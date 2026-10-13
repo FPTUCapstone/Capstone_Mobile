@@ -229,14 +229,12 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerLazySingleton<DemoTripHistoryStore>(DemoTripHistoryStore.new)
     ..registerFactoryParam<TripHistoryRepository, bool, void>(
       (isDemoMode, _) => TripHistoryRepositoryImpl(
-        dioClient: serviceLocator(),
         demoStore: serviceLocator(),
         isDemoMode: isDemoMode,
       ),
     )
     ..registerFactoryParam<TripReviewRepository, bool, void>(
       (isDemoMode, _) => TripReviewRepositoryImpl(
-        dioClient: serviceLocator(),
         demoStore: serviceLocator(),
         isDemoMode: isDemoMode,
       ),
@@ -251,6 +249,7 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerFactoryParam<TripReviewCubit, bool, void>(
       (isDemoMode, _) => TripReviewCubit(
         repository: serviceLocator(param1: isDemoMode),
+        historyRepository: serviceLocator(param1: isDemoMode),
         isDemoMode: isDemoMode,
       ),
     );

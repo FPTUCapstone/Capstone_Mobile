@@ -42,10 +42,11 @@ void main() {
     WidgetTester tester, {
     required String pathTripId,
     Object? extra,
+    bool isDemo = true,
   }) async {
     final router = createAppRouter(session);
     addTearDown(router.dispose);
-    router.go(AppRoutes.tripReview(pathTripId), extra: extra);
+    router.go(AppRoutes.tripReview(pathTripId, isDemo: isDemo), extra: extra);
     await tester.pumpWidget(
       BlocProvider<AuthSessionCubit>.value(
         value: session,
@@ -67,19 +68,51 @@ void main() {
     travelerId: 1,
   );
 
-  testWidgets('matching route tripId and supplied item opens review', (
+  testWidgets(
+    'normal navigation: matching route tripId and supplied extra opens review',
+    (tester) async {
+      await pumpReviewRoute(
+        tester,
+        pathTripId: 'trip-tour-003',
+        extra: trip,
+        isDemo: true,
+      );
+
+      expect(
+        find.text(TripHistoryStringsEn.tripInformationUnavailable),
+        findsNothing,
+      );
+      expect(find.text(TripHistoryStringsEn.tripReviewTitle), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'open detail without extra: loads trip by route ID and opens review',
+    (tester) async {
+      await pumpReviewRoute(
+        tester,
+        pathTripId: 'trip-tour-003',
+        extra: null,
+        isDemo: true,
+      );
+
+      expect(
+        find.text(TripHistoryStringsEn.tripInformationUnavailable),
+        findsNothing,
+      );
+      expect(find.text(TripHistoryStringsEn.tripReviewTitle), findsOneWidget);
+    },
+  );
+
+  testWidgets('invalid trip id: shows trip information unavailable error', (
     tester,
   ) async {
-    await pumpReviewRoute(tester, pathTripId: 'trip-tour-003', extra: trip);
-
-    expect(
-      find.text(TripHistoryStringsEn.tripInformationUnavailable),
-      findsNothing,
+    await pumpReviewRoute(
+      tester,
+      pathTripId: 'trip-invalid-xxx',
+      extra: null,
+      isDemo: true,
     );
-  });
-
-  testWidgets('mismatched route tripId fails closed', (tester) async {
-    await pumpReviewRoute(tester, pathTripId: 'trip-tour-999', extra: trip);
 
     expect(
       find.text(TripHistoryStringsEn.tripInformationUnavailable),
@@ -87,14 +120,53 @@ void main() {
     );
   });
 
-  testWidgets('missing or invalid supplied item fails closed', (tester) async {
-    await pumpReviewRoute(tester, pathTripId: 'trip-tour-003');
+  testWidgets(
+    'unauthorized trip: foreign traveler trip fails with permission denied',
+    (tester) async {
+      await pumpReviewRoute(
+        tester,
+        pathTripId: 'trip-tour-999',
+        extra: null,
+        isDemo: true,
+      );
 
-    expect(
-      find.text(TripHistoryStringsEn.tripInformationUnavailable),
-      findsOneWidget,
-    );
-  });
+      expect(find.text(TripHistoryStringsEn.permissionDenied), findsOneWidget);
+      expect(find.text(TripHistoryStringsEn.summarySectionTitle), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'mismatched route tripId: ignores extra and validates route trip ID',
+    (tester) async {
+      // extra has id 'trip-tour-003', but route tripId is 'trip-tour-999' (unauthorized)
+      await pumpReviewRoute(
+        tester,
+        pathTripId: 'trip-tour-999',
+        extra: trip,
+        isDemo: true,
+      );
+
+      expect(find.text(TripHistoryStringsEn.permissionDenied), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'alias redirect: /traveler/trips/:tripId redirects to review pattern',
+    (tester) async {
+      final router = createAppRouter(session);
+      addTearDown(router.dispose);
+      router.go('/traveler/trips/trip-tour-003?demo=true');
+      await tester.pumpWidget(
+        BlocProvider<AuthSessionCubit>.value(
+          value: session,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(TripHistoryStringsEn.tripReviewTitle), findsOneWidget);
+    },
+  );
 }
 
 final class _TravelerAuthRepository implements AuthRepository {
