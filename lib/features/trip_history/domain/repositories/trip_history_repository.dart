@@ -24,12 +24,10 @@ final class TripHistoryPageResult extends Equatable {
 }
 
 abstract interface class TripHistoryRepository {
-  /// Returns bookings and itineraries.
-  /// In demo mode, returns records for [travelerId] (defaulting to demo traveler).
-  /// In production mode, yields truthful PENDING_BE_INTEGRATION result.
+  /// BR-90: Returns bookings and itineraries that belong to [travelerId] only.
   /// CR-01 & BR-52: Paginated results (default 20 records per page).
   Future<TripHistoryPageResult> getTrips({
-    int? travelerId,
+    required int travelerId,
     TripStatus? status,
     TripType? type,
     DateTime? startDate,
@@ -39,7 +37,7 @@ abstract interface class TripHistoryRepository {
   });
 
   Future<TripHistoryItem?> getTripById({
-    int? travelerId,
+    required int travelerId,
     required String tripId,
   });
 }

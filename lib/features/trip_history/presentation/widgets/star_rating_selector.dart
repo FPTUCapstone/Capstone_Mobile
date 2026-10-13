@@ -6,21 +6,20 @@ import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en
 class StarRatingSelector extends StatelessWidget {
   const StarRatingSelector({
     required this.rating,
-    this.onRatingChanged,
+    required this.onRatingChanged,
     this.isReadOnly = false,
     this.errorText,
     super.key,
   });
 
   final int? rating;
-  final ValueChanged<int>? onRatingChanged;
+  final ValueChanged<int> onRatingChanged;
   final bool isReadOnly;
   final String? errorText;
 
   @override
   Widget build(BuildContext context) {
     final currentRating = rating ?? 0;
-    final effectiveReadOnly = isReadOnly || onRatingChanged == null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,13 +40,11 @@ class StarRatingSelector extends StatelessWidget {
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
                 child: InkResponse(
-                  onTap: effectiveReadOnly
-                      ? null
-                      : () => onRatingChanged!(starNumber),
+                  onTap: isReadOnly ? null : () => onRatingChanged(starNumber),
                   radius: 24,
                   child: Semantics(
-                    button: !effectiveReadOnly,
-                    enabled: !effectiveReadOnly,
+                    button: !isReadOnly,
+                    enabled: !isReadOnly,
                     label: TripHistoryStringsEn.a11yStarRating.replaceAll(
                       '{star}',
                       starNumber.toString(),
