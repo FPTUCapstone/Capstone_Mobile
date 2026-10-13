@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
-import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_history_repository_impl.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_review_repository_impl.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enums.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
@@ -13,7 +12,6 @@ void main() {
   late DateTime fixedNow;
   late DemoTripHistoryStore demoStore;
   late TripReviewRepositoryImpl repository;
-  late TripHistoryRepositoryImpl historyRepository;
   late TripReviewCubit cubit;
 
   setUp(() {
@@ -23,15 +21,7 @@ void main() {
       demoStore: demoStore,
       isDemoMode: true,
     );
-    historyRepository = TripHistoryRepositoryImpl(
-      demoStore: demoStore,
-      isDemoMode: true,
-    );
-    cubit = TripReviewCubit(
-      repository: repository,
-      historyRepository: historyRepository,
-      isDemoMode: true,
-    );
+    cubit = TripReviewCubit(repository: repository, isDemoMode: true);
   });
 
   tearDown(() {
@@ -300,13 +290,8 @@ void main() {
           demoStore: demoStore,
           isDemoMode: false,
         );
-        final prodHistoryRepo = TripHistoryRepositoryImpl(
-          demoStore: demoStore,
-          isDemoMode: false,
-        );
         final prodCubit = TripReviewCubit(
           repository: prodRepo,
-          historyRepository: prodHistoryRepo,
           isDemoMode: false,
         );
         addTearDown(prodCubit.close);
@@ -334,73 +319,6 @@ void main() {
         expect(
           prodCubit.state.generalError,
           equals(TripHistoryStringsEn.productionReviewMutationDisabled),
-        );
-      },
-    );
-
-    test(
-      'loadTripAndReview with matching cachedTrip applies cached trip directly',
-      () async {
-        final trip = demoStore.getTripById(
-          travelerId: 1,
-          tripId: 'trip-tour-003',
-        )!;
-
-        await cubit.loadTripAndReview(
-          tripId: 'trip-tour-003',
-          cachedTrip: trip,
-          travelerId: 1,
-        );
-
-        expect(cubit.state.trip?.id, equals('trip-tour-003'));
-        expect(cubit.state.status, equals(TripReviewStatus.initial));
-      },
-    );
-
-    test(
-      'loadTripAndReview without cachedTrip fetches trip by ID from historyRepository',
-      () async {
-        await cubit.loadTripAndReview(
-          tripId: 'trip-tour-003',
-          cachedTrip: null,
-          travelerId: 1,
-        );
-
-        expect(cubit.state.trip?.id, equals('trip-tour-003'));
-        expect(
-          cubit.state.trip?.title,
-          equals('Hoi An Ancient Town Evening Lantern Tour'),
-        );
-      },
-    );
-
-    test(
-      'loadTripAndReview with non-existent ID emits failure with tripInformationUnavailable',
-      () async {
-        await cubit.loadTripAndReview(
-          tripId: 'trip-invalid-xxx',
-          travelerId: 1,
-        );
-
-        expect(cubit.state.trip, isNull);
-        expect(cubit.state.status, equals(TripReviewStatus.failure));
-        expect(
-          cubit.state.generalError,
-          equals(TripHistoryStringsEn.tripInformationUnavailable),
-        );
-      },
-    );
-
-    test(
-      'loadTripAndReview with unauthorized foreign trip emits permissionDenied',
-      () async {
-        await cubit.loadTripAndReview(tripId: 'trip-tour-999', travelerId: 1);
-
-        expect(cubit.state.trip, isNull);
-        expect(cubit.state.status, equals(TripReviewStatus.failure));
-        expect(
-          cubit.state.generalError,
-          equals(TripHistoryStringsEn.permissionDenied),
         );
       },
     );
