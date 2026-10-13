@@ -424,44 +424,24 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
           final isDemo =
               kDebugMode && state.uri.queryParameters['demo'] == 'true';
           final routeTripId = state.pathParameters['tripId'] ?? '';
-          if (routeTripId.trim().isEmpty) {
-            return const Scaffold(
-              body: ErrorView(
-                message: TripHistoryStringsEn.tripInformationUnavailable,
-              ),
-            );
-          }
-          final cachedTrip =
-              state.extra is TripHistoryItem &&
-                  (state.extra as TripHistoryItem).id == routeTripId
+          final trip = state.extra is TripHistoryItem
               ? state.extra as TripHistoryItem
               : null;
+          if (trip == null || routeTripId.isEmpty || trip.id != routeTripId) {
+            return const ErrorView(
+              message: TripHistoryStringsEn.tripInformationUnavailable,
+            );
+          }
           return BlocProvider(
-            create: (_) => serviceLocator<TripReviewCubit>(param1: isDemo)
-              ..loadTripAndReview(
-                tripId: routeTripId,
-                cachedTrip: cachedTrip,
-                travelerId: isDemo ? DemoTripHistoryStore.demoTravelerId : null,
-              ),
+            create: (_) => serviceLocator<TripReviewCubit>(param1: isDemo),
             child: TripReviewPage(
-              tripId: routeTripId,
-              initialTrip: cachedTrip,
+              trip: trip,
               isDemoMode: isDemo,
               demoTravelerId: isDemo
                   ? DemoTripHistoryStore.demoTravelerId
                   : null,
             ),
           );
-        },
-      ),
-      GoRoute(
-        path: '/traveler/trips/:tripId',
-        redirect: (_, state) {
-          final tripId = state.pathParameters['tripId'] ?? '';
-          final demo = state.uri.queryParameters['demo'] == 'true'
-              ? '?demo=true'
-              : '';
-          return '/traveler/trips/$tripId/review$demo';
         },
       ),
       GoRoute(

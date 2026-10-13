@@ -10,24 +10,18 @@ import 'package:trip_mate_mobile/features/trip_history/presentation/widgets/star
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
-import 'package:trip_mate_mobile/shared/widgets/error_view.dart';
 import 'package:trip_mate_mobile/shared/widgets/loading_indicator.dart';
 
 class TripReviewPage extends StatefulWidget {
-  TripReviewPage({
-    String? tripId,
-    TripHistoryItem? initialTrip,
-    TripHistoryItem? trip,
+  const TripReviewPage({
+    required this.trip,
     this.isDemoMode = false,
     this.demoTravelerId,
     this.referenceTime,
     super.key,
-  }) : tripId = tripId ?? trip?.id ?? initialTrip?.id ?? '',
-       initialTrip = initialTrip ?? trip;
+  });
 
-  final String tripId;
-  final TripHistoryItem? initialTrip;
-  TripHistoryItem? get trip => initialTrip;
+  final TripHistoryItem trip;
   final bool isDemoMode;
   final int? demoTravelerId;
   final DateTime? referenceTime;
@@ -48,15 +42,11 @@ class _TripReviewPageState extends State<TripReviewPage> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final cubit = context.read<TripReviewCubit>();
-      final currentTrip = cubit.state.trip;
-      if (currentTrip == null || currentTrip.id != widget.tripId) {
-        cubit.loadTripAndReview(
-          tripId: widget.tripId,
-          cachedTrip: widget.initialTrip,
-          travelerId: widget.demoTravelerId,
-          referenceTime: widget.referenceTime,
-        );
-      }
+      cubit.initialize(
+        trip: widget.trip,
+        travelerId: widget.demoTravelerId,
+        referenceTime: widget.referenceTime,
+      );
 
       final state = cubit.state;
       if (state.title.isNotEmpty) {
@@ -167,44 +157,8 @@ class _TripReviewPageState extends State<TripReviewPage> {
         }
       },
       builder: (context, state) {
-        if (state.trip == null && state.status == TripReviewStatus.failure) {
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text(TripHistoryStringsEn.tripReviewTitle),
-            ),
-            body: ErrorView(
-              message:
-                  state.generalError ??
-                  TripHistoryStringsEn.tripInformationUnavailable,
-            ),
-          );
-        }
-
-        final trip = state.trip ?? widget.initialTrip;
-
-        if (state.status == TripReviewStatus.loading && trip == null) {
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text(TripHistoryStringsEn.tripReviewTitle),
-            ),
-            body: const Center(child: LoadingIndicator()),
-          );
-        }
-
-        if (trip == null) {
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text(TripHistoryStringsEn.tripReviewTitle),
-            ),
-            body: ErrorView(
-              message:
-                  state.generalError ??
-                  TripHistoryStringsEn.tripInformationUnavailable,
-            ),
-          );
-        }
-
         final cubit = context.read<TripReviewCubit>();
+        final trip = state.trip ?? widget.trip;
 
         final pageTitle = state.isReadOnly
             ? TripHistoryStringsEn.viewReviewTitle

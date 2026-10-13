@@ -16,7 +16,6 @@ class TripHistoryCard extends StatelessWidget {
     required this.onViewReview,
     required this.onViewRefundStatus,
     required this.onViewDetails,
-    this.referenceTime,
     super.key,
   });
 
@@ -27,7 +26,6 @@ class TripHistoryCard extends StatelessWidget {
   final ValueChanged<TripHistoryItem> onViewReview;
   final ValueChanged<TripHistoryItem> onViewRefundStatus;
   final ValueChanged<TripHistoryItem> onViewDetails;
-  final DateTime? referenceTime;
 
   @override
   Widget build(BuildContext context) {
@@ -230,7 +228,7 @@ class TripHistoryCard extends StatelessWidget {
                   ),
 
                 // [Edit Review] for completed bookings with review < 7 days (BR-95)
-                if (item.canEditReview(referenceTime))
+                if (item.canEditReview())
                   FilledButton.tonalIcon(
                     onPressed: () => onEditReview(item),
                     icon: const Icon(Icons.edit_note, size: 16),
@@ -241,7 +239,7 @@ class TripHistoryCard extends StatelessWidget {
                   ),
 
                 // [View Review] for completed bookings with review > 7 days (read-only)
-                if (item.isReadOnlyReview(referenceTime))
+                if (item.isReadOnlyReview())
                   OutlinedButton.icon(
                     onPressed: () => onViewReview(item),
                     icon: const Icon(Icons.reviews_outlined, size: 16),
