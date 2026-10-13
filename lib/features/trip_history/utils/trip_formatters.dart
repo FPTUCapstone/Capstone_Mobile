@@ -22,6 +22,12 @@ abstract final class TripFormatters {
     return DateTime.utc(vnTime.year, vnTime.month, vnTime.day);
   }
 
+  /// CR-07 / F-01: Converts a user-selected civil date (from DatePicker) to a canonical UTC calendar day.
+  /// Preserves the calendar year, month, and day regardless of local machine timezone offset.
+  static DateTime toCivilCalendarDay(DateTime date) {
+    return DateTime.utc(date.year, date.month, date.day);
+  }
+
   /// Formats currency amount in Vietnamese Dong (VND).
   static String formatVnd(int amount) {
     if (amount == 0) return TripHistoryStringsEn.labelFree;

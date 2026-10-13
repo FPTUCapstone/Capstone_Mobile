@@ -77,8 +77,8 @@ void main() {
     );
   });
 
-  tearDown(() {
-    cubit.close();
+  tearDown(() async {
+    await cubit.close();
   });
 
   Widget buildTestWidget({bool isDemoMode = true}) {

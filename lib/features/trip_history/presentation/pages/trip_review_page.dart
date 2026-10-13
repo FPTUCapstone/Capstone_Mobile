@@ -48,6 +48,7 @@ class _TripReviewPageState extends State<TripReviewPage> {
     _contentController = TextEditingController();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final cubit = context.read<TripReviewCubit>();
       final currentTrip = cubit.state.trip;
       if (currentTrip == null || currentTrip.id != widget.tripId) {
@@ -98,6 +99,7 @@ class _TripReviewPageState extends State<TripReviewPage> {
                 title: const Text(TripHistoryStringsEn.photoValidSample),
                 onTap: () {
                   Navigator.of(sheetCtx).pop();
+                  if (!mounted) return;
                   context.read<TripReviewCubit>().addPhoto(
                     const TripReviewPhotoAttachment(
                       name: 'sample_photo.jpg',
@@ -111,6 +113,7 @@ class _TripReviewPageState extends State<TripReviewPage> {
                 title: const Text(TripHistoryStringsEn.photoOversizedSample),
                 onTap: () {
                   Navigator.of(sheetCtx).pop();
+                  if (!mounted) return;
                   context.read<TripReviewCubit>().addPhoto(
                     const TripReviewPhotoAttachment(
                       name: 'large_panorama.jpg',
@@ -124,6 +127,7 @@ class _TripReviewPageState extends State<TripReviewPage> {
                 title: const Text(TripHistoryStringsEn.photoUnsupportedSample),
                 onTap: () {
                   Navigator.of(sheetCtx).pop();
+                  if (!mounted) return;
                   context.read<TripReviewCubit>().addPhoto(
                     const TripReviewPhotoAttachment(
                       name: 'travel_document.pdf',
@@ -143,6 +147,7 @@ class _TripReviewPageState extends State<TripReviewPage> {
   Widget build(BuildContext context) {
     return BlocConsumer<TripReviewCubit, TripReviewState>(
       listener: (context, state) {
+        if (!mounted) return;
         if (state.title.isNotEmpty && _titleController.text != state.title) {
           _titleController.text = state.title;
         }
@@ -366,9 +371,9 @@ class _TripReviewPageState extends State<TripReviewPage> {
                 Center(
                   child: StarRatingSelector(
                     rating: state.rating,
-                    onRatingChanged: state.isReadOnly
-                        ? null
-                        : (r) => cubit.setRating(r),
+                    onRatingChanged: (!state.isReadOnly && widget.isDemoMode)
+                        ? (r) => cubit.setRating(r)
+                        : null,
                   ),
                 ),
                 if (state.ratingError != null) ...[

@@ -462,5 +462,35 @@ void main() {
         expect(crossYear.items.length, equals(9));
       },
     );
+
+    test(
+      'F-01 / CR-07: Date picker civil dates with non-zero hours or foreign timezones preserve exact calendar day',
+      () {
+        // Oct 1, 2026 filter with evening hour (e.g. 23:30 from a local device or picker)
+        final localPickedDate = DateTime(2026, 10, 1, 23, 30, 0);
+
+        final trips = store.getTrips(
+          travelerId: 1,
+          status: TripStatus.completed,
+          startDate: localPickedDate,
+          endDate: localPickedDate,
+        );
+
+        // Still includes trip-tour-003 which departs on Oct 1, 2026
+        expect(trips.items.length, equals(1));
+        expect(trips.items.first.id, equals('trip-tour-003'));
+
+        // UTC date representing Oct 1
+        final utcPickedDate = DateTime.utc(2026, 10, 1);
+        final utcTrips = store.getTrips(
+          travelerId: 1,
+          status: TripStatus.completed,
+          startDate: utcPickedDate,
+          endDate: utcPickedDate,
+        );
+        expect(utcTrips.items.length, equals(1));
+        expect(utcTrips.items.first.id, equals('trip-tour-003'));
+      },
+    );
   });
 }
