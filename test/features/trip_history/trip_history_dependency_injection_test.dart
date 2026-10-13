@@ -41,7 +41,7 @@ void main() {
       addTearDown(history.close);
       addTearDown(review.close);
 
-      await history.switchTab(TripStatus.completed);
+      await history.loadInitial();
       final trip = history.state.items.firstWhere(
         (item) => item.id == 'trip-tour-003',
       );
@@ -54,7 +54,7 @@ void main() {
         );
       await review.submit();
 
-      await history.refresh();
+      await history.switchTab(TripStatus.completed);
       final refreshed = history.state.items.firstWhere(
         (item) => item.id == 'trip-tour-003',
       );
