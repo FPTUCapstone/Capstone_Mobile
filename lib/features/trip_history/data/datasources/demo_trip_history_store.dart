@@ -264,7 +264,7 @@ class DemoTripHistoryStore {
     }
 
     if (startDate != null) {
-      final startDay = TripFormatters.toVietnamCalendarDay(startDate);
+      final startDay = TripFormatters.toCivilCalendarDay(startDate);
       filtered = filtered
           .where(
             (item) => !TripFormatters.toVietnamCalendarDay(
@@ -275,7 +275,7 @@ class DemoTripHistoryStore {
     }
 
     if (endDate != null) {
-      final endDay = TripFormatters.toVietnamCalendarDay(endDate);
+      final endDay = TripFormatters.toCivilCalendarDay(endDate);
       filtered = filtered
           .where(
             (item) => !TripFormatters.toVietnamCalendarDay(

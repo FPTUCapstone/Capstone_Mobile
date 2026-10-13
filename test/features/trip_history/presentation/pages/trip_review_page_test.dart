@@ -35,8 +35,8 @@ void main() {
     );
   });
 
-  tearDown(() {
-    cubit.close();
+  tearDown(() async {
+    await cubit.close();
   });
 
   Widget buildTestWidget(TripHistoryItem trip, {bool isDemoMode = true}) {
@@ -311,7 +311,31 @@ void main() {
           ),
         );
         expect(submitBtn.onPressed, isNull);
+
+        final starSelector = tester.widget<StarRatingSelector>(
+          find.byType(StarRatingSelector),
+        );
+        expect(starSelector.onRatingChanged, isNull);
       },
     );
+
+    testWidgets('unmounted lifecycle: does not throw if popped immediately', (
+      tester,
+    ) async {
+      final trip = demoStore.getTripById(
+        travelerId: 1,
+        tripId: 'trip-tour-003',
+      )!;
+
+      await tester.pumpWidget(buildTestWidget(trip));
+      // Pump initial frame only, then immediately pump an empty widget
+      await tester.pump();
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: SizedBox())),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
   });
 }

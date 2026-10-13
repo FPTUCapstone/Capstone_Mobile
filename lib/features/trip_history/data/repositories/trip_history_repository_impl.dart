@@ -7,11 +7,18 @@ import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en
 
 final class TripHistoryRepositoryImpl implements TripHistoryRepository {
   TripHistoryRepositoryImpl({
-    required DemoTripHistoryStore demoStore,
+    DemoTripHistoryStore? demoStore,
     this.isDemoMode = false,
-  }) : _demoStore = demoStore;
+  }) : _demoStore = demoStore {
+    if (isDemoMode) {
+      assert(
+        _demoStore != null,
+        'demoStore must be provided when isDemoMode is true',
+      );
+    }
+  }
 
-  final DemoTripHistoryStore _demoStore;
+  final DemoTripHistoryStore? _demoStore;
   final bool isDemoMode;
 
   @override
@@ -25,7 +32,13 @@ final class TripHistoryRepositoryImpl implements TripHistoryRepository {
     int pageSize = 20,
   }) async {
     if (isDemoMode) {
-      return _demoStore.getTrips(
+      final store = _demoStore;
+      if (store == null) {
+        throw const ServerFailure(
+          TripHistoryStringsEn.productionIntegrationPending,
+        );
+      }
+      return store.getTrips(
         travelerId: travelerId,
         status: status,
         type: type,
@@ -49,7 +62,13 @@ final class TripHistoryRepositoryImpl implements TripHistoryRepository {
     required String tripId,
   }) async {
     if (isDemoMode) {
-      return _demoStore.getTripById(travelerId: travelerId, tripId: tripId);
+      final store = _demoStore;
+      if (store == null) {
+        throw const ServerFailure(
+          TripHistoryStringsEn.productionIntegrationPending,
+        );
+      }
+      return store.getTripById(travelerId: travelerId, tripId: tripId);
     }
 
     // Production: Backend develop has NO UC-32 endpoint.

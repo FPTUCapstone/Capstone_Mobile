@@ -39,6 +39,69 @@ void main() {
       },
     );
 
+    test(
+      'toVietnamCalendarDay: boundary hours in UTC+7 (00:00, 06:59, 10:00, 23:59, midnight rollover)',
+      () {
+        // 00:00:00 VN time is 17:00:00 UTC previous day
+        final midnightVn = DateTime.utc(2026, 10, 7, 17, 0, 0);
+        expect(
+          TripFormatters.toVietnamCalendarDay(midnightVn),
+          equals(DateTime.utc(2026, 10, 8)),
+        );
+
+        // 06:59:59 VN time is 23:59:59 UTC previous day
+        final earlyMorningVn = DateTime.utc(2026, 10, 7, 23, 59, 59);
+        expect(
+          TripFormatters.toVietnamCalendarDay(earlyMorningVn),
+          equals(DateTime.utc(2026, 10, 8)),
+        );
+
+        // 10:00:00 VN time is 03:00:00 UTC same day
+        final morningVn = DateTime.utc(2026, 10, 8, 3, 0, 0);
+        expect(
+          TripFormatters.toVietnamCalendarDay(morningVn),
+          equals(DateTime.utc(2026, 10, 8)),
+        );
+
+        // 23:59:59 VN time is 16:59:59 UTC same day
+        final lateNightVn = DateTime.utc(2026, 10, 8, 16, 59, 59);
+        expect(
+          TripFormatters.toVietnamCalendarDay(lateNightVn),
+          equals(DateTime.utc(2026, 10, 8)),
+        );
+
+        // Exactly next-day 00:00:00 VN time is 17:00:00 UTC same day
+        final nextDayVn = DateTime.utc(2026, 10, 8, 17, 0, 0);
+        expect(
+          TripFormatters.toVietnamCalendarDay(nextDayVn),
+          equals(DateTime.utc(2026, 10, 9)),
+        );
+      },
+    );
+
+    test(
+      'toCivilCalendarDay: preserves civil calendar date across local timezones without shifting',
+      () {
+        // A date selected from date picker has year, month, day components
+        final civilLocal = DateTime(2026, 10, 8, 0, 0, 0);
+        final civilUtc = DateTime.utc(2026, 10, 8, 0, 0, 0);
+        final civilLate = DateTime(2026, 10, 8, 23, 45, 0);
+
+        expect(
+          TripFormatters.toCivilCalendarDay(civilLocal),
+          equals(DateTime.utc(2026, 10, 8)),
+        );
+        expect(
+          TripFormatters.toCivilCalendarDay(civilUtc),
+          equals(DateTime.utc(2026, 10, 8)),
+        );
+        expect(
+          TripFormatters.toCivilCalendarDay(civilLate),
+          equals(DateTime.utc(2026, 10, 8)),
+        );
+      },
+    );
+
     test('toVietnamCalendarDay: handles month and year rollovers', () {
       final endOfYear = DateTime.utc(2025, 12, 31, 10, 0, 0);
       final newYear = DateTime.utc(2026, 1, 1, 0, 0, 0);

@@ -69,8 +69,8 @@ void main() {
     );
   });
 
-  tearDown(() {
-    cubit.close();
+  tearDown(() async {
+    await cubit.close();
   });
 
   group('TripHistoryCubit State Management Tests', () {

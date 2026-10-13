@@ -3,7 +3,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trip_mate_mobile/app/config/app_config.dart';
 import 'package:trip_mate_mobile/app/config/environment.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/core/error/failures.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_history_repository_impl.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_review_repository_impl.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enums.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_history_repository.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_review_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
 
@@ -59,6 +64,29 @@ void main() {
         (item) => item.id == 'trip-tour-003',
       );
       expect(refreshed.review?.title, 'Shared store');
+    },
+  );
+
+  test(
+    'F-08: production repositories fail closed without demo store dependency',
+    () async {
+      final historyRepo = serviceLocator<TripHistoryRepository>(param1: false);
+      final reviewRepo = serviceLocator<TripReviewRepository>(param1: false);
+
+      expect(historyRepo, isA<TripHistoryRepositoryImpl>());
+      expect((historyRepo as TripHistoryRepositoryImpl).isDemoMode, isFalse);
+      expect(reviewRepo, isA<TripReviewRepositoryImpl>());
+      expect((reviewRepo as TripReviewRepositoryImpl).isDemoMode, isFalse);
+
+      expect(() => historyRepo.getTrips(), throwsA(isA<ServerFailure>()));
+      expect(
+        () => historyRepo.getTripById(tripId: 'any-id'),
+        throwsA(isA<ServerFailure>()),
+      );
+      expect(
+        () => reviewRepo.getReviewForTrip(tripId: 'any-id'),
+        throwsA(isA<ServerFailure>()),
+      );
     },
   );
 }

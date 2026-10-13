@@ -7,17 +7,30 @@ import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en
 
 final class TripReviewRepositoryImpl implements TripReviewRepository {
   TripReviewRepositoryImpl({
-    required DemoTripHistoryStore demoStore,
+    DemoTripHistoryStore? demoStore,
     this.isDemoMode = false,
-  }) : _demoStore = demoStore;
+  }) : _demoStore = demoStore {
+    if (isDemoMode) {
+      assert(
+        _demoStore != null,
+        'demoStore must be provided when isDemoMode is true',
+      );
+    }
+  }
 
-  final DemoTripHistoryStore _demoStore;
+  final DemoTripHistoryStore? _demoStore;
   final bool isDemoMode;
 
   @override
   Future<TripReview> submitReview(TripReviewSubmission submission) async {
     if (isDemoMode) {
-      return _demoStore.submitReview(submission);
+      final store = _demoStore;
+      if (store == null) {
+        throw const ServerFailure(
+          TripHistoryStringsEn.productionReviewMutationDisabled,
+        );
+      }
+      return store.submitReview(submission);
     }
 
     // Production review endpoints are merged for authoritative commerce-booking
@@ -32,7 +45,13 @@ final class TripReviewRepositoryImpl implements TripReviewRepository {
   @override
   Future<TripReview> updateReview(TripReviewSubmission submission) async {
     if (isDemoMode) {
-      return _demoStore.updateReview(submission);
+      final store = _demoStore;
+      if (store == null) {
+        throw const ServerFailure(
+          TripHistoryStringsEn.productionReviewMutationDisabled,
+        );
+      }
+      return store.updateReview(submission);
     }
 
     // The merged edit endpoint likewise requires an authoritative typed booking
@@ -48,10 +67,13 @@ final class TripReviewRepositoryImpl implements TripReviewRepository {
     required String tripId,
   }) async {
     if (isDemoMode) {
-      final trip = _demoStore.getTripById(
-        travelerId: travelerId,
-        tripId: tripId,
-      );
+      final store = _demoStore;
+      if (store == null) {
+        throw const ServerFailure(
+          TripHistoryStringsEn.productionReviewMutationDisabled,
+        );
+      }
+      final trip = store.getTripById(travelerId: travelerId, tripId: tripId);
       return trip?.review;
     }
 

@@ -229,13 +229,13 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerLazySingleton<DemoTripHistoryStore>(DemoTripHistoryStore.new)
     ..registerFactoryParam<TripHistoryRepository, bool, void>(
       (isDemoMode, _) => TripHistoryRepositoryImpl(
-        demoStore: serviceLocator(),
+        demoStore: isDemoMode ? serviceLocator<DemoTripHistoryStore>() : null,
         isDemoMode: isDemoMode,
       ),
     )
     ..registerFactoryParam<TripReviewRepository, bool, void>(
       (isDemoMode, _) => TripReviewRepositoryImpl(
-        demoStore: serviceLocator(),
+        demoStore: isDemoMode ? serviceLocator<DemoTripHistoryStore>() : null,
         isDemoMode: isDemoMode,
       ),
     )
