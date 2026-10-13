@@ -1,5 +1,4 @@
 import 'package:trip_mate_mobile/core/error/failures.dart';
-import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_review.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_review_submission.dart';
@@ -8,12 +7,10 @@ import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en
 
 final class TripReviewRepositoryImpl implements TripReviewRepository {
   TripReviewRepositoryImpl({
-    this.dioClient,
     required DemoTripHistoryStore demoStore,
     this.isDemoMode = false,
   }) : _demoStore = demoStore;
 
-  final DioClient? dioClient;
   final DemoTripHistoryStore _demoStore;
   final bool isDemoMode;
 

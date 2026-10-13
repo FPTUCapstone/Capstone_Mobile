@@ -20,11 +20,13 @@ class TripHistoryPage extends StatefulWidget {
   const TripHistoryPage({
     this.initialTab = TripStatus.upcoming,
     this.isDemoMode = false,
+    this.referenceTime,
     super.key,
   });
 
   final TripStatus initialTab;
   final bool isDemoMode;
+  final DateTime? referenceTime;
 
   @override
   State<TripHistoryPage> createState() => _TripHistoryPageState();
@@ -299,6 +301,7 @@ class _TripHistoryPageState extends State<TripHistoryPage>
               final item = state.items[index];
               return TripHistoryCard(
                 item: item,
+                referenceTime: widget.referenceTime,
                 onViewEticket: (_) => _showEticketNotice(context),
                 onWriteReview: (t) => _navigateToReview(context, t),
                 onEditReview: (t) => _navigateToReview(context, t),

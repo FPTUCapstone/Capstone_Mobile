@@ -85,7 +85,7 @@ void main() {
     return MaterialApp(
       home: BlocProvider<TripHistoryCubit>.value(
         value: cubit..loadInitial(),
-        child: TripHistoryPage(isDemoMode: isDemoMode),
+        child: TripHistoryPage(isDemoMode: isDemoMode, referenceTime: fixedNow),
       ),
     );
   }
@@ -356,6 +356,7 @@ void main() {
         );
         final reviewCubit = TripReviewCubit(
           repository: reviewRepo,
+          historyRepository: spyRepo,
           isDemoMode: true,
         );
         addTearDown(reviewCubit.close);
@@ -369,7 +370,10 @@ void main() {
                 final isDemo = state.uri.queryParameters['demo'] == 'true';
                 return BlocProvider<TripHistoryCubit>.value(
                   value: testCubit,
-                  child: TripHistoryPage(isDemoMode: isDemo),
+                  child: TripHistoryPage(
+                    isDemoMode: isDemo,
+                    referenceTime: fixedNow,
+                  ),
                 );
               },
             ),

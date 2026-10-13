@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_history_repository_impl.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_review_repository_impl.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
@@ -13,6 +14,7 @@ void main() {
   late DateTime fixedNow;
   late DemoTripHistoryStore demoStore;
   late TripReviewRepositoryImpl repository;
+  late TripHistoryRepositoryImpl historyRepository;
   late TripReviewCubit cubit;
 
   setUp(() {
@@ -22,7 +24,15 @@ void main() {
       demoStore: demoStore,
       isDemoMode: true,
     );
-    cubit = TripReviewCubit(repository: repository, isDemoMode: true);
+    historyRepository = TripHistoryRepositoryImpl(
+      demoStore: demoStore,
+      isDemoMode: true,
+    );
+    cubit = TripReviewCubit(
+      repository: repository,
+      historyRepository: historyRepository,
+      isDemoMode: true,
+    );
   });
 
   tearDown(() {
@@ -259,8 +269,13 @@ void main() {
           demoStore: demoStore,
           isDemoMode: false,
         );
+        final prodHistoryRepo = TripHistoryRepositoryImpl(
+          demoStore: demoStore,
+          isDemoMode: false,
+        );
         final prodCubit = TripReviewCubit(
           repository: prodRepo,
+          historyRepository: prodHistoryRepo,
           isDemoMode: false,
         );
         addTearDown(prodCubit.close);

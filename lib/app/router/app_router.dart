@@ -424,24 +424,44 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
           final isDemo =
               kDebugMode && state.uri.queryParameters['demo'] == 'true';
           final routeTripId = state.pathParameters['tripId'] ?? '';
-          final trip = state.extra is TripHistoryItem
-              ? state.extra as TripHistoryItem
-              : null;
-          if (trip == null || routeTripId.isEmpty || trip.id != routeTripId) {
-            return const ErrorView(
-              message: TripHistoryStringsEn.tripInformationUnavailable,
+          if (routeTripId.trim().isEmpty) {
+            return const Scaffold(
+              body: ErrorView(
+                message: TripHistoryStringsEn.tripInformationUnavailable,
+              ),
             );
           }
+          final cachedTrip =
+              state.extra is TripHistoryItem &&
+                  (state.extra as TripHistoryItem).id == routeTripId
+              ? state.extra as TripHistoryItem
+              : null;
           return BlocProvider(
-            create: (_) => serviceLocator<TripReviewCubit>(param1: isDemo),
+            create: (_) => serviceLocator<TripReviewCubit>(param1: isDemo)
+              ..loadTripAndReview(
+                tripId: routeTripId,
+                cachedTrip: cachedTrip,
+                travelerId: isDemo ? DemoTripHistoryStore.demoTravelerId : null,
+              ),
             child: TripReviewPage(
-              trip: trip,
+              tripId: routeTripId,
+              initialTrip: cachedTrip,
               isDemoMode: isDemo,
               demoTravelerId: isDemo
                   ? DemoTripHistoryStore.demoTravelerId
                   : null,
             ),
           );
+        },
+      ),
+      GoRoute(
+        path: '/traveler/trips/:tripId',
+        redirect: (_, state) {
+          final tripId = state.pathParameters['tripId'] ?? '';
+          final demo = state.uri.queryParameters['demo'] == 'true'
+              ? '?demo=true'
+              : '';
+          return '/traveler/trips/$tripId/review$demo';
         },
       ),
       GoRoute(

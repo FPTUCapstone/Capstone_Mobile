@@ -301,10 +301,12 @@ class DemoTripHistoryStore {
 
   TripHistoryItem? getTripById({int? travelerId, required String tripId}) {
     final effectiveTravelerId = travelerId ?? demoTravelerId;
-    final match = _items.where(
-      (item) => item.id == tripId && item.travelerId == effectiveTravelerId,
-    );
-    return match.isEmpty ? null : match.first;
+    final tripExists = _items.where((item) => item.id == tripId);
+    if (tripExists.isNotEmpty &&
+        tripExists.first.travelerId != effectiveTravelerId) {
+      throw const PermissionFailure(TripHistoryStringsEn.permissionDenied);
+    }
+    return tripExists.isEmpty ? null : tripExists.first;
   }
 
   TripReview submitReview(TripReviewSubmission submission) {
@@ -369,8 +371,8 @@ class DemoTripHistoryStore {
       title: submission.title.trim(),
       content: submission.content.trim(),
       photoUrls: submission.photos.map((p) => p.name).toList(),
-      createdAt: item.review?.createdAt ?? DateTime.now(),
-      updatedAt: submission.isEdit ? DateTime.now() : null,
+      createdAt: item.review?.createdAt ?? _referenceTime,
+      updatedAt: submission.isEdit ? _referenceTime : null,
     );
 
     // Update item with published review

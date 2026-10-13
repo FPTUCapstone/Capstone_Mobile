@@ -302,5 +302,27 @@ void main() {
         );
       },
     );
+
+    test('getTripById: returns item when requesting own trip', () {
+      final trip = store.getTripById(travelerId: 1, tripId: 'trip-tour-003');
+      expect(trip, isNotNull);
+      expect(trip?.id, equals('trip-tour-003'));
+      expect(trip?.travelerId, equals(1));
+    });
+
+    test('getTripById: returns null when requesting non-existent trip', () {
+      final trip = store.getTripById(travelerId: 1, tripId: 'trip-invalid-xxx');
+      expect(trip, isNull);
+    });
+
+    test(
+      'getTripById: throws PermissionFailure when requesting foreign traveler trip',
+      () {
+        expect(
+          () => store.getTripById(travelerId: 1, tripId: 'trip-tour-999'),
+          throwsA(isA<PermissionFailure>()),
+        );
+      },
+    );
   });
 }

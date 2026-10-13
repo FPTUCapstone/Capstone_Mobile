@@ -4,6 +4,7 @@ import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enum
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_review.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_review_submission.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_history_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_review_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_state.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
@@ -11,12 +12,103 @@ import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en
 final class TripReviewCubit extends Cubit<TripReviewState> {
   TripReviewCubit({
     required TripReviewRepository repository,
+    required TripHistoryRepository historyRepository,
     this.isDemoMode = false,
   }) : _repository = repository,
+       _historyRepository = historyRepository,
        super(TripReviewState(isDemoMode: isDemoMode));
 
   final TripReviewRepository _repository;
+  final TripHistoryRepository _historyRepository;
   final bool isDemoMode;
+
+  Future<void> loadTripAndReview({
+    required String tripId,
+    TripHistoryItem? cachedTrip,
+    int? travelerId,
+    DateTime? referenceTime,
+  }) async {
+    final cleanTripId = tripId.trim();
+    if (cleanTripId.isEmpty) {
+      emit(
+        state.copyWith(
+          trip: () => null,
+          status: TripReviewStatus.failure,
+          generalError: () => TripHistoryStringsEn.tripInformationUnavailable,
+        ),
+      );
+      return;
+    }
+
+    // 1. If valid matching cached trip was provided, use it directly (optimization/cache)
+    if (cachedTrip != null && cachedTrip.id == cleanTripId) {
+      _applyLoadedTrip(
+        trip: cachedTrip,
+        travelerId: travelerId,
+        referenceTime: referenceTime,
+      );
+      return;
+    }
+
+    // 2. Otherwise load the trip by ID from the repository (deep link / app restore)
+    emit(
+      state.copyWith(
+        status: TripReviewStatus.loading,
+        generalError: () => null,
+      ),
+    );
+
+    try {
+      final trip = await _historyRepository.getTripById(
+        travelerId: travelerId,
+        tripId: cleanTripId,
+      );
+
+      if (trip == null) {
+        emit(
+          state.copyWith(
+            trip: () => null,
+            status: TripReviewStatus.failure,
+            generalError: () => TripHistoryStringsEn.tripInformationUnavailable,
+          ),
+        );
+        return;
+      }
+
+      _applyLoadedTrip(
+        trip: trip,
+        travelerId: travelerId,
+        referenceTime: referenceTime,
+      );
+    } on PermissionFailure catch (e) {
+      emit(
+        state.copyWith(
+          trip: () => null,
+          demoTravelerId: () => travelerId,
+          generalError: () => e.message,
+          status: TripReviewStatus.failure,
+        ),
+      );
+    } on Failure catch (e) {
+      emit(
+        state.copyWith(
+          trip: () => null,
+          demoTravelerId: () => travelerId,
+          generalError: () => e.message,
+          status: TripReviewStatus.failure,
+        ),
+      );
+    } catch (_) {
+      emit(
+        state.copyWith(
+          trip: () => null,
+          demoTravelerId: () => travelerId,
+          generalError: () => TripHistoryStringsEn.tripInformationUnavailable,
+          status: TripReviewStatus.failure,
+        ),
+      );
+    }
+  }
 
   void initialize({
     required TripHistoryItem trip,
@@ -24,11 +116,25 @@ final class TripReviewCubit extends Cubit<TripReviewState> {
     TripReview? existingReview,
     DateTime? referenceTime,
   }) {
-    // In Demo mode, verify traveler ownership against demo tenant
+    _applyLoadedTrip(
+      trip: trip,
+      travelerId: travelerId,
+      existingReview: existingReview,
+      referenceTime: referenceTime,
+    );
+  }
+
+  void _applyLoadedTrip({
+    required TripHistoryItem trip,
+    int? travelerId,
+    TripReview? existingReview,
+    DateTime? referenceTime,
+  }) {
+    // In Demo mode, verify traveler ownership against demo tenant (BR-90)
     if (isDemoMode && travelerId != null && trip.travelerId != travelerId) {
       emit(
         state.copyWith(
-          trip: () => trip,
+          trip: () => null,
           demoTravelerId: () => travelerId,
           generalError: () => TripHistoryStringsEn.permissionDenied,
           status: TripReviewStatus.failure,
