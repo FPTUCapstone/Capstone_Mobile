@@ -70,7 +70,11 @@ void main() {
   testWidgets('matching route tripId and supplied item opens review', (
     tester,
   ) async {
-    await pumpReviewRoute(tester, pathTripId: 'trip-tour-003', extra: trip);
+    await pumpReviewRoute(
+      tester,
+      pathTripId: 'trip-tour-003',
+      extra: trip,
+    );
 
     expect(
       find.text(TripHistoryStringsEn.tripInformationUnavailable),
@@ -79,7 +83,11 @@ void main() {
   });
 
   testWidgets('mismatched route tripId fails closed', (tester) async {
-    await pumpReviewRoute(tester, pathTripId: 'trip-tour-999', extra: trip);
+    await pumpReviewRoute(
+      tester,
+      pathTripId: 'trip-tour-999',
+      extra: trip,
+    );
 
     expect(
       find.text(TripHistoryStringsEn.tripInformationUnavailable),
