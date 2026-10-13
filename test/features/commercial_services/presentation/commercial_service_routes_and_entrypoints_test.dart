@@ -128,10 +128,6 @@ void main() {
           path: AppRoutes.commercialServiceDetailPattern,
           builder: (_, _) => const Text('Commercial Service Detail'),
         ),
-        GoRoute(
-          path: AppRoutes.commercialServiceBookingPattern,
-          builder: (_, _) => const Text('Commercial Service Booking'),
-        ),
       ],
     );
     addTearDown(router.dispose);
@@ -140,7 +136,7 @@ void main() {
     return router.routerDelegate.currentConfiguration.last.matchedLocation;
   }
 
-  group('UC-30/31 Route Guards (Screen #71 & #72)', () {
+  group('UC-30 Route Guards (Screen #71 & #72)', () {
     testWidgets(
       'Guest is redirected to Sign In and demo=true never bypasses auth or role guards',
       (tester) async {
@@ -162,14 +158,6 @@ void main() {
             tester,
             guest,
             AppRoutes.commercialServiceDetail(901, demo: true),
-          ),
-          AppRoutes.login,
-        );
-        expect(
-          await resolveRoute(
-            tester,
-            guest,
-            AppRoutes.commercialServiceBooking(901, demo: true),
           ),
           AppRoutes.login,
         );
@@ -199,14 +187,6 @@ void main() {
           ),
           '/traveler/services/901',
         );
-        expect(
-          await resolveRoute(
-            tester,
-            traveler,
-            AppRoutes.commercialServiceBooking(901, demo: true),
-          ),
-          '/traveler/services/901/book',
-        );
 
         const approvedOperator = AuthSessionState.authenticated(
           UserRole.tourOperator,
@@ -233,14 +213,6 @@ void main() {
             tester,
             approvedOperator,
             AppRoutes.commercialServiceDetail(901, demo: true),
-          ),
-          AppRoutes.operator,
-        );
-        expect(
-          await resolveRoute(
-            tester,
-            approvedOperator,
-            AppRoutes.commercialServiceBooking(901, demo: true),
           ),
           AppRoutes.operator,
         );

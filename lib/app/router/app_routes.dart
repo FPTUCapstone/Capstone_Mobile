@@ -31,8 +31,6 @@ abstract final class AppRoutes {
   static const commercialServicesSearch = '/traveler/services';
   static const commercialServicesSearchPattern = commercialServicesSearch;
   static const commercialServiceDetailPattern = '/traveler/services/:poiId';
-  static const commercialServiceBookingPattern =
-      '/traveler/services/:poiId/book';
   static const operator = '/operator';
   static const operatorApplication = '/operator/application';
   static const operatorApplicationResubmit = '/operator/application/resubmit';
@@ -80,25 +78,6 @@ abstract final class AppRoutes {
     ).toString();
   }
 
-  static String commercialServiceBooking(
-    int poiId, {
-    String? optionId,
-    String? intendedDate,
-    bool demo = false,
-  }) {
-    final query = <String, String>{
-      if (optionId != null && optionId.trim().isEmpty == false)
-        'optionId': optionId.trim(),
-      if (intendedDate != null && intendedDate.trim().isNotEmpty)
-        'intendedDate': intendedDate.trim(),
-      if (demo) 'demo': 'true',
-    };
-    return Uri(
-      path: '/traveler/services/$poiId/book',
-      queryParameters: query.isEmpty ? null : query,
-    ).toString();
-  }
-
   static const authPrefix = '/auth';
   static const travelerPrefix = '/traveler';
   static const operatorPrefix = '/operator';
@@ -133,7 +112,6 @@ abstract final class AppRouteNames {
   static const offlinePackage = 'offline-package';
   static const commercialServicesSearch = 'commercial-services-search';
   static const commercialServiceDetail = 'commercial-service-detail';
-  static const commercialServiceBooking = 'commercial-service-booking';
   static const operator = 'operator';
   static const operatorApplication = 'operator-application';
   static const operatorApplicationResubmit = 'operator-application-resubmit';

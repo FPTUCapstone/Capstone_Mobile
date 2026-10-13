@@ -2,15 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
+import 'package:trip_mate_mobile/features/commercial_services/data/datasources/demo_commercial_services_data_source.dart';
+import 'package:trip_mate_mobile/features/commercial_services/data/datasources/pending_commercial_services_data_source.dart';
+import 'package:trip_mate_mobile/features/commercial_services/data/repositories/commercial_services_repository_impl.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_messages.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/entities/demo_commercial_service_scenario.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/usecases/get_commercial_service_detail.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_service_detail_cubit.dart';
-import 'package:trip_mate_mobile/features/commercial_services/presentation/demo/demo_commercial_service_store.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/pages/commercial_service_detail_page.dart';
+import 'package:trip_mate_mobile/features/commercial_services/resources/commercial_service_en.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/paged_poi_result.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_detail.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_query.dart';
 import 'package:trip_mate_mobile/features/poi/domain/repositories/poi_repository.dart';
-import 'package:trip_mate_mobile/features/poi/domain/usecases/get_poi_detail_use_case.dart';
 
 class _FakePoiRepository implements PoiRepository {
   _FakePoiRepository({this.onGetPoiDetail});
@@ -70,6 +74,26 @@ PoiDetail _samplePoi({
   );
 }
 
+GetCommercialServiceDetail _makeProductionUseCase(PoiRepository poiRepo) {
+  return GetCommercialServiceDetail(
+    CommercialServicesRepositoryImpl(
+      pendingDataSource: PendingCommercialServicesDataSource(
+        poiRepository: poiRepo,
+      ),
+      demoDataSource: const DemoCommercialServicesDataSource(),
+    ),
+  );
+}
+
+GetCommercialServiceDetail _makeDemoUseCase() {
+  return GetCommercialServiceDetail(
+    CommercialServicesRepositoryImpl(
+      pendingDataSource: const PendingCommercialServicesDataSource(),
+      demoDataSource: const DemoCommercialServicesDataSource(),
+    ),
+  );
+}
+
 Widget _wrapWithCubit(
   CommercialServiceDetailCubit cubit, {
   double textScale = 1.0,
@@ -89,10 +113,6 @@ Widget _wrapWithCubit(
 }
 
 void main() {
-  setUp(() {
-    DemoCommercialServiceStore.instance.reset();
-  });
-
   group('CommercialServiceDetailPage - Production truthfulness & BR-87/BR-88', () {
     testWidgets(
       'Production commercial POI renders real POI details, Pending Server Integration notices, and disabled Book Service button',
@@ -101,7 +121,7 @@ void main() {
           onGetPoiDetail: (id) async => _samplePoi(id: id),
         );
         final cubit = CommercialServiceDetailCubit(
-          getPoiDetail: GetPoiDetailUseCase(repo),
+          getCommercialServiceDetail: _makeProductionUseCase(repo),
           isDemoMode: false,
         );
         await cubit.load('10');
@@ -142,7 +162,7 @@ void main() {
           ),
         );
         final cubit = CommercialServiceDetailCubit(
-          getPoiDetail: GetPoiDetailUseCase(repo),
+          getCommercialServiceDetail: _makeProductionUseCase(repo),
           isDemoMode: false,
         );
         await cubit.load('15');
@@ -165,7 +185,7 @@ void main() {
           onGetPoiDetail: (id) async => _samplePoi(id: id, status: 'Inactive'),
         );
         final cubit = CommercialServiceDetailCubit(
-          getPoiDetail: GetPoiDetailUseCase(repo),
+          getCommercialServiceDetail: _makeProductionUseCase(repo),
           isDemoMode: false,
         );
         await cubit.load('10');
@@ -184,9 +204,12 @@ void main() {
 
   group('CommercialServiceDetailPage - Demo scenarios & Map preview', () {
     testWidgets(
-      'renders Hotel, Vehicle Rental, and Restaurant category-specific details and opens View on Map sheet',
+      'renders Hotel, Vehicle Rental, and Restaurant category-specific details, opens View on Map sheet, and shows truthful handoff dialog on Book Service',
       (tester) async {
-        final cubit = CommercialServiceDetailCubit(isDemoMode: true);
+        final cubit = CommercialServiceDetailCubit(
+          getCommercialServiceDetail: _makeDemoUseCase(),
+          isDemoMode: true,
+        );
         await cubit.load('901');
 
         await tester.pumpWidget(_wrapWithCubit(cubit));
@@ -199,6 +222,26 @@ void main() {
           find.byKey(const Key('commercial_service_book_button')),
         );
         expect(bookBtn.onPressed, isNotNull);
+
+        // Tap book button to verify UC-31 booking handoff notice dialog
+        await tester.tap(
+          find.byKey(const Key('commercial_service_book_button')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('commercial_service_booking_handoff_dialog')),
+          findsOneWidget,
+        );
+        expect(
+          find.text(CommercialServiceEn.detail.bookingHandoffNotice),
+          findsOneWidget,
+        );
+
+        await tester.tap(
+          find.byKey(const Key('commercial_service_booking_handoff_ok_button')),
+        );
+        await tester.pumpAndSettle();
 
         // Switch to Vehicle Rental
         cubit.selectDemoScenario(
@@ -243,7 +286,10 @@ void main() {
     testWidgets(
       'renders neutral notice without availability indicator and disables booking when availability is unavailable (without MSG126), MSG75 when closed for booking, and MSG127 on system failure',
       (tester) async {
-        final cubit = CommercialServiceDetailCubit(isDemoMode: true);
+        final cubit = CommercialServiceDetailCubit(
+          getCommercialServiceDetail: _makeDemoUseCase(),
+          isDemoMode: true,
+        );
         await cubit.load('906');
 
         await tester.pumpWidget(_wrapWithCubit(cubit));
@@ -300,7 +346,10 @@ void main() {
     testWidgets(
       'renders cleanly across 360x640, 390x844, 412x915 viewports and 200% text scale without RenderFlex overflow',
       (tester) async {
-        final cubit = CommercialServiceDetailCubit(isDemoMode: true);
+        final cubit = CommercialServiceDetailCubit(
+          getCommercialServiceDetail: _makeDemoUseCase(),
+          isDemoMode: true,
+        );
         await cubit.load('903');
 
         for (final size in const [

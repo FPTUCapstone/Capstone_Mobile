@@ -1,43 +1,10 @@
-import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_booking_request.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_capability.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_category.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_list_item.dart';
-import 'package:trip_mate_mobile/features/commercial_services/resources/commercial_service_en.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/entities/demo_commercial_service_scenario.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_detail.dart';
 
-/// Deterministic Demo scenarios for UC-30 (`View Commercial Service`) in Debug
-/// Demo mode (`kDebugMode && ?demo=true`).
-enum DemoCommercialServiceScenario {
-  availableHotel(poiId: 901, label: 'Available Hotel'),
-  availableVehicleRental(poiId: 902, label: 'Available Vehicle Rental'),
-  availableRestaurant(poiId: 903, label: 'Available Restaurant'),
-  inactivePoi(poiId: 904, label: 'Inactive POI'),
-  unsupportedCategory(poiId: 905, label: 'Unsupported Category (No Book CTA)'),
-  availabilityUnavailable(
-    poiId: 906,
-    label: 'Availability Missing (Book Disabled)',
-  ),
-  closedForBooking(poiId: 907, label: 'Closed for Booking'),
-  systemFailure(poiId: 908, label: 'System Failure');
-
-  const DemoCommercialServiceScenario({
-    required this.poiId,
-    required this.label,
-  });
-
-  final int poiId;
-  final String label;
-
-  static DemoCommercialServiceScenario fromPoiId(int poiId) {
-    for (final scenario in DemoCommercialServiceScenario.values) {
-      if (scenario.poiId == poiId) return scenario;
-    }
-    return DemoCommercialServiceScenario.availableHotel;
-  }
-}
-
-/// Isolated, in-memory Demo store for UC-30 and UC-31 (`kDebugMode && ?demo=true`
-/// only).
+/// Isolated, in-memory Demo store for UC-30 (`kDebugMode && ?demo=true` only).
 ///
 /// Never used in Production, never persists to disk or `shared_preferences`,
 /// and provides `reset()` for deterministic unit/widget test isolation.
@@ -47,24 +14,15 @@ final class DemoCommercialServiceStore {
   static final DemoCommercialServiceStore instance =
       DemoCommercialServiceStore._();
 
-  static const String defaultIntendedDateIso = '2026-10-15';
-  static const String unavailableDemoDateIso = '2026-10-20';
-  static const String unavailableDemoTimeSlot = '23:30';
-
-  final Map<String, CommercialServiceBookingRequest> _requestsById = {};
-  int _nextSequence = 1001;
+  static const String defaultIntendedDateIso =
+      DemoCommercialServiceScenario.defaultIntendedDateIso;
+  static const String unavailableDemoDateIso =
+      DemoCommercialServiceScenario.unavailableDemoDateIso;
+  static const String unavailableDemoTimeSlot =
+      DemoCommercialServiceScenario.unavailableDemoTimeSlot;
 
   /// Resets all in-memory Demo state for test isolation.
-  void reset() {
-    _requestsById.clear();
-    _nextSequence = 1001;
-  }
-
-  List<CommercialServiceBookingRequest> get allRequests =>
-      List.unmodifiable(_requestsById.values);
-
-  CommercialServiceBookingRequest? getRequest(String requestId) =>
-      _requestsById[requestId];
+  void reset() {}
 
   /// Returns catalog items for Screen #71 (`Commercial Services Search & List`)
   /// in Demo mode (`kDebugMode && ?demo=true`).
@@ -186,134 +144,6 @@ final class DemoCommercialServiceStore {
         nowUtc: nowUtc,
       ),
     };
-  }
-
-  /// Checks whether `(requestedDateIso, requestedTime)` is available in Demo
-  /// mode (`BR-88`).
-  bool isDateTimeAvailable({
-    required String requestedDateIso,
-    required String requestedTime,
-    required CommercialAvailabilityInfo? availability,
-  }) {
-    if (requestedDateIso.trim() == unavailableDemoDateIso) {
-      return false;
-    }
-    if (requestedTime.trim() == unavailableDemoTimeSlot) {
-      return false;
-    }
-    if (availability == null ||
-        !availability.isRetrieved ||
-        !availability.isAvailableForDate) {
-      return false;
-    }
-    if (availability.availableTimeSlots.isNotEmpty &&
-        !availability.availableTimeSlots.contains(requestedTime.trim())) {
-      return false;
-    }
-    return true;
-  }
-
-  /// Creates a new [CommercialServiceBookingRequest] in Demo mode with status
-  /// `Pending Confirmation` (`BR-89`).
-  CommercialServiceBookingRequest createPendingRequest({
-    required int poiId,
-    required String serviceName,
-    required CommercialServiceCategory category,
-    required String? address,
-    required CommercialServiceOption selectedOption,
-    required String requestedDateIso,
-    required String requestedTime,
-    required int quantity,
-    required String? specialRequest,
-    required CommercialBookingContactInfo contactInfo,
-    DateTime? nowUtc,
-  }) {
-    final timestamp = nowUtc ?? DateTime.now().toUtc();
-    final requestId = 'CSB-DEMO-${_nextSequence++}';
-    // BR-63: Estimated amount is computed by TripMate from the service price.
-    final estimatedAmountVnd = selectedOption.unitPriceVnd * quantity;
-    final request = CommercialServiceBookingRequest(
-      requestId: requestId,
-      poiId: poiId,
-      serviceName: serviceName,
-      category: category,
-      address: address,
-      selectedOption: selectedOption,
-      requestedDateIso: requestedDateIso,
-      requestedTime: requestedTime,
-      quantity: quantity,
-      specialRequest: (specialRequest == null || specialRequest.trim().isEmpty)
-          ? null
-          : specialRequest.trim(),
-      contactInfo: contactInfo,
-      estimatedAmountVnd: estimatedAmountVnd,
-      // BR-89: Always created with Pending Confirmation.
-      status: CommercialBookingStatus.pendingConfirmation,
-      createdAtUtc: timestamp,
-      updatedAtUtc: timestamp,
-    );
-    _requestsById[requestId] = request;
-    return request;
-  }
-
-  /// Simulates the commercial service provider confirming a pending request
-  /// (`BR-89` -> `Confirmed`, `MSG72`, `PC-03`).
-  CommercialServiceBookingRequest? confirmRequest(
-    String requestId, {
-    DateTime? nowUtc,
-  }) {
-    final current = _requestsById[requestId];
-    if (current == null ||
-        current.status != CommercialBookingStatus.pendingConfirmation) {
-      return current;
-    }
-    final updated = current.copyWith(
-      status: CommercialBookingStatus.confirmed,
-      updatedAtUtc: nowUtc ?? DateTime.now().toUtc(),
-      associatedItinerarySummary:
-          'Reflected in Associated Itinerary: ${current.serviceName} (${current.selectedOption.name} × ${current.quantity}) on ${current.requestedDateIso} at ${current.requestedTime}.',
-    );
-    _requestsById[requestId] = updated;
-    return updated;
-  }
-
-  /// Simulates the commercial service provider rejecting a pending request
-  /// (`BR-89` -> `Rejected`, `MSG73`).
-  CommercialServiceBookingRequest? rejectRequest(
-    String requestId, {
-    DateTime? nowUtc,
-  }) {
-    final current = _requestsById[requestId];
-    if (current == null ||
-        current.status != CommercialBookingStatus.pendingConfirmation) {
-      return current;
-    }
-    final updated = current.copyWith(
-      status: CommercialBookingStatus.rejected,
-      updatedAtUtc: nowUtc ?? DateTime.now().toUtc(),
-    );
-    _requestsById[requestId] = updated;
-    return updated;
-  }
-
-  /// Simulates the Traveler cancelling a `Pending Confirmation` request
-  /// (`Alternative Flow` -> `Cancelled`, `MSG74`, `BR-76`).
-  CommercialServiceBookingRequest? cancelPendingRequest(
-    String requestId, {
-    DateTime? nowUtc,
-  }) {
-    final current = _requestsById[requestId];
-    if (current == null ||
-        current.status != CommercialBookingStatus.pendingConfirmation) {
-      return current;
-    }
-    final updated = current.copyWith(
-      status: CommercialBookingStatus.cancelled,
-      updatedAtUtc: nowUtc ?? DateTime.now().toUtc(),
-      refundChannelNotice: CommercialServiceEn.booking.cancelSuccessNotice,
-    );
-    _requestsById[requestId] = updated;
-    return updated;
   }
 
   static List<PoiOpeningHour> _standardOpeningHours({

@@ -23,17 +23,14 @@ import 'package:trip_mate_mobile/features/auth/presentation/pages/splash_page.da
 import 'package:trip_mate_mobile/features/auth/presentation/pages/traveler_registration_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/verify_email_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/services/operator_document_picker.dart';
-import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_capability.dart';
-import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_service_booking_cubit.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/usecases/get_commercial_service_detail.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/usecases/search_commercial_services.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_service_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_services_search_cubit.dart';
-import 'package:trip_mate_mobile/features/commercial_services/presentation/pages/commercial_service_booking_page.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/pages/commercial_service_detail_page.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/pages/commercial_services_search_page.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/cubit/create_coupon_cubit.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/pages/create_coupon_page.dart';
-import 'package:trip_mate_mobile/features/poi/domain/usecases/get_poi_detail_use_case.dart';
-import 'package:trip_mate_mobile/features/poi/domain/usecases/get_pois_use_case.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
@@ -414,13 +411,14 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
               kDebugMode && state.uri.queryParameters['demo'] == 'true';
           final search = state.uri.queryParameters['search'];
           final category = state.uri.queryParameters['category'];
-          final getPois = serviceLocator.isRegistered<GetPoisUseCase>()
-              ? serviceLocator<GetPoisUseCase>()
+          final searchCommercialServices =
+              serviceLocator.isRegistered<SearchCommercialServices>()
+              ? serviceLocator<SearchCommercialServices>()
               : null;
           return BlocProvider(
             create: (_) =>
                 CommercialServicesSearchCubit(
-                  getPois: getPois,
+                  searchCommercialServices: searchCommercialServices,
                   isDemoMode: isDemo,
                 )..loadInitial(
                   initialSearch: search,
@@ -438,48 +436,16 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
           final isDemo =
               kDebugMode && state.uri.queryParameters['demo'] == 'true';
           final intendedDate = state.uri.queryParameters['intendedDate'];
-          final getPoiDetail =
-              serviceLocator.isRegistered<GetPoiDetailUseCase>()
-              ? serviceLocator<GetPoiDetailUseCase>()
+          final getCommercialServiceDetail =
+              serviceLocator.isRegistered<GetCommercialServiceDetail>()
+              ? serviceLocator<GetCommercialServiceDetail>()
               : null;
           return BlocProvider(
             create: (_) => CommercialServiceDetailCubit(
-              getPoiDetail: getPoiDetail,
+              getCommercialServiceDetail: getCommercialServiceDetail,
               isDemoMode: isDemo,
             )..load(rawPoiId, intendedDateIso: intendedDate),
             child: const CommercialServiceDetailPage(),
-          );
-        },
-      ),
-      GoRoute(
-        path: AppRoutes.commercialServiceBookingPattern,
-        name: AppRouteNames.commercialServiceBooking,
-        builder: (_, state) {
-          final poiId = int.tryParse(state.pathParameters['poiId'] ?? '') ?? 0;
-          final isDemo =
-              kDebugMode && state.uri.queryParameters['demo'] == 'true';
-          final optionId = state.uri.queryParameters['optionId'];
-          final intendedDate = state.uri.queryParameters['intendedDate'];
-          final initialComposite =
-              state.extra is CommercialServiceDetailComposite
-              ? state.extra as CommercialServiceDetailComposite
-              : null;
-          final getPoiDetail =
-              serviceLocator.isRegistered<GetPoiDetailUseCase>()
-              ? serviceLocator<GetPoiDetailUseCase>()
-              : null;
-          return BlocProvider(
-            create: (_) =>
-                CommercialServiceBookingCubit(
-                  getPoiDetail: getPoiDetail,
-                  isDemoMode: isDemo,
-                )..load(
-                  poiId: poiId,
-                  initialComposite: initialComposite,
-                  initialOptionId: optionId,
-                  initialDateIso: intendedDate,
-                ),
-            child: const CommercialServiceBookingPage(),
           );
         },
       ),

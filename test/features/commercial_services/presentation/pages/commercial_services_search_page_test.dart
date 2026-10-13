@@ -4,66 +4,57 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
+import 'package:trip_mate_mobile/features/commercial_services/data/datasources/demo_commercial_services_data_source.dart';
+import 'package:trip_mate_mobile/features/commercial_services/data/datasources/pending_commercial_services_data_source.dart';
+import 'package:trip_mate_mobile/features/commercial_services/data/repositories/commercial_services_repository_impl.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_category.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_detail_result.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_messages.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_services_search_result.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/entities/demo_commercial_service_scenario.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/repositories/commercial_services_repository.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/usecases/search_commercial_services.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_services_search_cubit.dart';
-import 'package:trip_mate_mobile/features/commercial_services/presentation/demo/demo_commercial_service_store.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/pages/commercial_services_search_page.dart';
 import 'package:trip_mate_mobile/features/commercial_services/resources/commercial_service_en.dart';
-import 'package:trip_mate_mobile/features/poi/domain/entities/paged_poi_result.dart';
-import 'package:trip_mate_mobile/features/poi/domain/entities/poi_detail.dart';
-import 'package:trip_mate_mobile/features/poi/domain/entities/poi_query.dart';
-import 'package:trip_mate_mobile/features/poi/domain/entities/poi_summary.dart';
-import 'package:trip_mate_mobile/features/poi/domain/repositories/poi_repository.dart';
-import 'package:trip_mate_mobile/features/poi/domain/usecases/get_pois_use_case.dart';
 
-class _FakePoiRepository implements PoiRepository {
-  _FakePoiRepository({this.onGetPois});
+class _FailingCommercialServicesRepository
+    implements CommercialServicesRepository {
+  _FailingCommercialServicesRepository({this.failure = true});
 
-  Future<PagedPoiResult> Function(PoiQuery query)? onGetPois;
+  bool failure;
 
   @override
-  Future<PagedPoiResult> getPois(PoiQuery query) async {
-    if (onGetPois != null) {
-      return onGetPois!(query);
+  Future<CommercialServicesSearchResult> searchServices({
+    String? keyword,
+    CommercialServiceCategory? category,
+    String? dateIso,
+    int? maxPriceVnd,
+    int page = 1,
+    int pageSize = 20,
+    bool isDemoMode = false,
+  }) async {
+    if (failure) {
+      throw const ServerFailure('Backend error');
     }
-    return const PagedPoiResult(
-      page: 1,
-      pageSize: 20,
-      totalCount: 0,
-      totalPages: 0,
-      items: [],
-    );
+    return const CommercialServicesSearchPending();
   }
 
   @override
-  Future<PoiDetail> getPoiDetail(int id) {
-    throw UnimplementedError();
-  }
+  Future<CommercialServiceDetailResult> getServiceDetail({
+    required String rawPoiId,
+    String? intendedDateIso,
+    bool isDemoMode = false,
+    DemoCommercialServiceScenario? demoScenario,
+  }) => throw UnimplementedError();
 }
 
-PoiSummary _makePoiSummary({
-  required int id,
-  required String name,
-  required String categoryName,
-  int categoryId = 1,
-  String? address = '123 Bach Dang, Da Nang',
-  double? averageRating = 4.5,
-  int reviewCount = 20,
-}) {
-  return PoiSummary(
-    id: id,
-    name: name,
-    categoryId: categoryId,
-    categoryName: categoryName,
-    latitude: 16.0544,
-    longitude: 108.2022,
-    indoorOutdoor: 'Indoor',
-    averageVisitDurationMinutes: 60,
-    hasShelter: true,
-    reviewCount: reviewCount,
-    isOpenNow: true,
-    address: address,
-    averageRating: averageRating,
+SearchCommercialServices _createUseCase() {
+  return SearchCommercialServices(
+    CommercialServicesRepositoryImpl(
+      pendingDataSource: const PendingCommercialServicesDataSource(),
+      demoDataSource: const DemoCommercialServicesDataSource(),
+    ),
   );
 }
 
@@ -77,37 +68,12 @@ Widget _wrapWithCubit(CommercialServicesSearchCubit cubit) {
 }
 
 void main() {
-  setUp(() {
-    DemoCommercialServiceStore.instance.reset();
-  });
-
   group('CommercialServicesSearchPage - Screen #71 Production Truthfulness', () {
     testWidgets(
       'renders search input, category chips, production truthfulness banner, and truthful PENDING_BE_INTEGRATION empty state without exposing ordinary POIs',
       (tester) async {
-        final repo = _FakePoiRepository(
-          onGetPois: (query) async => PagedPoiResult(
-            page: 1,
-            pageSize: 20,
-            totalCount: 2,
-            totalPages: 1,
-            items: [
-              _makePoiSummary(
-                id: 10,
-                name: 'Han River Hotel',
-                categoryName: 'Hotel',
-              ),
-              _makePoiSummary(
-                id: 20,
-                name: 'Banh Mi Ba Lan',
-                categoryName: 'Restaurant',
-              ),
-            ],
-          ),
-        );
-
         final cubit = CommercialServicesSearchCubit(
-          getPois: GetPoisUseCase(repo),
+          searchCommercialServices: _createUseCase(),
           isDemoMode: false,
         );
         addTearDown(cubit.close);
@@ -165,41 +131,15 @@ void main() {
           findsNothing,
         );
         expect(find.text('Han River Hotel'), findsNothing);
-        expect(
-          find.byKey(const Key('commercial_service_card_20')),
-          findsNothing,
-        );
-        expect(find.text('Banh Mi Ba Lan'), findsNothing);
       },
     );
 
     testWidgets(
       'renders failure state with retry button on error, and recovers upon retry',
       (tester) async {
-        var failure = true;
-        final repo = _FakePoiRepository(
-          onGetPois: (query) async {
-            if (failure) {
-              throw const ServerFailure('Backend error');
-            }
-            return PagedPoiResult(
-              page: 1,
-              pageSize: 20,
-              totalCount: 1,
-              totalPages: 1,
-              items: [
-                _makePoiSummary(
-                  id: 10,
-                  name: 'Han River Hotel',
-                  categoryName: 'Hotel',
-                ),
-              ],
-            );
-          },
-        );
-
+        final repo = _FailingCommercialServicesRepository(failure: true);
         final cubit = CommercialServicesSearchCubit(
-          getPois: GetPoisUseCase(repo),
+          searchCommercialServices: SearchCommercialServices(repo),
           isDemoMode: false,
         );
         addTearDown(cubit.close);
@@ -214,7 +154,7 @@ void main() {
         );
         expect(find.text(CommercialServiceMessages.msg127), findsOneWidget);
 
-        failure = false;
+        repo.failure = false;
         await tester.tap(
           find.byKey(const Key('commercial_search_retry_button')),
         );
@@ -234,9 +174,8 @@ void main() {
     testWidgets(
       'renders empty state when no demo items match and reset button clears filters',
       (tester) async {
-        final repo = _FakePoiRepository();
         final cubit = CommercialServicesSearchCubit(
-          getPois: GetPoisUseCase(repo),
+          searchCommercialServices: _createUseCase(),
           isDemoMode: true,
         );
         addTearDown(cubit.close);
@@ -270,9 +209,8 @@ void main() {
     testWidgets(
       'Demo Mode renders demo banner, deterministic items with VND price, and interactive category selection',
       (tester) async {
-        final repo = _FakePoiRepository();
         final cubit = CommercialServicesSearchCubit(
-          getPois: GetPoisUseCase(repo),
+          searchCommercialServices: _createUseCase(),
           isDemoMode: true,
         );
         addTearDown(cubit.close);
@@ -317,9 +255,8 @@ void main() {
     testWidgets(
       'Tapping an item card navigates to Screen #72 detail route with intendedDate and demo flags',
       (tester) async {
-        final repo = _FakePoiRepository();
         final cubit = CommercialServicesSearchCubit(
-          getPois: GetPoisUseCase(repo),
+          searchCommercialServices: _createUseCase(),
           isDemoMode: true,
         );
         addTearDown(cubit.close);

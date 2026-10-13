@@ -1,15 +1,18 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
+import 'package:trip_mate_mobile/features/commercial_services/data/datasources/demo_commercial_services_data_source.dart';
+import 'package:trip_mate_mobile/features/commercial_services/data/datasources/pending_commercial_services_data_source.dart';
+import 'package:trip_mate_mobile/features/commercial_services/data/repositories/commercial_services_repository_impl.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_category.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_messages.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/entities/demo_commercial_service_scenario.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/usecases/get_commercial_service_detail.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_service_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_service_detail_state.dart';
-import 'package:trip_mate_mobile/features/commercial_services/presentation/demo/demo_commercial_service_store.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/paged_poi_result.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_detail.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_query.dart';
 import 'package:trip_mate_mobile/features/poi/domain/repositories/poi_repository.dart';
-import 'package:trip_mate_mobile/features/poi/domain/usecases/get_poi_detail_use_case.dart';
 
 class _FakePoiRepository implements PoiRepository {
   _FakePoiRepository({this.onGetPoiDetail});
@@ -69,11 +72,27 @@ PoiDetail _samplePoi({
   );
 }
 
-void main() {
-  setUp(() {
-    DemoCommercialServiceStore.instance.reset();
-  });
+GetCommercialServiceDetail _makeProductionUseCase(PoiRepository poiRepo) {
+  return GetCommercialServiceDetail(
+    CommercialServicesRepositoryImpl(
+      pendingDataSource: PendingCommercialServicesDataSource(
+        poiRepository: poiRepo,
+      ),
+      demoDataSource: const DemoCommercialServicesDataSource(),
+    ),
+  );
+}
 
+GetCommercialServiceDetail _makeDemoUseCase() {
+  return GetCommercialServiceDetail(
+    CommercialServicesRepositoryImpl(
+      pendingDataSource: const PendingCommercialServicesDataSource(),
+      demoDataSource: const DemoCommercialServicesDataSource(),
+    ),
+  );
+}
+
+void main() {
   group('CommercialServiceCategory (BR-87)', () {
     test('recognizes only Hotel, Vehicle Rental, and Restaurant', () {
       expect(
@@ -103,13 +122,13 @@ void main() {
 
   group('CommercialServiceDetailCubit - Production mode', () {
     test(
-      'loads active commercial POI from real GetPoiDetailUseCase without fabricating options or availability (BR-88)',
+      'loads active commercial POI from GetCommercialServiceDetail without fabricating options or availability (BR-88)',
       () async {
         final repo = _FakePoiRepository(
           onGetPoiDetail: (id) async => _samplePoi(id: id),
         );
         final cubit = CommercialServiceDetailCubit(
-          getPoiDetail: GetPoiDetailUseCase(repo),
+          getCommercialServiceDetail: _makeProductionUseCase(repo),
           isDemoMode: false,
         );
 
@@ -134,7 +153,7 @@ void main() {
               _samplePoi(id: id, categoryName: 'Museum'),
         );
         final cubit = CommercialServiceDetailCubit(
-          getPoiDetail: GetPoiDetailUseCase(repo),
+          getCommercialServiceDetail: _makeProductionUseCase(repo),
           isDemoMode: false,
         );
 
@@ -153,7 +172,7 @@ void main() {
           onGetPoiDetail: (id) async => _samplePoi(id: id, status: 'Inactive'),
         );
         final cubit = CommercialServiceDetailCubit(
-          getPoiDetail: GetPoiDetailUseCase(repo),
+          getCommercialServiceDetail: _makeProductionUseCase(repo),
           isDemoMode: false,
         );
 
@@ -175,7 +194,7 @@ void main() {
               throw const NotFoundFailure('POI not found.'),
         );
         final cubit = CommercialServiceDetailCubit(
-          getPoiDetail: GetPoiDetailUseCase(repo),
+          getCommercialServiceDetail: _makeProductionUseCase(repo),
           isDemoMode: false,
         );
 
@@ -195,11 +214,11 @@ void main() {
             throw const NetworkFailure('Connection error.'),
       );
       final cubit = CommercialServiceDetailCubit(
-        getPoiDetail: GetPoiDetailUseCase(repo),
+        getCommercialServiceDetail: _makeProductionUseCase(repo),
         isDemoMode: false,
       );
 
-      await cubit.load('10');
+      await cubit.load('500');
 
       expect(cubit.state.status, CommercialServiceDetailStatus.failure);
       expect(cubit.state.errorMessage, CommercialServiceMessages.msg127);
@@ -207,82 +226,89 @@ void main() {
   });
 
   group('CommercialServiceDetailCubit - Demo mode', () {
+    test('loads available Hotel scenario deterministically', () async {
+      final cubit = CommercialServiceDetailCubit(
+        getCommercialServiceDetail: _makeDemoUseCase(),
+        isDemoMode: true,
+      );
+
+      await cubit.load('901');
+
+      expect(cubit.state.status, CommercialServiceDetailStatus.loaded);
+      final composite = cubit.state.composite!;
+      expect(composite.poi.name, 'Sala Danang Beach Hotel (Demo)');
+      expect(composite.commercialCategory, CommercialServiceCategory.hotel);
+      expect(composite.isCommercialDataBackedByServer, isTrue);
+      expect(composite.options, isNotEmpty);
+      expect(composite.availability?.isAvailableForDate, isTrue);
+      expect(composite.canBookService, isTrue);
+    });
+
+    test('switches scenarios in demo mode via selectDemoScenario', () async {
+      final cubit = CommercialServiceDetailCubit(
+        getCommercialServiceDetail: _makeDemoUseCase(),
+        isDemoMode: true,
+      );
+
+      await cubit.load('901');
+      expect(cubit.state.status, CommercialServiceDetailStatus.loaded);
+
+      cubit.selectDemoScenario(
+        DemoCommercialServiceScenario.availableVehicleRental,
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.status, CommercialServiceDetailStatus.loaded);
+      expect(
+        cubit.state.composite!.commercialCategory,
+        CommercialServiceCategory.vehicleRental,
+      );
+
+      cubit.selectDemoScenario(
+        DemoCommercialServiceScenario.availableRestaurant,
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.status, CommercialServiceDetailStatus.loaded);
+      expect(
+        cubit.state.composite!.commercialCategory,
+        CommercialServiceCategory.restaurant,
+      );
+
+      cubit.selectDemoScenario(DemoCommercialServiceScenario.closedForBooking);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.status, CommercialServiceDetailStatus.loaded);
+      expect(cubit.state.noticeMessage, CommercialServiceMessages.msg75);
+
+      cubit.selectDemoScenario(DemoCommercialServiceScenario.systemFailure);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.status, CommercialServiceDetailStatus.failure);
+      expect(cubit.state.errorMessage, CommercialServiceMessages.msg127);
+    });
+
     test(
-      'loads Hotel, Vehicle Rental, and Restaurant scenarios with options and verified availability',
+      're-evaluates availability upon intended date change (BR-55)',
       () async {
-        final cubit = CommercialServiceDetailCubit(isDemoMode: true);
+        final cubit = CommercialServiceDetailCubit(
+          getCommercialServiceDetail: _makeDemoUseCase(),
+          isDemoMode: true,
+        );
 
-        await cubit.load('901');
-        expect(cubit.state.status, CommercialServiceDetailStatus.loaded);
+        await cubit.load('901', intendedDateIso: '2026-10-15');
+        expect(cubit.state.composite!.availability?.isAvailableForDate, isTrue);
+
+        // unavailable demo date
+        cubit.updateIntendedDate(
+          DemoCommercialServiceScenario.unavailableDemoDateIso,
+        );
+        await Future<void>.delayed(Duration.zero);
+
         expect(
-          cubit.state.composite!.commercialCategory,
-          CommercialServiceCategory.hotel,
+          cubit.state.composite!.availability?.isAvailableForDate,
+          isFalse,
         );
-        expect(cubit.state.composite!.options, isNotEmpty);
-        expect(cubit.state.composite!.canBookService, isTrue);
-
-        cubit.selectDemoScenario(
-          DemoCommercialServiceScenario.availableVehicleRental,
-        );
-        expect(
-          cubit.state.composite!.commercialCategory,
-          CommercialServiceCategory.vehicleRental,
-        );
-        expect(cubit.state.composite!.options, isNotEmpty);
-        expect(cubit.state.composite!.canBookService, isTrue);
-
-        cubit.selectDemoScenario(
-          DemoCommercialServiceScenario.availableRestaurant,
-        );
-        expect(
-          cubit.state.composite!.commercialCategory,
-          CommercialServiceCategory.restaurant,
-        );
-        expect(cubit.state.composite!.restaurantInfo, isNotNull);
-        expect(
-          cubit.state.composite!.restaurantInfo!.menuHighlights,
-          isNotEmpty,
-        );
-        expect(cubit.state.composite!.canBookService, isTrue);
-      },
-    );
-
-    test(
-      'handles MSG34, non-commercial POI, missing availability without MSG126, MSG75, and MSG127 demo scenarios',
-      () {
-        final cubit = CommercialServiceDetailCubit(isDemoMode: true);
-
-        cubit.selectDemoScenario(DemoCommercialServiceScenario.inactivePoi);
-        expect(
-          cubit.state.status,
-          CommercialServiceDetailStatus.inactiveOrNotFound,
-        );
-        expect(cubit.state.errorMessage, CommercialServiceMessages.msg34);
-
-        cubit.selectDemoScenario(
-          DemoCommercialServiceScenario.unsupportedCategory,
-        );
-        expect(cubit.state.status, CommercialServiceDetailStatus.loaded);
-        expect(cubit.state.composite!.isCommercialPoi, isFalse);
-        expect(cubit.state.composite!.canBookService, isFalse);
-
-        cubit.selectDemoScenario(
-          DemoCommercialServiceScenario.availabilityUnavailable,
-        );
-        expect(cubit.state.status, CommercialServiceDetailStatus.loaded);
-        expect(cubit.state.composite!.availability, isNull);
-        expect(cubit.state.composite!.canBookService, isFalse);
-
-        cubit.selectDemoScenario(
-          DemoCommercialServiceScenario.closedForBooking,
-        );
-        expect(cubit.state.status, CommercialServiceDetailStatus.loaded);
-        expect(cubit.state.noticeMessage, CommercialServiceMessages.msg75);
-        expect(cubit.state.composite!.canBookService, isFalse);
-
-        cubit.selectDemoScenario(DemoCommercialServiceScenario.systemFailure);
-        expect(cubit.state.status, CommercialServiceDetailStatus.failure);
-        expect(cubit.state.errorMessage, CommercialServiceMessages.msg127);
       },
     );
   });

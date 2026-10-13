@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_capability.dart';
-import 'package:trip_mate_mobile/features/commercial_services/presentation/demo/demo_commercial_service_store.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/entities/demo_commercial_service_scenario.dart';
 
 enum CommercialServiceDetailStatus {
   initial,
@@ -14,7 +14,7 @@ final class CommercialServiceDetailState extends Equatable {
   const CommercialServiceDetailState({
     this.status = CommercialServiceDetailStatus.initial,
     this.rawPoiId = '',
-    this.intendedDateIso = DemoCommercialServiceStore.defaultIntendedDateIso,
+    this.intendedDateIso = DemoCommercialServiceScenario.defaultIntendedDateIso,
     this.isDemoMode = false,
     this.demoScenario = DemoCommercialServiceScenario.availableHotel,
     this.composite,

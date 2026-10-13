@@ -131,6 +131,10 @@ final class _DetailStrings {
   final String locationMapProjection = 'Location Map Projection';
   final String menuHighlights = 'Menu Highlights:';
   final String closed = 'Closed';
+  final String bookingHandoffTitle = 'Commercial Service Booking';
+  final String bookingHandoffNotice =
+      'Commercial Service Booking (UC-31) is pending backend service integration. Commercial booking transactions are not supported on this build.';
+  final String dialogDismiss = 'OK';
 
   List<String> get daysOfWeek => const [
     'Sunday',

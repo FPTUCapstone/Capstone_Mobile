@@ -6,9 +6,9 @@ import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_capability.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_category.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/entities/commercial_service_messages.dart';
+import 'package:trip_mate_mobile/features/commercial_services/domain/entities/demo_commercial_service_scenario.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_service_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/cubit/commercial_service_detail_state.dart';
-import 'package:trip_mate_mobile/features/commercial_services/presentation/demo/demo_commercial_service_store.dart';
 import 'package:trip_mate_mobile/features/commercial_services/resources/commercial_service_en.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_detail.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_summary.dart';
@@ -387,15 +387,7 @@ class _CommercialServiceLoadedBody extends StatelessWidget {
                       child: FilledButton.icon(
                         key: const Key('commercial_service_book_button'),
                         onPressed: composite.canBookService
-                            ? () => context.push(
-                                AppRoutes.commercialServiceBooking(
-                                  poi.id,
-                                  optionId: state.selectedOptionId,
-                                  intendedDate: state.intendedDateIso,
-                                  demo: state.isDemoMode,
-                                ),
-                                extra: composite,
-                              )
+                            ? () => _showBookingPendingDialog(context)
                             : null,
                         icon: const Icon(Icons.event_available_outlined),
                         label: Text(CommercialServiceEn.detail.bookService),
@@ -451,6 +443,24 @@ class _CommercialServiceLoadedBody extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       builder: (sheetContext) => _CommercialPoiMapSheet(poi: summary),
+    );
+  }
+
+  static void _showBookingPendingDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: const Key('commercial_service_booking_handoff_dialog'),
+        title: Text(CommercialServiceEn.detail.bookingHandoffTitle),
+        content: Text(CommercialServiceEn.detail.bookingHandoffNotice),
+        actions: [
+          TextButton(
+            key: const Key('commercial_service_booking_handoff_ok_button'),
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(CommercialServiceEn.detail.dialogDismiss),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -949,14 +959,14 @@ class _DemoScenarioBanner extends StatelessWidget {
                 key: const Key('demo_date_available_chip'),
                 label: Text(CommercialServiceEn.demo.presetDateAvailable),
                 onPressed: () => onSelectDate(
-                  DemoCommercialServiceStore.defaultIntendedDateIso,
+                  DemoCommercialServiceScenario.defaultIntendedDateIso,
                 ),
               ),
               ActionChip(
                 key: const Key('demo_date_unavailable_chip'),
                 label: Text(CommercialServiceEn.demo.presetDateUnavailable),
                 onPressed: () => onSelectDate(
-                  DemoCommercialServiceStore.unavailableDemoDateIso,
+                  DemoCommercialServiceScenario.unavailableDemoDateIso,
                 ),
               ),
             ],
@@ -1225,7 +1235,7 @@ class _CommercialStatusMessagePage extends StatelessWidget {
                     _DemoScenarioBanner(
                       activeScenario: demoScenario,
                       intendedDateIso:
-                          DemoCommercialServiceStore.defaultIntendedDateIso,
+                          DemoCommercialServiceScenario.defaultIntendedDateIso,
                       onSelectScenario: onSelectDemoScenario,
                       onSelectDate: (_) {},
                     ),
