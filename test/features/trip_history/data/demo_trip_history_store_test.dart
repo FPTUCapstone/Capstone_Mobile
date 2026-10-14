@@ -492,5 +492,100 @@ void main() {
         expect(utcTrips.items.first.id, equals('trip-tour-003'));
       },
     );
+
+    test(
+      'P3: submitReview rejects photo count exceeding maximum (5) with validationPhotoMaxCount',
+      () {
+        const sixPhotos = [
+          TripReviewPhotoAttachment(name: 'p1.jpg', sizeBytes: 1000),
+          TripReviewPhotoAttachment(name: 'p2.jpg', sizeBytes: 1000),
+          TripReviewPhotoAttachment(name: 'p3.jpg', sizeBytes: 1000),
+          TripReviewPhotoAttachment(name: 'p4.jpg', sizeBytes: 1000),
+          TripReviewPhotoAttachment(name: 'p5.jpg', sizeBytes: 1000),
+          TripReviewPhotoAttachment(name: 'p6.jpg', sizeBytes: 1000),
+        ];
+
+        expect(
+          () => store.submitReview(
+            const TripReviewSubmission(
+              tripId: 'trip-tour-003',
+              bookingCode: 'BK-TOUR-003',
+              travelerId: 1,
+              rating: 5,
+              title: 'Great trip with many photos',
+              content: 'Everything was awesome.',
+              photos: sixPhotos,
+            ),
+          ),
+          throwsA(
+            isA<ValidationFailure>().having(
+              (e) => e.message,
+              'message',
+              equals(TripHistoryStringsEn.validationPhotoMaxCount),
+            ),
+          ),
+        );
+      },
+    );
+
+    test('P3: submitReview allows up to 5 valid photos', () {
+      const fivePhotos = [
+        TripReviewPhotoAttachment(name: 'p1.jpg', sizeBytes: 1000),
+        TripReviewPhotoAttachment(name: 'p2.jpg', sizeBytes: 1000),
+        TripReviewPhotoAttachment(name: 'p3.jpg', sizeBytes: 1000),
+        TripReviewPhotoAttachment(name: 'p4.jpg', sizeBytes: 1000),
+        TripReviewPhotoAttachment(name: 'p5.jpg', sizeBytes: 1000),
+      ];
+
+      final review = store.submitReview(
+        const TripReviewSubmission(
+          tripId: 'trip-tour-003',
+          bookingCode: 'BK-TOUR-003',
+          travelerId: 1,
+          rating: 5,
+          title: 'Great trip with 5 photos',
+          content: 'Everything was awesome.',
+          photos: fivePhotos,
+        ),
+      );
+
+      expect(review.photoUrls.length, equals(5));
+    });
+
+    test(
+      'P3: updateReview rejects photo count exceeding maximum (5) with validationPhotoMaxCount',
+      () {
+        const sixPhotos = [
+          TripReviewPhotoAttachment(name: 'p1.jpg', sizeBytes: 1000),
+          TripReviewPhotoAttachment(name: 'p2.jpg', sizeBytes: 1000),
+          TripReviewPhotoAttachment(name: 'p3.jpg', sizeBytes: 1000),
+          TripReviewPhotoAttachment(name: 'p4.jpg', sizeBytes: 1000),
+          TripReviewPhotoAttachment(name: 'p5.jpg', sizeBytes: 1000),
+          TripReviewPhotoAttachment(name: 'p6.jpg', sizeBytes: 1000),
+        ];
+
+        expect(
+          () => store.updateReview(
+            const TripReviewSubmission(
+              tripId: 'trip-tour-004',
+              bookingCode: 'BK-TOUR-004',
+              travelerId: 1,
+              rating: 5,
+              title: 'Updated title',
+              content: 'Updated content with too many photos.',
+              photos: sixPhotos,
+              existingReviewId: 'rev-004',
+            ),
+          ),
+          throwsA(
+            isA<ValidationFailure>().having(
+              (e) => e.message,
+              'message',
+              equals(TripHistoryStringsEn.validationPhotoMaxCount),
+            ),
+          ),
+        );
+      },
+    );
   });
 }

@@ -188,10 +188,24 @@ class _TripReviewPageState extends State<TripReviewPage> {
 
         final initial = widget.initialTrip;
         final validInitial =
-            (initial != null && initial.type != TripType.itinerary)
+            (initial != null &&
+                initial.type != TripType.itinerary &&
+                initial.status == TripStatus.completed &&
+                (!widget.isDemoMode ||
+                    widget.demoTravelerId == null ||
+                    initial.travelerId == widget.demoTravelerId))
             ? initial
             : null;
-        final trip = state.trip ?? validInitial;
+        final candidateTrip = state.trip ?? validInitial;
+        final trip =
+            (candidateTrip != null &&
+                candidateTrip.type != TripType.itinerary &&
+                candidateTrip.status == TripStatus.completed &&
+                (!widget.isDemoMode ||
+                    widget.demoTravelerId == null ||
+                    candidateTrip.travelerId == widget.demoTravelerId))
+            ? candidateTrip
+            : null;
 
         if (state.status == TripReviewStatus.loading && trip == null) {
           return Scaffold(

@@ -219,6 +219,77 @@ void main() {
       expect(find.text(TripHistoryStringsEn.actionSubmitReview), findsNothing);
     },
   );
+
+  testWidgets(
+    'P2: deep link to upcoming tour review displays noticeReviewNotCompleted and no form',
+    (tester) async {
+      await pumpReviewRoute(
+        tester,
+        pathTripId: 'trip-tour-001',
+        extra: null,
+        isDemo: true,
+      );
+
+      expect(
+        find.text(TripHistoryStringsEn.noticeReviewNotCompleted),
+        findsOneWidget,
+      );
+      expect(find.text(TripHistoryStringsEn.summarySectionTitle), findsNothing);
+      expect(find.text(TripHistoryStringsEn.actionSubmitReview), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'P2: navigation with cached upcoming tour extra displays noticeReviewNotCompleted and no form',
+    (tester) async {
+      final upcomingTrip = TripHistoryItem(
+        id: 'trip-tour-001',
+        bookingCode: 'BK-TOUR-001',
+        title: 'Ba Na Hills & Golden Bridge Discovery',
+        type: TripType.tour,
+        status: TripStatus.upcoming,
+        departureDate: DateTime(2026, 10, 20),
+        participantsCount: 2,
+        totalAmount: 2400000,
+        travelerId: 1,
+        hasEticket: true,
+        providerName: 'Da Nang Green Travel',
+      );
+
+      await pumpReviewRoute(
+        tester,
+        pathTripId: 'trip-tour-001',
+        extra: upcomingTrip,
+        isDemo: true,
+      );
+
+      expect(
+        find.text(TripHistoryStringsEn.noticeReviewNotCompleted),
+        findsOneWidget,
+      );
+      expect(find.text(TripHistoryStringsEn.summarySectionTitle), findsNothing);
+      expect(find.text(TripHistoryStringsEn.actionSubmitReview), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'P2: deep link to cancelled tour review displays noticeReviewNotCompleted and no form',
+    (tester) async {
+      await pumpReviewRoute(
+        tester,
+        pathTripId: 'trip-tour-007',
+        extra: null,
+        isDemo: true,
+      );
+
+      expect(
+        find.text(TripHistoryStringsEn.noticeReviewNotCompleted),
+        findsOneWidget,
+      );
+      expect(find.text(TripHistoryStringsEn.summarySectionTitle), findsNothing);
+      expect(find.text(TripHistoryStringsEn.actionSubmitReview), findsNothing);
+    },
+  );
 }
 
 final class _TravelerAuthRepository implements AuthRepository {
