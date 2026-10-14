@@ -337,5 +337,59 @@ void main() {
 
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets(
+      'P2: upcoming trip renders ErrorView with noticeReviewNotCompleted and no form',
+      (tester) async {
+        final upcomingTrip = demoStore.getTripById(
+          travelerId: 1,
+          tripId: 'trip-tour-001',
+        )!;
+
+        await tester.pumpWidget(buildTestWidget(upcomingTrip));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(TripHistoryStringsEn.noticeReviewNotCompleted),
+          findsOneWidget,
+        );
+        expect(
+          find.text(TripHistoryStringsEn.summarySectionTitle),
+          findsNothing,
+        );
+        expect(
+          find.text(TripHistoryStringsEn.actionSubmitReview),
+          findsNothing,
+        );
+        expect(find.byType(StarRatingSelector), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'P2: cancelled trip renders ErrorView with noticeReviewNotCompleted and no form',
+      (tester) async {
+        final cancelledTrip = demoStore.getTripById(
+          travelerId: 1,
+          tripId: 'trip-tour-007',
+        )!;
+
+        await tester.pumpWidget(buildTestWidget(cancelledTrip));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(TripHistoryStringsEn.noticeReviewNotCompleted),
+          findsOneWidget,
+        );
+        expect(
+          find.text(TripHistoryStringsEn.summarySectionTitle),
+          findsNothing,
+        );
+        expect(
+          find.text(TripHistoryStringsEn.actionSubmitReview),
+          findsNothing,
+        );
+        expect(find.byType(StarRatingSelector), findsNothing);
+      },
+    );
   });
 }

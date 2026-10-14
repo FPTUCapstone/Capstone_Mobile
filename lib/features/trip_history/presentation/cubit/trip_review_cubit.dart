@@ -160,10 +160,19 @@ final class TripReviewCubit extends Cubit<TripReviewState> {
     if (trip.status != TripStatus.completed) {
       emit(
         state.copyWith(
-          trip: () => trip,
+          trip: () => null,
           demoTravelerId: () => travelerId,
           generalError: () => TripHistoryStringsEn.noticeReviewNotCompleted,
           status: TripReviewStatus.failure,
+          title: '',
+          content: '',
+          rating: () => 0,
+          photos: const [],
+          isEdit: false,
+          isReadOnly: false,
+          existingReview: () => null,
+          readOnlyNotice: () => null,
+          editNotice: () => null,
         ),
       );
       return;
@@ -304,11 +313,31 @@ final class TripReviewCubit extends Cubit<TripReviewState> {
     }
 
     final trip = state.trip;
-    if (trip == null || trip.type == TripType.itinerary) {
+    if (trip == null) {
+      emit(
+        state.copyWith(
+          status: TripReviewStatus.failure,
+          generalError: () => TripHistoryStringsEn.tripInformationUnavailable,
+        ),
+      );
+      return;
+    }
+
+    if (trip.type == TripType.itinerary) {
       emit(
         state.copyWith(
           status: TripReviewStatus.failure,
           generalError: () => TripHistoryStringsEn.noticeSelfPlannedNoReview,
+        ),
+      );
+      return;
+    }
+
+    if (trip.status != TripStatus.completed) {
+      emit(
+        state.copyWith(
+          status: TripReviewStatus.failure,
+          generalError: () => TripHistoryStringsEn.noticeReviewNotCompleted,
         ),
       );
       return;

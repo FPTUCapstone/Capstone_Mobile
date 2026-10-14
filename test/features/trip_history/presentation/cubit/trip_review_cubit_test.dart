@@ -62,7 +62,7 @@ void main() {
     });
 
     test(
-      'BR-91 / MSG52: Non-completed trip emits noticeReviewNotCompleted',
+      'BR-91 / MSG52: Non-completed trip emits noticeReviewNotCompleted and clears trip to null',
       () {
         final upcomingTrip = TripHistoryItem(
           id: 'trip-001',
@@ -83,6 +83,33 @@ void main() {
           equals(TripHistoryStringsEn.noticeReviewNotCompleted),
         );
         expect(cubit.state.status, equals(TripReviewStatus.failure));
+        expect(cubit.state.trip, isNull);
+      },
+    );
+
+    test(
+      'P2: Cancelled trip emits noticeReviewNotCompleted and clears trip to null',
+      () {
+        final cancelledTrip = TripHistoryItem(
+          id: 'trip-002',
+          bookingCode: 'BK-002',
+          title: 'Cancelled trip',
+          type: TripType.tour,
+          status: TripStatus.cancelled,
+          departureDate: fixedNow.subtract(const Duration(days: 3)),
+          participantsCount: 2,
+          totalAmount: 1000000,
+          travelerId: 1,
+        );
+
+        cubit.initialize(trip: cancelledTrip, travelerId: 1);
+
+        expect(
+          cubit.state.generalError,
+          equals(TripHistoryStringsEn.noticeReviewNotCompleted),
+        );
+        expect(cubit.state.status, equals(TripReviewStatus.failure));
+        expect(cubit.state.trip, isNull);
       },
     );
 
@@ -455,7 +482,80 @@ void main() {
         expect(cubit.state.status, equals(TripReviewStatus.failure));
         expect(
           cubit.state.generalError,
-          equals(TripHistoryStringsEn.noticeSelfPlannedNoReview),
+          equals(TripHistoryStringsEn.tripInformationUnavailable),
+        );
+      },
+    );
+
+    test(
+      'P2: submit fails closed if trip is upcoming without calling repository',
+      () async {
+        final upcomingTrip = TripHistoryItem(
+          id: 'trip-001',
+          bookingCode: 'BK-001',
+          title: 'Upcoming trip',
+          type: TripType.tour,
+          status: TripStatus.upcoming,
+          departureDate: fixedNow.add(const Duration(days: 3)),
+          participantsCount: 2,
+          totalAmount: 1000000,
+          travelerId: 1,
+        );
+
+        // Simulate state with an upcoming trip and valid form input
+        cubit.emit(
+          cubit.state.copyWith(
+            trip: () => upcomingTrip,
+            demoTravelerId: () => 1,
+            rating: () => 5,
+            title: 'Premature review',
+            content: 'Great tour preview.',
+            status: TripReviewStatus.initial,
+          ),
+        );
+
+        await cubit.submit();
+
+        expect(cubit.state.status, equals(TripReviewStatus.failure));
+        expect(
+          cubit.state.generalError,
+          equals(TripHistoryStringsEn.noticeReviewNotCompleted),
+        );
+      },
+    );
+
+    test(
+      'P2: submit fails closed if trip is cancelled without calling repository',
+      () async {
+        final cancelledTrip = TripHistoryItem(
+          id: 'trip-002',
+          bookingCode: 'BK-002',
+          title: 'Cancelled trip',
+          type: TripType.tour,
+          status: TripStatus.cancelled,
+          departureDate: fixedNow.subtract(const Duration(days: 3)),
+          participantsCount: 2,
+          totalAmount: 1000000,
+          travelerId: 1,
+        );
+
+        cubit.emit(
+          cubit.state.copyWith(
+            trip: () => cancelledTrip,
+            demoTravelerId: () => 1,
+            rating: () => 5,
+            title: 'Cancelled review',
+            content: 'Trip was cancelled.',
+            status: TripReviewStatus.initial,
+          ),
+        );
+
+        await cubit.submit();
+
+        expect(cubit.state.status, equals(TripReviewStatus.failure));
+        expect(
+          cubit.state.generalError,
+          equals(TripHistoryStringsEn.noticeReviewNotCompleted),
         );
       },
     );

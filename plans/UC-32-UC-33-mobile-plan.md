@@ -2,7 +2,7 @@
 
 > **Goal:** Remediate reviewer findings for PR #33: decouple detail/review route from `state.extra`, remove unused `DioClient` dependency from repositories, and establish full test coverage for direct navigation and authorization.
 
-**Tech Stack:** Flutter, Dart, flutter_bloc, get_it, go_router.  
+**Tech Stack:** Flutter, Dart, flutter_bloc, get_it, go_router.
 **Spec Reference:** `specs/UC-32-UC-33-mobile-spec.md` (Screens #73 & #74, Section 3.7.1 View Trip History (UC-32) and Section 3.7.2 Submit Trip Review (UC-33) of `Report3_Software-Requirement-Specification-V2.docx`).
 
 ---

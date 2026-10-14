@@ -357,7 +357,13 @@ class DemoTripHistoryStore {
     // BR-94: Content policy screening (Demo simulation)
     _screenContentPolicy(submission.title, submission.content);
 
-    // Photos validation (type & size)
+    // Photos validation (count, type & size)
+    if (submission.photos.length > 5) {
+      throw const ValidationFailure(
+        TripHistoryStringsEn.validationPhotoMaxCount,
+      );
+    }
+
     for (final photo in submission.photos) {
       if (!photo.isValidType) {
         throw const ValidationFailure(
