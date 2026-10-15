@@ -114,11 +114,13 @@ errors after a failure.
 
 ### Backend result mapping
 
+**SRS_INTERNAL_CONFLICT — message codes:** see `Capstone_BE/specs/UC-07-change-password-spec.md` §5. The catalog/codebase code for password-policy/same-as-current is `MSG05` (not `MSG03`); confirm-mismatch is `MSG06` (not `MSG04`, client-side only).
+
 | Outcome | Mobile behavior |
 | --- | --- |
 | `200` success | Replace secure session, clear password fields, show success feedback, return to account/settings. |
 | `400` `MSG01` | Show required-field feedback. |
-| `400` `MSG03` | Show new-password policy/distinct-password feedback without echoing a secret. |
+| `400` `MSG05` | Show new-password policy/distinct-password feedback without echoing a secret. |
 | `400` `MSG17` | Attach safe feedback to Current Password: `Current password does not match our records.` |
 | `401` | Clear invalid session using the existing auth flow and redirect to sign-in. |
 | `403` local-password unavailable / unsupported role | Show safe access/unavailable feedback; do not create a local password. |
@@ -170,7 +172,7 @@ or provider details.
    sent or logged incorrectly.
 5. Local validation blocks empty, invalid, mismatched, and obviously equal
    password entries before submission.
-6. Backend `MSG17`, `MSG03`, `401`, `403`, and generic failures display safe
+6. Backend `MSG17`, `MSG05`, `401`, `403`, and generic failures display safe
    UX without disclosing technical details.
 7. On success, the replacement session is saved through secure storage and the
    user remains signed in.

@@ -106,7 +106,7 @@ Add data-source tests asserting:
 - no user ID, role, email, confirmation, or secrets in logs;
 - valid renewed-session DTO parsing;
 - malformed success DTO does not replace stored session;
-- mapping for `400`/`MSG03`, `400`/`MSG17`, `401`, `403`, `5xx`, and network
+- mapping for `400`/`MSG05`, `400`/`MSG17`, `401`, `403`, `5xx`, and network
   failure.
 
 ### Implement
