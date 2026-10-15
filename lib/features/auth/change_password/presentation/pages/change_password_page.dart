@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/utils/validators.dart';
 import 'package:trip_mate_mobile/features/auth/change_password/presentation/cubit/change_password_cubit.dart';
@@ -11,9 +12,9 @@ import 'package:trip_mate_mobile/shared/widgets/app_password_field.dart';
 
 /// UC-07: self-service change password for the authenticated Traveler or
 /// Tour Operator. Confirm New Password is presentation-only and never sent
-/// to the Backend. A successful change clears the form and shows a success
-/// banner; the caller remains on this device, signed in with the replaced
-/// session.
+/// to the Backend. A successful change clears the form and returns to the
+/// account/settings page this was pushed from (spec §3/§8); the caller
+/// remains on this device, signed in with the replaced session.
 class ChangePasswordPage extends StatefulWidget {
   const ChangePasswordPage({super.key});
 
@@ -47,6 +48,14 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
           _currentPasswordController.clear();
           _newPasswordController.clear();
           _confirmPasswordController.clear();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Password updated successfully.')),
+          );
+          // Returns to whichever account/settings page pushed this route
+          // (Traveler Settings or the Tour Operator Profile tab) — spec §3/§8.
+          if (context.canPop()) {
+            context.pop();
+          }
         }
       },
       builder: (context, state) {

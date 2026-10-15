@@ -4,6 +4,15 @@ import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/auth/change_password/domain/repositories/change_password_repository.dart';
 import 'package:trip_mate_mobile/features/auth/change_password/presentation/cubit/change_password_state.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/auth_session.dart';
+
+/// Internal marker for a partial local-storage replace: the Backend already
+/// committed the new password, but this device could not persist the full
+/// replacement session. Caught separately so the UI gets a distinct,
+/// actionable message instead of the generic fallback.
+final class _SessionReplaceFailedException implements Exception {
+  const _SessionReplaceFailedException();
+}
 
 /// UC-07: replaces the authenticated account's local password. On success,
 /// the replacement access/refresh tokens are persisted to secure storage
@@ -31,14 +40,7 @@ final class ChangePasswordCubit extends Cubit<ChangePasswordState> {
         currentPassword: currentPassword,
         newPassword: newPassword,
       );
-      await _secureStorage.write(
-        AppConstants.accessTokenKey,
-        session.accessToken,
-      );
-      await _secureStorage.write(
-        AppConstants.refreshTokenKey,
-        session.refreshToken,
-      );
+      await _replaceSessionTokensOrRollback(session);
       if (isClosed) return false;
       emit(const ChangePasswordState(status: ChangePasswordStatus.success));
       return true;
@@ -62,6 +64,17 @@ final class ChangePasswordCubit extends Cubit<ChangePasswordState> {
         ),
       );
       return false;
+    } on _SessionReplaceFailedException {
+      if (isClosed) return false;
+      emit(
+        const ChangePasswordState(
+          status: ChangePasswordStatus.failure,
+          errorMessage:
+              'Your password was changed, but we could not refresh your '
+              'session on this device. Please sign in again.',
+        ),
+      );
+      return false;
     } catch (_) {
       if (isClosed) return false;
       emit(
@@ -71,6 +84,55 @@ final class ChangePasswordCubit extends Cubit<ChangePasswordState> {
         ),
       );
       return false;
+    }
+  }
+
+  /// Replaces the access and refresh tokens as a single unit. If the second
+  /// write fails after the first succeeded, this restores both keys to their
+  /// prior values (best effort) rather than leaving a mismatched pair, then
+  /// throws [_SessionReplaceFailedException]. Note: the Backend has already
+  /// revoked every pre-change refresh token server-side, so the restored
+  /// pair is a consistent *local* snapshot, not necessarily one the Backend
+  /// will still accept — the user may still need to sign in again.
+  Future<void> _replaceSessionTokensOrRollback(AuthSession session) async {
+    final previousAccessToken = await _secureStorage.read(
+      AppConstants.accessTokenKey,
+    );
+    final previousRefreshToken = await _secureStorage.read(
+      AppConstants.refreshTokenKey,
+    );
+
+    try {
+      await _secureStorage.write(
+        AppConstants.accessTokenKey,
+        session.accessToken,
+      );
+      await _secureStorage.write(
+        AppConstants.refreshTokenKey,
+        session.refreshToken,
+      );
+    } catch (_) {
+      await _restoreBestEffort(
+        AppConstants.accessTokenKey,
+        previousAccessToken,
+      );
+      await _restoreBestEffort(
+        AppConstants.refreshTokenKey,
+        previousRefreshToken,
+      );
+      throw const _SessionReplaceFailedException();
+    }
+  }
+
+  Future<void> _restoreBestEffort(String key, String? value) async {
+    try {
+      if (value == null) {
+        await _secureStorage.delete(key);
+      } else {
+        await _secureStorage.write(key, value);
+      }
+    } catch (_) {
+      // Best effort only; the caller has already decided this is a failure.
     }
   }
 

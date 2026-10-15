@@ -129,6 +129,36 @@ void main() {
       },
     );
 
+    test('a refresh-token write failure rolls back the access token too, '
+        'instead of leaving a mismatched pair', () async {
+      final storage = _MemoryStorage()
+        ..values[AppConstants.accessTokenKey] = 'old-access'
+        ..values[AppConstants.refreshTokenKey] = 'old-refresh'
+        ..failingWriteKey = AppConstants.refreshTokenKey;
+      final repository = _FakeRepository(
+        session: const AuthSession(
+          userId: 1,
+          status: 'Active',
+          accessToken: 'new-access',
+          refreshToken: 'new-refresh',
+          role: 'Traveler',
+        ),
+      );
+      final cubit = ChangePasswordCubit(repository, storage);
+      addTearDown(cubit.close);
+
+      final result = await cubit.submit(
+        currentPassword: 'CurrentPass1!',
+        newPassword: 'NewPass2@aaaa',
+      );
+
+      expect(result, isFalse);
+      expect(cubit.state.status, ChangePasswordStatus.failure);
+      // Rolled back to the prior pair rather than new-access + old-refresh.
+      expect(storage.values[AppConstants.accessTokenKey], 'old-access');
+      expect(storage.values[AppConstants.refreshTokenKey], 'old-refresh');
+    });
+
     test('a duplicate submit while busy is ignored', () async {
       final repository = _SlowFakeRepository();
       final cubit = ChangePasswordCubit(repository, _MemoryStorage());
@@ -169,6 +199,7 @@ void main() {
 final class _MemoryStorage implements SecureStorageService {
   final values = <String, String>{};
   var writeCount = 0;
+  String? failingWriteKey;
 
   @override
   Future<void> delete(String key) async {
@@ -184,6 +215,9 @@ final class _MemoryStorage implements SecureStorageService {
   @override
   Future<void> write(String key, String value) async {
     writeCount++;
+    if (key == failingWriteKey) {
+      throw StateError('storage unavailable');
+    }
     values[key] = value;
   }
 }

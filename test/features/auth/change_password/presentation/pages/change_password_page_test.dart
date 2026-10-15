@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/auth/change_password/domain/repositories/change_password_repository.dart';
@@ -85,7 +88,8 @@ void main() {
   });
 
   testWidgets(
-    'a valid submit calls the repository exactly once and shows success',
+    'a valid submit calls the repository once, shows a success snackbar, '
+    'and returns to the page it was pushed from',
     (tester) async {
       final repository = _FakeRepository(
         session: const AuthSession(
@@ -98,7 +102,26 @@ void main() {
       );
       final cubit = ChangePasswordCubit(repository, _FakeSecureStorage());
       addTearDown(cubit.close);
-      await tester.pumpWidget(_testApp(cubit));
+      final router = GoRouter(
+        initialLocation: '/settings',
+        routes: [
+          GoRoute(
+            path: '/settings',
+            builder: (_, _) => const Scaffold(body: Text('Settings page')),
+          ),
+          GoRoute(
+            path: '/change-password',
+            builder: (_, _) => BlocProvider<ChangePasswordCubit>.value(
+              value: cubit,
+              child: const ChangePasswordPage(),
+            ),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      unawaited(router.push('/change-password'));
+      await tester.pumpAndSettle();
 
       await tester.enterText(
         find.widgetWithText(TextFormField, 'Current password'),
@@ -119,8 +142,9 @@ void main() {
       expect(repository.lastCurrentPassword, 'CurrentPass1!');
       expect(repository.lastNewPassword, 'NewPass2@aaaa');
       expect(find.text('Password updated successfully.'), findsOneWidget);
-      // Fields are cleared after success.
-      expect(find.widgetWithText(TextFormField, 'CurrentPass1!'), findsNothing);
+      // Popped back to the page that pushed this route.
+      expect(find.text('Settings page'), findsOneWidget);
+      expect(find.byType(ChangePasswordPage), findsNothing);
     },
   );
 
