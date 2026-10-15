@@ -66,9 +66,12 @@ import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_tri
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/canonical_trip_review_repository_impl.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_history_repository_impl.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_review_repository_impl.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/entities/reviewable_record_ref.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/canonical_trip_review_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_history_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_review_repository.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/usecases/canonical_trip_review_use_case.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/canonical_trip_review_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
 
@@ -231,6 +234,15 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerLazySingleton<DemoTripHistoryStore>(DemoTripHistoryStore.new)
     ..registerLazySingleton<CanonicalTripReviewRepository>(
       () => CanonicalTripReviewRepositoryImpl(serviceLocator()),
+    )
+    ..registerLazySingleton<CanonicalTripReviewUseCase>(
+      () => CanonicalTripReviewUseCase(serviceLocator()),
+    )
+    ..registerFactoryParam<CanonicalTripReviewCubit, ReviewableRecordRef, void>(
+      (reference, _) => CanonicalTripReviewCubit(
+        reference: reference,
+        useCase: serviceLocator(),
+      ),
     )
     ..registerFactoryParam<TripHistoryRepository, bool, void>(
       (isDemoMode, _) => TripHistoryRepositoryImpl(

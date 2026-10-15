@@ -1,19 +1,16 @@
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:trip_mate_mobile/core/error/failures.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/canonical_trip_review.dart';
-import 'package:trip_mate_mobile/features/trip_history/domain/entities/reviewable_record_ref.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/canonical_trip_review_repository.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/canonical_trip_review_cubit.dart';
 
 final class CanonicalTripReviewPage extends StatefulWidget {
-  const CanonicalTripReviewPage({
-    super.key,
-    required this.reference,
-    required this.repository,
-  });
-  final ReviewableRecordRef reference;
-  final CanonicalTripReviewRepository repository;
+  const CanonicalTripReviewPage({super.key, required this.cubit});
+  final CanonicalTripReviewCubit cubit;
   @override
   State<CanonicalTripReviewPage> createState() =>
       _CanonicalTripReviewPageState();
@@ -33,41 +30,15 @@ final class _CanonicalTripReviewPageState
   @override
   void initState() {
     super.initState();
-    _load();
+    widget.cubit.load();
   }
 
   @override
   void dispose() {
     _title.dispose();
     _content.dispose();
+    widget.cubit.close();
     super.dispose();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _busy = true;
-      _message = null;
-    });
-    try {
-      final value = await widget.repository.getContext(widget.reference);
-      if (!mounted) return;
-      final review = value.review;
-      setState(() {
-        _context = value;
-        _rating = review?.rating ?? 0;
-        _title.text = review?.title ?? '';
-        _content.text = review?.content ?? '';
-        _publishName = review?.publishDisplayName ?? true;
-        _busy = false;
-      });
-    } on Failure catch (error) {
-      if (mounted) {
-        setState(() {
-          _message = error.message;
-          _busy = false;
-        });
-      }
-    }
   }
 
   Future<void> _pickPhotos() async {
@@ -123,178 +94,194 @@ final class _CanonicalTripReviewPageState
       setState(() => _message = 'Provide a rating, title, and review.');
       return;
     }
-    setState(() {
-      _busy = true;
-      _message = null;
-    });
-    try {
-      final existing = context.review;
-      if (existing == null) {
-        await widget.repository.create(
-          widget.reference,
-          rating: _rating,
-          title: _title.text.trim(),
-          content: _content.text.trim(),
-          publishDisplayName: _publishName,
-          photos: _photos,
-        );
-      } else {
-        await widget.repository.update(
-          widget.reference,
-          rating: _rating,
-          title: _title.text.trim(),
-          content: _content.text.trim(),
-          publishDisplayName: _publishName,
-          version: existing.version,
-        );
-      }
-      await _load();
-      if (mounted) {
-        setState(
-          () => _message = existing == null
-              ? 'Review published.'
-              : 'Review updated.',
-        );
-      }
-    } on Failure catch (error) {
-      if (mounted) {
-        setState(() {
-          _message = error.message;
-          _busy = false;
-        });
-      }
-    }
+    await widget.cubit.submit(
+      rating: _rating,
+      title: _title.text.trim(),
+      content: _content.text.trim(),
+      publishDisplayName: _publishName,
+      photos: _photos,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final data = _context;
-    final review = data?.review;
-    final readOnly = review != null && !(data?.isEditable ?? false);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Trip review')),
-      body: _busy && data == null
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (_message != null)
-                  Semantics(
-                    liveRegion: true,
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Text(_message!),
-                      ),
-                    ),
-                  ),
-                if (data != null) ...[
-                  Card(
-                    child: ListTile(
-                      title: Text(data.name),
-                      subtitle: Text(
-                        '${data.bookingReference}\n${data.departureAtUtc.toLocal()}',
-                      ),
-                    ),
-                  ),
-                  if (data.existingReviewKind == 'legacy')
-                    const Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Text('This legacy review is read-only.'),
-                      ),
-                    )
-                  else if (review == null && !data.canSubmit)
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Text(
-                          'Review unavailable: ${data.submitUnavailableReason}',
-                        ),
-                      ),
-                    )
-                  else ...[
-                    if (readOnly)
-                      const Card(
-                        child: Padding(
-                          padding: EdgeInsets.all(12),
-                          child: Text(
-                            'The seven-day edit window has expired. This review is read-only.',
+    return BlocProvider.value(
+      value: widget.cubit,
+      child: BlocConsumer<CanonicalTripReviewCubit, CanonicalTripReviewState>(
+        listener: (context, state) {
+          final data = state.context;
+          final review = data?.review;
+          setState(() {
+            _context = data;
+            _busy = state.busy;
+            _message = state.message;
+            if (review != null) {
+              _rating = review.rating;
+              _title.text = review.title;
+              _content.text = review.content;
+              _publishName = review.publishDisplayName;
+            }
+          });
+          if (state.outcome == CanonicalReviewOutcome.created) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Review published.')));
+            if (context.canPop()) {
+              context.pop(true);
+            } else {
+              context.go(AppRoutes.tripHistory);
+            }
+          }
+        },
+        builder: (context, state) {
+          final data = _context;
+          final review = data?.review;
+          final readOnly = review != null && !(data?.isEditable ?? false);
+          return Scaffold(
+            appBar: AppBar(title: const Text('Trip review')),
+            body: _busy && data == null
+                ? const Center(child: CircularProgressIndicator())
+                : ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      if (_message != null)
+                        Semantics(
+                          liveRegion: true,
+                          child: Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Text(_message!),
+                            ),
                           ),
                         ),
-                      ),
-                    IgnorePointer(
-                      ignoring: readOnly || _busy,
-                      child: Column(
-                        children: [
-                          DropdownButtonFormField<int>(
-                            initialValue: _rating == 0 ? null : _rating,
-                            decoration: const InputDecoration(
-                              labelText: 'Rating',
-                            ),
-                            items: [
-                              for (var i = 1; i <= 5; i++)
-                                DropdownMenuItem(value: i, child: Text('$i')),
-                            ],
-                            onChanged: (value) =>
-                                setState(() => _rating = value ?? 0),
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _title,
-                            maxLength: 200,
-                            decoration: const InputDecoration(
-                              labelText: 'Title',
-                              border: OutlineInputBorder(),
+                      if (data != null) ...[
+                        Card(
+                          child: ListTile(
+                            title: Text(data.name),
+                            subtitle: Text(
+                              '${data.bookingReference}\n${data.departureAtUtc.toLocal()}',
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _content,
-                            maxLength: 1000,
-                            maxLines: 6,
-                            decoration: const InputDecoration(
-                              labelText: 'Review',
-                              border: OutlineInputBorder(),
+                        ),
+                        if (data.existingReviewKind == 'legacy')
+                          const Card(
+                            child: Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Text('This legacy review is read-only.'),
                             ),
-                          ),
-                          if (review == null)
-                            ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(
-                                _photos.isEmpty
-                                    ? 'Add photos (optional)'
-                                    : '${_photos.length} photo(s) selected',
+                          )
+                        else if (review == null && !data.canSubmit)
+                          Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Text(
+                                'Review unavailable: ${data.submitUnavailableReason}',
                               ),
-                              trailing: const Icon(Icons.add_a_photo),
-                              onTap: _pickPhotos,
                             ),
-                          SwitchListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('Publish my display name'),
-                            value: _publishName,
-                            onChanged: (value) =>
-                                setState(() => _publishName = value),
-                          ),
-                          if (!readOnly)
-                            SizedBox(
-                              width: double.infinity,
-                              child: FilledButton(
-                                onPressed: _busy ? null : _submit,
+                          )
+                        else ...[
+                          if (readOnly)
+                            const Card(
+                              child: Padding(
+                                padding: EdgeInsets.all(12),
                                 child: Text(
-                                  review == null
-                                      ? 'Publish review'
-                                      : 'Update review',
+                                  'The seven-day edit window has expired. This review is read-only.',
                                 ),
                               ),
                             ),
+                          IgnorePointer(
+                            ignoring: readOnly || _busy,
+                            child: Column(
+                              children: [
+                                Semantics(
+                                  label: 'Rating',
+                                  child: Row(
+                                    children: [
+                                      for (var i = 1; i <= 5; i++)
+                                        IconButton(
+                                          tooltip:
+                                              '$i ${i == 1 ? 'star' : 'stars'}',
+                                          onPressed: () =>
+                                              setState(() => _rating = i),
+                                          icon: Icon(
+                                            i <= _rating
+                                                ? Icons.star
+                                                : Icons.star_border,
+                                            color: i <= _rating
+                                                ? Colors.amber
+                                                : null,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                TextField(
+                                  controller: _title,
+                                  maxLength: 200,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Title',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                TextField(
+                                  controller: _content,
+                                  maxLength: 1000,
+                                  maxLines: 6,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Review',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                ),
+                                if (review == null)
+                                  ListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    title: Text(
+                                      _photos.isEmpty
+                                          ? 'Add photos (optional)'
+                                          : '${_photos.length} photo(s) selected',
+                                    ),
+                                    trailing: const Icon(Icons.add_a_photo),
+                                    onTap: _pickPhotos,
+                                  ),
+                                SwitchListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  title: const Text('Publish my display name'),
+                                  value: _publishName,
+                                  onChanged: (value) =>
+                                      setState(() => _publishName = value),
+                                ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    TextButton(
+                                      onPressed: () => context.canPop()
+                                          ? context.pop()
+                                          : context.go(AppRoutes.tripHistory),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    if (!readOnly)
+                                      FilledButton(
+                                        onPressed: _busy ? null : _submit,
+                                        child: Text(
+                                          review == null
+                                              ? 'Publish review'
+                                              : 'Update review',
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
-                      ),
-                    ),
-                  ],
-                ],
-              ],
-            ),
+                      ],
+                    ],
+                  ),
+          );
+        },
+      ),
     );
   }
 }

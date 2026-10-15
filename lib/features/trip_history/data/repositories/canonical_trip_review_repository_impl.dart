@@ -22,6 +22,8 @@ final class CanonicalTripReviewRepositoryImpl
       );
     } on DioException catch (error) {
       throw _failure(error);
+    } on Object {
+      throw const ServerFailure('trip_review.invalid_response');
     }
   }
 
@@ -50,6 +52,8 @@ final class CanonicalTripReviewRepositoryImpl
       );
     } on DioException catch (error) {
       throw _failure(error);
+    } on Object {
+      throw const ServerFailure('trip_review.invalid_response');
     }
   }
 
@@ -77,6 +81,8 @@ final class CanonicalTripReviewRepositoryImpl
       );
     } on DioException catch (error) {
       throw _failure(error);
+    } on Object {
+      throw const ServerFailure('trip_review.invalid_response');
     }
   }
 
@@ -86,38 +92,100 @@ final class CanonicalTripReviewRepositoryImpl
   ) {
     final summary = json['summary'] as Map<String, dynamic>?;
     final departure = summary?['departureAtUtc'];
-    if (summary == null || departure is! String) {
+    final bookingStatus = json['bookingStatus'];
+    final existingReviewKind = json['existingReviewKind'];
+    final name = summary?['name'];
+    final bookingReference = summary?['bookingReference'];
+    final canSubmit = json['canSubmit'];
+    final editableFields = json['editableFields'];
+    if (summary == null ||
+        departure is! String ||
+        DateTime.tryParse(departure) == null ||
+        bookingStatus is! String ||
+        bookingStatus.isEmpty ||
+        existingReviewKind is! String ||
+        !const {'none', 'new', 'legacy'}.contains(existingReviewKind) ||
+        name is! String ||
+        name.isEmpty ||
+        bookingReference is! String ||
+        bookingReference.isEmpty ||
+        canSubmit is! bool ||
+        editableFields is! List<dynamic> ||
+        editableFields.any((field) => field is! String)) {
       throw const ServerFailure('trip_review.invalid_response');
     }
     final reviewJson = json['review'] as Map<String, dynamic>?;
+    if ((existingReviewKind == 'new' && reviewJson?['kind'] != 'new') ||
+        (existingReviewKind == 'none' && reviewJson != null)) {
+      throw const ServerFailure('trip_review.invalid_response');
+    }
     return CanonicalReviewContext(
       reference: ref,
-      bookingStatus: json['bookingStatus'] as String,
-      name: summary['name'] as String? ?? '',
+      bookingStatus: bookingStatus,
+      name: name,
       departureAtUtc: DateTime.parse(departure).toUtc(),
-      bookingReference: summary['bookingReference'] as String? ?? '',
-      canSubmit: json['canSubmit'] as bool? ?? false,
+      bookingReference: bookingReference,
+      canSubmit: canSubmit,
       submitUnavailableReason: json['submitUnavailableReason'] as String?,
-      existingReviewKind: json['existingReviewKind'] as String,
+      existingReviewKind: existingReviewKind,
       review: reviewJson?['kind'] == 'new' ? _review(reviewJson!) : null,
-      editableFields: (json['editableFields'] as List<dynamic>? ?? [])
-          .cast<String>(),
+      editableFields: editableFields.cast<String>(),
     );
   }
 
-  CanonicalTripReview _review(Map<String, dynamic> json) => CanonicalTripReview(
-    id: (json['reviewId'] as num).toInt(),
-    rating: (json['overallRating'] as num).toInt(),
-    title: json['title'] as String,
-    content: json['content'] as String,
-    publishDisplayName: json['publishDisplayName'] as bool,
-    createdAtUtc: DateTime.parse(json['createdAtUtc'] as String).toUtc(),
-    editDeadlineUtc: DateTime.parse(json['editDeadlineUtc'] as String).toUtc(),
-    version: json['version'] as String,
-    mediaUrls: ((json['media'] as List<dynamic>? ?? []).map(
-      (item) => (item as Map<String, dynamic>)['deliveryUrl'] as String,
-    )).toList(),
-  );
+  CanonicalTripReview _review(Map<String, dynamic> json) {
+    final id = json['reviewId'];
+    final rating = json['overallRating'];
+    final title = json['title'];
+    final content = json['content'];
+    final publishDisplayName = json['publishDisplayName'];
+    final publicationStatus = json['publicationStatus'];
+    final createdAt = json['createdAtUtc'];
+    final editDeadline = json['editDeadlineUtc'];
+    final version = json['version'];
+    final media = json['media'];
+    if (id is! int ||
+        id <= 0 ||
+        rating is! int ||
+        rating < 1 ||
+        rating > 5 ||
+        title is! String ||
+        title.isEmpty ||
+        content is! String ||
+        content.isEmpty ||
+        publishDisplayName is! bool ||
+        publicationStatus != 'Published' ||
+        createdAt is! String ||
+        DateTime.tryParse(createdAt) == null ||
+        editDeadline is! String ||
+        DateTime.tryParse(editDeadline) == null ||
+        version is! String ||
+        version.isEmpty ||
+        media is! List<dynamic> ||
+        media.any(
+          (item) =>
+              item is! Map<String, dynamic> ||
+              item['deliveryUrl'] is! String ||
+              (item['deliveryUrl'] as String).isEmpty,
+        )) {
+      throw const ServerFailure('trip_review.invalid_response');
+    }
+    return CanonicalTripReview(
+      id: id,
+      rating: rating,
+      title: title,
+      content: content,
+      publishDisplayName: publishDisplayName,
+      createdAtUtc: DateTime.parse(createdAt).toUtc(),
+      editDeadlineUtc: DateTime.parse(editDeadline).toUtc(),
+      version: version,
+      mediaUrls: media
+          .map(
+            (item) => (item as Map<String, dynamic>)['deliveryUrl'] as String,
+          )
+          .toList(),
+    );
+  }
 
   Failure _failure(DioException error) {
     final data = error.response?.data;

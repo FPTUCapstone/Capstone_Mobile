@@ -62,7 +62,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/pages/trip_alert
 import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/reviewable_record_ref.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
-import 'package:trip_mate_mobile/features/trip_history/domain/repositories/canonical_trip_review_repository.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/canonical_trip_review_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/pages/canonical_trip_review_page.dart';
@@ -471,9 +471,9 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
               body: ErrorView(message: 'Review information is unavailable.'),
             );
           }
+          final reference = ReviewableRecordRef(kind: kind, id: id);
           return CanonicalTripReviewPage(
-            reference: ReviewableRecordRef(kind: kind, id: id),
-            repository: serviceLocator<CanonicalTripReviewRepository>(),
+            cubit: serviceLocator<CanonicalTripReviewCubit>(param1: reference),
           );
         },
       ),
