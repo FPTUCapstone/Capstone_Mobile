@@ -30,6 +30,7 @@ abstract final class AppRoutes {
   static const offlinePackagePattern = '/traveler/trips/:itineraryId/offline';
   static const tripHistory = '/traveler/trips';
   static const tripReviewPattern = '/traveler/trips/:tripId/review';
+  static const canonicalTripReviewPattern = '/traveler/reviews/:kind/:id';
   static const operator = '/operator';
   static const operatorApplication = '/operator/application';
   static const operatorApplicationResubmit = '/operator/application/resubmit';
@@ -48,6 +49,8 @@ abstract final class AppRoutes {
   static String tripReview(String tripId, {bool isDemo = false}) => isDemo
       ? '/traveler/trips/$tripId/review?demo=true'
       : '/traveler/trips/$tripId/review';
+  static String canonicalTripReview(String kind, int id) =>
+      '/traveler/reviews/$kind/$id';
   static String groupLocationSharingPath(int groupId) =>
       '/traveler/groups/$groupId/location-sharing';
   static String poiDetail(int id) => '/explore/poi/$id';
