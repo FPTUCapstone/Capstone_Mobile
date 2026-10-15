@@ -75,7 +75,7 @@ final class _DetailContent extends StatelessWidget {
     return AppPageScaffold(
       title: detail.title ?? 'Your itinerary',
       actions: [
-        if (detail.canManage)
+        if (detail.canEdit)
           IconButton(
             tooltip: 'Regenerate itinerary',
             onPressed: state.isBusy ? null : cubit.regenerate,
@@ -185,7 +185,17 @@ final class _DetailContent extends StatelessWidget {
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
-        if (detail.canManage) ...[
+        if (detail.isNavigationInProgress) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'This trip is being navigated on the app. Finish the trip before '
+            'changing its places.',
+            key: const Key('navigation_in_progress_notice'),
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+        if (detail.canEdit) ...[
           const SizedBox(height: AppSpacing.sm),
           OutlinedButton.icon(
             onPressed: state.isBusy ? null : () => _openEditor(context, detail),

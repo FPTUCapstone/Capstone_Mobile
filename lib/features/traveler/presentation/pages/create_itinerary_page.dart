@@ -671,9 +671,9 @@ final class _SettingsCard extends StatelessWidget {
           ),
           Slider(
             value: searchRadiusKm,
-            min: 1,
-            max: 50,
-            divisions: 49,
+            min: minSearchRadiusKm.toDouble(),
+            max: maxSearchRadiusKm.toDouble(),
+            divisions: maxSearchRadiusKm - minSearchRadiusKm,
             label: '${searchRadiusKm.round()} km',
             onChanged: enabled ? onRadiusChanged : null,
           ),

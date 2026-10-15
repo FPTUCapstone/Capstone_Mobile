@@ -14,6 +14,7 @@ final class ItineraryDetail extends Equatable {
     required this.totalEstimatedCost,
     required this.totalDurationMinutes,
     required this.items,
+    this.isNavigationInProgress = false,
   });
 
   final int itineraryId;
@@ -27,6 +28,13 @@ final class ItineraryDetail extends Equatable {
   final double totalEstimatedCost;
   final int totalDurationMinutes;
   final List<ItineraryDetailItem> items;
+
+  /// Someone is navigating this trip on the app: it cannot be regenerated or
+  /// adjusted until that navigation ends.
+  final bool isNavigationInProgress;
+
+  /// The owner may change the plan only while nobody is navigating it.
+  bool get canEdit => canManage && !isNavigationInProgress;
 
   List<ItineraryDetailItem> get visitItems => items
       .where(
@@ -48,6 +56,7 @@ final class ItineraryDetail extends Equatable {
     totalEstimatedCost,
     totalDurationMinutes,
     items,
+    isNavigationInProgress,
   ];
 }
 

@@ -326,4 +326,17 @@ void main() {
     expect(failure, isA<ConstraintFailure>());
     expect(failure.message, 'The selected order cannot produce an itinerary.');
   });
+
+  test('explains that regenerating found no other option', () {
+    final failure = ErrorMapper.toFailure(
+      responseError(
+        statusCode: 422,
+        path: '/api/v1/itineraries/10/regenerate',
+        data: {'errorCode': 'itinerary.no_alternative'},
+      ),
+    );
+
+    expect(failure, isA<ConstraintFailure>());
+    expect(failure.message, contains('already the best option'));
+  });
 }

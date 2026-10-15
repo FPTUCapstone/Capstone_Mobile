@@ -42,6 +42,48 @@ void main() {
     expect(list.onReorderItem, isNotNull);
   });
 
+  testWidgets('owner cannot change a trip that is being navigated', (
+    tester,
+  ) async {
+    final navigated = ItineraryDetail(
+      itineraryId: _ownerDetail.itineraryId,
+      schedulingRequestId: _ownerDetail.schedulingRequestId,
+      title: _ownerDetail.title,
+      version: _ownerDetail.version,
+      status: 'Active',
+      validFrom: _ownerDetail.validFrom,
+      validTo: _ownerDetail.validTo,
+      canManage: true,
+      totalEstimatedCost: _ownerDetail.totalEstimatedCost,
+      totalDurationMinutes: _ownerDetail.totalDurationMinutes,
+      items: _ownerDetail.items,
+      isNavigationInProgress: true,
+    );
+    final cubit = ItineraryDetailCubit(repository: _Repository(navigated));
+    addTearDown(cubit.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider.value(
+          value: cubit,
+          child: const ItineraryDetailPage(itineraryId: 10),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('navigation_in_progress_notice')),
+      200,
+    );
+
+    expect(
+      find.byKey(const Key('navigation_in_progress_notice')),
+      findsOneWidget,
+    );
+    expect(find.text('Reorder or remove places'), findsNothing);
+    expect(find.byTooltip('Regenerate itinerary'), findsNothing);
+  });
+
   testWidgets('timeline keeps Vietnam itinerary time instead of device time', (
     tester,
   ) async {

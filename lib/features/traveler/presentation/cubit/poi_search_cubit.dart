@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/core/location/device_location_service.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_poi_search_result.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/poi_search_state.dart';
@@ -78,7 +79,7 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
     final parameters = _PoiSearchParameters(
       query: query?.trim(),
       near: near,
-      radiusKm: near == null ? null : radiusKm ?? 50,
+      radiusKm: near == null ? null : radiusKm ?? maxSearchRadiusKm,
     );
     final scope = PoiSearchScope.fromLocation(near: near, radiusKm: radiusKm);
     _activeSearch = parameters;

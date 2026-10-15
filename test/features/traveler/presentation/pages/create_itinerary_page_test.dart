@@ -126,6 +126,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(Slider), findsOneWidget);
+    final slider = tester.widget<Slider>(find.byType(Slider));
+    expect(slider.min, 1);
+    expect(slider.max, 100);
+    expect(slider.divisions, 99);
     expect(find.text('Search radius'), findsOneWidget);
     expect(find.text('Budget (VND, optional)'), findsOneWidget);
   });
