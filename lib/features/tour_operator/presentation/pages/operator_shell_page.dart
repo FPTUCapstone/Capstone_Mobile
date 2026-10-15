@@ -99,7 +99,7 @@ class _OperatorSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (destination.label == 'Profile') {
+    if (destination.label == 'Tours') {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
@@ -113,16 +113,19 @@ class _OperatorSection extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.md),
               Text(
-                'Operator Profile',
+                'Manage tours',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: AppSpacing.xs),
-              const Text('Feature placeholder', textAlign: TextAlign.center),
+              const Text(
+                'Create a commercial tour package and save it as a draft.',
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: AppSpacing.md),
-              OutlinedButton.icon(
-                onPressed: () => context.push(AppRoutes.operatorChangePassword),
-                icon: const Icon(Icons.lock_outline),
-                label: const Text('Change password'),
+              FilledButton.icon(
+                onPressed: () => context.push(AppRoutes.createTourPackage),
+                icon: const Icon(Icons.add),
+                label: const Text('Create tour package'),
               ),
             ],
           ),

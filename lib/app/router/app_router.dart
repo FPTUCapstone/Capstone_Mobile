@@ -27,6 +27,8 @@ import 'package:trip_mate_mobile/features/auth/presentation/pages/verify_email_p
 import 'package:trip_mate_mobile/features/auth/presentation/services/operator_document_picker.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/cubit/create_coupon_cubit.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/pages/create_coupon_page.dart';
+import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/create_tour_package_page.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
@@ -503,6 +505,14 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         path: AppRoutes.operator,
         name: AppRouteNames.operator,
         builder: (_, _) => const OperatorShellPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.createTourPackage,
+        name: AppRouteNames.createTourPackage,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<CreateTourPackageCubit>(),
+          child: const CreateTourPackagePage(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.createCoupon,
