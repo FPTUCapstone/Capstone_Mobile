@@ -14,19 +14,24 @@ import 'package:trip_mate_mobile/core/storage/preferences_service.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:trip_mate_mobile/features/auth/data/repositories/operator_application_repository_impl.dart';
 import 'package:trip_mate_mobile/features/auth/data/repositories/tour_operator_registration_repository_impl.dart';
 import 'package:trip_mate_mobile/features/auth/data/services/firebase_auth_service.dart';
 import 'package:trip_mate_mobile/features/auth/data/services/firebase_operator_registration_identity_service.dart';
 import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_repository.dart';
+import 'package:trip_mate_mobile/features/auth/domain/repositories/operator_application_repository.dart';
 import 'package:trip_mate_mobile/features/auth/domain/repositories/tour_operator_registration_repository.dart';
 import 'package:trip_mate_mobile/features/auth/domain/services/auth_identity_service.dart';
 import 'package:trip_mate_mobile/features/auth/domain/services/operator_registration_identity_service.dart';
+import 'package:trip_mate_mobile/features/auth/domain/usecases/fetch_operator_application.dart';
 import 'package:trip_mate_mobile/features/auth/domain/usecases/register_tour_operator.dart';
+import 'package:trip_mate_mobile/features/auth/domain/usecases/resubmit_operator_application.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/data/datasources/password_recovery_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/data/repositories/password_recovery_repository_impl.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/domain/repositories/password_recovery_repository.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/cubit/password_recovery_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_application_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_email_recovery_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_operator_cubit.dart';
@@ -68,6 +73,13 @@ import 'package:trip_mate_mobile/features/traveler/domain/services/navigation_lo
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/address_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_history_repository_impl.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_review_repository_impl.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_history_repository.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_review_repository.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
 
 final GetIt serviceLocator = GetIt.instance;
 
@@ -152,6 +164,18 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerLazySingleton<AuthRepository>(
       () => AuthRepositoryImpl(serviceLocator()),
+    )
+    ..registerLazySingleton<OperatorApplicationRepository>(
+      () => OperatorApplicationRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<FetchOperatorApplication>(
+      () => FetchOperatorApplication(serviceLocator()),
+    )
+    ..registerFactory<ResubmitOperatorApplicationUseCase>(
+      () => ResubmitOperatorApplicationUseCase(serviceLocator()),
+    )
+    ..registerFactory<OperatorApplicationCubit>(
+      () => OperatorApplicationCubit(serviceLocator(), serviceLocator()),
     )
     ..registerLazySingleton<TourOperatorRegistrationRepository>(
       () => TourOperatorRegistrationRepositoryImpl(serviceLocator()),
@@ -239,5 +263,32 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerFactory<PasswordRecoveryCubit>(
       () => PasswordRecoveryCubit(serviceLocator()),
+    )
+    ..registerLazySingleton<DemoTripHistoryStore>(DemoTripHistoryStore.new)
+    ..registerFactoryParam<TripHistoryRepository, bool, void>(
+      (isDemoMode, _) => TripHistoryRepositoryImpl(
+        demoStore: isDemoMode ? serviceLocator<DemoTripHistoryStore>() : null,
+        isDemoMode: isDemoMode,
+      ),
+    )
+    ..registerFactoryParam<TripReviewRepository, bool, void>(
+      (isDemoMode, _) => TripReviewRepositoryImpl(
+        demoStore: isDemoMode ? serviceLocator<DemoTripHistoryStore>() : null,
+        isDemoMode: isDemoMode,
+      ),
+    )
+    ..registerFactoryParam<TripHistoryCubit, bool, void>(
+      (isDemoMode, _) => TripHistoryCubit(
+        repository: serviceLocator(param1: isDemoMode),
+        isDemoMode: isDemoMode,
+        demoTravelerId: isDemoMode ? DemoTripHistoryStore.demoTravelerId : null,
+      ),
+    )
+    ..registerFactoryParam<TripReviewCubit, bool, void>(
+      (isDemoMode, _) => TripReviewCubit(
+        repository: serviceLocator(param1: isDemoMode),
+        historyRepository: serviceLocator(param1: isDemoMode),
+        isDemoMode: isDemoMode,
+      ),
     );
 }

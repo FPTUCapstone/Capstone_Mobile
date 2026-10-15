@@ -7,7 +7,6 @@ import 'package:trip_mate_mobile/app/router/create_travel_group_route_args.dart'
 import 'package:trip_mate_mobile/app/router/route_guards.dart';
 import 'package:trip_mate_mobile/app/router/travel_group_details_route_args.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
-import 'package:trip_mate_mobile/features/auth/domain/entities/tour_operator_application_status.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/cubit/password_recovery_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/pages/password_recovery_page.dart';
@@ -19,6 +18,7 @@ import 'package:trip_mate_mobile/features/auth/presentation/pages/login_page.dar
 import 'package:trip_mate_mobile/features/auth/presentation/pages/operator_application_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/operator_email_recovery_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/operator_registration_page.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/pages/resubmit_operator_application_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/splash_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/traveler_registration_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/verify_email_page.dart';
@@ -60,6 +60,13 @@ import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_p
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_settings_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_shell_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/trip_alerts_page.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_history_page.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_review_page.dart';
+import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 import 'package:trip_mate_mobile/shared/widgets/error_view.dart';
 
 GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
@@ -400,6 +407,66 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         },
       ),
       GoRoute(
+        path: AppRoutes.tripHistory,
+        name: AppRouteNames.tripHistory,
+        builder: (_, state) {
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          return BlocProvider(
+            create: (_) =>
+                serviceLocator<TripHistoryCubit>(param1: isDemo)..loadInitial(),
+            child: TripHistoryPage(isDemoMode: isDemo),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.tripReviewPattern,
+        name: AppRouteNames.tripReview,
+        builder: (_, state) {
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final routeTripId = state.pathParameters['tripId'] ?? '';
+          if (routeTripId.trim().isEmpty) {
+            return const Scaffold(
+              body: ErrorView(
+                message: TripHistoryStringsEn.tripInformationUnavailable,
+              ),
+            );
+          }
+          final cachedTrip =
+              state.extra is TripHistoryItem &&
+                  (state.extra as TripHistoryItem).id == routeTripId
+              ? state.extra as TripHistoryItem
+              : null;
+          return BlocProvider(
+            create: (_) => serviceLocator<TripReviewCubit>(param1: isDemo)
+              ..loadTripAndReview(
+                tripId: routeTripId,
+                cachedTrip: cachedTrip,
+                travelerId: isDemo ? DemoTripHistoryStore.demoTravelerId : null,
+              ),
+            child: TripReviewPage(
+              tripId: routeTripId,
+              initialTrip: cachedTrip,
+              isDemoMode: isDemo,
+              demoTravelerId: isDemo
+                  ? DemoTripHistoryStore.demoTravelerId
+                  : null,
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/traveler/trips/:tripId',
+        redirect: (_, state) {
+          final tripId = state.pathParameters['tripId'] ?? '';
+          final demo = state.uri.queryParameters['demo'] == 'true'
+              ? '?demo=true'
+              : '';
+          return '/traveler/trips/$tripId/review$demo';
+        },
+      ),
+      GoRoute(
         path: AppRoutes.operator,
         name: AppRouteNames.operator,
         builder: (_, _) => const OperatorShellPage(),
@@ -416,16 +483,18 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         path: AppRoutes.operatorApplication,
         name: AppRouteNames.operatorApplication,
         builder: (_, state) => BlocProvider(
-          create: (_) => OperatorApplicationCubit(
-            initialStatus: switch (sessionCubit.state.applicationStatus) {
-              TourOperatorApplicationStatus.pendingApproval =>
-                OperatorApplicationStatus.pending,
-              TourOperatorApplicationStatus.rejected =>
-                OperatorApplicationStatus.rejected,
-              _ => OperatorApplicationStatus.unresolved,
-            },
-          ),
+          create: (_) => serviceLocator<OperatorApplicationCubit>(),
           child: const OperatorApplicationPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.operatorApplicationResubmit,
+        name: AppRouteNames.operatorApplicationResubmit,
+        builder: (_, state) => BlocProvider(
+          create: (_) => serviceLocator<OperatorApplicationCubit>(),
+          child: ResubmitOperatorApplicationPage(
+            picker: serviceLocator<OperatorDocumentPicker>(),
+          ),
         ),
       ),
     ],

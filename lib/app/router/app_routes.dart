@@ -28,8 +28,11 @@ abstract final class AppRoutes {
   static const activeTripLivePattern = '/traveler/trips/:itineraryId/live';
   static const tripAlertsPattern = '/traveler/trips/:itineraryId/alerts';
   static const offlinePackagePattern = '/traveler/trips/:itineraryId/offline';
+  static const tripHistory = '/traveler/trips';
+  static const tripReviewPattern = '/traveler/trips/:tripId/review';
   static const operator = '/operator';
   static const operatorApplication = '/operator/application';
+  static const operatorApplicationResubmit = '/operator/application/resubmit';
   static const createCoupon = '/operator/coupons/create';
 
   static String itineraryDetailPath(int itineraryId) =>
@@ -40,6 +43,11 @@ abstract final class AppRoutes {
       '/traveler/trips/$itineraryId/alerts';
   static String offlinePackage(int itineraryId) =>
       '/traveler/trips/$itineraryId/offline';
+  static String tripHistoryPath({bool isDemo = false}) =>
+      isDemo ? '/traveler/trips?demo=true' : '/traveler/trips';
+  static String tripReview(String tripId, {bool isDemo = false}) => isDemo
+      ? '/traveler/trips/$tripId/review?demo=true'
+      : '/traveler/trips/$tripId/review';
   static String groupLocationSharingPath(int groupId) =>
       '/traveler/groups/$groupId/location-sharing';
   static String poiDetail(int id) => '/explore/poi/$id';
@@ -75,7 +83,10 @@ abstract final class AppRouteNames {
   static const activeTripLive = 'active-trip-live';
   static const tripAlerts = 'trip-alerts';
   static const offlinePackage = 'offline-package';
+  static const tripHistory = 'trip-history';
+  static const tripReview = 'trip-review';
   static const operator = 'operator';
   static const operatorApplication = 'operator-application';
+  static const operatorApplicationResubmit = 'operator-application-resubmit';
   static const createCoupon = 'create-coupon';
 }

@@ -8,6 +8,7 @@ import 'package:trip_mate_mobile/core/utils/trip_time_format.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_summary.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_state.dart';
+import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 
 /// The Traveler's trips: every itinerary they planned or joined, leading to the
 /// itinerary detail where navigation starts.
@@ -128,6 +129,12 @@ final class _Actions extends StatelessWidget {
         },
         icon: const Icon(Icons.group_add_outlined),
         label: const Text('Join travel group'),
+      ),
+      const SizedBox(height: AppSpacing.xs),
+      OutlinedButton.icon(
+        onPressed: () => context.push(AppRoutes.tripHistory),
+        icon: const Icon(Icons.history_outlined),
+        label: const Text(TripHistoryStringsEn.tripHistoryTitle),
       ),
     ],
   );

@@ -21,6 +21,7 @@ import 'package:trip_mate_mobile/features/poi/domain/usecases/get_pois_use_case.
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_shell_page.dart';
+import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 
 import '../cubit/my_trips_cubit_test.dart';
@@ -177,6 +178,61 @@ void main() {
       expect(
         find.text(AuthSessionCubit.signOutRemoteFailureMessage),
         findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'F-05: shell routes to sections and renders Trip History button in trips, bookings, and profile sections',
+    (tester) async {
+      final cubit = await _authenticatedCubit();
+      addTearDown(cubit.close);
+      await _pumpShell(tester, cubit);
+
+      // Home section (index 0): Trip History button is not rendered on screen
+      expect(
+        find.widgetWithText(
+          OutlinedButton,
+          TripHistoryStringsEn.tripHistoryTitle,
+        ),
+        findsNothing,
+      );
+
+      // Switch to trips tab (index 1): the My trips page keeps the Trip
+      // History button next to its own actions.
+      await tester.tap(find.byIcon(Icons.map_outlined));
+      await tester.pumpAndSettle();
+      expect(find.text('My trips'), findsOneWidget);
+      expect(
+        find.widgetWithText(
+          OutlinedButton,
+          TripHistoryStringsEn.tripHistoryTitle,
+        ),
+        findsOneWidget,
+      );
+
+      // Switch to bookings tab (index 3): Trip History button is displayed
+      await tester.tap(find.byIcon(Icons.confirmation_number_outlined));
+      await tester.pumpAndSettle();
+      expect(find.text('Traveler Đặt chỗ'), findsOneWidget);
+      expect(
+        find.widgetWithText(
+          OutlinedButton,
+          TripHistoryStringsEn.tripHistoryTitle,
+        ),
+        findsOneWidget,
+      );
+
+      // Switch to profile tab (index 4): Trip History button is displayed
+      await tester.tap(find.byIcon(Icons.person_outline));
+      await tester.pumpAndSettle();
+      expect(find.text('Traveler Hồ sơ'), findsOneWidget);
+      expect(
+        find.widgetWithText(
+          OutlinedButton,
+          TripHistoryStringsEn.tripHistoryTitle,
+        ),
+        findsOneWidget,
       );
     },
   );
