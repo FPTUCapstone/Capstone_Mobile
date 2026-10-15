@@ -30,6 +30,12 @@ String formatPlanningDateTime(DateTime value) {
   return '${planningWallClock.toIso8601String().replaceFirst('Z', '')}+07:00';
 }
 
+/// Shortest trip a Traveler can plan.
+const minAvailableMinutes = 60;
+
+/// Longest trip: one continuous window of 72 hours that may cross midnight.
+const maxAvailableMinutes = 72 * 60;
+
 enum TransportMode { walking, motorbike, car, publicTransit }
 
 enum RestPreference { auto, none, frequent }

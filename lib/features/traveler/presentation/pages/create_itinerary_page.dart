@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:geolocator/geolocator.dart' show LocationPermission;
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/core/location/device_location_service.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/address_suggestion.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_poi.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/address_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_state.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/poi_search_cubit.dart';
@@ -30,7 +35,10 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
   SelectablePoi? _endPoi;
   final List<SelectablePoi> _mandatoryPois = [];
   late DateTime _startAt;
-  var _availableMinutes = 480;
+  int? _availableMinutes = 480;
+  final _hoursController = TextEditingController(text: '8');
+  final _minutesController = TextEditingController(text: '0');
+  String? _durationError;
   var _transportMode = TransportMode.motorbike;
   var _restPreference = RestPreference.auto;
   var _returnToStart = true;
@@ -50,6 +58,8 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
   @override
   void dispose() {
     _budgetController.dispose();
+    _hoursController.dispose();
+    _minutesController.dispose();
     super.dispose();
   }
 
@@ -69,7 +79,7 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
             }
             if (state.status == PoiSearchStatus.failure &&
                 state.message != null) {
-              _waitingForCurrentLocation = false;
+              setState(() => _waitingForCurrentLocation = false);
               ScaffoldMessenger.of(
                 context,
               ).showSnackBar(SnackBar(content: Text(state.message!)));
@@ -98,6 +108,9 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
         builder: (context, itineraryState) {
           final isGenerating =
               itineraryState.status == CreateItineraryStatus.generating;
+          final isLocating = context.select<PoiSearchCubit, bool>(
+            (cubit) => cubit.state.status == PoiSearchStatus.locating,
+          );
           return AppPageScaffold(
             title: 'Create itinerary',
             content: [
@@ -112,10 +125,11 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
               _LocationCard(
                 title: 'Starting point',
                 value: _startLabel,
-                onCurrentLocation: isGenerating ? null : _useCurrentLocation,
-                onChoosePlace: isGenerating
+                isLocating: isLocating,
+                onCurrentLocation: isGenerating || isLocating
                     ? null
-                    : () => _showPoiPicker(_PoiTarget.start),
+                    : _useCurrentLocation,
+                onChoosePlace: isGenerating ? null : _showStartPicker,
               ),
               const SizedBox(height: AppSpacing.md),
               _PoiField(
@@ -129,12 +143,11 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
               const SizedBox(height: AppSpacing.md),
               _PoiField(
                 label: 'Finish at',
-                value: _returnToStart
-                    ? 'Return to starting point'
-                    : _endPoi?.name,
+                value: _returnToStart ? null : _endPoi?.name,
                 helper: _returnToStart
-                    ? 'Your route will end where it starts.'
-                    : 'Optional final destination.',
+                    ? 'Turn off "Return to starting point" below to choose '
+                          'where the trip ends.'
+                    : 'Choose where the trip ends.',
                 onTap: isGenerating || _returnToStart || _startLocation == null
                     ? null
                     : () => _showPoiPicker(_PoiTarget.end),
@@ -158,8 +171,10 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
                 budgetError: _budgetError,
                 enabled: !isGenerating,
                 onStartAtChanged: _pickStartTime,
-                onDurationChanged: (value) =>
-                    setState(() => _availableMinutes = value),
+                hoursController: _hoursController,
+                minutesController: _minutesController,
+                durationError: _durationError,
+                onDurationChanged: (_) => _updateDuration(),
                 onTransportChanged: (value) =>
                     setState(() => _transportMode = value),
                 onRestChanged: (value) =>
@@ -195,6 +210,36 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
       _waitingForCurrentLocation = true;
     });
     context.read<PoiSearchCubit>().useCurrentLocation();
+  }
+
+  /// Time available is typed freely (hours + minutes): one hour up to three
+  /// days, and the trip may run past midnight.
+  void _updateDuration() {
+    int? parse(TextEditingController controller) {
+      final text = controller.text.trim();
+      return text.isEmpty ? 0 : int.tryParse(text);
+    }
+
+    final hours = parse(_hoursController);
+    final minutes = parse(_minutesController);
+    setState(() {
+      if (hours == null || minutes == null || minutes > 59) {
+        _availableMinutes = null;
+        _durationError = 'Enter whole hours and 0–59 minutes.';
+        return;
+      }
+      final total = hours * 60 + minutes;
+      if (total < minAvailableMinutes) {
+        _availableMinutes = null;
+        _durationError = 'Plan at least 1 hour.';
+      } else if (total > maxAvailableMinutes) {
+        _availableMinutes = null;
+        _durationError = 'A trip can last at most 72 hours (3 days).';
+      } else {
+        _availableMinutes = total;
+        _durationError = null;
+      }
+    });
   }
 
   void _updateBudget(String text) {
@@ -242,35 +287,63 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
     });
   }
 
+  Future<void> _showStartPicker() async {
+    // The sheet is a separate route outside this page's provider subtree, so
+    // the page's cubits are handed to it explicitly.
+    final poiSearchCubit = context.read<PoiSearchCubit>();
+    final addressSearchCubit = context.read<AddressSearchCubit>();
+    final choice = await showModalBottomSheet<_StartChoice>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: poiSearchCubit),
+          BlocProvider.value(value: addressSearchCubit),
+        ],
+        child: _StartPlacePickerSheet(
+          near: _startLocation ?? poiSearchCubit.state.currentLocation,
+        ),
+      ),
+    );
+    if (choice == null || !mounted) return;
+    setState(() {
+      _formError = null;
+      _waitingForCurrentLocation = false;
+      _startLocation = DeviceLocation(
+        latitude: choice.latitude,
+        longitude: choice.longitude,
+      );
+      _startLabel = choice.label;
+    });
+  }
+
   Future<void> _showPoiPicker(_PoiTarget target) async {
+    // The sheet is a separate route outside this page's provider subtree, so
+    // the page's cubit is handed to it explicitly.
+    final poiSearchCubit = context.read<PoiSearchCubit>();
     final selected = await showModalBottomSheet<SelectablePoi>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _PoiPickerSheet(
-        near: switch (target) {
-          _PoiTarget.start => null,
-          _PoiTarget.mandatory when _explorationPoi != null => DeviceLocation(
-            latitude: _explorationPoi!.latitude,
-            longitude: _explorationPoi!.longitude,
-          ),
-          _ => _startLocation,
-        },
-        radiusKm: target == _PoiTarget.mandatory
-            ? _searchRadiusKm.round()
-            : null,
+      builder: (_) => BlocProvider.value(
+        value: poiSearchCubit,
+        child: _PoiPickerSheet(
+          near: switch (target) {
+            _PoiTarget.mandatory when _explorationPoi != null => DeviceLocation(
+              latitude: _explorationPoi!.latitude,
+              longitude: _explorationPoi!.longitude,
+            ),
+            _ => _startLocation,
+          },
+          radiusKm: target == _PoiTarget.mandatory
+              ? _searchRadiusKm.round()
+              : null,
+        ),
       ),
     );
     if (selected == null || !mounted) return;
     setState(() {
       _formError = null;
       switch (target) {
-        case _PoiTarget.start:
-          _waitingForCurrentLocation = false;
-          _startLocation = DeviceLocation(
-            latitude: selected.latitude,
-            longitude: selected.longitude,
-          );
-          _startLabel = selected.name;
         case _PoiTarget.exploration:
           _explorationPoi = selected;
           _mandatoryPois.clear();
@@ -307,6 +380,12 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
       return;
     }
 
+    final availableMinutes = _availableMinutes;
+    if (availableMinutes == null) {
+      setState(() => _formError = _durationError);
+      return;
+    }
+
     context.read<CreateItineraryCubit>().generate(
       ItineraryGenerationRequest(
         startAt: formatPlanningDateTime(_startAt),
@@ -317,7 +396,7 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
         explorationLongitude: explorationPoi.longitude,
         endPoiId: _returnToStart ? null : _endPoi?.id,
         returnToStart: _returnToStart,
-        availableMinutes: _availableMinutes,
+        availableMinutes: availableMinutes,
         transportMode: _transportMode,
         searchRadiusKm: _searchRadiusKm,
         mandatoryPoiIds: _mandatoryPois.map((poi) => poi.id).toList(),
@@ -328,18 +407,33 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
   }
 }
 
-enum _PoiTarget { start, exploration, end, mandatory }
+enum _PoiTarget { exploration, end, mandatory }
+
+/// A starting point picked from either a geocoded address or a catalog place.
+final class _StartChoice {
+  const _StartChoice({
+    required this.label,
+    required this.latitude,
+    required this.longitude,
+  });
+
+  final String label;
+  final double latitude;
+  final double longitude;
+}
 
 final class _LocationCard extends StatelessWidget {
   const _LocationCard({
     required this.title,
     required this.value,
+    required this.isLocating,
     required this.onCurrentLocation,
     required this.onChoosePlace,
   });
 
   final String title;
   final String? value;
+  final bool isLocating;
   final VoidCallback? onCurrentLocation;
   final VoidCallback? onChoosePlace;
 
@@ -356,8 +450,15 @@ final class _LocationCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           FilledButton.icon(
             onPressed: onCurrentLocation,
-            icon: const Icon(Icons.my_location_outlined),
-            label: const Text('Use current location'),
+            icon: isLocating
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.my_location_outlined),
+            label: Text(
+              isLocating ? 'Finding your location…' : 'Use current location',
+            ),
           ),
           TextButton.icon(
             onPressed: onChoosePlace,
@@ -404,6 +505,9 @@ final class _SettingsCard extends StatelessWidget {
     required this.searchRadiusKm,
     required this.budgetController,
     required this.budgetError,
+    required this.hoursController,
+    required this.minutesController,
+    required this.durationError,
     required this.enabled,
     required this.onStartAtChanged,
     required this.onDurationChanged,
@@ -414,7 +518,10 @@ final class _SettingsCard extends StatelessWidget {
   });
 
   final DateTime startAt;
-  final int availableMinutes;
+  final int? availableMinutes;
+  final TextEditingController hoursController;
+  final TextEditingController minutesController;
+  final String? durationError;
   final TransportMode transportMode;
   final RestPreference restPreference;
   final double searchRadiusKm;
@@ -422,11 +529,23 @@ final class _SettingsCard extends StatelessWidget {
   final String? budgetError;
   final bool enabled;
   final VoidCallback onStartAtChanged;
-  final ValueChanged<int> onDurationChanged;
+  final ValueChanged<String> onDurationChanged;
   final ValueChanged<TransportMode> onTransportChanged;
   final ValueChanged<RestPreference> onRestChanged;
   final ValueChanged<double> onRadiusChanged;
   final ValueChanged<String> onBudgetChanged;
+
+  /// "1 hour to 3 days. Ends Fri, Oct 16, 2026 at 2:30 AM." The trip may
+  /// cross midnight.
+  String _endLabel(BuildContext context) {
+    final minutes = availableMinutes;
+    if (minutes == null) return '';
+    final end = startAt.add(Duration(minutes: minutes));
+    final localizations = MaterialLocalizations.of(context);
+    return '1 hour to 3 days. Ends '
+        '${localizations.formatMediumDate(end)} at '
+        '${TimeOfDay.fromDateTime(end).format(context)}.';
+  }
 
   static const _supportedTransportModes = [
     TransportMode.walking,
@@ -452,22 +571,59 @@ final class _SettingsCard extends StatelessWidget {
             trailing: const Icon(Icons.edit_calendar_outlined),
             onTap: enabled ? onStartAtChanged : null,
           ),
-          DropdownButtonFormField<int>(
-            initialValue: availableMinutes,
-            decoration: const InputDecoration(labelText: 'Time available'),
-            items: const [180, 240, 360, 480, 600, 720]
-                .map(
-                  (minutes) => DropdownMenuItem(
-                    value: minutes,
-                    child: Text('${minutes ~/ 60} hours'),
+          Text('Time available', style: Theme.of(context).textTheme.bodyLarge),
+          const SizedBox(height: AppSpacing.xs),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TextField(
+                  key: const Key('available_hours_field'),
+                  controller: hoursController,
+                  enabled: enabled,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(2),
+                  ],
+                  decoration: const InputDecoration(
+                    labelText: 'Hours',
+                    suffixText: 'h',
                   ),
-                )
-                .toList(),
-            onChanged: enabled
-                ? (value) {
-                    if (value != null) onDurationChanged(value);
-                  }
-                : null,
+                  onChanged: enabled ? onDurationChanged : null,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: TextField(
+                  key: const Key('available_minutes_field'),
+                  controller: minutesController,
+                  enabled: enabled,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(2),
+                  ],
+                  decoration: const InputDecoration(
+                    labelText: 'Minutes',
+                    suffixText: 'min',
+                  ),
+                  onChanged: enabled ? onDurationChanged : null,
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
+            child: Text(
+              durationError ?? _endLabel(context),
+              key: const Key('available_time_helper'),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: durationError == null
+                    ? Theme.of(context).colorScheme.onSurfaceVariant
+                    : Theme.of(context).colorScheme.error,
+              ),
+            ),
           ),
           const SizedBox(height: AppSpacing.sm),
           DropdownButtonFormField<TransportMode>(
@@ -643,6 +799,7 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
             const SizedBox(height: AppSpacing.sm),
             TextField(
               controller: _queryController,
+              autofocus: true,
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
                 labelText: 'Search places',
@@ -725,6 +882,242 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
     }
     context.read<PoiSearchCubit>().loadMore();
   }
+}
+
+/// Starting-point search over typed addresses (geocoded) and catalog places.
+final class _StartPlacePickerSheet extends StatefulWidget {
+  const _StartPlacePickerSheet({this.near});
+
+  /// Ranks addresses closer to the Traveler when a location is known.
+  final DeviceLocation? near;
+
+  @override
+  State<_StartPlacePickerSheet> createState() => _StartPlacePickerSheetState();
+}
+
+class _StartPlacePickerSheetState extends State<_StartPlacePickerSheet> {
+  final _queryController = TextEditingController();
+  var _hasSearched = false;
+  DeviceLocation? _near;
+
+  @override
+  void initState() {
+    super.initState();
+    _near = widget.near;
+    context.read<PoiSearchCubit>().prepareScope();
+    context.read<AddressSearchCubit>().reset();
+    if (_near == null) _locateQuietly();
+  }
+
+  /// Ranks address results near the Traveler even before a starting point is
+  /// chosen, so "FPT University" finds the local campus first. Uses the
+  /// location only when permission was already granted: opening this sheet
+  /// must not raise a permission prompt.
+  Future<void> _locateQuietly() async {
+    if (!serviceLocator.isRegistered<DeviceLocationService>()) return;
+    final service = serviceLocator<DeviceLocationService>();
+    try {
+      final permission = await service.checkPermission();
+      if (permission != LocationPermission.whileInUse &&
+          permission != LocationPermission.always) {
+        return;
+      }
+      final location = await service.getCurrentLocation();
+      if (mounted) setState(() => _near = location);
+    } catch (_) {
+      // Without a location the search simply is not ranked by distance.
+    }
+  }
+
+  @override
+  void dispose() {
+    _queryController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final addressAvailable = context.read<AddressSearchCubit>().isAvailable;
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: AppSpacing.md,
+          right: AppSpacing.md,
+          top: AppSpacing.md,
+          bottom: MediaQuery.viewInsetsOf(context).bottom + AppSpacing.md,
+        ),
+        child: SizedBox(
+          height: MediaQuery.sizeOf(context).height * 0.7,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Choose a starting place',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: _queryController,
+                autofocus: true,
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  labelText: addressAvailable
+                      ? 'Address or place name'
+                      : 'Place name',
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.search),
+                    onPressed: _search,
+                  ),
+                ),
+                onSubmitted: (_) => _search(),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Expanded(
+                child: _hasSearched
+                    ? ListView(
+                        children: [
+                          if (addressAvailable) ..._addressSection(context),
+                          ..._placeSection(context),
+                        ],
+                      )
+                    : Center(
+                        child: Text(
+                          addressAvailable
+                              ? 'Type a street address, hotel, or place name.'
+                              : 'Search by name to find a place.',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _addressSection(BuildContext context) {
+    final state = context.watch<AddressSearchCubit>().state;
+    return [
+      const _SectionHeader('Addresses'),
+      switch (state.status) {
+        AddressSearchStatus.searching => const _SectionLoading(),
+        AddressSearchStatus.failure => _SectionMessage(
+          state.message ?? 'Address search is unavailable right now.',
+        ),
+        _ when state.candidates.isEmpty => const _SectionMessage(
+          'No matching address.',
+        ),
+        _ => Column(
+          children: [
+            if (state.message != null) _SectionMessage(state.message!),
+            for (final candidate in state.candidates)
+              ListTile(
+                leading: const Icon(Icons.home_work_outlined),
+                title: Text(candidate.name),
+                subtitle: Text(candidate.fullAddress),
+                trailing: state.resolvingId == candidate.id
+                    ? const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : null,
+                enabled: state.resolvingId == null,
+                onTap: () => _pickAddress(candidate),
+              ),
+          ],
+        ),
+      },
+    ];
+  }
+
+  List<Widget> _placeSection(BuildContext context) {
+    final state = context.watch<PoiSearchCubit>().state;
+    return [
+      const _SectionHeader('Places'),
+      switch (state.status) {
+        PoiSearchStatus.searching => const _SectionLoading(),
+        PoiSearchStatus.failure => _SectionMessage(
+          state.message ?? 'Could not load places.',
+        ),
+        _ when state.results.isEmpty => const _SectionMessage(
+          'No matching place.',
+        ),
+        _ => Column(
+          children: [
+            for (final poi in state.results)
+              ListTile(
+                leading: const Icon(Icons.place_outlined),
+                title: Text(poi.name),
+                subtitle: Text(
+                  poi.address ?? poi.categoryName ?? 'Point of interest',
+                ),
+                onTap: () => Navigator.of(context).pop(
+                  _StartChoice(
+                    label: poi.name,
+                    latitude: poi.latitude,
+                    longitude: poi.longitude,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      },
+    ];
+  }
+
+  Future<void> _pickAddress(AddressCandidate candidate) async {
+    final address = await context.read<AddressSearchCubit>().resolve(candidate);
+    if (address == null || !mounted) return;
+    Navigator.of(context).pop(
+      _StartChoice(
+        label: address.label,
+        latitude: address.latitude,
+        longitude: address.longitude,
+      ),
+    );
+  }
+
+  void _search() {
+    final query = _queryController.text;
+    setState(() => _hasSearched = true);
+    context.read<AddressSearchCubit>().search(query, near: _near);
+    context.read<PoiSearchCubit>().search(query: query);
+  }
+}
+
+final class _SectionHeader extends StatelessWidget {
+  const _SectionHeader(this.title);
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xs),
+    child: Text(title, style: Theme.of(context).textTheme.titleSmall),
+  );
+}
+
+final class _SectionLoading extends StatelessWidget {
+  const _SectionLoading();
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+    padding: EdgeInsets.all(AppSpacing.sm),
+    child: Center(child: CircularProgressIndicator()),
+  );
+}
+
+final class _SectionMessage extends StatelessWidget {
+  const _SectionMessage(this.message);
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+    child: Text(message, style: Theme.of(context).textTheme.bodySmall),
+  );
 }
 
 String _transportLabel(TransportMode mode) => switch (mode) {

@@ -4,11 +4,15 @@ import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/features/traveler/data/models/itinerary_detail_model.dart';
 import 'package:trip_mate_mobile/features/traveler/data/models/itinerary_generation_model.dart';
+import 'package:trip_mate_mobile/features/traveler/data/models/itinerary_summary_model.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_summary.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_list_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 
-final class ItineraryRepositoryImpl implements ItineraryRepository {
+final class ItineraryRepositoryImpl
+    implements ItineraryRepository, ItineraryListRepository {
   const ItineraryRepositoryImpl({required DioClient dioClient})
     : _dioClient = dioClient;
 
@@ -36,6 +40,26 @@ final class ItineraryRepositoryImpl implements ItineraryRepository {
       if (error is DioException && error.response?.statusCode == 429) {
         throw RoutingProviderFailure();
       }
+      throw ErrorMapper.toFailure(error);
+    }
+  }
+
+  @override
+  Future<ItinerarySummaryPage> listMine({
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    try {
+      final response = await _dioClient.dio.get<Map<String, dynamic>>(
+        _itineraryPath,
+        queryParameters: {'page': page, 'pageSize': pageSize},
+      );
+      final data = response.data;
+      if (data == null) {
+        throw const FormatException('Empty itinerary list response.');
+      }
+      return ItinerarySummaryPageModel.fromJson(data).toEntity();
+    } catch (error) {
       throw ErrorMapper.toFailure(error);
     }
   }

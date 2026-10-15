@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/core/utils/trip_time_format.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/itinerary_detail_cubit.dart';
@@ -102,11 +105,49 @@ final class _DetailContent extends StatelessWidget {
           '${_duration(detail.totalDurationMinutes)} · Estimated ${_formatVnd(detail.totalEstimatedCost)}',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
+        if (detail.items
+                .where((item) => item.itemKind == ItineraryItemKind.visit)
+                .length <=
+            1) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Only a few places fit this plan. Many attractions close in the '
+            'late afternoon, so an earlier start time, more time, or a wider '
+            'search radius usually gives a fuller itinerary.',
+            key: const Key('few_stops_hint'),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
         const SizedBox(height: AppSpacing.lg),
         ...detail.items.asMap().entries.expand((entry) {
           final item = entry.value;
           final travelMinutes = item.travelDurationFromPreviousMinutes;
+          // Compared with the trip start too: an evening start whose stops all
+          // fall on the next morning still needs that morning's date.
+          final tripStart =
+              detail.validFrom ?? detail.items.first.plannedArrival;
+          final spansDays = !sameTripDay(
+            tripStart,
+            detail.items.last.plannedDeparture,
+          );
+          final startsNewDay =
+              entry.key == 0 ||
+              !sameTripDay(
+                detail.items[entry.key - 1].plannedArrival,
+                item.plannedArrival,
+              );
           return [
+            if (spansDays && startsNewDay)
+              Padding(
+                padding: const EdgeInsets.only(
+                  top: AppSpacing.sm,
+                  bottom: AppSpacing.xs,
+                ),
+                child: Text(
+                  tripDate(item.plannedArrival),
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ),
             if (travelMinutes != null && entry.key > 0)
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.xs),
@@ -118,11 +159,30 @@ final class _DetailContent extends StatelessWidget {
             ),
           ];
         }),
+        if (detail.status == 'Active') ...[
+          const SizedBox(height: AppSpacing.sm),
+          FilledButton.icon(
+            onPressed: state.isBusy
+                ? null
+                : () => context.push(
+                    AppRoutes.activeTripLive(detail.itineraryId),
+                    extra: detail,
+                  ),
+            icon: const Icon(Icons.navigation_rounded),
+            label: const Text('Start navigation'),
+          ),
+        ],
         if (detail.canManage && isDraft) ...[
           const SizedBox(height: AppSpacing.sm),
           AppButton(
             label: 'Accept itinerary',
             onPressed: state.isBusy ? null : cubit.accept,
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'Accept this itinerary to start navigation.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
         if (detail.canManage) ...[
@@ -274,16 +334,8 @@ final class _EditItemsSheetState extends State<_EditItemsSheet> {
   }
 }
 
-String _formatTime(DateTime value) {
-  final vietnamTime = value.toUtc().add(const Duration(hours: 7));
-  return '${vietnamTime.hour.toString().padLeft(2, '0')}:${vietnamTime.minute.toString().padLeft(2, '0')}';
-}
+String _formatTime(DateTime value) => tripClock(value);
 
-String _duration(int minutes) {
-  final hours = minutes ~/ 60;
-  final remaining = minutes % 60;
-  if (hours == 0) return '$remaining min';
-  return remaining == 0 ? '$hours h' : '$hours h $remaining min';
-}
+String _duration(int minutes) => tripDuration(minutes);
 
 String _formatVnd(double amount) => '₫${amount.round()}';

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -81,14 +83,26 @@ final class GeolocatorDeviceLocationService implements DeviceLocationService {
       );
     }
 
-    final position = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.medium,
-      ),
-    );
+    // Without a time limit the request waits forever when the device has no
+    // fix (indoors, fresh boot), leaving the caller stuck in "locating".
+    Position position;
+    try {
+      position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+          timeLimit: _currentFixTimeout,
+        ),
+      );
+    } on TimeoutException {
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown == null) rethrow;
+      position = lastKnown;
+    }
     return DeviceLocation(
       latitude: position.latitude,
       longitude: position.longitude,
     );
   }
+
+  static const _currentFixTimeout = Duration(seconds: 15);
 }

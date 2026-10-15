@@ -7,9 +7,13 @@ final class AppConfig {
     required this.apiBaseUrl,
     this.poiCategoryPreview = false,
     String? webVerificationOrigin,
+    String? mapboxAccessToken,
   }) : webVerificationOrigin = webVerificationOrigin == null
            ? null
-           : _parseWebVerificationOrigin(webVerificationOrigin, environment);
+           : _parseWebVerificationOrigin(webVerificationOrigin, environment),
+       mapboxAccessToken = mapboxAccessToken == null
+           ? null
+           : _parseMapboxAccessToken(mapboxAccessToken);
 
   factory AppConfig.fromEnvironment() {
     const environmentValue = String.fromEnvironment(
@@ -21,6 +25,9 @@ final class AppConfig {
       'WEB_VERIFICATION_ORIGIN',
     );
     const poiCategoryPreview = bool.fromEnvironment('POI_CATEGORY_PREVIEW');
+    const mapboxAccessTokenValue = String.fromEnvironment(
+      'MAPBOX_ACCESS_TOKEN',
+    );
     final resolvedApiBaseUrl = apiBaseUrlValue.isNotEmpty
         ? apiBaseUrlValue
         : _defaultApiBaseUrl();
@@ -32,6 +39,9 @@ final class AppConfig {
           ? null
           : webVerificationOriginValue,
       poiCategoryPreview: poiCategoryPreview,
+      mapboxAccessToken: mapboxAccessTokenValue.isEmpty
+          ? null
+          : mapboxAccessTokenValue,
     );
   }
 
@@ -39,6 +49,11 @@ final class AppConfig {
   final Uri apiBaseUrl;
   final Uri? webVerificationOrigin;
   final bool poiCategoryPreview;
+
+  /// Public Mapbox token (`pk.`); null disables the map and turn-by-turn
+  /// guidance (UC-13 then falls back to an illustration and straight-line
+  /// distance).
+  final String? mapboxAccessToken;
 
   /// Fails closed until an actual Web origin is configured for UC-02.
   Uri requireOperatorVerificationContinueUrl() {
@@ -77,6 +92,18 @@ final class AppConfig {
       );
     }
     return uri;
+  }
+
+  /// Only public tokens may ship inside the app; a secret (`sk.`) token would
+  /// be extractable from the binary.
+  static String _parseMapboxAccessToken(String value) {
+    final token = value.trim();
+    if (!token.startsWith('pk.') || token.contains(RegExp(r'\s'))) {
+      throw const FormatException(
+        'MAPBOX_ACCESS_TOKEN must be a public Mapbox token starting with "pk.".',
+      );
+    }
+    return token;
   }
 
   static Uri _parseWebVerificationOrigin(
