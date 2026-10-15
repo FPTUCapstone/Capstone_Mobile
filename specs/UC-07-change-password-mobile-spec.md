@@ -1,8 +1,8 @@
 # UC-07 Mobile Specification — Change Password
 
-**Feature:** UC-07 Change Password  
-**Platform:** Mobile / Flutter  
-**Status:** Draft — awaiting team approval and Backend API availability  
+**Feature:** UC-07 Change Password
+**Platform:** Mobile / Flutter
+**Status:** Draft — awaiting team approval and Backend API availability
 **Contract basis:** SRS §3.2.7 and `Capstone_BE/specs/UC-07-change-password-spec.md`
 
 ---

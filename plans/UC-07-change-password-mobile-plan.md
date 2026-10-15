@@ -1,8 +1,8 @@
 # UC-07 Mobile Implementation Plan — Change Password
 
-**Feature:** UC-07 Change Password  
-**Platform:** Mobile / Flutter  
-**Status:** Draft — execute only after specification and Backend contract approval  
+**Feature:** UC-07 Change Password
+**Platform:** Mobile / Flutter
+**Status:** Draft — execute only after specification and Backend contract approval
 **Specification:** `specs/UC-07-change-password-mobile-spec.md`
 
 ---
