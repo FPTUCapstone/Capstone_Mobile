@@ -213,6 +213,8 @@ The UC-12 category chips are disabled in production until Backend publishes an a
 
 Do not place tokens or secrets in Dart defines or source control.
 
+UC-13 Navigate Route uses Mapbox for the live map and turn-by-turn directions. Supply a Mapbox **public** token (`pk.`) at build time with `--dart-define=MAPBOX_ACCESS_TOKEN=pk...`. Public tokens are designed to ship inside client apps; keep it out of source control and restrict its scopes in the Mapbox account. Secret tokens (`sk.`) are rejected at startup. Without a token, navigation still works with an illustration map, straight-line distance, and no turn-by-turn instructions.
+
 ### CI/CD Demo APK Configuration
 
 Automated GitHub Actions CI/CD workflows (PR CI and develop/main CD) build a debug demo APK with the backend endpoint injected at build time. These builds require a GitHub Actions repository variable:

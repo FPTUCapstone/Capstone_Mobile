@@ -19,8 +19,11 @@ import 'package:trip_mate_mobile/features/poi/domain/entities/poi_query.dart';
 import 'package:trip_mate_mobile/features/poi/domain/repositories/poi_repository.dart';
 import 'package:trip_mate_mobile/features/poi/domain/usecases/get_pois_use_case.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_shell_page.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
+
+import '../cubit/my_trips_cubit_test.dart';
 
 Future<AuthSessionCubit> _authenticatedCubit({
   _RecordingAuthRepository? repository,
@@ -54,14 +57,44 @@ Future<void> _pumpShell(WidgetTester tester, AuthSessionCubit cubit) async {
 }
 
 void main() {
+  late FakeItineraryListRepository tripRepository;
+
   setUp(() async {
     await serviceLocator.reset();
-    serviceLocator.registerFactory<PoiListCubit>(
-      () => PoiListCubit(getPois: GetPoisUseCase(_EmptyPoiRepository())),
-    );
+    tripRepository = FakeItineraryListRepository({
+      1: tripPage([tripSummary(60014, openSessionId: 11)]),
+    });
+    serviceLocator
+      ..registerFactory<PoiListCubit>(
+        () => PoiListCubit(getPois: GetPoisUseCase(_EmptyPoiRepository())),
+      )
+      ..registerFactory<MyTripsCubit>(
+        () => MyTripsCubit(repository: tripRepository),
+      );
   });
 
   tearDown(serviceLocator.reset);
+
+  testWidgets('trips tab lists the traveler itineraries on each visit', (
+    tester,
+  ) async {
+    final cubit = await _authenticatedCubit();
+    addTearDown(cubit.close);
+    await _pumpShell(tester, cubit);
+
+    await tester.tap(find.text('Chuyến đi'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Trip 60014'), findsOneWidget);
+    expect(find.text('Trip in progress'), findsOneWidget);
+    expect(find.text('Feature placeholder'), findsNothing);
+
+    await tester.tap(find.text('Trang chủ'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Chuyến đi'));
+    await tester.pumpAndSettle();
+    expect(tripRepository.requestedPages, [1, 1]);
+  });
 
   testWidgets('traveler shell sign-out uses the backend-integrated flow once', (
     tester,

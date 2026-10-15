@@ -8,6 +8,8 @@ import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_c
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/my_trips_page.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 
 class TravelerShellPage extends StatefulWidget {
@@ -28,17 +30,20 @@ class _TravelerShellPageState extends State<TravelerShellPage> {
 
   var _selectedIndex = 0;
   late final PoiListCubit _exploreCubit;
+  late final MyTripsCubit _myTripsCubit;
   var _exploreLoaded = false;
 
   @override
   void initState() {
     super.initState();
     _exploreCubit = serviceLocator<PoiListCubit>();
+    _myTripsCubit = serviceLocator<MyTripsCubit>();
   }
 
   @override
   void dispose() {
     _exploreCubit.close();
+    _myTripsCubit.close();
     super.dispose();
   }
 
@@ -85,7 +90,10 @@ class _TravelerShellPageState extends State<TravelerShellPage> {
               index: _selectedIndex,
               children: [
                 _TravelerSection(destination: _destinations[0]),
-                _TravelerSection(destination: _destinations[1]),
+                BlocProvider.value(
+                  value: _myTripsCubit,
+                  child: const MyTripsPage(),
+                ),
                 BlocProvider.value(
                   value: _exploreCubit,
                   child: const ExplorePoiPage(isTraveler: true),
@@ -100,6 +108,10 @@ class _TravelerShellPageState extends State<TravelerShellPage> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
+          if (index == 1) {
+            // Reloaded on every visit: trips change in pushed routes.
+            _myTripsCubit.load();
+          }
           if (index == 2 && !_exploreLoaded) {
             _exploreLoaded = true;
             _exploreCubit.loadInitial();
@@ -166,21 +178,12 @@ class _TravelerSection extends StatelessWidget {
                 label: const Text('Account settings'),
               ),
             ],
-            if (destination.label == 'Trang chủ' ||
-                destination.label == 'Chuyến đi') ...[
+            if (destination.label == 'Trang chủ') ...[
               const SizedBox(height: AppSpacing.sm),
               OutlinedButton.icon(
                 onPressed: () => context.push(AppRoutes.joinTravelGroup),
                 icon: const Icon(Icons.group_add_outlined),
                 label: const Text('Join travel group'),
-              ),
-            ],
-            if (destination.label == 'Chuyến đi') ...[
-              const SizedBox(height: AppSpacing.lg),
-              FilledButton.icon(
-                onPressed: () => context.push(AppRoutes.createItinerary),
-                icon: const Icon(Icons.auto_awesome_outlined),
-                label: const Text('Create an itinerary'),
               ),
             ],
           ],

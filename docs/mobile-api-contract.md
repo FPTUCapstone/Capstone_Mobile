@@ -54,7 +54,7 @@ Failure responses use the same envelope when produced by the controller failure 
 - Request: no body; Firebase token supplies email and verification state.
 - Validation/behavior: token must be valid and Firebase `email_verified` must be true; matching user is activated if not already active.
 - Success: `200`, `data` contains user ID, email, active status, verification time, access token, refresh token, and access-token expiry.
-- Token handling: Mobile/FE must persist returned access and refresh tokens securely; no refresh endpoint exists.
+- Token handling: Mobile/FE must persist returned access and refresh tokens securely; Mobile renews the access token with `POST /api/v1/auth/refresh`.
 - Errors: missing bearer `401` with `AUTH_HEADER_MISSING`; invalid/expired token `400` with `MSG14`; unverified Firebase email `400` with `MSG_EMAIL_NOT_VERIFIED`; no matching user `400` with `MSG_USER_NOT_FOUND`.
 - FE usage: `src/lib/authApi.ts` calls `POST /auth/verify-email` with the Firebase token in the bearer header after Firebase email-link verification.
 - Mobile usage: implement only after Firebase email-link handling is agreed. Do not implement OTP fields because BE does not currently accept an OTP body.
@@ -66,7 +66,7 @@ Failure responses use the same envelope when produced by the controller failure 
 - Behavior: backend tries Firebase ID-token validation, Google ID-token validation, then Google userinfo access-token validation; creates or authenticates a Traveler.
 - Success: `200`, `data` contains `userId`, `status`, access token, refresh token, and `isNewAccount`.
 - Errors: missing token `400` with `AUTH_TOKEN_MISSING`; invalid token currently `400` with `MSG_GOOGLE_TOKEN_INVALID`; unexpected/persistence failure `500` with `MSG127`.
-- Token handling: persist returned JWT access/refresh tokens; no refresh/logout route exists.
+- Token handling: persist returned JWT access/refresh tokens; renew with `POST /api/v1/auth/refresh` and revoke with `POST /api/v1/auth/logout`.
 - FE usage: sends both bearer token and JSON `idToken`.
 - Mobile usage: not production-ready until an approved Flutter Google/Firebase provider flow and backend provider-link policy are confirmed. Do not use the current visual-only Google demo.
 
@@ -84,16 +84,23 @@ Failure responses use the same envelope when produced by the controller failure 
 
 - Validation: email required and valid; password required.
 - Success: `200`, `data` contains `userId`, `email`, `fullName`, `role`, `status`, `accessToken`, `refreshToken`, and `accessTokenExpiresAtUtc`.
-- Token handling: access token is JWT with configured issuer/audience/lifetime; refresh token is a random token whose hash is persisted for seven days. No refresh endpoint is exposed.
+- Token handling: access token is JWT with configured issuer/audience/lifetime; refresh token is a random token whose hash is persisted for seven days. Mobile renews the access token with `POST /api/v1/auth/refresh` (below).
 - Errors: invalid credentials `401` with `auth.invalid_credentials`; pending email verification `403` with `MSG_UNVERIFIED`; locked/inactive account `403`; validation `400`; unexpected failure `500` with `MSG127`.
 - FE usage: `src/lib/authApi.ts` calls `POST /auth/login` and saves returned tokens in localStorage.
 - Mobile usage: replace hard-coded demo login with this route, persist tokens through secure storage, restore session only from valid persisted state, and route by the returned role. Do not add Firebase login as a substitute for this password contract.
+
+## POST `/api/v1/auth/refresh`
+
+- Authentication: anonymous. Request JSON: `{ "refreshToken": "<token from login>" }`.
+- Success: `200`, `data` has the login shape with a new `accessToken`; the same `refreshToken` is returned (non-rotating, like `web/refresh`).
+- Errors: missing/unknown/revoked/expired token `401` with `AUTH_TOKEN_INVALID`; ineligible account `403`.
+- Mobile usage: `AuthInterceptor` calls it once when an authenticated request gets `401`, then replays the request; a failed refresh ends the session. See `specs/mobile-session-refresh-spec.md`.
 
 ## Explicitly Unavailable Contracts
 
 The current BE source does not expose verified endpoints for:
 
-- Refresh, logout, revocation, or token rotation.
+- Refresh-token rotation.
 - Password reset or change password.
 - Traveler profile or travel preferences.
 - Explore/POI, itinerary, map, weather, tours, booking, payment, history, or review.

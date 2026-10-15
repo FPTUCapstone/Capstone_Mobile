@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
@@ -26,10 +27,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Day plan'), findsOneWidget);
-    expect(find.text('Accept itinerary'), findsOneWidget);
-    expect(find.text('Reorder or remove places'), findsOneWidget);
     expect(find.text('This place is currently unavailable.'), findsOneWidget);
     expect(find.text('Travel: 15 min'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Reorder or remove places'), 200);
+    expect(find.text('Accept itinerary'), findsOneWidget);
+    expect(find.text('Reorder or remove places'), findsOneWidget);
 
     await tester.tap(find.text('Reorder or remove places'));
     await tester.pumpAndSettle();
@@ -75,6 +77,10 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Reorder or remove places'),
+        200,
+      );
       await tester.tap(find.text('Reorder or remove places'));
       await tester.pumpAndSettle();
 
@@ -91,6 +97,71 @@ void main() {
       ]);
     },
   );
+
+  testWidgets('draft itinerary asks for acceptance before navigation', (
+    tester,
+  ) async {
+    final cubit = ItineraryDetailCubit(repository: _Repository(_ownerDetail));
+    addTearDown(cubit.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider.value(
+          value: cubit,
+          child: const ItineraryDetailPage(itineraryId: 10),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Start navigation'), findsNothing);
+    expect(
+      find.text('Accept this itinerary to start navigation.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('active itinerary starts navigation for this itinerary', (
+    tester,
+  ) async {
+    final cubit = ItineraryDetailCubit(repository: _Repository(_memberDetail));
+    addTearDown(cubit.close);
+    Object? openedExtra;
+    final router = GoRouter(
+      initialLocation: '/traveler/itineraries/10',
+      routes: [
+        GoRoute(
+          path: '/traveler/itineraries/:itineraryId',
+          builder: (_, _) => BlocProvider.value(
+            value: cubit,
+            child: const ItineraryDetailPage(itineraryId: 10),
+          ),
+        ),
+        GoRoute(
+          path: '/traveler/trips/:itineraryId/live',
+          builder: (_, state) {
+            openedExtra = state.extra;
+            return Text('Live trip ${state.pathParameters['itineraryId']}');
+          },
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Accept this itinerary to start navigation.'),
+      findsNothing,
+    );
+    await tester.ensureVisible(find.text('Start navigation'));
+    await tester.tap(find.text('Start navigation'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Live trip 10'), findsOneWidget);
+    expect(openedExtra, _memberDetail);
+  });
 
   testWidgets('group member sees the timeline without owner actions', (
     tester,

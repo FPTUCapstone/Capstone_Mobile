@@ -99,6 +99,36 @@ final class ConstraintFailure extends Failure {
   ]);
 }
 
+enum NavigationFailureReason {
+  activeSessionExists,
+  outsideTripWindow,
+  itineraryNotActive,
+  noNavigableItems,
+  itineraryScheduleIncomplete,
+  sessionCompleted,
+  itemAlreadyReached,
+  itemNotNavigable,
+  sessionNotFound,
+  accessDenied,
+  idempotencyKeyPayloadMismatch,
+}
+
+final class NavigationFailure extends Failure {
+  const NavigationFailure(
+    super.message, {
+    required this.reason,
+    this.activeSessionId,
+  });
+
+  final NavigationFailureReason reason;
+
+  /// Set for [NavigationFailureReason.activeSessionExists].
+  final int? activeSessionId;
+
+  @override
+  List<Object?> get props => [message, reason, activeSessionId];
+}
+
 final class UnknownFailure extends Failure {
   const UnknownFailure([
     super.message = 'Something went wrong. Please try again.',

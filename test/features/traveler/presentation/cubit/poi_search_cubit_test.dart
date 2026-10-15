@@ -26,6 +26,25 @@ void main() {
     ],
   );
 
+  test('reports a failure when no location fix arrives in time', () async {
+    final locationService = _ControlledLocationService();
+    final cubit = PoiSearchCubit(
+      locationService: locationService,
+      repository: _PoiRepository(),
+    );
+
+    final locating = cubit.useCurrentLocation();
+    locationService.completer.completeError(TimeoutException('no fix'));
+    await locating;
+
+    expect(cubit.state.status, PoiSearchStatus.failure);
+    expect(
+      cubit.state.message,
+      'We could not get your current location. Choose a place instead.',
+    );
+    await cubit.close();
+  });
+
   test('does not emit a late GPS result after the cubit is closed', () async {
     final locationService = _ControlledLocationService();
     final cubit = PoiSearchCubit(

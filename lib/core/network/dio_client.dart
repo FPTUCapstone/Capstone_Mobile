@@ -24,7 +24,25 @@ final class DioClient {
          ),
        ) {
     _dio.interceptors.add(
-      AuthInterceptor(secureStorage, coordinator: coordinator),
+      AuthInterceptor(
+        secureStorage,
+        coordinator: coordinator,
+        // Interceptor-free, so a failing refresh can never recurse or log the
+        // refresh token.
+        refreshClient: Dio(
+          BaseOptions(
+            baseUrl: config.apiBaseUrl.toString(),
+            connectTimeout: ApiConstants.connectTimeout,
+            receiveTimeout: ApiConstants.receiveTimeout,
+            sendTimeout: ApiConstants.sendTimeout,
+            headers: const {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+          ),
+        ),
+        retry: (options) => _dio.fetch<dynamic>(options),
+      ),
     );
     if (config.enableNetworkLogs) {
       _dio.interceptors.add(AppLoggingInterceptor());

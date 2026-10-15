@@ -32,6 +32,8 @@ abstract final class AppRoutes {
   static const operatorApplication = '/operator/application';
   static const createCoupon = '/operator/coupons/create';
 
+  static String itineraryDetailPath(int itineraryId) =>
+      '/traveler/itineraries/$itineraryId';
   static String activeTripLive(int itineraryId) =>
       '/traveler/trips/$itineraryId/live';
   static String tripAlerts(int itineraryId) =>
