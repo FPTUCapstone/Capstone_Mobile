@@ -34,30 +34,13 @@ final class CanonicalTripReviewRepositoryImpl
     required bool publishDisplayName,
     required List<ReviewPhotoUpload> photos,
   }) async {
-    final metadata = jsonEncode({
-      'overallRating': rating,
-      'title': title,
-      'content': content,
-      'poiRatings': <Object>[],
-      'routePacing': null,
-      'cspRating': null,
-      'publishDisplayName': publishDisplayName,
-    });
-    final form = FormData.fromMap({
-      'metadata': MultipartFile.fromString(
-        metadata,
-        filename: 'metadata.json',
-        contentType: DioMediaType.parse('application/json'),
-      ),
-      'files': [
-        for (final photo in photos)
-          MultipartFile.fromBytes(
-            photo.bytes,
-            filename: photo.name,
-            contentType: DioMediaType.parse(photo.contentType),
-          ),
-      ],
-    });
+    final form = buildCanonicalReviewMultipart(
+      rating: rating,
+      title: title,
+      content: content,
+      publishDisplayName: publishDisplayName,
+      photos: photos,
+    );
     try {
       return _review(
         (await _client.dio.post<Map<String, dynamic>>(
@@ -102,15 +85,17 @@ final class CanonicalTripReviewRepositoryImpl
     ReviewableRecordRef ref,
   ) {
     final summary = json['summary'] as Map<String, dynamic>?;
+    final departure = summary?['departureAtUtc'];
+    if (summary == null || departure is! String) {
+      throw const ServerFailure('trip_review.invalid_response');
+    }
     final reviewJson = json['review'] as Map<String, dynamic>?;
     return CanonicalReviewContext(
       reference: ref,
       bookingStatus: json['bookingStatus'] as String,
-      name: summary?['name'] as String? ?? '',
-      departureAtUtc: DateTime.parse(
-        summary?['departureAtUtc'] as String,
-      ).toUtc(),
-      bookingReference: summary?['bookingReference'] as String? ?? '',
+      name: summary['name'] as String? ?? '',
+      departureAtUtc: DateTime.parse(departure).toUtc(),
+      bookingReference: summary['bookingReference'] as String? ?? '',
       canSubmit: json['canSubmit'] as bool? ?? false,
       submitUnavailableReason: json['submitUnavailableReason'] as String?,
       existingReviewKind: json['existingReviewKind'] as String,
@@ -150,6 +135,44 @@ final class CanonicalTripReviewRepositoryImpl
     if (code == 'trip_review.policy_unavailable') {
       return const ServerFailure('trip_review.policy_unavailable');
     }
+    if (error.type == DioExceptionType.connectionError ||
+        error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.receiveTimeout ||
+        error.type == DioExceptionType.sendTimeout) {
+      return const NetworkFailure();
+    }
     return ServerFailure(code ?? 'The review service is unavailable.');
   }
+}
+
+FormData buildCanonicalReviewMultipart({
+  required int rating,
+  required String title,
+  required String content,
+  required bool publishDisplayName,
+  required List<ReviewPhotoUpload> photos,
+}) {
+  final metadata = jsonEncode({
+    'overallRating': rating,
+    'title': title,
+    'content': content,
+    'poiRatings': <Object>[],
+    'routePacing': null,
+    'cspRating': null,
+    'publishDisplayName': publishDisplayName,
+  });
+  return FormData.fromMap({
+    'metadata': MultipartFile.fromString(
+      metadata,
+      contentType: DioMediaType.parse('application/json'),
+    ),
+    'files': [
+      for (final photo in photos)
+        MultipartFile.fromBytes(
+          photo.bytes,
+          filename: photo.name,
+          contentType: DioMediaType.parse(photo.contentType),
+        ),
+    ],
+  });
 }
