@@ -42,8 +42,8 @@ final class _Adapter implements HttpClientAdapter {
 }
 
 void main() {
-  Map<String, dynamic> validResponse() => {
-    'bookingStatus': 'Completed',
+  Map<String, dynamic> validResponse({String status = 'Completed'}) => {
+    'bookingStatus': status,
     'summary': {
       'name': 'Hoi An',
       'departureAtUtc': '2026-10-01T02:00:00Z',
@@ -60,7 +60,7 @@ void main() {
       'title': 'Great',
       'content': 'Excellent',
       'publishDisplayName': true,
-      'publicationStatus': 'Published',
+      'publicationStatus': 'published',
       'createdAtUtc': '2026-10-01T02:00:00Z',
       'editDeadlineUtc': '2026-10-08T02:00:00Z',
       'version': 'v1',
@@ -70,7 +70,13 @@ void main() {
     },
   };
 
-  Future<void> expectInvalid(Map<String, dynamic> payload) async {
+  Future<void> expectInvalid(
+    Map<String, dynamic> payload, {
+    ReviewableRecordRef reference = const ReviewableRecordRef(
+      kind: ReviewableRecordKind.commerceBooking,
+      id: 7,
+    ),
+  }) async {
     final client = DioClient(
       config: AppConfig(
         environment: Environment.development,
@@ -81,12 +87,7 @@ void main() {
     client.dio.httpClientAdapter = _Adapter(jsonEncode(payload));
     final repository = CanonicalTripReviewRepositoryImpl(client);
     await expectLater(
-      repository.getContext(
-        const ReviewableRecordRef(
-          kind: ReviewableRecordKind.commerceBooking,
-          id: 7,
-        ),
-      ),
+      repository.getContext(reference),
       throwsA(
         isA<ServerFailure>().having(
           (failure) => failure.message,
@@ -116,6 +117,82 @@ void main() {
     expect(result.review?.mediaUrls, ['https://example.test/review.jpg']);
   });
 
+  for (final status in const [
+    'PendingPayment',
+    'Confirmed',
+    'Cancelled',
+    'Completed',
+    'Expired',
+  ]) {
+    test('valid commerce booking status $status is parsed', () async {
+      final client = DioClient(
+        config: AppConfig(
+          environment: Environment.development,
+          apiBaseUrl: Uri.parse('http://10.0.2.2:5000'),
+        ),
+        secureStorage: _Storage(),
+      );
+      client.dio.httpClientAdapter = _Adapter(
+        jsonEncode(validResponse(status: status)),
+      );
+      final result = await CanonicalTripReviewRepositoryImpl(client).getContext(
+        const ReviewableRecordRef(
+          kind: ReviewableRecordKind.commerceBooking,
+          id: 7,
+        ),
+      );
+      expect(result.bookingStatus, status);
+    });
+  }
+
+  for (final status in const [
+    'Pending',
+    'Confirmed',
+    'Cancelled',
+    'Completed',
+  ]) {
+    test('valid service booking status $status is parsed', () async {
+      final client = DioClient(
+        config: AppConfig(
+          environment: Environment.development,
+          apiBaseUrl: Uri.parse('http://10.0.2.2:5000'),
+        ),
+        secureStorage: _Storage(),
+      );
+      client.dio.httpClientAdapter = _Adapter(
+        jsonEncode(validResponse(status: status)),
+      );
+      final result = await CanonicalTripReviewRepositoryImpl(client).getContext(
+        const ReviewableRecordRef(
+          kind: ReviewableRecordKind.serviceBooking,
+          id: 7,
+        ),
+      );
+      expect(result.bookingStatus, status);
+    });
+  }
+
+  test(
+    'unknown, empty, null, and incorrectly typed statuses fail closed',
+    () async {
+      for (final status in <Object?>['Unknown', '', null, 7]) {
+        final payload = validResponse()..['bookingStatus'] = status;
+        await expectInvalid(payload);
+      }
+    },
+  );
+
+  test('booking status vocabularies remain namespace-specific', () async {
+    await expectInvalid(validResponse(status: 'Pending'));
+    await expectInvalid(
+      validResponse(status: 'PendingPayment'),
+      reference: const ReviewableRecordRef(
+        kind: ReviewableRecordKind.serviceBooking,
+        id: 7,
+      ),
+    );
+  });
+
   test('invalid summary and timestamp fail closed', () async {
     final missingSummary = validResponse()..remove('summary');
     await expectInvalid(missingSummary);
@@ -131,7 +208,7 @@ void main() {
     final invalidReviewStatus = validResponse();
     (invalidReviewStatus['review']
             as Map<String, dynamic>)['publicationStatus'] =
-        'Draft';
+        'draft';
     await expectInvalid(invalidReviewStatus);
   });
 

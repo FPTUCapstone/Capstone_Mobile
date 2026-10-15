@@ -6,6 +6,20 @@ import 'package:trip_mate_mobile/features/trip_history/domain/entities/canonical
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/reviewable_record_ref.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/canonical_trip_review_repository.dart';
 
+const _commerceBookingStatuses = {
+  'PendingPayment',
+  'Confirmed',
+  'Cancelled',
+  'Completed',
+  'Expired',
+};
+const _serviceBookingStatuses = {
+  'Pending',
+  'Confirmed',
+  'Cancelled',
+  'Completed',
+};
+
 final class CanonicalTripReviewRepositoryImpl
     implements CanonicalTripReviewRepository {
   const CanonicalTripReviewRepositoryImpl(this._client);
@@ -98,11 +112,15 @@ final class CanonicalTripReviewRepositoryImpl
     final bookingReference = summary?['bookingReference'];
     final canSubmit = json['canSubmit'];
     final editableFields = json['editableFields'];
+    final validBookingStatuses =
+        ref.kind == ReviewableRecordKind.commerceBooking
+        ? _commerceBookingStatuses
+        : _serviceBookingStatuses;
     if (summary == null ||
         departure is! String ||
         DateTime.tryParse(departure) == null ||
         bookingStatus is! String ||
-        bookingStatus.isEmpty ||
+        !validBookingStatuses.contains(bookingStatus) ||
         existingReviewKind is! String ||
         !const {'none', 'new', 'legacy'}.contains(existingReviewKind) ||
         name is! String ||
@@ -154,7 +172,7 @@ final class CanonicalTripReviewRepositoryImpl
         content is! String ||
         content.isEmpty ||
         publishDisplayName is! bool ||
-        publicationStatus != 'Published' ||
+        publicationStatus != 'published' ||
         createdAt is! String ||
         DateTime.tryParse(createdAt) == null ||
         editDeadline is! String ||
