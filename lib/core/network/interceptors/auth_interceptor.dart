@@ -25,11 +25,21 @@ final class AuthInterceptor extends Interceptor {
   /// One refresh serves every request that failed with the same expired token.
   Future<String?>? _pendingRefresh;
 
-  /// Auth endpoints run before a session exists; their 401 is a normal
+  /// Most endpoints under this prefix (login, register, refresh, password
+  /// reset, ...) run before a session exists; their 401 is a normal
   /// sign-in/recovery failure and must never trigger global invalidation.
   static const _authPathPrefix = '/api/v1/auth/';
   static const _refreshPath = '/api/v1/auth/refresh';
   static const _retriedKey = 'authRetriedAfterRefresh';
+
+  /// UC-07: the one Bearer-carrying, already-authenticated exception to
+  /// [_authPathPrefix] — its 401 means the session credential itself was
+  /// rejected and must invalidate the session exactly like any other
+  /// authenticated endpoint (spec §5/§6).
+  static const _authenticatedAuthPaths = {
+    '/api/v1/auth/change-password',
+    '/api/v1/auth/web/change-password',
+  };
 
   @override
   Future<void> onRequest(
@@ -75,9 +85,12 @@ final class AuthInterceptor extends Interceptor {
         authorization != null &&
         authorization.startsWith('Bearer ') &&
         authorization.substring(7).trim().isNotEmpty;
-    if (status != 401 ||
-        !hasBearer ||
-        options.path.startsWith(_authPathPrefix)) {
+    final path = options.path;
+    final isExcludedAuthPath =
+        path.startsWith(_authPathPrefix) &&
+        !_authenticatedAuthPaths.contains(path);
+
+    if (status != 401 || !hasBearer || isExcludedAuthPath) {
       handler.next(err);
       return;
     }

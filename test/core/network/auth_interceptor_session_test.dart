@@ -91,6 +91,16 @@ void main() {
     },
   );
 
+  test(
+    'UC-07: 401 on the authenticated change-password endpoints still invalidates the session',
+    () async {
+      await driveError('/api/v1/auth/change-password', 401, bearer: true);
+      expect(invalidated, 1);
+      await driveError('/api/v1/auth/web/change-password', 401, bearer: true);
+      expect(invalidated, 2);
+    },
+  );
+
   test('403 never invalidates the session', () async {
     await driveError('/api/v1/travel-groups', 403);
     expect(invalidated, 0);

@@ -7,6 +7,8 @@ import 'package:trip_mate_mobile/app/router/create_travel_group_route_args.dart'
 import 'package:trip_mate_mobile/app/router/route_guards.dart';
 import 'package:trip_mate_mobile/app/router/travel_group_details_route_args.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/features/auth/change_password/presentation/cubit/change_password_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/change_password/presentation/pages/change_password_page.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/cubit/password_recovery_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/pages/password_recovery_page.dart';
@@ -180,6 +182,14 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         builder: (_, _) => BlocProvider(
           create: (_) => TravelPreferencesCubit(),
           child: const TravelPreferencesPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.travelerChangePassword,
+        name: AppRouteNames.travelerChangePassword,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<ChangePasswordCubit>(),
+          child: const ChangePasswordPage(),
         ),
       ),
       GoRoute(
@@ -500,6 +510,14 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         builder: (_, _) => BlocProvider(
           create: (_) => serviceLocator<CreateCouponCubit>(),
           child: const CreateCouponPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.operatorChangePassword,
+        name: AppRouteNames.operatorChangePassword,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<ChangePasswordCubit>(),
+          child: const ChangePasswordPage(),
         ),
       ),
       GoRoute(
