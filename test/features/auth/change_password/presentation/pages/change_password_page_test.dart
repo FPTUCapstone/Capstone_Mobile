@@ -4,12 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/core/constants/app_constants.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/auth/change_password/domain/repositories/change_password_repository.dart';
 import 'package:trip_mate_mobile/features/auth/change_password/presentation/cubit/change_password_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/change_password/presentation/pages/change_password_page.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/auth_session.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 
 void main() {
@@ -148,6 +151,87 @@ void main() {
     },
   );
 
+  testWidgets(
+    'a direct navigation with no back stack falls back to Traveler Settings on success',
+    (tester) async {
+      final repository = _FakeRepository(
+        session: const AuthSession(
+          userId: 1,
+          status: 'Active',
+          accessToken: 'new-access',
+          refreshToken: 'new-refresh',
+          role: 'Traveler',
+        ),
+      );
+      final changePasswordCubit = ChangePasswordCubit(
+        repository,
+        _FakeSecureStorage(),
+      );
+      addTearDown(changePasswordCubit.close);
+
+      final sessionStorage = _FakeSecureStorage(
+        seed: {
+          AppConstants.keepSignedInKey: 'true',
+          AppConstants.accessTokenKey: 'existing-access',
+          AppConstants.refreshTokenKey: 'existing-refresh',
+          AppConstants.sessionRoleKey: 'traveler',
+        },
+      );
+      final authSessionCubit = AuthSessionCubit(null, sessionStorage);
+      await authSessionCubit.restoreSession();
+      addTearDown(authSessionCubit.close);
+
+      final router = GoRouter(
+        initialLocation: AppRoutes.travelerChangePassword,
+        routes: [
+          GoRoute(
+            path: AppRoutes.travelerChangePassword,
+            builder: (_, _) => BlocProvider<ChangePasswordCubit>.value(
+              value: changePasswordCubit,
+              child: const ChangePasswordPage(),
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.travelerSettings,
+            builder: (_, _) => const Scaffold(body: Text('Traveler Settings')),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<AuthSessionCubit>.value(value: authSessionCubit),
+          ],
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Current password'),
+        'CurrentPass1!',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'New password'),
+        'NewPass2@aaaa',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Confirm new password'),
+        'NewPass2@aaaa',
+      );
+      await tester.tap(find.widgetWithText(AppButton, 'Change password'));
+      await tester.pumpAndSettle();
+
+      // There was no back stack (this route was the initial location); the
+      // page must fall back to the Traveler Settings destination rather than
+      // stranding the user on Change Password.
+      expect(find.text('Traveler Settings'), findsOneWidget);
+      expect(find.byType(ChangePasswordPage), findsNothing);
+    },
+  );
+
   testWidgets('targets Current Password for an incorrect-password failure', (
     tester,
   ) async {
@@ -188,17 +272,25 @@ Widget _testApp(ChangePasswordCubit cubit) {
 }
 
 final class _FakeSecureStorage implements SecureStorageService {
-  @override
-  Future<void> delete(String key) async {}
+  _FakeSecureStorage({Map<String, String>? seed}) : _values = {...?seed};
+
+  final Map<String, String> _values;
 
   @override
-  Future<void> deleteAll() async {}
+  Future<void> delete(String key) async {
+    _values.remove(key);
+  }
 
   @override
-  Future<String?> read(String key) async => null;
+  Future<void> deleteAll() async => _values.clear();
 
   @override
-  Future<void> write(String key, String value) async {}
+  Future<String?> read(String key) async => _values[key];
+
+  @override
+  Future<void> write(String key, String value) async {
+    _values[key] = value;
+  }
 }
 
 final class _FakeRepository implements ChangePasswordRepository {

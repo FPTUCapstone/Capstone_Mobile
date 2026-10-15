@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/utils/validators.dart';
 import 'package:trip_mate_mobile/features/auth/change_password/presentation/cubit/change_password_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/change_password/presentation/cubit/change_password_state.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
@@ -53,8 +56,18 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
           );
           // Returns to whichever account/settings page pushed this route
           // (Traveler Settings or the Tour Operator Profile tab) — spec §3/§8.
+          // A direct/deep-link open of this route has no back stack to pop:
+          // fall back to the role-appropriate settings/profile destination so
+          // the user is never stranded on the Change Password screen.
           if (context.canPop()) {
             context.pop();
+          } else {
+            final role = context.read<AuthSessionCubit>().state.role;
+            context.go(
+              role == UserRole.tourOperator
+                  ? AppRoutes.operator
+                  : AppRoutes.travelerSettings,
+            );
           }
         }
       },
