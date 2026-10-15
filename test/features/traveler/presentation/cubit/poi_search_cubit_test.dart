@@ -4,6 +4,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:trip_mate_mobile/core/location/device_location_service.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_poi.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_poi_search_result.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
@@ -177,6 +178,27 @@ void main() {
   });
 
   test(
+    'searching around a place without a radius reaches the 100 km planning limit',
+    () async {
+      final repository = _PoiRepository();
+      final cubit = PoiSearchCubit(
+        locationService: _LocationService(),
+        repository: repository,
+      );
+
+      await cubit.search(
+        query: 'Hue',
+        near: const DeviceLocation(latitude: 16.0544, longitude: 108.2022),
+      );
+
+      expect(repository.lastRadiusKm, maxSearchRadiusKm);
+      expect(maxSearchRadiusKm, 100);
+      expect(cubit.state.scope?.radiusKm, 100);
+      await cubit.close();
+    },
+  );
+
+  test(
     'appends the next POI page without replacing the current results',
     () async {
       final repository = _PagedPoiRepository();
@@ -244,6 +266,8 @@ final class _ControlledLocationService implements DeviceLocationService {
 }
 
 final class _PoiRepository implements PointOfInterestRepository {
+  int? lastRadiusKm;
+
   @override
   Future<SelectablePoiSearchResult> search({
     double? latitude,
@@ -252,20 +276,23 @@ final class _PoiRepository implements PointOfInterestRepository {
     String? query,
     int page = 1,
     int pageSize = 50,
-  }) async => const SelectablePoiSearchResult(
-    items: [
-      SelectablePoi(
-        id: 1,
-        name: 'Cham Museum',
-        latitude: 16.0,
-        longitude: 108.2,
-        averageVisitDurationMinutes: 90,
-        openingHoursKnown: true,
-        hasShelter: true,
-      ),
-    ],
-    totalCount: 1,
-  );
+  }) async {
+    lastRadiusKm = radiusKm;
+    return const SelectablePoiSearchResult(
+      items: [
+        SelectablePoi(
+          id: 1,
+          name: 'Cham Museum',
+          latitude: 16.0,
+          longitude: 108.2,
+          averageVisitDurationMinutes: 90,
+          openingHoursKnown: true,
+          hasShelter: true,
+        ),
+      ],
+      totalCount: 1,
+    );
+  }
 }
 
 final class _ControlledPoiRepository implements PointOfInterestRepository {

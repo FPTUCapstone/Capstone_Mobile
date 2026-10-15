@@ -83,4 +83,30 @@ void main() {
       throwsFormatException,
     );
   });
+
+  test('reads whether the trip is being navigated, defaulting to false', () {
+    Map<String, dynamic> json([Object? flag]) => {
+      'itineraryId': 10,
+      'schedulingRequestId': 20,
+      'title': null,
+      'version': 1,
+      'status': 'Active',
+      'validFrom': null,
+      'validTo': null,
+      'canManage': true,
+      'totalEstimatedCost': 0,
+      'totalDurationMinutes': 60,
+      'items': <Object>[],
+      'isNavigationInProgress': ?flag,
+    };
+
+    expect(
+      ItineraryDetailModel.fromJson(json(true)).toEntity().canEdit,
+      isFalse,
+    );
+    expect(
+      ItineraryDetailModel.fromJson(json()).toEntity().isNavigationInProgress,
+      isFalse,
+    );
+  });
 }

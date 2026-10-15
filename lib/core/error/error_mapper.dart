@@ -74,6 +74,11 @@ abstract final class ErrorMapper {
           'A selected tour is not approved for coupons. Refresh and choose another tour.',
         );
       }
+      if (errorCode == 'itinerary.no_alternative') {
+        return const ConstraintFailure(
+          'No other places fit this trip\'s time, area and budget. Your current itinerary is already the best option.',
+        );
+      }
       if (errorCode == 'planning.constraints_infeasible' ||
           errorCode == 'itinerary.constraints_infeasible') {
         final message = _extractSafePlanningMessage(data);
