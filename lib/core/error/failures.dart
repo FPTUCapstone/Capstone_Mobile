@@ -43,6 +43,22 @@ final class InvalidResetCredentialFailure extends Failure {
   ]);
 }
 
+/// UC-07: the submitted current password does not match the stored hash
+/// (Backend MSG17).
+final class IncorrectCurrentPasswordFailure extends Failure {
+  const IncorrectCurrentPasswordFailure([
+    super.message = 'Current password does not match our records.',
+  ]);
+}
+
+/// UC-07: the authenticated account has no local password to change
+/// (Google-only account; Backend 403 auth.local_password_unavailable).
+final class LocalPasswordUnavailableFailure extends Failure {
+  const LocalPasswordUnavailableFailure([
+    super.message = 'A local password is not available for this account.',
+  ]);
+}
+
 final class PermissionFailure extends Failure {
   const PermissionFailure([
     super.message = 'You do not have permission to access this function.',

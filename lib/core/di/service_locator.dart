@@ -12,6 +12,10 @@ import 'package:trip_mate_mobile/core/network/network_info.dart';
 import 'package:trip_mate_mobile/core/network/session_coordinator.dart';
 import 'package:trip_mate_mobile/core/storage/preferences_service.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
+import 'package:trip_mate_mobile/features/auth/change_password/data/datasources/change_password_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/auth/change_password/data/repositories/change_password_repository_impl.dart';
+import 'package:trip_mate_mobile/features/auth/change_password/domain/repositories/change_password_repository.dart';
+import 'package:trip_mate_mobile/features/auth/change_password/presentation/cubit/change_password_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:trip_mate_mobile/features/auth/data/repositories/operator_application_repository_impl.dart';
@@ -207,6 +211,15 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerLazySingleton<PasswordRecoveryRepository>(
       () => PasswordRecoveryRepositoryImpl(serviceLocator()),
+    )
+    ..registerLazySingleton<ChangePasswordRemoteDataSource>(
+      () => ChangePasswordRemoteDataSourceImpl(serviceLocator()),
+    )
+    ..registerLazySingleton<ChangePasswordRepository>(
+      () => ChangePasswordRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<ChangePasswordCubit>(
+      () => ChangePasswordCubit(serviceLocator(), serviceLocator()),
     )
     ..registerLazySingleton<TravelGroupRepository>(
       () => TravelGroupRepositoryImpl(dioClient: serviceLocator()),

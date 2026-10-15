@@ -14,6 +14,7 @@ abstract final class AppRoutes {
   static const travelerSettings = '/traveler/settings';
   static const travelerProfile = '/traveler/profile';
   static const travelerPreferences = '/traveler/preferences';
+  static const travelerChangePassword = '/traveler/change-password';
   static const createItinerary = '/traveler/itineraries/create';
   static const itineraryResult = '/traveler/itineraries/result';
   static const itineraryDetail = '/traveler/itineraries/:itineraryId';
@@ -35,6 +36,7 @@ abstract final class AppRoutes {
   static const operatorApplication = '/operator/application';
   static const operatorApplicationResubmit = '/operator/application/resubmit';
   static const createCoupon = '/operator/coupons/create';
+  static const operatorChangePassword = '/operator/change-password';
 
   static String itineraryDetailPath(int itineraryId) =>
       '/traveler/itineraries/$itineraryId';
@@ -74,6 +76,7 @@ abstract final class AppRouteNames {
   static const travelerSettings = 'traveler-settings';
   static const travelerProfile = 'traveler-profile';
   static const travelerPreferences = 'traveler-preferences';
+  static const travelerChangePassword = 'traveler-change-password';
   static const createItinerary = 'create-itinerary';
   static const itineraryResult = 'itinerary-result';
   static const itineraryDetail = 'itinerary-detail';
@@ -92,4 +95,5 @@ abstract final class AppRouteNames {
   static const operatorApplication = 'operator-application';
   static const operatorApplicationResubmit = 'operator-application-resubmit';
   static const createCoupon = 'create-coupon';
+  static const operatorChangePassword = 'operator-change-password';
 }
