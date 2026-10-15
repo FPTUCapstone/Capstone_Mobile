@@ -60,9 +60,12 @@ import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_s
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_shell_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/trip_alerts_page.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/entities/reviewable_record_ref.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/repositories/canonical_trip_review_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/pages/canonical_trip_review_page.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_history_page.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_review_page.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
@@ -451,6 +454,26 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
                   ? DemoTripHistoryStore.demoTravelerId
                   : null,
             ),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.canonicalTripReviewPattern,
+        builder: (_, state) {
+          final kind = switch (state.pathParameters['kind']) {
+            'commerceBooking' => ReviewableRecordKind.commerceBooking,
+            'serviceBooking' => ReviewableRecordKind.serviceBooking,
+            _ => null,
+          };
+          final id = int.tryParse(state.pathParameters['id'] ?? '');
+          if (kind == null || id == null || id <= 0) {
+            return const Scaffold(
+              body: ErrorView(message: 'Review information is unavailable.'),
+            );
+          }
+          return CanonicalTripReviewPage(
+            reference: ReviewableRecordRef(kind: kind, id: id),
+            repository: serviceLocator<CanonicalTripReviewRepository>(),
           );
         },
       ),

@@ -63,8 +63,10 @@ import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/repositories/canonical_trip_review_repository_impl.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_history_repository_impl.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_review_repository_impl.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/repositories/canonical_trip_review_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_history_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_review_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
@@ -227,6 +229,9 @@ Future<void> configureDependencies({AppConfig? config}) async {
       () => PasswordRecoveryCubit(serviceLocator()),
     )
     ..registerLazySingleton<DemoTripHistoryStore>(DemoTripHistoryStore.new)
+    ..registerLazySingleton<CanonicalTripReviewRepository>(
+      () => CanonicalTripReviewRepositoryImpl(serviceLocator()),
+    )
     ..registerFactoryParam<TripHistoryRepository, bool, void>(
       (isDemoMode, _) => TripHistoryRepositoryImpl(
         demoStore: isDemoMode ? serviceLocator<DemoTripHistoryStore>() : null,
