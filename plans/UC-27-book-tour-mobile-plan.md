@@ -22,19 +22,58 @@ The Backend is assumed to provide:
 
 ---
 
-## 2. Preconditions
+## 2. Preconditions — BLOCKERS MUST BE RESOLVED FIRST
 
-1. **Confirm Backend API contract:**
-   - `POST /api/v1/traveler/tour-bookings` request/response fields (exact names, validation codes)
-   - Voucher application endpoint (separate? or inline?)
-   - Error codes for capacity, invalid participant, max concurrent bookings
+### ⚠️ CRITICAL BLOCKERS
 
-2. **Inspect existing structures:**
-   - Tour detail / schedule pages already exist (UC-26 search tours)?
-   - Participant form components available or need building?
-   - Date picker, phone input, email validation utilities in codebase?
+1. **[P1] Backend API Contract Not Confirmed**
+   - `POST /api/v1/traveler/tour-bookings/quote` endpoint (price preview)
+   - `POST /api/v1/traveler/tour-bookings` endpoint (create booking)
+   - Request/response field names (currently TBD)
+   - Error codes mapping to SRS messages (MSG65, MSG77, MSG78, MSG101, MSG102, MSG126, MSG127)
+   - **⚠️ DO NOT CODE until Backend confirms.**
 
-3. **Run baseline:**
+2. **[P1] Domain Model Separation**
+   - Current plan: `TourBooking` mixes **input** (participant details) with **server-computed response** (bookingId, status, total, expiry)
+   - **Fix required:** Separate into:
+     - `BookingDraft` (domain entity for form input: tourScheduleId, participants, contactInfo, voucherCode)
+     - `TourBooking` (response entity from server: bookingId, bookingCode, status, total, expiry, appliedVoucher)
+   - This prevents client from ever submitting or trusting client-computed amounts (BR-63).
+
+3. **[P1] Price Computation BR-63 Violation**
+   - Current plan: Cubit computes `subtotal = participants × schedulePrice`, `total = subtotal - discount`
+   - **SRS BR-63:** Backend computes unit price, discount, total; **client never computes or trusts client values.**
+   - **Fix required:** Add API call to `POST /api/v1/traveler/tour-bookings/quote` whenever participants or voucher changes, receive server-computed amounts (read-only display only).
+   - Cubit stores `quoteResponse` with total/discount, never computes them.
+
+4. **[P1] Missing Idempotency-Key**
+   - Booking creation holds slots and creates payment obligation (critical operation).
+   - Network retry or app relaunch could create duplicate bookings.
+   - **Fix required:** Generate UUID on form load (`Idempotency-Key` header), reuse on all retry attempts.
+   - Disable [Confirm] button, show "Creating booking..." while in flight.
+
+### Important (P2)
+
+5. **[P2] 401 Session Handling**
+   - Plan incorrectly says "Cubit emits `requiresSignIn`" like UC-09 old code.
+   - **Actual pattern in UC-09 now:** `AuthInterceptor` + `SessionCoordinator` refresh token once; if fails, sign out.
+   - **Fix required:** Don't handle 401 in Cubit—let `AuthInterceptor` do it. Cubit receives `AuthenticationFailure` only on actual failure after refresh, which triggers sign-out via `AuthSessionCubit`.
+
+6. **[P2] Error Code / Message Alignment**
+   - Spec lists made-up codes (`TOUR_BOOKING.CAPACITY_INSUFFICIENT`); Backend will use different codes.
+   - **Fix required:** After Backend API confirmed, map Backend codes → SRS message keys (MSG65, MSG77, etc.) → localized strings.
+
+7. **[P2] Language (English, not Vietnamese)**
+   - Spec incorrectly says "Form labels in Vietnamese"; system UI is all English.
+   - **Fix required:** All UI strings in English (follow existing codebase pattern; app has no i18n).
+
+### Prerequisites (if not already done)
+
+- Confirm tour detail/schedule pages exist and can pass `tourScheduleId` to booking flow
+- Verify Idempotency-Key header is not already present (some HTTP clients add it automatically)
+- Check existing `AuthInterceptor` pattern in `DioClient`
+
+### Baseline (safe to run now)
 
 ```powershell
 flutter pub get
@@ -43,20 +82,35 @@ flutter analyze
 flutter test
 ```
 
+**⚠️ DO NOT START TASK 1 UNTIL BLOCKERS 1–4 ARE RESOLVED AND CONFIRMED WITH BACKEND.**
+
 ---
 
 ## 3. Task 1 — Domain Models & Repository
 
 **Files:**
-- `lib/features/traveler/domain/entities/tour_booking.dart`
+- `lib/features/traveler/domain/entities/booking_draft.dart` (form input)
+  - tourScheduleId, numberOfParticipants, participants, contactInfo, voucherCode
+  - **Never contains:** bookingId, status, total, expiry (those come from server only)
+- `lib/features/traveler/domain/entities/tour_booking.dart` (server response)
+  - bookingId, bookingCode, status, total, subtotal, discount, appliedVoucher, paymentExpiryTime
+  - **Read-only; parsed from server response only**
 - `lib/features/traveler/domain/entities/tour_participant.dart`
+  - fullName, dateOfBirth, identityDocumentNumber, phoneNumber
 - `lib/features/traveler/domain/entities/contact_info.dart`
+  - fullName, email, phoneNumber
+- `lib/features/traveler/domain/entities/booking_quote.dart`
+  - subtotal, discount, total, currency (VND) — **returned by quote API only**
 - `lib/features/traveler/domain/repositories/tour_booking_repository.dart`
+  - `quoteBooking(tourScheduleId, count, voucherCode) → Future<BookingQuote>` (per BR-63)
+  - `createBooking(BookingDraft, idempotencyKey) → Future<TourBooking>`
 
 **RED tests:**
-- `TourBooking`, `TourParticipant`, `ContactInfo` with equality, copyWith
-- Repository interface: `createBooking(TourBooking) → Future<TourBooking>`
-- Fields round-trip correctly (dates, phone, amounts)
+- `BookingDraft`, `TourBooking`, `TourParticipant`, `ContactInfo`, `BookingQuote` with equality, copyWith
+- Separation: BookingDraft has **no** status/bookingId/total; TourBooking has **no** participant detail fields
+- Repository quote method returns read-only quote
+- Repository create method accepts draft + UUID, returns booking
+- Fields round-trip correctly (dates, phone, amounts VND)
 
 **Implement:** Plain entities, no JSON knowledge; repository interface only.
 
