@@ -33,6 +33,8 @@ void main() {
     expect(find.text('Công viên hoa thử nghiệm TM-98'), findsOneWidget);
     expect(find.text('08:00 – 17:00'), findsOneWidget);
     expect(find.text('Đóng cửa'), findsWidgets);
+    // Unknown price: never "free".
+    expect(find.text('Chưa có thông tin'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

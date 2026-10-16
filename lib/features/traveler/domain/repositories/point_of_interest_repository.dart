@@ -8,5 +8,8 @@ abstract interface class PointOfInterestRepository {
     String? query,
     int page = 1,
     int pageSize = 50,
+
+    /// Leaves `Food & Drink` places out (must-see places cannot be restaurants).
+    bool excludeFoodAndDrink = false,
   });
 }

@@ -71,10 +71,8 @@ class _ActiveTripPageState extends State<ActiveTripPage> {
   ActiveTripCubit? _ownedCubit;
 
   late final bool _useMapbox =
-      widget.useMapbox ?? (_locate<AppConfig>()?.mapboxAccessToken != null);
-
-  static T? _locate<T extends Object>() =>
-      serviceLocator.isRegistered<T>() ? serviceLocator<T>() : null;
+      widget.useMapbox ??
+      (locateOptional<AppConfig>()?.mapboxAccessToken != null);
 
   @override
   void initState() {
@@ -97,7 +95,7 @@ class _ActiveTripPageState extends State<ActiveTripPage> {
       _metadataError = null;
     });
     try {
-      final repo = widget.repository ?? _locate<ItineraryRepository>();
+      final repo = widget.repository ?? locateOptional<ItineraryRepository>();
       if (repo == null) {
         throw const FormatException('Itinerary service unavailable.');
       }
@@ -121,7 +119,7 @@ class _ActiveTripPageState extends State<ActiveTripPage> {
         widget.sessionRepository ??
         (widget.isDemoMode
             ? DemoNavigationSessionRepository()
-            : _locate<NavigationSessionRepository>());
+            : locateOptional<NavigationSessionRepository>());
     if (sessionRepository == null) return null;
     return ActiveTripCubit(
       itineraryId: widget.itineraryId,
@@ -129,15 +127,19 @@ class _ActiveTripPageState extends State<ActiveTripPage> {
       sessionRepository: sessionRepository,
       locationTracker:
           widget.locationTracker ??
-          (widget.isDemoMode ? null : _locate<NavigationLocationTracker>()),
+          (widget.isDemoMode
+              ? null
+              : locateOptional<NavigationLocationTracker>()),
       directionsRepository:
           widget.directionsRepository ??
-          (widget.isDemoMode ? null : _locate<RouteDirectionsRepository>()),
+          (widget.isDemoMode
+              ? null
+              : locateOptional<RouteDirectionsRepository>()),
       itineraryRepository: widget.isDemoMode
           ? null
-          : (widget.repository ?? _locate<ItineraryRepository>()),
+          : (widget.repository ?? locateOptional<ItineraryRepository>()),
       isDemoMode: widget.isDemoMode,
-      networkInfo: widget.isDemoMode ? null : _locate<NetworkInfo>(),
+      networkInfo: widget.isDemoMode ? null : locateOptional<NetworkInfo>(),
     )..start();
   }
 

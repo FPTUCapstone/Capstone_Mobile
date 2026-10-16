@@ -19,6 +19,7 @@ final class PointOfInterestRepositoryImpl implements PointOfInterestRepository {
     String? query,
     int page = 1,
     int pageSize = 50,
+    bool excludeFoodAndDrink = false,
   }) async {
     if (page < 1 || pageSize < 1) {
       throw const FormatException('POI search page values must be positive.');
@@ -44,6 +45,7 @@ final class PointOfInterestRepositoryImpl implements PointOfInterestRepository {
             'radiusKm': radiusKm,
           },
           if (query != null && query.trim().isNotEmpty) 'query': query.trim(),
+          if (excludeFoodAndDrink) 'excludeFoodAndDrink': true,
         },
       );
       final data = response.data;

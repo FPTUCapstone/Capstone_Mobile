@@ -8,6 +8,7 @@ import 'package:trip_mate_mobile/core/location/device_location_service.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/address_suggestion.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_stop.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_poi.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_poi_search_result.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/address_search_repository.dart';
@@ -132,6 +133,68 @@ void main() {
     expect(slider.divisions, 99);
     expect(find.text('Search radius'), findsOneWidget);
     expect(find.text('Budget (VND, optional)'), findsOneWidget);
+  });
+
+  testWidgets('warns when the search radius is above 30 km', (tester) async {
+    await tester.pumpWidget(buildPage());
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Search radius'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('wide_radius_warning')), findsNothing);
+    tester.widget<Slider>(find.byType(Slider)).onChanged!(30);
+    await tester.pump();
+    expect(find.byKey(const Key('wide_radius_warning')), findsNothing);
+
+    tester.widget<Slider>(find.byType(Slider)).onChanged!(31);
+    await tester.pump();
+    expect(find.byKey(const Key('wide_radius_warning')), findsOneWidget);
+  });
+
+  testWidgets('must-see picker leaves restaurants out, end picker does not', (
+    tester,
+  ) async {
+    final repository = _RecordingPoiRepository();
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (_) =>
+                CreateItineraryCubit(repository: _ItineraryRepository()),
+          ),
+          BlocProvider(
+            create: (_) => PoiSearchCubit(
+              locationService: _LocationService(),
+              repository: repository,
+            ),
+          ),
+        ],
+        child: const MaterialApp(home: CreateItineraryPage()),
+      ),
+    );
+    await tester.tap(find.text('Use current location'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Add a must-see place'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add a must-see place'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Search places'),
+      'Museum',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+
+    expect(repository.excludeFoodAndDrink, [true]);
   });
 
   testWidgets('generate button is always visible as the footer', (
@@ -580,9 +643,9 @@ final class _ItineraryRepository implements ItineraryRepository {
   }) => throw UnimplementedError();
 
   @override
-  Future<ItineraryDetail> adjustItems({
+  Future<ItineraryDetail> updateStops({
     required int itineraryId,
-    required List<int> orderedVisitPoiIds,
+    required List<ItineraryStop> stops,
     required String idempotencyKey,
   }) => throw UnimplementedError();
 }
@@ -612,9 +675,9 @@ final class _DeferredItineraryRepository implements ItineraryRepository {
   }) => throw UnimplementedError();
 
   @override
-  Future<ItineraryDetail> adjustItems({
+  Future<ItineraryDetail> updateStops({
     required int itineraryId,
-    required List<int> orderedVisitPoiIds,
+    required List<ItineraryStop> stops,
     required String idempotencyKey,
   }) => throw UnimplementedError();
 }
@@ -656,7 +719,26 @@ final class _PoiRepository implements PointOfInterestRepository {
     String? query,
     int page = 1,
     int pageSize = 50,
+    bool excludeFoodAndDrink = false,
   }) async => const SelectablePoiSearchResult(items: [], totalCount: 0);
+}
+
+final class _RecordingPoiRepository implements PointOfInterestRepository {
+  final excludeFoodAndDrink = <bool>[];
+
+  @override
+  Future<SelectablePoiSearchResult> search({
+    double? latitude,
+    double? longitude,
+    int? radiusKm,
+    String? query,
+    int page = 1,
+    int pageSize = 50,
+    bool excludeFoodAndDrink = false,
+  }) async {
+    this.excludeFoodAndDrink.add(excludeFoodAndDrink);
+    return const SelectablePoiSearchResult(items: [], totalCount: 0);
+  }
 }
 
 final class _SinglePoiRepository implements PointOfInterestRepository {
@@ -668,6 +750,7 @@ final class _SinglePoiRepository implements PointOfInterestRepository {
     String? query,
     int page = 1,
     int pageSize = 50,
+    bool excludeFoodAndDrink = false,
   }) async => const SelectablePoiSearchResult(
     items: [
       SelectablePoi(
@@ -693,6 +776,7 @@ final class _ScopedPoiRepository implements PointOfInterestRepository {
     String? query,
     int page = 1,
     int pageSize = 50,
+    bool excludeFoodAndDrink = false,
   }) async {
     if (latitude == null && longitude == null) {
       return const SelectablePoiSearchResult(

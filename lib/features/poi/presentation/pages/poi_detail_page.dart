@@ -8,6 +8,7 @@ import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_stat
 import 'package:trip_mate_mobile/features/poi/presentation/theme/poi_palette.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/widgets/poi_image.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/widgets/poi_status_and_rating.dart';
+import 'package:trip_mate_mobile/shared/formatters/visit_price_format.dart';
 
 class PoiDetailPage extends StatelessWidget {
   const PoiDetailPage({super.key});
@@ -129,6 +130,14 @@ class _PoiDetailContent extends StatelessWidget {
                         const SizedBox(height: 16),
                         _IconText(icon: Icons.place_outlined, text: address),
                       ],
+                      const SizedBox(height: 8),
+                      _IconText(
+                        icon: Icons.payments_outlined,
+                        text: visitPriceLabel(
+                          detail.estimatedVisitCost,
+                          detail.costKind,
+                        ),
+                      ),
                       const SizedBox(height: 20),
                       _SectionCard(
                         title: 'Đặc tính tham quan',

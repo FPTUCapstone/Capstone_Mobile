@@ -83,6 +83,25 @@ void main() {
       );
     });
 
+    test('reads each stop\'s leg mode and tolerates older payloads', () {
+      final json = navigationSessionJson();
+      final items = json['items'] as List;
+      (items[0] as Map)['transportModeFromPrevious'] = null;
+      (items[1] as Map)['transportModeFromPrevious'] = 'Walking';
+
+      final session = NavigationSessionModel.fromJson(json);
+      final older = NavigationSessionModel.fromJson(navigationSessionJson());
+
+      expect(session.items.map((item) => item.transportModeFromPrevious), [
+        null,
+        TransportMode.walking,
+      ]);
+      expect(
+        older.items.map((item) => item.transportModeFromPrevious),
+        everyElement(isNull),
+      );
+    });
+
     test('walking trips route on foot, road modes by road', () {
       expect(
         MapboxDirectionsRepositoryImpl.profileFor(TransportMode.walking),

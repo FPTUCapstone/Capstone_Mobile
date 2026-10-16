@@ -69,6 +69,7 @@ import 'package:trip_mate_mobile/features/tour_search/domain/repositories/tour_s
 import 'package:trip_mate_mobile/features/tour_search/domain/usecases/search_tours_use_case.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/data/datasources/travel_preferences_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/traveler/data/repositories/external_review_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/itinerary_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/mapbox_directions_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/mapbox_search_box_repository_impl.dart';
@@ -78,8 +79,10 @@ import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_grou
 import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_preferences_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/services/geolocator_navigation_location_tracker.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/address_search_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/external_review_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_list_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_suggestion_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigation_session_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/route_directions_repository.dart';
@@ -104,6 +107,11 @@ import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_h
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
 
 final GetIt serviceLocator = GetIt.instance;
+
+/// The registered [T], or null when it is not registered (e.g. in widget
+/// tests or before configuration).
+T? locateOptional<T extends Object>() =>
+    serviceLocator.isRegistered<T>() ? serviceLocator<T>() : null;
 
 Future<void> configureDependencies({AppConfig? config}) async {
   if (serviceLocator.isRegistered<AppConfig>()) {
@@ -303,6 +311,12 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerLazySingleton<ItineraryListRepository>(
       () => ItineraryRepositoryImpl(dioClient: serviceLocator()),
+    )
+    ..registerLazySingleton<ItinerarySuggestionRepository>(
+      () => ItineraryRepositoryImpl(dioClient: serviceLocator()),
+    )
+    ..registerLazySingleton<ExternalReviewRepository>(
+      () => ExternalReviewRepositoryImpl(dioClient: serviceLocator()),
     )
     ..registerFactory<MyTripsCubit>(
       () => MyTripsCubit(repository: serviceLocator()),

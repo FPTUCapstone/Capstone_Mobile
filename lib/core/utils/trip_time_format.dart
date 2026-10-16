@@ -3,7 +3,8 @@
 /// so a time on a later day than the trip start carries its date.
 library;
 
-const _vietnamOffset = Duration(hours: 7);
+/// Vietnam is UTC+7 all year (no daylight saving).
+const vietnamOffset = Duration(hours: 7);
 const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const _months = [
   'Jan',
@@ -21,7 +22,7 @@ const _months = [
 ];
 
 /// Wall-clock Vietnam time of [value] (returned as a UTC-tagged value).
-DateTime tripLocalTime(DateTime value) => value.toUtc().add(_vietnamOffset);
+DateTime tripLocalTime(DateTime value) => value.toUtc().add(vietnamOffset);
 
 /// "HH:mm" in Vietnam time.
 String tripClock(DateTime value) {

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_stop.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_route.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/reroute_proposal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
@@ -636,15 +637,15 @@ final class _FakeItineraryRepository implements ItineraryRepository {
   Future<ItineraryDetail> accept(int itineraryId) => throw UnimplementedError();
 
   @override
-  Future<ItineraryDetail> adjustItems({
+  Future<ItineraryDetail> regenerate({
     required int itineraryId,
-    required List<int> orderedVisitPoiIds,
     required String idempotencyKey,
   }) => throw UnimplementedError();
 
   @override
-  Future<ItineraryDetail> regenerate({
+  Future<ItineraryDetail> updateStops({
     required int itineraryId,
+    required List<ItineraryStop> stops,
     required String idempotencyKey,
   }) => throw UnimplementedError();
 }

@@ -115,6 +115,41 @@ final class ConstraintFailure extends Failure {
   ]);
 }
 
+/// An itinerary edit was not saved because one stop would not fit
+/// (`itinerary.stop_infeasible`). [poiId] names the stop that breaks;
+/// [reason] is the backend reason (`ClosedAtArrival`, `ExceedsEndTime`,
+/// `ExceedsBudget`, `OutsideRadius`, `Inactive`, `NoOpeningHours`).
+final class StopInfeasibleFailure extends Failure {
+  const StopInfeasibleFailure({
+    this.poiId,
+    this.reason,
+    this.plannedArrival,
+    this.closesAt,
+    this.overflowMinutes,
+    this.overflowVnd,
+  }) : super('A selected location does not fit the itinerary.');
+
+  final int? poiId;
+  final String? reason;
+  final DateTime? plannedArrival;
+
+  /// "HH:mm" local closing time.
+  final String? closesAt;
+  final int? overflowMinutes;
+  final double? overflowVnd;
+
+  @override
+  List<Object?> get props => [
+    message,
+    poiId,
+    reason,
+    plannedArrival,
+    closesAt,
+    overflowMinutes,
+    overflowVnd,
+  ];
+}
+
 enum NavigationFailureReason {
   activeSessionExists,
   outsideTripWindow,
