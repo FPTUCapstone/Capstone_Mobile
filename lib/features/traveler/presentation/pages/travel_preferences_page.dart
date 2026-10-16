@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_state.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
@@ -20,6 +21,13 @@ class TravelPreferencesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocConsumer<TravelPreferencesCubit, TravelPreferencesState>(
       listener: (context, state) {
+        if (state.requiresSignIn) {
+          // A 401 means the locally persisted session is no longer usable.
+          // AuthSessionCubit clears it and the shared router guard returns the
+          // user to sign-in.
+          context.read<AuthSessionCubit>().signOut();
+          return;
+        }
         if (state.status == TravelPreferencesStatus.success) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Travel preferences saved.')),

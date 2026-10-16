@@ -41,6 +41,21 @@ void main() {
       expect(cubit.state.status, TravelPreferencesStatus.error);
     });
 
+    test(
+      'load() signals that the shared auth flow must sign out on 401',
+      () async {
+        final cubit = TravelPreferencesCubit(
+          _FakeRepository(getPreferencesError: const AuthenticationFailure()),
+        );
+        addTearDown(cubit.close);
+
+        await cubit.load();
+
+        expect(cubit.state.status, TravelPreferencesStatus.error);
+        expect(cubit.state.requiresSignIn, isTrue);
+      },
+    );
+
     test('toggleInterest blocks an 11th distinct selection', () async {
       final cubit = TravelPreferencesCubit(_FakeRepository());
       addTearDown(cubit.close);
@@ -149,6 +164,22 @@ void main() {
         expect(result, isFalse);
         expect(cubit.state.fieldErrors['foodPreferences'], isNotNull);
         expect(cubit.state.preferences.foodPreferences, ['Vegetarian']);
+      },
+    );
+
+    test(
+      'save() signals that the shared auth flow must sign out on 401',
+      () async {
+        final cubit = TravelPreferencesCubit(
+          _FakeRepository(updateError: const AuthenticationFailure()),
+        );
+        addTearDown(cubit.close);
+        await cubit.load();
+
+        final saved = await cubit.save();
+
+        expect(saved, isFalse);
+        expect(cubit.state.requiresSignIn, isTrue);
       },
     );
   });

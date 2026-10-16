@@ -13,27 +13,26 @@ final class TravelPreferencesDto {
   });
 
   factory TravelPreferencesDto.fromJson(Map<String, dynamic> json) {
-    final interests = json['interests'];
-    final foodPreferences = json['foodPreferences'];
-    if (interests is! List || foodPreferences is! List) {
+    const requiredKeys = [
+      'interests',
+      'preferredTransportMode',
+      'travelPace',
+      'riskTolerance',
+      'foodPreferences',
+      'updatedAtUtc',
+    ];
+    if (requiredKeys.any((key) => !json.containsKey(key))) {
       throw const FormatException('Invalid travel preferences response.');
     }
 
-    final updatedAtUtcRaw = json['updatedAtUtc'];
-    final updatedAtUtc = updatedAtUtcRaw is String
-        ? DateTime.tryParse(updatedAtUtcRaw)
-        : null;
+    final updatedAtUtc = _nullableDateTime(json['updatedAtUtc']);
 
     return TravelPreferencesDto(
-      interests: interests
-          .map((item) => item as String)
-          .toList(growable: false),
-      preferredTransportMode: json['preferredTransportMode'] as String?,
-      travelPace: json['travelPace'] as String?,
-      riskTolerance: json['riskTolerance'] as String?,
-      foodPreferences: foodPreferences
-          .map((item) => item as String)
-          .toList(growable: false),
+      interests: _stringList(json['interests']),
+      preferredTransportMode: _nullableString(json['preferredTransportMode']),
+      travelPace: _nullableString(json['travelPace']),
+      riskTolerance: _nullableString(json['riskTolerance']),
+      foodPreferences: _stringList(json['foodPreferences']),
       updatedAtUtc: updatedAtUtc,
     );
   }
@@ -44,4 +43,32 @@ final class TravelPreferencesDto {
   final String? riskTolerance;
   final List<String> foodPreferences;
   final DateTime? updatedAtUtc;
+}
+
+String? _nullableString(Object? value) {
+  if (value == null) return null;
+  if (value is! String || value.trim().isEmpty) {
+    throw const FormatException('Invalid travel preferences response.');
+  }
+  return value;
+}
+
+DateTime? _nullableDateTime(Object? value) {
+  if (value == null) return null;
+  if (value is! String) {
+    throw const FormatException('Invalid travel preferences response.');
+  }
+  final parsed = DateTime.tryParse(value);
+  if (parsed == null) {
+    throw const FormatException('Invalid travel preferences response.');
+  }
+  return parsed;
+}
+
+List<String> _stringList(Object? value) {
+  if (value is! List ||
+      value.any((item) => item is! String || item.trim().isEmpty)) {
+    throw const FormatException('Invalid travel preferences response.');
+  }
+  return value.cast<String>().toList(growable: false);
 }

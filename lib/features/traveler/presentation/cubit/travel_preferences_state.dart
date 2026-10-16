@@ -11,6 +11,7 @@ final class TravelPreferencesState extends Equatable {
     this.preferences = const TravelPreferences.empty(),
     this.errorMessage,
     this.fieldErrors = const <String, List<String>>{},
+    this.requiresSignIn = false,
   });
 
   final TravelPreferencesStatus status;
@@ -18,6 +19,10 @@ final class TravelPreferencesState extends Equatable {
   final TravelPreferences preferences;
   final String? errorMessage;
   final Map<String, List<String>> fieldErrors;
+
+  /// Signals that the API rejected the current credentials. The page owns the
+  /// auth side effect so this feature cubit stays independent from auth.
+  final bool requiresSignIn;
 
   bool get isLoading => status == TravelPreferencesStatus.loading;
   bool get isSaving => status == TravelPreferencesStatus.saving;
@@ -29,5 +34,6 @@ final class TravelPreferencesState extends Equatable {
     preferences,
     errorMessage,
     fieldErrors,
+    requiresSignIn,
   ];
 }
