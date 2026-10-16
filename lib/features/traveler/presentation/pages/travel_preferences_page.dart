@@ -115,7 +115,7 @@ class TravelPreferencesPage extends StatelessWidget {
                 children: state.options.interests
                     .map(
                       (option) => FilterChip(
-                        label: Text(option.key),
+                        label: Text(_label(option.key)),
                         selected: state.preferences.interests.contains(
                           option.key,
                         ),
