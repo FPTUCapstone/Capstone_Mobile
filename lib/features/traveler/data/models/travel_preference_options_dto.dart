@@ -4,7 +4,10 @@ final class InterestOptionDto {
   factory InterestOptionDto.fromJson(Map<String, dynamic> json) {
     final key = json['key'];
     final source = json['source'];
-    if (key is! String || source is! String) {
+    if (key is! String ||
+        key.trim().isEmpty ||
+        source is! String ||
+        (source != 'Category' && source != 'Tag')) {
       throw const FormatException('Invalid interest option.');
     }
     return InterestOptionDto(key: key, source: source);
@@ -33,9 +36,14 @@ final class TravelPreferenceOptionsDto {
 
     return TravelPreferenceOptionsDto(
       interests: interests
-          .map(
-            (item) => InterestOptionDto.fromJson(item as Map<String, dynamic>),
-          )
+          .map((item) {
+            if (item is! Map<String, dynamic>) {
+              throw const FormatException(
+                'Invalid preference options response.',
+              );
+            }
+            return InterestOptionDto.fromJson(item);
+          })
           .toList(growable: false),
       preferredTransportModes: _stringList(json['preferredTransportModes']),
       travelPaces: _stringList(json['travelPaces']),
@@ -55,5 +63,8 @@ List<String> _stringList(Object? value) {
   if (value is! List) {
     throw const FormatException('Invalid preference options response.');
   }
-  return value.map((item) => item as String).toList(growable: false);
+  if (value.any((item) => item is! String || item.trim().isEmpty)) {
+    throw const FormatException('Invalid preference options response.');
+  }
+  return value.cast<String>().toList(growable: false);
 }

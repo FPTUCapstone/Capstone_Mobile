@@ -33,12 +33,21 @@ final class TravelPreferencesCubit extends Cubit<TravelPreferencesState> {
           preferences: preferences,
         ),
       );
-    } catch (error) {
+    } on Failure catch (failure) {
       if (isClosed) return;
       emit(
         TravelPreferencesState(
           status: TravelPreferencesStatus.error,
-          errorMessage: _messageOf(error),
+          errorMessage: _messageOf(failure),
+          requiresSignIn: failure is AuthenticationFailure,
+        ),
+      );
+    } catch (_) {
+      if (isClosed) return;
+      emit(
+        const TravelPreferencesState(
+          status: TravelPreferencesStatus.error,
+          errorMessage: 'Something went wrong. Please try again later.',
         ),
       );
     }
@@ -114,6 +123,7 @@ final class TravelPreferencesCubit extends Cubit<TravelPreferencesState> {
           preferences: state.preferences,
           errorMessage: fieldErrors.isEmpty ? failure.message : null,
           fieldErrors: fieldErrors,
+          requiresSignIn: failure is AuthenticationFailure,
         ),
       );
       return false;
