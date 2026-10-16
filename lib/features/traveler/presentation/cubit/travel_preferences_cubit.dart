@@ -1,100 +1,201 @@
-import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:trip_mate_mobile/core/error/failures.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_preferences.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_preferences_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_state.dart';
 
-enum PreferredTransport { motorbike, car, walking, publicBus }
+/// UC-09: loads the Traveler's real options catalogue and saved preferences
+/// from the Backend, and saves the full five-field state. Replaces the
+/// previous in-memory demo (`.defaults()`/`reset()`/`autoApply`), which had
+/// no Backend integration at all.
+final class TravelPreferencesCubit extends Cubit<TravelPreferencesState> {
+  TravelPreferencesCubit(this._repository)
+    : super(const TravelPreferencesState());
 
-enum TravelPace { relaxed, balanced, packed }
+  static const noRestriction = 'NoRestriction';
 
-enum TravelInterest { beach, heritage, museum, localFood, nature, nightlife }
+  /// Mirrors `TravelerPreferenceKeys.MaxInterests` on the Backend; enforced
+  /// here only for early feedback — the Backend remains authoritative.
+  static const maxInterests = 10;
 
-enum FoodPreference { noRestriction, vegetarian, halal, noSeafood }
+  final TravelPreferencesRepository _repository;
 
-enum RiskTolerance { low, medium, high }
-
-final class TravelPreferencesState extends Equatable {
-  const TravelPreferencesState({
-    required this.autoApply,
-    required this.food,
-    required this.interests,
-    required this.pace,
-    required this.risk,
-    required this.transport,
-  });
-
-  const TravelPreferencesState.defaults()
-    : this(
-        autoApply: true,
-        food: FoodPreference.noRestriction,
-        interests: const {
-          TravelInterest.beach,
-          TravelInterest.heritage,
-          TravelInterest.localFood,
-        },
-        pace: TravelPace.balanced,
-        risk: RiskTolerance.medium,
-        transport: PreferredTransport.motorbike,
+  Future<void> load() async {
+    emit(const TravelPreferencesState());
+    try {
+      final options = await _repository.getOptions();
+      final preferences = await _repository.getPreferences();
+      if (isClosed) return;
+      emit(
+        TravelPreferencesState(
+          status: TravelPreferencesStatus.ready,
+          options: options,
+          preferences: preferences,
+        ),
       );
+    } catch (error) {
+      if (isClosed) return;
+      emit(
+        TravelPreferencesState(
+          status: TravelPreferencesStatus.error,
+          errorMessage: _messageOf(error),
+        ),
+      );
+    }
+  }
 
-  final bool autoApply;
-  final FoodPreference food;
-  final Set<TravelInterest> interests;
-  final TravelPace pace;
-  final RiskTolerance risk;
-  final PreferredTransport transport;
+  void toggleInterest(String key) {
+    if (state.isSaving) return;
+    final interests = Set<String>.of(state.preferences.interests);
+    if (!interests.remove(key)) {
+      if (interests.length >= maxInterests) {
+        _emitFieldError('interests', 'You can select up to 10 interests.');
+        return;
+      }
+      interests.add(key);
+    }
+    _applyPreferences(_withInterests(interests));
+  }
 
-  TravelPreferencesState copyWith({
-    bool? autoApply,
-    FoodPreference? food,
-    Set<TravelInterest>? interests,
-    TravelPace? pace,
-    RiskTolerance? risk,
-    PreferredTransport? transport,
-  }) {
-    return TravelPreferencesState(
-      autoApply: autoApply ?? this.autoApply,
-      food: food ?? this.food,
-      interests: Set.unmodifiable(interests ?? this.interests),
-      pace: pace ?? this.pace,
-      risk: risk ?? this.risk,
-      transport: transport ?? this.transport,
+  void toggleFoodPreference(String key) {
+    if (state.isSaving) return;
+    final current = Set<String>.of(state.preferences.foodPreferences);
+    if (current.remove(key)) {
+      _applyPreferences(_withFood(current));
+      return;
+    }
+    if (key == noRestriction) {
+      current.clear();
+    } else {
+      current.remove(noRestriction);
+    }
+    current.add(key);
+    _applyPreferences(_withFood(current));
+  }
+
+  void setPreferredTransportMode(String? value) =>
+      _applyPreferences(_withTransport(value));
+
+  void setTravelPace(String? value) => _applyPreferences(_withPace(value));
+
+  void setRiskTolerance(String? value) => _applyPreferences(_withRisk(value));
+
+  Future<bool> save() async {
+    if (isClosed || state.isSaving) return false;
+
+    emit(
+      TravelPreferencesState(
+        status: TravelPreferencesStatus.saving,
+        options: state.options,
+        preferences: state.preferences,
+      ),
+    );
+
+    try {
+      final saved = await _repository.updatePreferences(state.preferences);
+      if (isClosed) return false;
+      emit(
+        TravelPreferencesState(
+          status: TravelPreferencesStatus.success,
+          options: state.options,
+          preferences: saved,
+        ),
+      );
+      return true;
+    } on Failure catch (failure) {
+      if (isClosed) return false;
+      final fieldErrors = failure is ValidationFailure
+          ? failure.fieldErrors
+          : const <String, List<String>>{};
+      emit(
+        TravelPreferencesState(
+          status: TravelPreferencesStatus.ready,
+          options: state.options,
+          preferences: state.preferences,
+          errorMessage: fieldErrors.isEmpty ? failure.message : null,
+          fieldErrors: fieldErrors,
+        ),
+      );
+      return false;
+    } catch (_) {
+      if (isClosed) return false;
+      emit(
+        TravelPreferencesState(
+          status: TravelPreferencesStatus.ready,
+          options: state.options,
+          preferences: state.preferences,
+          errorMessage: 'Something went wrong. Please try again later.',
+        ),
+      );
+      return false;
+    }
+  }
+
+  void _emitFieldError(String field, String message) {
+    emit(
+      TravelPreferencesState(
+        status: state.status,
+        options: state.options,
+        preferences: state.preferences,
+        fieldErrors: {
+          ...state.fieldErrors,
+          field: [message],
+        },
+      ),
     );
   }
 
-  @override
-  List<Object?> get props => [
-    autoApply,
-    food,
-    ...interests.toList()..sort((a, b) => a.index.compareTo(b.index)),
-    pace,
-    risk,
-    transport,
-  ];
-}
-
-final class TravelPreferencesCubit extends Cubit<TravelPreferencesState> {
-  TravelPreferencesCubit() : super(const TravelPreferencesState.defaults());
-
-  void reset() => emit(const TravelPreferencesState.defaults());
-
-  void setAutoApply({required bool value}) {
-    emit(state.copyWith(autoApply: value));
+  void _applyPreferences(TravelPreferences preferences) {
+    emit(
+      TravelPreferencesState(
+        status: state.status,
+        options: state.options,
+        preferences: preferences,
+      ),
+    );
   }
 
-  void setFood(FoodPreference value) => emit(state.copyWith(food: value));
+  TravelPreferences _withInterests(Set<String> interests) => TravelPreferences(
+    interests: interests.toList(growable: false),
+    preferredTransportMode: state.preferences.preferredTransportMode,
+    travelPace: state.preferences.travelPace,
+    riskTolerance: state.preferences.riskTolerance,
+    foodPreferences: state.preferences.foodPreferences,
+  );
 
-  void setPace(TravelPace value) => emit(state.copyWith(pace: value));
+  TravelPreferences _withFood(Set<String> food) => TravelPreferences(
+    interests: state.preferences.interests,
+    preferredTransportMode: state.preferences.preferredTransportMode,
+    travelPace: state.preferences.travelPace,
+    riskTolerance: state.preferences.riskTolerance,
+    foodPreferences: food.toList(growable: false),
+  );
 
-  void setRisk(RiskTolerance value) => emit(state.copyWith(risk: value));
+  TravelPreferences _withTransport(String? value) => TravelPreferences(
+    interests: state.preferences.interests,
+    preferredTransportMode: value,
+    travelPace: state.preferences.travelPace,
+    riskTolerance: state.preferences.riskTolerance,
+    foodPreferences: state.preferences.foodPreferences,
+  );
 
-  void setTransport(PreferredTransport value) {
-    emit(state.copyWith(transport: value));
-  }
+  TravelPreferences _withPace(String? value) => TravelPreferences(
+    interests: state.preferences.interests,
+    preferredTransportMode: state.preferences.preferredTransportMode,
+    travelPace: value,
+    riskTolerance: state.preferences.riskTolerance,
+    foodPreferences: state.preferences.foodPreferences,
+  );
 
-  void toggleInterest(TravelInterest value) {
-    final interests = Set<TravelInterest>.of(state.interests);
-    if (!interests.remove(value)) {
-      interests.add(value);
-    }
-    emit(state.copyWith(interests: interests));
-  }
+  TravelPreferences _withRisk(String? value) => TravelPreferences(
+    interests: state.preferences.interests,
+    preferredTransportMode: state.preferences.preferredTransportMode,
+    travelPace: state.preferences.travelPace,
+    riskTolerance: value,
+    foodPreferences: state.preferences.foodPreferences,
+  );
+
+  String _messageOf(Object error) => error is Failure
+      ? error.message
+      : 'Something went wrong. Please try again later.';
 }
