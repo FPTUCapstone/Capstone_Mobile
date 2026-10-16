@@ -101,6 +101,8 @@ void main() {
       await cubit.load();
       await tester.pumpAndSettle();
 
+      expect(find.text('Beach'), findsOneWidget);
+
       await _tapVisible(tester, find.text('Car'));
       await tester.pump();
 
@@ -285,7 +287,7 @@ final class _FakeTravelPreferencesRepository
   @override
   Future<TravelPreferenceOptions> getOptions() async =>
       const TravelPreferenceOptions(
-        interests: [InterestOption(key: 'Beach', source: 'Category')],
+        interests: [InterestOption(key: 'beach', source: 'Tag')],
         preferredTransportModes: ['Car', 'Motorbike'],
         travelPaces: ['Relaxed', 'Moderate', 'Fast'],
         foodPreferences: ['NoRestriction', 'Vegetarian'],
