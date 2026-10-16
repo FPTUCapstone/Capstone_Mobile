@@ -6,6 +6,7 @@ import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/utils/trip_time_format.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
+import 'package:trip_mate_mobile/shared/formatters/visit_price_format.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
 
 final class ItineraryResultPage extends StatelessWidget {
@@ -142,19 +143,6 @@ bool _spansDays(List<GeneratedItineraryItem> items) =>
     items.isNotEmpty &&
     !sameTripDay(items.first.plannedArrival, items.last.plannedDeparture);
 
-/// Formats a [double] cost as "₫ 650,000" without requiring `intl`.
-String _formatVnd(double amount) {
-  final rounded = amount.round();
-  final s = rounded.toString();
-  final buf = StringBuffer('₫ ');
-  final offset = s.length % 3;
-  for (var i = 0; i < s.length; i++) {
-    if (i > 0 && (i - offset) % 3 == 0) buf.write(',');
-    buf.write(s[i]);
-  }
-  return buf.toString();
-}
-
 /// Formats a [DateTime] as Vietnam-time "HH:mm".
 String _formatTime(DateTime utc) => tripClock(utc);
 
@@ -170,7 +158,7 @@ final class _SummaryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final parts = [
       _formatDuration(durationMinutes),
-      if (estimatedCost != null) 'Est. ${_formatVnd(estimatedCost!)}',
+      if (estimatedCost != null) 'Est. ${formatVnd(estimatedCost!)}',
     ];
     return Text(
       parts.join(' · '),
@@ -239,7 +227,7 @@ final class _ItineraryItemCard extends StatelessWidget {
                   if (!isRest && item.estimatedCost != null) ...[
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      'Est. ${_formatVnd(item.estimatedCost!)}',
+                      'Est. ${formatVnd(item.estimatedCost!)}',
                       style: theme.textTheme.bodySmall,
                     ),
                   ],

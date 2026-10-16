@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/poi/data/models/poi_detail_model.dart';
 import 'package:trip_mate_mobile/features/poi/data/models/poi_page_model.dart';
+import 'package:trip_mate_mobile/features/poi/domain/entities/cost_kind.dart';
 
 void main() {
   test('maps paged POIs and nullable list fields', () {
@@ -108,5 +109,39 @@ void main() {
       'updatedAtUtc': '2026-01-01T00:00:00Z',
     }).toEntity();
     expect(detail.description, isNull);
+  });
+
+  test('reads the estimated visit cost and its kind', () {
+    Map<String, Object?> json(Map<String, Object?> extra) => {
+      'id': 1,
+      'name': 'POI',
+      'description': null,
+      'status': 'Active',
+      'categoryId': 1,
+      'categoryName': 'Food & Drink',
+      'latitude': 1,
+      'longitude': 1,
+      'indoorOutdoor': 'Indoor',
+      'averageVisitDurationMinutes': 60,
+      'hasShelter': true,
+      'reviewCount': 0,
+      'isOpenNow': true,
+      'openingHours': [],
+      'photos': [],
+      'tags': [],
+      'createdAtUtc': '2026-01-01T00:00:00Z',
+      'updatedAtUtc': '2026-01-01T00:00:00Z',
+      ...extra,
+    };
+
+    final food = PoiDetailModel.fromJson(
+      json({'estimatedVisitCost': 85000, 'costKind': 'AverageSpend'}),
+    ).toEntity();
+    expect(food.estimatedVisitCost, 85000);
+    expect(food.costKind, CostKind.averageSpend);
+
+    final older = PoiDetailModel.fromJson(json({})).toEntity();
+    expect(older.estimatedVisitCost, isNull);
+    expect(older.costKind, isNull);
   });
 }

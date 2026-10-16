@@ -1,3 +1,5 @@
+import 'package:trip_mate_mobile/features/poi/data/models/cost_kind_json.dart';
+import 'package:trip_mate_mobile/features/traveler/data/models/json_readers.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 
@@ -35,6 +37,10 @@ final class ItineraryDetailModel {
         .toList(growable: false),
     // Older Backends omit it; absent means nobody is navigating.
     isNavigationInProgress: _json['isNavigationInProgress'] == true,
+    transportMode: parseTransportMode(_json['transportMode']),
+    startLocation: _location(_json['startLocation']),
+    endLocation: _location(_json['endLocation']),
+    budgetVnd: readDouble(_json['budgetVnd']),
   );
 
   ItineraryDetailItem _item(Map<String, dynamic> json) {
@@ -70,6 +76,29 @@ final class ItineraryDetailModel {
       isMandatory: json['isMandatory'] as bool,
       recommendationReason: json['recommendationReason'] as String?,
       isUnavailable: json['isUnavailable'] as bool,
+      travelDistanceFromPreviousMeters: readInt(
+        json['travelDistanceFromPreviousMeters'],
+      ),
+      transportModeFromPrevious: parseTransportMode(
+        json['transportModeFromPrevious'],
+      ),
+      costKind: parseCostKind(json['costKind']),
+      address: json['address'] as String?,
+      latitude: readDouble(json['latitude']),
+      longitude: readDouble(json['longitude']),
+    );
+  }
+
+  ItineraryLocation? _location(Object? value) {
+    if (value is! Map) return null;
+    final latitude = readDouble(value['latitude']);
+    final longitude = readDouble(value['longitude']);
+    if (latitude == null || longitude == null) return null;
+    final address = value['address'];
+    return ItineraryLocation(
+      latitude: latitude,
+      longitude: longitude,
+      address: address is String ? address : null,
     );
   }
 

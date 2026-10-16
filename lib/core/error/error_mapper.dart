@@ -92,6 +92,9 @@ abstract final class ErrorMapper {
           'A selected tour is not approved for coupons. Refresh and choose another tour.',
         );
       }
+      if (errorCode == 'itinerary.stop_infeasible') {
+        return _stopInfeasible(data);
+      }
       if (errorCode == 'itinerary.no_alternative') {
         return const ConstraintFailure(
           'No other places fit this trip\'s time, area and budget. Your current itinerary is already the best option.',
@@ -136,6 +139,40 @@ abstract final class ErrorMapper {
       if (value is String && value.trim().isNotEmpty) return value.trim();
     }
     return null;
+  }
+
+  /// Problem-details extensions are serialized at the root; some proxies nest
+  /// them under `extensions`, so both are read.
+  static StopInfeasibleFailure _stopInfeasible(Object? data) {
+    Object? read(String key) {
+      if (data is! Map) return null;
+      final extensions = data['extensions'];
+      return data[key] ?? (extensions is Map ? extensions[key] : null);
+    }
+
+    final arrival = read('plannedArrival');
+    final reason = read('reason');
+    final closesAt = read('closesAt');
+    return StopInfeasibleFailure(
+      poiId: switch (read('poiId')) {
+        final num value => value.toInt(),
+        final String value => int.tryParse(value),
+        _ => null,
+      },
+      reason: reason is String ? reason : null,
+      plannedArrival: arrival is String
+          ? DateTime.tryParse(arrival)?.toUtc()
+          : null,
+      closesAt: closesAt is String ? closesAt : null,
+      overflowMinutes: switch (read('overflowMinutes')) {
+        final num value => value.toInt(),
+        _ => null,
+      },
+      overflowVnd: switch (read('overflowVnd')) {
+        final num value => value.toDouble(),
+        _ => null,
+      },
+    );
   }
 
   static String? _extractSafePlanningMessage(Object? data) {
