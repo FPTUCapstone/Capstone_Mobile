@@ -48,6 +48,7 @@ import 'package:trip_mate_mobile/features/operator_tours/data/datasources/operat
 import 'package:trip_mate_mobile/features/operator_tours/data/repositories/operator_tour_repository_impl.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/repositories/operator_tour_repository.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/usecases/create_tour_package_use_case.dart';
+import 'package:trip_mate_mobile/features/operator_tours/domain/usecases/load_tour_package_options_use_case.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/data/datasources/poi_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/poi/data/repositories/poi_repository_impl.dart';
@@ -186,8 +187,14 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerFactory<CreateTourPackageUseCase>(
       () => CreateTourPackageUseCase(serviceLocator()),
     )
+    ..registerFactory<LoadTourPackageOptionsUseCase>(
+      () => LoadTourPackageOptionsUseCase(serviceLocator()),
+    )
     ..registerFactory<CreateTourPackageCubit>(
-      () => CreateTourPackageCubit(createTour: serviceLocator()),
+      () => CreateTourPackageCubit(
+        createTour: serviceLocator(),
+        loadOptions: serviceLocator(),
+      ),
     )
     ..registerLazySingleton<AuthRemoteDataSource>(
       () => AuthRemoteDataSourceImpl(serviceLocator()),

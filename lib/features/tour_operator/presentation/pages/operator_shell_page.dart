@@ -132,6 +132,36 @@ class _OperatorSection extends StatelessWidget {
         ),
       );
     }
+    if (destination.label == 'Profile') {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                destination.icon,
+                size: 56,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'Operator Profile',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              const Text('Feature placeholder', textAlign: TextAlign.center),
+              const SizedBox(height: AppSpacing.md),
+              OutlinedButton.icon(
+                onPressed: () => context.push(AppRoutes.operatorChangePassword),
+                icon: const Icon(Icons.lock_outline),
+                label: const Text('Change password'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     if (destination.label == 'Coupons') {
       return Center(
         child: Padding(

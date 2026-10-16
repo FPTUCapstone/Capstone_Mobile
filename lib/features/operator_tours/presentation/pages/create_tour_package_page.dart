@@ -25,6 +25,9 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
   final _duration = TextEditingController(text: '1');
   final List<_TourStop> _stops = [];
   final List<_Departure> _departures = [];
+  // Catalogue ids in the order the operator chose them (the order is the display order).
+  final List<int> _destinationIds = [];
+  int? _policyId;
   var _step = 0;
 
   @override
@@ -52,10 +55,27 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
   String? _required(String? value, String label) =>
       value == null || value.trim().isEmpty ? '$label is required.' : null;
 
+  bool _isWholeVnd(num? value) => value == null || value == value.truncate();
+
   bool _validStep() {
-    if (_step == 0) return _formKey.currentState!.validate();
+    if (_step == 0) {
+      if (!_formKey.currentState!.validate()) return false;
+      if (_destinationIds.isEmpty) {
+        return _notice('Select at least one destination.');
+      }
+      if (_policyId == null) {
+        return _notice('Select a cancellation policy.');
+      }
+      return true;
+    }
     if (_step == 1 && _stops.isEmpty) {
       return _notice('Add at least one point of interest.');
+    }
+    if (_step == 1) {
+      final duration = _positiveInt(_duration.text) ?? 1;
+      if (_stops.any((stop) => stop.dayNo > duration)) {
+        return _notice('Each stop must be on a day within the tour duration.');
+      }
     }
     if (_step == 2 && _departures.isEmpty) {
       return _notice('Add at least one departure schedule.');
@@ -259,7 +279,14 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
     }
     final price = num.tryParse(_price.text.trim());
     final duration = _positiveInt(_duration.text);
-    if (price == null || price <= 0 || duration == null) return;
+    final policyId = _policyId;
+    if (price == null || price <= 0 || duration == null || policyId == null) {
+      return;
+    }
+    if (_destinationIds.isEmpty) {
+      _notice('Select at least one destination.');
+      return;
+    }
     final invalidDeparture = _departures.any(
       (departure) =>
           departure.minimumCapacity > departure.capacity ||
@@ -273,12 +300,26 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
       );
       return;
     }
+    final prices = [
+      price,
+      for (final departure in _departures) ...[
+        departure.adultPrice,
+        departure.childPrice,
+        departure.infantPrice,
+      ],
+    ];
+    if (!prices.every(_isWholeVnd)) {
+      _notice('Prices must be whole VND amounts.');
+      return;
+    }
     context.read<CreateTourPackageCubit>().submit(
       TourPackageDraft(
         title: _title.text,
         description: _description.text,
         basePrice: price,
         durationDays: duration,
+        destinationIds: List.unmodifiable(_destinationIds),
+        cancellationPolicyTemplateId: policyId,
         itineraryItems: _stops
             .asMap()
             .entries
@@ -313,6 +354,7 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
   Widget build(
     BuildContext context,
   ) => BlocConsumer<CreateTourPackageCubit, CreateTourPackageState>(
+    listenWhen: (previous, current) => previous.status != current.status,
     listener: (context, state) {
       if (state.status == CreateTourPackageStatus.failure &&
           state.failure != null) {
@@ -393,11 +435,15 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
                       decoration: const InputDecoration(
                         labelText: 'Base price (VND)',
                       ),
-                      validator: (value) =>
-                          num.tryParse(value ?? '') == null ||
-                              num.parse(value!) <= 0
-                          ? 'Enter a positive price.'
-                          : null,
+                      validator: (value) {
+                        final price = num.tryParse(value ?? '');
+                        if (price == null || price <= 0) {
+                          return 'Enter a positive price.';
+                        }
+                        return _isWholeVnd(price)
+                            ? null
+                            : 'Enter a whole VND amount.';
+                      },
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     TextFormField(
@@ -409,6 +455,22 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
                       validator: (value) => _positiveInt(value ?? '') == null
                           ? 'Enter a positive number of days.'
                           : null,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    _OptionsSection(
+                      state: state,
+                      selectedDestinationIds: _destinationIds,
+                      selectedPolicyId: _policyId,
+                      onToggleDestination: (id) => setState(() {
+                        if (_destinationIds.contains(id)) {
+                          _destinationIds.remove(id);
+                        } else if (_destinationIds.length < _maxDestinations) {
+                          _destinationIds.add(id);
+                        }
+                      }),
+                      onPolicyChanged: (id) => setState(() => _policyId = id),
+                      onRetry: () =>
+                          context.read<CreateTourPackageCubit>().loadOptions(),
                     ),
                   ],
                 ),
@@ -526,6 +588,81 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
       ),
     ),
   );
+}
+
+const _maxDestinations = 10;
+
+/// Destination and cancellation-policy pickers backed by the server catalogue.
+final class _OptionsSection extends StatelessWidget {
+  const _OptionsSection({
+    required this.state,
+    required this.selectedDestinationIds,
+    required this.selectedPolicyId,
+    required this.onToggleDestination,
+    required this.onPolicyChanged,
+    required this.onRetry,
+  });
+  final CreateTourPackageState state;
+  final List<int> selectedDestinationIds;
+  final int? selectedPolicyId;
+  final ValueChanged<int> onToggleDestination;
+  final ValueChanged<int?> onPolicyChanged;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    switch (state.optionsStatus) {
+      case TourPackageOptionsStatus.loading:
+        return const Center(child: CircularProgressIndicator());
+      case TourPackageOptionsStatus.failure:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              state.optionsFailure?.message ??
+                  'Could not load destinations and cancellation policies.',
+            ),
+            TextButton(onPressed: onRetry, child: const Text('Retry')),
+          ],
+        );
+      case TourPackageOptionsStatus.ready:
+        final options = state.options!;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Destinations', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: AppSpacing.xs),
+            Wrap(
+              spacing: AppSpacing.xs,
+              children: [
+                for (final destination in options.destinations)
+                  FilterChip(
+                    label: Text(destination.name),
+                    selected: selectedDestinationIds.contains(destination.id),
+                    onSelected: (_) => onToggleDestination(destination.id),
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            DropdownButtonFormField<int>(
+              initialValue: selectedPolicyId,
+              isExpanded: true,
+              decoration: const InputDecoration(
+                labelText: 'Cancellation policy',
+              ),
+              items: [
+                for (final policy in options.policies)
+                  DropdownMenuItem(
+                    value: policy.id,
+                    child: Text(policy.name, overflow: TextOverflow.ellipsis),
+                  ),
+              ],
+              onChanged: onPolicyChanged,
+            ),
+          ],
+        );
+    }
+  }
 }
 
 final class _TourStop {
