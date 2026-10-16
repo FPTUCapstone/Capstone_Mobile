@@ -180,7 +180,7 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         path: AppRoutes.travelerPreferences,
         name: AppRouteNames.travelerPreferences,
         builder: (_, _) => BlocProvider(
-          create: (_) => TravelPreferencesCubit(),
+          create: (_) => serviceLocator<TravelPreferencesCubit>()..load(),
           child: const TravelPreferencesPage(),
         ),
       ),

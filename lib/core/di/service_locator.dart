@@ -59,12 +59,14 @@ import 'package:trip_mate_mobile/features/tour_search/data/repositories/tour_sea
 import 'package:trip_mate_mobile/features/tour_search/domain/repositories/tour_search_repository.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/usecases/search_tours_use_case.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/data/datasources/travel_preferences_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/itinerary_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/mapbox_directions_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/mapbox_search_box_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/navigation_session_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/point_of_interest_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_group_repository_impl.dart';
+import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_preferences_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/services/geolocator_navigation_location_tracker.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/address_search_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_list_repository.dart';
@@ -73,10 +75,12 @@ import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigatio
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/route_directions_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_preferences_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/navigation_location_tracker.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/address_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/canonical_trip_review_repository_impl.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_history_repository_impl.dart';
@@ -220,6 +224,15 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerFactory<ChangePasswordCubit>(
       () => ChangePasswordCubit(serviceLocator(), serviceLocator()),
+    )
+    ..registerLazySingleton<TravelPreferencesRemoteDataSource>(
+      () => TravelPreferencesRemoteDataSourceImpl(serviceLocator()),
+    )
+    ..registerLazySingleton<TravelPreferencesRepository>(
+      () => TravelPreferencesRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<TravelPreferencesCubit>(
+      () => TravelPreferencesCubit(serviceLocator()),
     )
     ..registerLazySingleton<TravelGroupRepository>(
       () => TravelGroupRepositoryImpl(dioClient: serviceLocator()),
