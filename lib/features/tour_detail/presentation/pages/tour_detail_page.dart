@@ -1235,7 +1235,16 @@ class _TourDetailBottomBar extends StatelessWidget {
             FilledButton(
               onPressed: () {
                 Navigator.of(ctx).pop();
-                context.push(AppRoutes.login);
+                final returnTarget = AppRoutes.tourDetail(
+                  state.tourDetail!.tourId,
+                  demo: state.isDemoMode,
+                );
+                context.push(
+                  Uri(
+                    path: AppRoutes.login,
+                    queryParameters: {'from': returnTarget},
+                  ).toString(),
+                );
               },
               child: const Text(TourDetailStrings.loginAction),
             ),

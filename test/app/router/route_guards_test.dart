@@ -91,6 +91,10 @@ void main() {
           path: AppRoutes.tripReviewPattern,
           builder: (_, _) => const Text('Trip review'),
         ),
+        GoRoute(
+          path: AppRoutes.tourDetailPattern,
+          builder: (_, _) => const Text('Tour detail'),
+        ),
       ],
     );
     addTearDown(router.dispose);
@@ -473,6 +477,19 @@ void main() {
       expect(await resolve(tester, session, login), AppRoutes.traveler);
     }
   });
+
+  testWidgets(
+    'UC-26: authenticated Traveler is permitted to return to an explore tour detail route from login',
+    (tester) async {
+      const session = AuthSessionState.authenticated(UserRole.traveler);
+      final login = Uri(
+        path: AppRoutes.login,
+        queryParameters: {'from': '/explore/tours/rec-101'},
+      ).toString();
+
+      expect(await resolve(tester, session, login), '/explore/tours/rec-101');
+    },
+  );
 
   testWidgets(
     'unauthenticated guest attempting tourRecommendations is redirected to login with from param',

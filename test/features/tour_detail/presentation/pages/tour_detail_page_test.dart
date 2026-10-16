@@ -216,6 +216,7 @@ void main() {
 
     group('Responsive and accessibility checks', () {
       final viewports = <String, Size>{
+        'compact 320x568': const Size(320, 568),
         'compact 360x640': const Size(360, 640),
         'standard 390x844': const Size(390, 844),
         'large 412x915': const Size(412, 915),

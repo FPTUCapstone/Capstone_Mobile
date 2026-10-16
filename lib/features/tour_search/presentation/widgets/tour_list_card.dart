@@ -103,16 +103,17 @@ class TourListCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
 
           // ── Price & Availability ───────────────────────────────
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.end,
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xxs,
             children: [
-              Expanded(
-                child: Text(
-                  _formatPrice(tour.basePrice, tour.currency),
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: TourSearchPalette.navy,
-                    fontWeight: FontWeight.w800,
-                  ),
+              Text(
+                _formatPrice(tour.basePrice, tour.currency),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: TourSearchPalette.navy,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
               _AvailabilityBadge(tour: tour),
@@ -124,7 +125,7 @@ class TourListCard extends StatelessWidget {
 
     return Semantics(
       label:
-          '${tour.title}, ${_availabilityLabel(tour)}${matchingScore != null ? ', ${(matchingScore! * 100).round()}% phù hợp' : ''}',
+          '${tour.title}, ${_availabilityLabel(tour)}${matchingScore != null ? ', ${(matchingScore! * 100).round()}% match' : ''}',
       button: onTap != null,
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -322,7 +323,7 @@ class _MatchingScoreBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final percentage = (score * 100).round();
     return Semantics(
-      label: 'Độ phù hợp $percentage%',
+      label: '$percentage% match',
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
@@ -335,12 +336,16 @@ class _MatchingScoreBadge extends StatelessWidget {
           children: [
             const Icon(Icons.auto_awesome, size: 13, color: Color(0xFF2E7D32)),
             const SizedBox(width: 4),
-            Text(
-              '$percentage% phù hợp',
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF2E7D32),
+            Flexible(
+              child: Text(
+                '$percentage% match',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF2E7D32),
+                ),
               ),
             ),
           ],
