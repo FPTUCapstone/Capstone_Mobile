@@ -510,7 +510,8 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         path: AppRoutes.createTourPackage,
         name: AppRouteNames.createTourPackage,
         builder: (_, _) => BlocProvider(
-          create: (_) => serviceLocator<CreateTourPackageCubit>(),
+          create: (_) =>
+              serviceLocator<CreateTourPackageCubit>()..loadOptions(),
           child: const CreateTourPackagePage(),
         ),
       ),

@@ -69,6 +69,8 @@ final class TourPackageDraft {
     required this.description,
     required this.basePrice,
     required this.durationDays,
+    required this.destinationIds,
+    required this.cancellationPolicyTemplateId,
     required this.itineraryItems,
     required this.schedules,
     this.categoryId,
@@ -78,6 +80,12 @@ final class TourPackageDraft {
   final num basePrice;
   final int durationDays;
   final int? categoryId;
+
+  /// Catalogue destinations in display order (1-10, unique).
+  final List<int> destinationIds;
+
+  /// The backend snapshots this policy's rules onto the package (BR-101).
+  final int cancellationPolicyTemplateId;
   final List<TourItineraryStopDraft> itineraryItems;
   final List<TourScheduleDraft> schedules;
 
@@ -87,6 +95,8 @@ final class TourPackageDraft {
     'basePrice': basePrice,
     'durationDays': durationDays,
     'categoryId': categoryId,
+    'destinationIds': destinationIds,
+    'cancellationPolicyTemplateId': cancellationPolicyTemplateId,
     'itineraryItems': itineraryItems.map((item) => item.toJson()).toList(),
     'schedules': schedules.map((item) => item.toJson()).toList(),
   };
