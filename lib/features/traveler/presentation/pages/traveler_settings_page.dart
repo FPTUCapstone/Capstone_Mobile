@@ -53,6 +53,12 @@ class _TravelerSettingsPageState extends State<TravelerSettingsPage> {
                 onTap: () => context.push(AppRoutes.travelerPreferences),
               ),
               const Divider(height: 1),
+              _SettingsRow(
+                icon: Icons.lock_outline,
+                label: 'Change password',
+                onTap: () => context.push(AppRoutes.travelerChangePassword),
+              ),
+              const Divider(height: 1),
               SwitchListTile(
                 secondary: const Icon(Icons.notifications_none),
                 title: const Text('Notifications'),

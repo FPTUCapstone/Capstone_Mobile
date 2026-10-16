@@ -33,6 +33,8 @@ final class ItineraryDetailModel {
     items: (_json['items'] as List)
         .map((item) => _item(item as Map<String, dynamic>))
         .toList(growable: false),
+    // Older Backends omit it; absent means nobody is navigating.
+    isNavigationInProgress: _json['isNavigationInProgress'] == true,
   );
 
   ItineraryDetailItem _item(Map<String, dynamic> json) {

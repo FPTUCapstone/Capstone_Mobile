@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:trip_mate_mobile/core/location/device_location_service.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_poi.dart';
 
 enum PoiSearchStatus { initial, locating, searching, ready, failure }
@@ -11,7 +12,7 @@ final class PoiSearchScope extends Equatable {
       PoiSearchScope(
         latitude: near?.latitude,
         longitude: near?.longitude,
-        radiusKm: near == null ? null : radiusKm ?? 50,
+        radiusKm: near == null ? null : radiusKm ?? maxSearchRadiusKm,
       );
 
   final double? latitude;

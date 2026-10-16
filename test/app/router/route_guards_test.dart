@@ -83,6 +83,14 @@ void main() {
           path: AppRoutes.joinTravelGroup,
           builder: (_, _) => const Text('Join Group'),
         ),
+        GoRoute(
+          path: AppRoutes.tripHistory,
+          builder: (_, _) => const Text('Trip history'),
+        ),
+        GoRoute(
+          path: AppRoutes.tripReviewPattern,
+          builder: (_, _) => const Text('Trip review'),
+        ),
       ],
     );
     addTearDown(router.dispose);
@@ -275,6 +283,44 @@ void main() {
         ),
         AppRoutes.operatorApplication,
       );
+    },
+  );
+
+  testWidgets(
+    'UC-32/33 routes permit Traveler and deny Guest and TourOperator',
+    (tester) async {
+      for (final route in [
+        AppRoutes.tripHistory,
+        AppRoutes.tripReview('trip-tour-003'),
+      ]) {
+        expect(
+          await resolve(
+            tester,
+            const AuthSessionState.unauthenticated(),
+            route,
+          ),
+          AppRoutes.login,
+        );
+        expect(
+          await resolve(
+            tester,
+            const AuthSessionState.authenticated(UserRole.traveler),
+            route,
+          ),
+          route,
+        );
+        expect(
+          await resolve(
+            tester,
+            const AuthSessionState.authenticated(
+              UserRole.tourOperator,
+              applicationStatus: TourOperatorApplicationStatus.approved,
+            ),
+            route,
+          ),
+          AppRoutes.operator,
+        );
+      }
     },
   );
 

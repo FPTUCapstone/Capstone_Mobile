@@ -1,66 +1,73 @@
-import 'package:trip_mate_mobile/features/traveler/domain/entities/active_trip_maneuver.dart';
-import 'package:trip_mate_mobile/features/traveler/domain/entities/active_trip_waypoint.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_session.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/offline_trip_package.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/reroute_proposal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.dart';
 
 abstract final class ActiveTripDemoFixtures {
-  static List<ActiveTripWaypoint> createDefaultWaypoints() {
-    final now = DateTime.now();
-    return [
-      ActiveTripWaypoint(
-        id: 1,
-        name: 'Marble Mountains (Ngũ Hành Sơn)',
-        orderIndex: 1,
-        plannedArrival: now.add(const Duration(minutes: 20)),
-        stayDurationMinutes: 60,
-        latitude: 16.0033,
-        longitude: 108.2635,
-      ),
-      ActiveTripWaypoint(
-        id: 2,
-        name: 'Cơm Gà Bà Buội',
-        orderIndex: 2,
-        plannedArrival: now.add(const Duration(minutes: 100)),
-        stayDurationMinutes: 45,
-        latitude: 16.0350,
-        longitude: 108.2250,
-      ),
-      ActiveTripWaypoint(
-        id: 3,
-        name: 'Bảo tàng Điêu khắc Chăm',
-        orderIndex: 3,
-        plannedArrival: now.add(const Duration(minutes: 180)),
-        stayDurationMinutes: 50,
-        latitude: 16.0602,
-        longitude: 108.2235,
-      ),
-      ActiveTripWaypoint(
-        id: 4,
-        name: 'Chợ Hàn (Han Market)',
-        orderIndex: 4,
-        plannedArrival: now.add(const Duration(minutes: 250)),
-        stayDurationMinutes: 45,
-        latitude: 16.0685,
-        longitude: 108.2245,
-      ),
-      ActiveTripWaypoint(
-        id: 5,
-        name: 'Cầu Rồng (Dragon Bridge)',
-        orderIndex: 5,
-        plannedArrival: now.add(const Duration(minutes: 320)),
-        stayDurationMinutes: 30,
-        latitude: 16.0610,
-        longitude: 108.2270,
-      ),
-    ];
-  }
+  /// DEMO_ONLY: an open Navigating session over five Đà Nẵng stops.
+  static NavigationSession createDemoSession({
+    int itineraryId = 101,
+    int sessionId = 9001,
+    TransportMode? transportMode,
+  }) {
+    final now = DateTime.now().toUtc();
+    NavigationSessionItem stop(
+      int sequence,
+      String name,
+      double latitude,
+      double longitude,
+      int arrivalMinutes,
+      int stayMinutes, {
+      bool isMandatory = false,
+    }) {
+      final arrival = now.add(Duration(minutes: arrivalMinutes));
+      return NavigationSessionItem(
+        itemId: 1000 + sequence,
+        sequenceNo: sequence,
+        poiId: 10 + sequence,
+        poiName: name,
+        latitude: latitude,
+        longitude: longitude,
+        plannedArrival: arrival,
+        plannedDeparture: arrival.add(Duration(minutes: stayMinutes)),
+        isMandatory: isMandatory,
+        status: NavigationItemStatus.pending,
+        reachedAt: null,
+        skippedAt: null,
+      );
+    }
 
-  static const defaultManeuver = ActiveTripManeuver(
-    instruction: 'Turn right onto Lê Văn Hiến in 300 m',
-    distanceMeters: 300,
-    direction: ManeuverDirection.turnRight,
-  );
+    final items = [
+      stop(
+        1,
+        'Marble Mountains (Ngũ Hành Sơn)',
+        16.0033,
+        108.2635,
+        20,
+        60,
+        isMandatory: true,
+      ),
+      stop(2, 'Cơm Gà Bà Buội', 16.0350, 108.2250, 100, 45),
+      stop(3, 'Bảo tàng Điêu khắc Chăm', 16.0602, 108.2235, 180, 50),
+      stop(4, 'Chợ Hàn (Han Market)', 16.0685, 108.2245, 250, 45),
+      stop(5, 'Cầu Rồng (Dragon Bridge)', 16.0610, 108.2270, 320, 30),
+    ];
+    return NavigationSession(
+      sessionId: sessionId,
+      itineraryId: itineraryId,
+      itineraryVersion: 1,
+      state: NavigationSessionState.navigating,
+      completionReason: null,
+      startedAt: now,
+      expiresAt: items.last.plannedDeparture.add(const Duration(hours: 6)),
+      endedAt: null,
+      exploringItemId: null,
+      nextItemId: items.first.itemId,
+      items: items,
+      transportMode: transportMode,
+    );
+  }
 
   static List<TripAlert> createSampleAlerts() {
     final now = DateTime.now();

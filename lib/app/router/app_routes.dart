@@ -16,6 +16,7 @@ abstract final class AppRoutes {
   static const travelerSettings = '/traveler/settings';
   static const travelerProfile = '/traveler/profile';
   static const travelerPreferences = '/traveler/preferences';
+  static const travelerChangePassword = '/traveler/change-password';
   static const createItinerary = '/traveler/itineraries/create';
   static const itineraryResult = '/traveler/itineraries/result';
   static const itineraryDetail = '/traveler/itineraries/:itineraryId';
@@ -30,17 +31,35 @@ abstract final class AppRoutes {
   static const activeTripLivePattern = '/traveler/trips/:itineraryId/live';
   static const tripAlertsPattern = '/traveler/trips/:itineraryId/alerts';
   static const offlinePackagePattern = '/traveler/trips/:itineraryId/offline';
+  static const tripHistory = '/traveler/trips';
+  static const tripReviewPattern = '/traveler/trips/:tripId/review';
+  static const canonicalTripReviewPattern = '/traveler/reviews/:kind/:id';
   static const operator = '/operator';
   static const operatorApplication = '/operator/application';
   static const operatorApplicationResubmit = '/operator/application/resubmit';
   static const createCoupon = '/operator/coupons/create';
+  static const operatorChangePassword = '/operator/change-password';
+  static const createTourPackage = '/operator/tours/create';
+  static const operatorTours = '/operator/tours';
+  static const editTourPackage = '/operator/tours/:tourId/edit';
+  static String editTourPackagePath(int tourId) =>
+      '/operator/tours/$tourId/edit';
 
+  static String itineraryDetailPath(int itineraryId) =>
+      '/traveler/itineraries/$itineraryId';
   static String activeTripLive(int itineraryId) =>
       '/traveler/trips/$itineraryId/live';
   static String tripAlerts(int itineraryId) =>
       '/traveler/trips/$itineraryId/alerts';
   static String offlinePackage(int itineraryId) =>
       '/traveler/trips/$itineraryId/offline';
+  static String tripHistoryPath({bool isDemo = false}) =>
+      isDemo ? '/traveler/trips?demo=true' : '/traveler/trips';
+  static String tripReview(String tripId, {bool isDemo = false}) => isDemo
+      ? '/traveler/trips/$tripId/review?demo=true'
+      : '/traveler/trips/$tripId/review';
+  static String canonicalTripReview(String kind, int id) =>
+      '/traveler/reviews/$kind/$id';
   static String groupLocationSharingPath(int groupId) =>
       '/traveler/groups/$groupId/location-sharing';
   static String poiDetail(int id) => '/explore/poi/$id';
@@ -68,6 +87,7 @@ abstract final class AppRouteNames {
   static const travelerSettings = 'traveler-settings';
   static const travelerProfile = 'traveler-profile';
   static const travelerPreferences = 'traveler-preferences';
+  static const travelerChangePassword = 'traveler-change-password';
   static const createItinerary = 'create-itinerary';
   static const itineraryResult = 'itinerary-result';
   static const itineraryDetail = 'itinerary-detail';
@@ -80,8 +100,14 @@ abstract final class AppRouteNames {
   static const activeTripLive = 'active-trip-live';
   static const tripAlerts = 'trip-alerts';
   static const offlinePackage = 'offline-package';
+  static const tripHistory = 'trip-history';
+  static const tripReview = 'trip-review';
   static const operator = 'operator';
   static const operatorApplication = 'operator-application';
   static const operatorApplicationResubmit = 'operator-application-resubmit';
   static const createCoupon = 'create-coupon';
+  static const operatorChangePassword = 'operator-change-password';
+  static const createTourPackage = 'create-tour-package';
+  static const operatorTours = 'operator-tours';
+  static const editTourPackage = 'edit-tour-package';
 }

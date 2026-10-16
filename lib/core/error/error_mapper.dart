@@ -58,6 +58,19 @@ abstract final class ErrorMapper {
       if (extractErrorCode(responseData) == 'coupon.code_conflict') {
         return const ConflictFailure('This coupon code is already in use.');
       }
+      final operatorTourCode = extractErrorCode(responseData);
+      if (operatorTourCode == 'operator_tour.edit_locked' ||
+          operatorTourCode == 'operator_tour.invalid_state') {
+        return const ConflictFailure(
+          'This tour package can no longer be changed. Only Draft or Rejected packages are editable.',
+        );
+      }
+      if (operatorTourCode ==
+          'operator_tour.idempotency_key_payload_mismatch') {
+        return const ConflictFailure(
+          'This request conflicts with an earlier save. Please reopen the form and try again.',
+        );
+      }
       final (message, groupId) = _extractConflictDetails(responseData);
       return ConflictFailure(
         message ?? 'Conflict occurred. Please try again.',
@@ -69,9 +82,19 @@ abstract final class ErrorMapper {
     if (statusCode == 422) {
       final data = error.response?.data;
       final errorCode = data is Map ? extractErrorCode(data) : null;
+      if (errorCode == 'operator_tour.review_prerequisites_missing') {
+        return const ConstraintFailure(
+          'This tour is not ready for review yet. Add a cover photo, a future departure, a destination and a cancellation policy, then try again.',
+        );
+      }
       if (errorCode == 'coupon.tour_not_eligible') {
         return const ConstraintFailure(
           'A selected tour is not approved for coupons. Refresh and choose another tour.',
+        );
+      }
+      if (errorCode == 'itinerary.no_alternative') {
+        return const ConstraintFailure(
+          'No other places fit this trip\'s time, area and budget. Your current itinerary is already the best option.',
         );
       }
       if (errorCode == 'planning.constraints_infeasible' ||

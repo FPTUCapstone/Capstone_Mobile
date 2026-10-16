@@ -7,6 +7,8 @@ import 'package:trip_mate_mobile/app/router/create_travel_group_route_args.dart'
 import 'package:trip_mate_mobile/app/router/route_guards.dart';
 import 'package:trip_mate_mobile/app/router/travel_group_details_route_args.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/features/auth/change_password/presentation/cubit/change_password_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/change_password/presentation/pages/change_password_page.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/cubit/password_recovery_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/pages/password_recovery_page.dart';
@@ -25,6 +27,11 @@ import 'package:trip_mate_mobile/features/auth/presentation/pages/verify_email_p
 import 'package:trip_mate_mobile/features/auth/presentation/services/operator_document_picker.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/cubit/create_coupon_cubit.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/pages/create_coupon_page.dart';
+import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/operator_tours_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/create_tour_package_page.dart';
+import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/edit_tour_package_page.dart';
+import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/operator_tours_page.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
@@ -38,6 +45,7 @@ import 'package:trip_mate_mobile/features/tour_search/presentation/pages/tour_se
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/address_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/invite_group_members_cubit.dart';
@@ -62,6 +70,16 @@ import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_p
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_settings_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_shell_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/trip_alerts_page.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/entities/reviewable_record_ref.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/canonical_trip_review_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/pages/canonical_trip_review_page.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_history_page.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_review_page.dart';
+import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 import 'package:trip_mate_mobile/shared/widgets/error_view.dart';
 
 GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
@@ -187,8 +205,16 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         path: AppRoutes.travelerPreferences,
         name: AppRouteNames.travelerPreferences,
         builder: (_, _) => BlocProvider(
-          create: (_) => TravelPreferencesCubit(),
+          create: (_) => serviceLocator<TravelPreferencesCubit>()..load(),
           child: const TravelPreferencesPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.travelerChangePassword,
+        name: AppRouteNames.travelerChangePassword,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<ChangePasswordCubit>(),
+          child: const ChangePasswordPage(),
         ),
       ),
       GoRoute(
@@ -214,6 +240,7 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
                 repository: serviceLocator(),
               ),
             ),
+            BlocProvider(create: (_) => serviceLocator<AddressSearchCubit>()),
           ],
           child: const CreateItineraryPage(),
         ),
@@ -427,9 +454,116 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         },
       ),
       GoRoute(
+        path: AppRoutes.tripHistory,
+        name: AppRouteNames.tripHistory,
+        builder: (_, state) {
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          return BlocProvider(
+            create: (_) =>
+                serviceLocator<TripHistoryCubit>(param1: isDemo)..loadInitial(),
+            child: TripHistoryPage(isDemoMode: isDemo),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.tripReviewPattern,
+        name: AppRouteNames.tripReview,
+        builder: (_, state) {
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final routeTripId = state.pathParameters['tripId'] ?? '';
+          if (routeTripId.trim().isEmpty) {
+            return const Scaffold(
+              body: ErrorView(
+                message: TripHistoryStringsEn.tripInformationUnavailable,
+              ),
+            );
+          }
+          final cachedTrip =
+              state.extra is TripHistoryItem &&
+                  (state.extra as TripHistoryItem).id == routeTripId
+              ? state.extra as TripHistoryItem
+              : null;
+          return BlocProvider(
+            create: (_) => serviceLocator<TripReviewCubit>(param1: isDemo)
+              ..loadTripAndReview(
+                tripId: routeTripId,
+                cachedTrip: cachedTrip,
+                travelerId: isDemo ? DemoTripHistoryStore.demoTravelerId : null,
+              ),
+            child: TripReviewPage(
+              tripId: routeTripId,
+              initialTrip: cachedTrip,
+              isDemoMode: isDemo,
+              demoTravelerId: isDemo
+                  ? DemoTripHistoryStore.demoTravelerId
+                  : null,
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.canonicalTripReviewPattern,
+        builder: (_, state) {
+          final kind = switch (state.pathParameters['kind']) {
+            'commerceBooking' => ReviewableRecordKind.commerceBooking,
+            'serviceBooking' => ReviewableRecordKind.serviceBooking,
+            _ => null,
+          };
+          final id = int.tryParse(state.pathParameters['id'] ?? '');
+          if (kind == null || id == null || id <= 0) {
+            return const Scaffold(
+              body: ErrorView(message: 'Review information is unavailable.'),
+            );
+          }
+          final reference = ReviewableRecordRef(kind: kind, id: id);
+          return CanonicalTripReviewPage(
+            cubit: serviceLocator<CanonicalTripReviewCubit>(param1: reference),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/traveler/trips/:tripId',
+        redirect: (_, state) {
+          final tripId = state.pathParameters['tripId'] ?? '';
+          final demo = state.uri.queryParameters['demo'] == 'true'
+              ? '?demo=true'
+              : '';
+          return '/traveler/trips/$tripId/review$demo';
+        },
+      ),
+      GoRoute(
         path: AppRoutes.operator,
         name: AppRouteNames.operator,
         builder: (_, _) => const OperatorShellPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.operatorTours,
+        name: AppRouteNames.operatorTours,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<OperatorToursCubit>()..load(),
+          child: const OperatorToursPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.editTourPackage,
+        name: AppRouteNames.editTourPackage,
+        builder: (_, state) => BlocProvider(
+          create: (_) => serviceLocator<CreateTourPackageCubit>(),
+          child: EditTourPackagePage(
+            tourId: int.tryParse(state.pathParameters['tourId'] ?? ''),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.createTourPackage,
+        name: AppRouteNames.createTourPackage,
+        builder: (_, _) => BlocProvider(
+          create: (_) =>
+              serviceLocator<CreateTourPackageCubit>()..loadOptions(),
+          child: const CreateTourPackagePage(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.createCoupon,
@@ -437,6 +571,14 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         builder: (_, _) => BlocProvider(
           create: (_) => serviceLocator<CreateCouponCubit>(),
           child: const CreateCouponPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.operatorChangePassword,
+        name: AppRouteNames.operatorChangePassword,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<ChangePasswordCubit>(),
+          child: const ChangePasswordPage(),
         ),
       ),
       GoRoute(

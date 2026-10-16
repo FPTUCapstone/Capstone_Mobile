@@ -5,12 +5,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:trip_mate_mobile/core/location/device_location_service.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/address_suggestion.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_poi.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_poi_search_result.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/address_search_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/address_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/poi_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_itinerary_page.dart';
@@ -47,6 +50,48 @@ void main() {
     expect(find.text('Current location'), findsOneWidget);
   });
 
+  testWidgets('shows progress while the current location is pending', (
+    tester,
+  ) async {
+    final pending = Completer<DeviceLocation>();
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (_) =>
+                CreateItineraryCubit(repository: _ItineraryRepository()),
+          ),
+          BlocProvider(
+            create: (_) => PoiSearchCubit(
+              locationService: _LocationService(pending),
+              repository: _PoiRepository(),
+            ),
+          ),
+        ],
+        child: const MaterialApp(home: CreateItineraryPage()),
+      ),
+    );
+
+    await tester.tap(find.text('Use current location'));
+    await tester.pump();
+
+    expect(find.text('Finding your location…'), findsOneWidget);
+    expect(find.text('Use current location'), findsNothing);
+    final button = tester.widget<FilledButton>(
+      find.ancestor(
+        of: find.text('Finding your location…'),
+        matching: find.byWidgetPredicate((widget) => widget is FilledButton),
+      ),
+    );
+    expect(button.onPressed, isNull);
+
+    pending.complete(const DeviceLocation(latitude: 16.0, longitude: 108.2));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Current location'), findsOneWidget);
+    expect(find.text('Use current location'), findsOneWidget);
+  });
+
   testWidgets('does not show Public transit as a transport option', (
     tester,
   ) async {
@@ -81,6 +126,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(Slider), findsOneWidget);
+    final slider = tester.widget<Slider>(find.byType(Slider));
+    expect(slider.min, 1);
+    expect(slider.max, 100);
+    expect(slider.divisions, 99);
     expect(find.text('Search radius'), findsOneWidget);
     expect(find.text('Budget (VND, optional)'), findsOneWidget);
   });
@@ -116,13 +165,94 @@ void main() {
       300,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.enterText(find.byType(TextField), '0');
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Budget (VND, optional)'),
+      '0',
+    );
     await tester.pump();
 
     expect(
       find.text('Enter a positive budget or leave this field blank.'),
       findsOneWidget,
     );
+  });
+
+  group('time available', () {
+    Future<void> showDurationFields(WidgetTester tester) async {
+      await tester.pumpWidget(buildPage());
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('available_time_helper')),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+    }
+
+    String helperText(WidgetTester tester) => tester
+        .widget<Text>(find.byKey(const Key('available_time_helper')))
+        .data!;
+
+    testWidgets('accepts any hours and minutes, even past midnight', (
+      tester,
+    ) async {
+      await showDurationFields(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('available_hours_field')),
+        '30',
+      );
+      await tester.enterText(
+        find.byKey(const Key('available_minutes_field')),
+        '15',
+      );
+      await tester.pump();
+
+      expect(helperText(tester), startsWith('1 hour to 3 days. Ends '));
+    });
+
+    testWidgets('rejects less than one hour', (tester) async {
+      await showDurationFields(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('available_hours_field')),
+        '0',
+      );
+      await tester.enterText(
+        find.byKey(const Key('available_minutes_field')),
+        '45',
+      );
+      await tester.pump();
+
+      expect(helperText(tester), 'Plan at least 1 hour.');
+    });
+
+    testWidgets('rejects more than three days', (tester) async {
+      await showDurationFields(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('available_hours_field')),
+        '72',
+      );
+      await tester.enterText(
+        find.byKey(const Key('available_minutes_field')),
+        '1',
+      );
+      await tester.pump();
+
+      expect(helperText(tester), 'A trip can last at most 72 hours (3 days).');
+    });
+
+    testWidgets('rejects more than 59 minutes', (tester) async {
+      await showDurationFields(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('available_minutes_field')),
+        '75',
+      );
+      await tester.pump();
+
+      expect(helperText(tester), 'Enter whole hours and 0–59 minutes.');
+    });
   });
 
   testWidgets('disables budget field while generation is in flight', (
@@ -201,6 +331,157 @@ void main() {
     expect(tester.widget<TextField>(budgetFieldFinder).enabled, isTrue);
   });
 
+  testWidgets(
+    'opens the POI picker when the cubits are provided inside the route',
+    (tester) async {
+      // Mirrors AppRouter: providers wrap the page, not the Navigator, so the
+      // modal sheet's route is outside their subtree.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiBlocProvider(
+            providers: [
+              BlocProvider(
+                create: (_) =>
+                    CreateItineraryCubit(repository: _ItineraryRepository()),
+              ),
+              BlocProvider(
+                create: (_) => PoiSearchCubit(
+                  locationService: _LocationService(),
+                  repository: _ScopedPoiRepository(),
+                ),
+              ),
+              BlocProvider(
+                create: (_) =>
+                    AddressSearchCubit(repository: _AddressRepository()),
+              ),
+            ],
+            child: const CreateItineraryPage(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Choose a starting place'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(
+        find.widgetWithText(TextField, 'Address or place name'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  Future<void> pumpWithAddresses(
+    WidgetTester tester,
+    _AddressRepository addressRepository,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MultiBlocProvider(
+          providers: [
+            BlocProvider(
+              create: (_) =>
+                  CreateItineraryCubit(repository: _ItineraryRepository()),
+            ),
+            BlocProvider(
+              create: (_) => PoiSearchCubit(
+                locationService: _LocationService(),
+                repository: _ScopedPoiRepository(),
+              ),
+            ),
+            BlocProvider(
+              create: (_) => AddressSearchCubit(repository: addressRepository),
+            ),
+          ],
+          child: const CreateItineraryPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('starting point accepts a typed street address', (tester) async {
+    final addresses = _AddressRepository(
+      results: const [
+        AddressSuggestion(
+          name: '123 Nguyễn Văn Linh',
+          fullAddress: '123 Nguyễn Văn Linh, Hải Châu, Đà Nẵng, Việt Nam',
+          latitude: 16.0603,
+          longitude: 108.2105,
+        ),
+      ],
+    );
+    await pumpWithAddresses(tester, addresses);
+
+    await tester.tap(find.text('Choose a starting place'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Address or place name'),
+      '123 nguyen van linh',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+
+    expect(addresses.queries, ['123 nguyen van linh']);
+    expect(find.text('Addresses'), findsOneWidget);
+    expect(find.text('Places'), findsOneWidget);
+    await tester.tap(find.text('123 Nguyễn Văn Linh'));
+    await tester.pumpAndSettle();
+
+    expect(addresses.resolved, ['123 Nguyễn Văn Linh']);
+    expect(
+      find.text('123 Nguyễn Văn Linh, Hải Châu, Đà Nẵng, Việt Nam'),
+      findsOneWidget,
+    );
+    final explore = tester.widget<ListTile>(
+      find.widgetWithText(ListTile, 'Explore around'),
+    );
+    expect(explore.onTap, isNotNull);
+  });
+
+  testWidgets('a catalog place can still be the starting point', (
+    tester,
+  ) async {
+    await pumpWithAddresses(tester, _AddressRepository());
+
+    await tester.tap(find.text('Choose a starting place'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Address or place name'),
+      'Scope',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+
+    expect(find.text('No matching address.'), findsOneWidget);
+    await tester.tap(find.text('POI in Scope A'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('POI in Scope A'), findsOneWidget);
+    expect(find.text('No starting point selected'), findsNothing);
+  });
+
+  testWidgets('without Mapbox the start search covers catalog places only', (
+    tester,
+  ) async {
+    final addresses = _AddressRepository(isAvailable: false);
+    await pumpWithAddresses(tester, addresses);
+
+    await tester.tap(find.text('Choose a starting place'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Place name'),
+      'Scope',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Addresses'), findsNothing);
+    expect(find.text('POI in Scope A'), findsOneWidget);
+    expect(addresses.queries, isEmpty);
+  });
+
   testWidgets('invalidates stale POI results when picker scope changes', (
     tester,
   ) async {
@@ -219,6 +500,9 @@ void main() {
               repository: poiRepository,
             ),
           ),
+          BlocProvider(
+            create: (_) => AddressSearchCubit(repository: _AddressRepository()),
+          ),
         ],
         child: const MaterialApp(home: CreateItineraryPage()),
       ),
@@ -229,7 +513,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-      find.widgetWithText(TextField, 'Search places'),
+      find.widgetWithText(TextField, 'Address or place name'),
       'ScopeA',
     );
     await tester.testTextInput.receiveAction(TextInputAction.search);
@@ -336,8 +620,13 @@ final class _DeferredItineraryRepository implements ItineraryRepository {
 }
 
 final class _LocationService implements DeviceLocationService {
+  _LocationService([this._pending]);
+
+  final Completer<DeviceLocation>? _pending;
+
   @override
   Future<DeviceLocation> getCurrentLocation() async =>
+      _pending?.future ??
       const DeviceLocation(latitude: 16.0, longitude: 108.2);
 
   @override
@@ -435,5 +724,37 @@ final class _ScopedPoiRepository implements PointOfInterestRepository {
       ],
       totalCount: 1,
     );
+  }
+}
+
+final class _AddressRepository implements AddressSearchRepository {
+  _AddressRepository({this.isAvailable = true, this.results = const []});
+
+  @override
+  final bool isAvailable;
+  final List<AddressSuggestion> results;
+  final queries = <String>[];
+  final resolved = <String>[];
+
+  @override
+  Future<List<AddressCandidate>> suggest(
+    String query, {
+    DeviceLocation? near,
+  }) async {
+    queries.add(query);
+    return [
+      for (final place in results)
+        AddressCandidate(
+          id: place.name,
+          name: place.name,
+          fullAddress: place.fullAddress,
+        ),
+    ];
+  }
+
+  @override
+  Future<AddressSuggestion> resolve(AddressCandidate candidate) async {
+    resolved.add(candidate.id);
+    return results.firstWhere((place) => place.name == candidate.id);
   }
 }

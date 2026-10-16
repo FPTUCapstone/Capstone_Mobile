@@ -101,6 +101,39 @@ void main() {
     });
   });
 
+  group('Mapbox access token', () {
+    test('is absent by default so the map falls back to the preview', () {
+      expect(AppConfig.fromEnvironment().mapboxAccessToken, isNull);
+    });
+
+    test('accepts a public token', () {
+      final config = AppConfig(
+        environment: Environment.development,
+        apiBaseUrl: Uri.parse('https://api.example.com'),
+        mapboxAccessToken: ' pk.eyJ1IjoidHJpcG1hdGUifQ.test ',
+      );
+      expect(config.mapboxAccessToken, 'pk.eyJ1IjoidHJpcG1hdGUifQ.test');
+    });
+
+    test('rejects secret or malformed tokens', () {
+      for (final value in [
+        'sk.eyJ1IjoidHJpcG1hdGUifQ.secret',
+        'abc',
+        'pk.a b',
+      ]) {
+        expect(
+          () => AppConfig(
+            environment: Environment.development,
+            apiBaseUrl: Uri.parse('https://api.example.com'),
+            mapboxAccessToken: value,
+          ),
+          throwsFormatException,
+          reason: value,
+        );
+      }
+    });
+  });
+
   group('AppConfig.parseBaseUrl', () {
     test('accepts valid HTTP/HTTPS URLs with non-empty host', () {
       expect(
