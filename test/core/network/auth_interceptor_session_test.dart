@@ -73,6 +73,11 @@ void main() {
     },
   );
 
+  test('UC-09: 401 on travel preferences invalidates the session', () async {
+    await driveError('/api/v1/traveler/preferences', 401, bearer: true);
+    expect(invalidated, 1);
+  });
+
   test(
     '401 without a Bearer credential does not invalidate a session',
     () async {
