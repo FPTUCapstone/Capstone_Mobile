@@ -118,10 +118,16 @@ class _OperatorSection extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.xs),
               const Text(
-                'Create a commercial tour package and save it as a draft.',
+                'Create a commercial tour package, keep editing your drafts and submit them for review.',
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.md),
+              OutlinedButton.icon(
+                onPressed: () => context.push(AppRoutes.operatorTours),
+                icon: const Icon(Icons.list_alt_outlined),
+                label: const Text('My tour packages'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
               FilledButton.icon(
                 onPressed: () => context.push(AppRoutes.createTourPackage),
                 icon: const Icon(Icons.add),

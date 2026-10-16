@@ -4,15 +4,24 @@ import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_detail.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_draft.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_state.dart';
+import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/operator_tours_page.dart';
+import 'package:trip_mate_mobile/features/operator_tours/presentation/widgets/tour_package_widgets.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_summary.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_state.dart';
 
+const _photosStep = 3;
+const _reviewStep = 4;
+
+/// Four-step-plus-photos editor for one tour package. With [initial] it edits (or, for a package
+/// that is no longer a Draft/Rejected, only shows) an existing package; without it, it creates one.
 final class CreateTourPackagePage extends StatefulWidget {
-  const CreateTourPackagePage({super.key});
+  const CreateTourPackagePage({this.initial, super.key});
+  final TourPackageDetail? initial;
   @override
   State<CreateTourPackagePage> createState() => _CreateTourPackagePageState();
 }
@@ -23,6 +32,10 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
   final _description = TextEditingController();
   final _price = TextEditingController();
   final _duration = TextEditingController(text: '1');
+  final _inclusions = TextEditingController();
+  final _exclusions = TextEditingController();
+  final _highlights = TextEditingController();
+  final _requirements = TextEditingController();
   final List<_TourStop> _stops = [];
   final List<_Departure> _departures = [];
   // Catalogue ids in the order the operator chose them (the order is the display order).
@@ -30,18 +43,79 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
   int? _policyId;
   var _step = 0;
 
+  bool get _isEditing => widget.initial != null;
+
+  /// A package that is awaiting review, approved or published cannot be changed.
+  bool get _readOnly => _isEditing && !widget.initial!.status.isEditable;
+
   @override
   void initState() {
     super.initState();
-    final start = DateTime.now().add(const Duration(days: 1));
-    _departures.add(
-      _Departure(start: start, end: start.add(const Duration(hours: 8))),
-    );
+    final initial = widget.initial;
+    if (initial == null) {
+      final start = DateTime.now().add(const Duration(days: 1));
+      _departures.add(
+        _Departure(start: start, end: start.add(const Duration(hours: 8))),
+      );
+      return;
+    }
+    final names = context.read<CreateTourPackageCubit>().state.poiNames;
+    _title.text = initial.title;
+    _description.text = initial.description;
+    _price.text = initial.basePrice.toString();
+    _duration.text = '${initial.durationDays}';
+    _inclusions.text = initial.inclusions ?? '';
+    _exclusions.text = initial.exclusions ?? '';
+    _highlights.text = initial.highlights ?? '';
+    _requirements.text = initial.travellerRequirements ?? '';
+    _destinationIds.addAll(initial.destinationIds);
+    _policyId = initial.cancellationPolicyTemplateId;
+    final ordered = [...initial.itineraryItems]
+      ..sort((a, b) {
+        final byDay = a.dayNo.compareTo(b.dayNo);
+        return byDay != 0 ? byDay : a.sequenceNo.compareTo(b.sequenceNo);
+      });
+    for (final item in ordered) {
+      _stops.add(
+        _TourStop(
+          poiId: item.poiId,
+          name: names[item.poiId] ?? 'Point of interest #${item.poiId}',
+          dayNo: item.dayNo,
+          stayMinutes: item.stayDurationMinutes,
+          plannedTime: item.plannedTime,
+          notes: item.notes,
+        ),
+      );
+    }
+    for (final departure in initial.departures) {
+      _departures.add(
+        _Departure(
+          start: departure.startAtUtc.toLocal(),
+          end: departure.endAtUtc.toLocal(),
+          capacity: departure.totalCapacity,
+          minimumCapacity: departure.minimumCapacity,
+          adultPrice: departure.adultPrice,
+          childPrice: departure.childPrice,
+          infantPrice: departure.infantPrice,
+          meetingPoint: departure.meetingPoint ?? '',
+          registrationDeadline: departure.registrationDeadlineAtUtc?.toLocal(),
+        ),
+      );
+    }
   }
 
   @override
   void dispose() {
-    for (final controller in [_title, _description, _price, _duration]) {
+    for (final controller in [
+      _title,
+      _description,
+      _price,
+      _duration,
+      _inclusions,
+      _exclusions,
+      _highlights,
+      _requirements,
+    ]) {
       controller.dispose();
     }
     super.dispose();
@@ -99,17 +173,31 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
         child: const _PoiPickerSheet(),
       ),
     );
-    if (mounted && poi != null) setState(() => _stops.add(_TourStop(poi: poi)));
+    if (mounted && poi != null) {
+      setState(
+        () => _stops.add(
+          _TourStop(
+            poiId: poi.id,
+            name: poi.name,
+            isOpenNow: poi.isOpenNow,
+            stayMinutes: poi.averageVisitDurationMinutes > 0
+                ? poi.averageVisitDurationMinutes
+                : 60,
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _editStop(int index) async {
+    if (_readOnly) return;
     final old = _stops[index];
     final day = TextEditingController(text: '${old.dayNo}');
     final stay = TextEditingController(text: '${old.stayMinutes}');
     final result = await showDialog<_TourStop>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(old.poi.name),
+        title: Text(old.name),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -151,12 +239,14 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
   }
 
   Future<void> _editDeparture(int index) async {
+    if (_readOnly) return;
     final old = _departures[index];
+    final now = DateTime.now();
     final date = await showDatePicker(
       context: context,
-      initialDate: old.start,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 730)),
+      initialDate: old.start.isBefore(now) ? now : old.start,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 730)),
     );
     if (!mounted || date == null) return;
     final capacity = TextEditingController(text: '${old.capacity}');
@@ -173,94 +263,128 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
     final infantPrice = TextEditingController(
       text: old.infantPrice?.toString() ?? '',
     );
+    DateTime? deadline = old.registrationDeadline;
     final result = await showDialog<_Departure>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Departure schedule'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(MaterialLocalizations.of(context).formatMediumDate(date)),
-            TextField(
-              controller: capacity,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Capacity'),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('Departure schedule'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(MaterialLocalizations.of(context).formatMediumDate(date)),
+                TextField(
+                  controller: capacity,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Capacity'),
+                ),
+                TextField(
+                  controller: minimumCapacity,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Minimum passengers',
+                  ),
+                ),
+                TextField(
+                  controller: adultPrice,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Adult price (whole VND)',
+                  ),
+                ),
+                TextField(
+                  controller: childPrice,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Child price (optional)',
+                  ),
+                ),
+                TextField(
+                  controller: infantPrice,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Infant price (optional)',
+                  ),
+                ),
+                TextField(
+                  controller: meeting,
+                  decoration: const InputDecoration(labelText: 'Meeting point'),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        deadline == null
+                            ? 'No registration deadline'
+                            : 'Register by ${MaterialLocalizations.of(context).formatMediumDate(deadline!)}',
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: dialogContext,
+                          initialDate: date.subtract(const Duration(days: 1)),
+                          firstDate: now,
+                          lastDate: date.subtract(const Duration(days: 1)),
+                        );
+                        if (picked != null) {
+                          setDialogState(() => deadline = picked);
+                        }
+                      },
+                      child: const Text('Set'),
+                    ),
+                    if (deadline != null)
+                      TextButton(
+                        onPressed: () => setDialogState(() => deadline = null),
+                        child: const Text('Clear'),
+                      ),
+                  ],
+                ),
+              ],
             ),
-            TextField(
-              controller: minimumCapacity,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Minimum passengers',
-              ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
             ),
-            TextField(
-              controller: adultPrice,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: const InputDecoration(labelText: 'Adult price (VND)'),
-            ),
-            TextField(
-              controller: childPrice,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: const InputDecoration(
-                labelText: 'Child price (optional)',
-              ),
-            ),
-            TextField(
-              controller: infantPrice,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: const InputDecoration(
-                labelText: 'Infant price (optional)',
-              ),
-            ),
-            TextField(
-              controller: meeting,
-              decoration: const InputDecoration(labelText: 'Meeting point'),
+            FilledButton(
+              onPressed: () {
+                final start = DateTime(
+                  date.year,
+                  date.month,
+                  date.day,
+                  old.start.hour,
+                  old.start.minute,
+                );
+                Navigator.pop(
+                  dialogContext,
+                  _Departure(
+                    start: start,
+                    end: start.add(old.end.difference(old.start)),
+                    capacity: _positiveInt(capacity.text) ?? old.capacity,
+                    minimumCapacity:
+                        _positiveInt(minimumCapacity.text) ??
+                        old.minimumCapacity,
+                    adultPrice:
+                        num.tryParse(adultPrice.text.trim()) ?? old.adultPrice,
+                    childPrice: childPrice.text.trim().isEmpty
+                        ? null
+                        : num.tryParse(childPrice.text.trim()),
+                    infantPrice: infantPrice.text.trim().isEmpty
+                        ? null
+                        : num.tryParse(infantPrice.text.trim()),
+                    meetingPoint: meeting.text,
+                    registrationDeadline: deadline,
+                  ),
+                );
+              },
+              child: const Text('Save'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final start = DateTime(
-                date.year,
-                date.month,
-                date.day,
-                old.start.hour,
-                old.start.minute,
-              );
-              Navigator.pop(
-                dialogContext,
-                _Departure(
-                  start: start,
-                  end: start.add(old.end.difference(old.start)),
-                  capacity: _positiveInt(capacity.text) ?? old.capacity,
-                  minimumCapacity:
-                      _positiveInt(minimumCapacity.text) ?? old.minimumCapacity,
-                  adultPrice:
-                      num.tryParse(adultPrice.text.trim()) ?? old.adultPrice,
-                  childPrice: childPrice.text.trim().isEmpty
-                      ? null
-                      : num.tryParse(childPrice.text.trim()),
-                  infantPrice: infantPrice.text.trim().isEmpty
-                      ? null
-                      : num.tryParse(infantPrice.text.trim()),
-                  meetingPoint: meeting.text,
-                ),
-              );
-            },
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
     capacity.dispose();
@@ -272,33 +396,46 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
     if (mounted && result != null) setState(() => _departures[index] = result);
   }
 
-  void _submit() {
-    if (_stops.isEmpty || _departures.isEmpty) {
-      _notice('Add at least one itinerary stop and one departure schedule.');
-      return;
-    }
+  /// Validates the whole form and builds the request, or explains what is wrong and returns null.
+  TourPackageDraft? _buildDraft() {
+    final policyId = _policyId;
     final price = num.tryParse(_price.text.trim());
     final duration = _positiveInt(_duration.text);
-    final policyId = _policyId;
-    if (price == null || price <= 0 || duration == null || policyId == null) {
-      return;
+    if (_title.text.trim().isEmpty ||
+        _description.text.trim().isEmpty ||
+        price == null ||
+        price <= 0 ||
+        duration == null ||
+        policyId == null) {
+      _notice('Complete the basic information first.');
+      return null;
     }
     if (_destinationIds.isEmpty) {
       _notice('Select at least one destination.');
-      return;
+      return null;
+    }
+    if (_stops.isEmpty || _departures.isEmpty) {
+      _notice('Add at least one itinerary stop and one departure schedule.');
+      return null;
+    }
+    if (_stops.any((stop) => stop.dayNo > duration)) {
+      _notice('Each stop must be on a day within the tour duration.');
+      return null;
     }
     final invalidDeparture = _departures.any(
       (departure) =>
           departure.minimumCapacity > departure.capacity ||
           (departure.adultPrice != null && departure.adultPrice! <= 0) ||
           (departure.childPrice != null && departure.childPrice! < 0) ||
-          (departure.infantPrice != null && departure.infantPrice! < 0),
+          (departure.infantPrice != null && departure.infantPrice! < 0) ||
+          (departure.registrationDeadline != null &&
+              !departure.registrationDeadline!.isBefore(departure.start)),
     );
     if (invalidDeparture) {
       _notice(
-        'Each departure needs a positive adult price and a minimum capacity no greater than capacity.',
+        'Each departure needs a positive adult price, a minimum capacity no greater than capacity, and a registration deadline before it starts.',
       );
-      return;
+      return null;
     }
     final prices = [
       price,
@@ -310,370 +447,510 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
     ];
     if (!prices.every(_isWholeVnd)) {
       _notice('Prices must be whole VND amounts.');
-      return;
+      return null;
     }
-    context.read<CreateTourPackageCubit>().submit(
-      TourPackageDraft(
-        title: _title.text,
-        description: _description.text,
-        basePrice: price,
-        durationDays: duration,
-        destinationIds: List.unmodifiable(_destinationIds),
-        cancellationPolicyTemplateId: policyId,
-        itineraryItems: _stops
-            .asMap()
-            .entries
-            .map(
-              (entry) => TourItineraryStopDraft(
-                poiId: entry.value.poi.id,
-                dayNo: entry.value.dayNo,
-                sequenceNo: entry.key + 1,
-                stayDurationMinutes: entry.value.stayMinutes,
-              ),
-            )
-            .toList(growable: false),
-        schedules: _departures
-            .map(
-              (item) => TourScheduleDraft(
-                startAtUtc: item.start,
-                endAtUtc: item.end,
-                totalCapacity: item.capacity,
-                minimumCapacity: item.minimumCapacity,
-                adultPrice: item.adultPrice ?? price,
-                childPrice: item.childPrice,
-                infantPrice: item.infantPrice,
-                meetingPoint: item.meetingPoint,
-              ),
-            )
-            .toList(growable: false),
-      ),
+    // Stops keep the order the operator arranged; sequence is per day, starting at 1.
+    final sequenceByDay = <int, int>{};
+    final initial = widget.initial;
+    return TourPackageDraft(
+      title: _title.text,
+      description: _description.text,
+      basePrice: price,
+      durationDays: duration,
+      categoryId: initial?.categoryId,
+      timeZoneId: initial?.timeZoneId,
+      inclusions: _inclusions.text,
+      exclusions: _exclusions.text,
+      highlights: _highlights.text,
+      travellerRequirements: _requirements.text,
+      destinationIds: List.unmodifiable(_destinationIds),
+      cancellationPolicyTemplateId: policyId,
+      itineraryItems: [
+        for (final stop in _stops)
+          TourItineraryStopDraft(
+            poiId: stop.poiId,
+            dayNo: stop.dayNo,
+            sequenceNo: sequenceByDay.update(
+              stop.dayNo,
+              (value) => value + 1,
+              ifAbsent: () => 1,
+            ),
+            stayDurationMinutes: stop.stayMinutes,
+            plannedTime: stop.plannedTime,
+            notes: stop.notes,
+          ),
+      ],
+      schedules: [
+        for (final item in _departures)
+          TourScheduleDraft(
+            startAtUtc: item.start,
+            endAtUtc: item.end,
+            totalCapacity: item.capacity,
+            minimumCapacity: item.minimumCapacity,
+            registrationDeadlineAtUtc: item.registrationDeadline,
+            adultPrice: item.adultPrice ?? price,
+            childPrice: item.childPrice,
+            infantPrice: item.infantPrice,
+            meetingPoint: item.meetingPoint,
+          ),
+      ],
     );
   }
 
-  @override
-  Widget build(
-    BuildContext context,
-  ) => BlocConsumer<CreateTourPackageCubit, CreateTourPackageState>(
-    listenWhen: (previous, current) => previous.status != current.status,
-    listener: (context, state) {
-      if (state.status == CreateTourPackageStatus.failure &&
-          state.failure != null) {
-        _notice(state.failure!.message);
-      }
-      if (state.status == CreateTourPackageStatus.success) {
-        _notice('Tour draft saved.');
-        context.go(AppRoutes.operator);
-      }
-    },
-    builder: (context, state) => Scaffold(
-      appBar: AppBar(title: const Text('Create tour package')),
-      body: SafeArea(
-        child: Stepper(
-          currentStep: _step,
-          onStepTapped: (value) {
-            if (value <= _step || _validStep()) setState(() => _step = value);
-          },
-          onStepContinue: () {
-            if (!_validStep()) return;
-            if (_step == 3) {
-              _submit();
-            } else {
-              setState(() => _step++);
-            }
-          },
-          onStepCancel: _step == 0
-              ? () => context.pop()
-              : () => setState(() => _step--),
-          controlsBuilder: (_, details) => Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.md),
-            child: Row(
-              children: [
-                FilledButton(
-                  onPressed: state.status == CreateTourPackageStatus.submitting
-                      ? null
-                      : details.onStepContinue,
-                  child: Text(_step == 3 ? 'Save draft' : 'Continue'),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                TextButton(
-                  onPressed: details.onStepCancel,
-                  child: Text(_step == 0 ? 'Cancel' : 'Back'),
-                ),
-              ],
-            ),
+  void _save() {
+    final draft = _buildDraft();
+    if (draft != null) context.read<CreateTourPackageCubit>().submit(draft);
+  }
+
+  Future<void> _submitForReview() async {
+    final draft = _buildDraft();
+    if (draft == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Submit for review?'),
+        content: const Text(
+          'Your current changes are saved first. After submission the package cannot be edited until an administrator reviews it.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
           ),
-          steps: [
-            Step(
-              title: const Text('Basic information'),
-              content: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    TextFormField(
-                      controller: _title,
-                      decoration: const InputDecoration(
-                        labelText: 'Tour title',
-                      ),
-                      validator: (value) => _required(value, 'Tour title'),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    TextFormField(
-                      controller: _description,
-                      minLines: 3,
-                      maxLines: 5,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
-                      ),
-                      validator: (value) => _required(value, 'Description'),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    TextFormField(
-                      controller: _price,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: const InputDecoration(
-                        labelText: 'Base price (VND)',
-                      ),
-                      validator: (value) {
-                        final price = num.tryParse(value ?? '');
-                        if (price == null || price <= 0) {
-                          return 'Enter a positive price.';
-                        }
-                        return _isWholeVnd(price)
-                            ? null
-                            : 'Enter a whole VND amount.';
-                      },
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    TextFormField(
-                      controller: _duration,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Duration (days)',
-                      ),
-                      validator: (value) => _positiveInt(value ?? '') == null
-                          ? 'Enter a positive number of days.'
-                          : null,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    _OptionsSection(
-                      state: state,
-                      selectedDestinationIds: _destinationIds,
-                      selectedPolicyId: _policyId,
-                      onToggleDestination: (id) => setState(() {
-                        if (_destinationIds.contains(id)) {
-                          _destinationIds.remove(id);
-                        } else if (_destinationIds.length < _maxDestinations) {
-                          _destinationIds.add(id);
-                        }
-                      }),
-                      onPolicyChanged: (id) => setState(() => _policyId = id),
-                      onRetry: () =>
-                          context.read<CreateTourPackageCubit>().loadOptions(),
-                    ),
-                  ],
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await context.read<CreateTourPackageCubit>().saveAndSubmitForReview(
+        draft,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => MultiBlocListener(
+    listeners: [
+      BlocListener<CreateTourPackageCubit, CreateTourPackageState>(
+        listenWhen: (previous, current) => previous.status != current.status,
+        listener: (context, state) {
+          if (state.status == CreateTourPackageStatus.failure &&
+              state.failure != null) {
+            _notice(state.failure!.message);
+          }
+          if (state.status == CreateTourPackageStatus.success) {
+            if (_isEditing) {
+              _notice('Changes saved.');
+            } else {
+              _notice(
+                'Tour draft saved. Add a cover photo, then submit it for review.',
+              );
+              context.pushReplacement(
+                AppRoutes.editTourPackagePath(state.tourId!),
+              );
+            }
+          }
+        },
+      ),
+      BlocListener<CreateTourPackageCubit, CreateTourPackageState>(
+        listenWhen: (previous, current) =>
+            previous.reviewStatus != current.reviewStatus,
+        listener: (context, state) {
+          if (state.reviewStatus == TourReviewStatus.failure &&
+              state.reviewFailure != null) {
+            _notice(state.reviewFailure!.message);
+          }
+          if (state.reviewStatus == TourReviewStatus.submitted) {
+            _notice('Submitted for review.');
+            context.pop();
+          }
+        },
+      ),
+      BlocListener<CreateTourPackageCubit, CreateTourPackageState>(
+        listenWhen: (previous, current) =>
+            previous.mediaFailure != current.mediaFailure &&
+            current.mediaFailure != null,
+        listener: (context, state) => _notice(state.mediaFailure!.message),
+      ),
+    ],
+    child: BlocBuilder<CreateTourPackageCubit, CreateTourPackageState>(
+      builder: (context, state) => Scaffold(
+        appBar: AppBar(
+          title: Text(_isEditing ? 'Edit tour package' : 'Create tour package'),
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              if (widget.initial?.status == TourPackageStatus.rejected &&
+                  widget.initial?.rejectionReason != null)
+                TourPackageBanner(
+                  icon: Icons.report_gmailerrorred_outlined,
+                  message:
+                      'Rejected: ${widget.initial!.rejectionReason}. Fix the issues and submit again.',
                 ),
-              ),
-              isActive: _step >= 0,
-            ),
-            Step(
-              title: Text('Itinerary (${_stops.length})'),
-              content: Column(
-                children: [
-                  const Text(
-                    'Choose active locations from the TripMate catalogue, then adjust each visit.',
-                  ),
-                  for (final entry in _stops.asMap().entries)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: CircleAvatar(child: Text('${entry.key + 1}')),
-                      title: Text(entry.value.poi.name),
-                      subtitle: Text(
-                        'Day ${entry.value.dayNo} · ${entry.value.stayMinutes} min${entry.value.poi.isOpenNow ? ' · Open now' : ''}',
-                      ),
-                      onTap: () => _editStop(entry.key),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () =>
-                            setState(() => _stops.removeAt(entry.key)),
-                      ),
-                    ),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: OutlinedButton.icon(
-                      onPressed: _choosePoi,
-                      icon: const Icon(Icons.add_location_alt_outlined),
-                      label: const Text('Add point of interest'),
-                    ),
-                  ),
-                ],
-              ),
-              isActive: _step >= 1,
-            ),
-            Step(
-              title: Text('Schedules (${_departures.length})'),
-              content: Column(
-                children: [
-                  const Text(
-                    'Add every departure you intend to sell. Capacity is managed per departure.',
-                  ),
-                  for (final entry in _departures.asMap().entries)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        MaterialLocalizations.of(
-                          context,
-                        ).formatMediumDate(entry.value.start),
-                      ),
-                      subtitle: Text(
-                        '${entry.value.capacity} seats · Adult ${entry.value.adultPrice ?? _price.text} VND${entry.value.meetingPoint.trim().isEmpty ? '' : ' · ${entry.value.meetingPoint}'}',
-                      ),
-                      onTap: () => _editDeparture(entry.key),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: _departures.length == 1
-                            ? null
-                            : () => setState(
-                                () => _departures.removeAt(entry.key),
-                              ),
-                      ),
-                    ),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        final start = _departures.last.start.add(
-                          const Duration(days: 7),
-                        );
-                        setState(
-                          () => _departures.add(
-                            _Departure(
-                              start: start,
-                              end: start.add(const Duration(hours: 8)),
-                            ),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add departure'),
-                    ),
-                  ),
-                ],
-              ),
-              isActive: _step >= 2,
-            ),
-            Step(
-              title: const Text('Review & save'),
-              content: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _title.text,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  Text(
-                    '${_stops.length} stops · ${_departures.length} departures · ${_price.text} VND',
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  const Text(
-                    'This is saved as a Draft. You can submit it for approval separately.',
-                  ),
-                ],
-              ),
-              isActive: _step >= 3,
-            ),
-          ],
+              if (_readOnly)
+                TourPackageBanner(
+                  icon: Icons.lock_outline,
+                  message:
+                      'This package is ${tourStatusLabel(widget.initial!.status).toLowerCase()} and cannot be edited.',
+                ),
+              Expanded(child: _stepper(context, state)),
+            ],
+          ),
         ),
       ),
     ),
   );
-}
 
-const _maxDestinations = 10;
-
-/// Destination and cancellation-policy pickers backed by the server catalogue.
-final class _OptionsSection extends StatelessWidget {
-  const _OptionsSection({
-    required this.state,
-    required this.selectedDestinationIds,
-    required this.selectedPolicyId,
-    required this.onToggleDestination,
-    required this.onPolicyChanged,
-    required this.onRetry,
-  });
-  final CreateTourPackageState state;
-  final List<int> selectedDestinationIds;
-  final int? selectedPolicyId;
-  final ValueChanged<int> onToggleDestination;
-  final ValueChanged<int?> onPolicyChanged;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    switch (state.optionsStatus) {
-      case TourPackageOptionsStatus.loading:
-        return const Center(child: CircularProgressIndicator());
-      case TourPackageOptionsStatus.failure:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              state.optionsFailure?.message ??
-                  'Could not load destinations and cancellation policies.',
-            ),
-            TextButton(onPressed: onRetry, child: const Text('Retry')),
-          ],
-        );
-      case TourPackageOptionsStatus.ready:
-        final options = state.options!;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Destinations', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: AppSpacing.xs),
-            Wrap(
-              spacing: AppSpacing.xs,
-              children: [
-                for (final destination in options.destinations)
-                  FilterChip(
-                    label: Text(destination.name),
-                    selected: selectedDestinationIds.contains(destination.id),
-                    onSelected: (_) => onToggleDestination(destination.id),
+  Widget _stepper(BuildContext context, CreateTourPackageState state) {
+    final saving = state.status == CreateTourPackageStatus.submitting;
+    final submittingReview = state.reviewStatus == TourReviewStatus.submitting;
+    final busy = saving || submittingReview;
+    return Stepper(
+      currentStep: _step,
+      onStepTapped: (value) {
+        if (value <= _step || _validStep()) setState(() => _step = value);
+      },
+      onStepContinue: () {
+        if (_step < _reviewStep) {
+          if (_validStep()) setState(() => _step++);
+        }
+      },
+      onStepCancel: _step == 0
+          ? () => context.pop()
+          : () => setState(() => _step--),
+      controlsBuilder: (_, details) => details.stepIndex != _step
+          ? const SizedBox.shrink()
+          : Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.md),
+              child: Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.xs,
+                children: [
+                  if (_step < _reviewStep)
+                    FilledButton(
+                      onPressed: details.onStepContinue,
+                      child: const Text('Continue'),
+                    )
+                  else if (!_readOnly) ...[
+                    FilledButton(
+                      onPressed: busy ? null : _save,
+                      child: Text(saving ? 'Saving...' : 'Save draft'),
+                    ),
+                    if (_isEditing)
+                      OutlinedButton(
+                        onPressed: busy ? null : _submitForReview,
+                        child: Text(
+                          submittingReview
+                              ? 'Submitting...'
+                              : 'Submit for review',
+                        ),
+                      ),
+                  ],
+                  TextButton(
+                    onPressed: details.onStepCancel,
+                    child: Text(_step == 0 ? 'Cancel' : 'Back'),
                   ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            DropdownButtonFormField<int>(
-              initialValue: selectedPolicyId,
-              isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'Cancellation policy',
+                ],
               ),
-              items: [
-                for (final policy in options.policies)
-                  DropdownMenuItem(
-                    value: policy.id,
-                    child: Text(policy.name, overflow: TextOverflow.ellipsis),
-                  ),
-              ],
-              onChanged: onPolicyChanged,
             ),
+      steps: [
+        Step(
+          title: const Text('Basic information'),
+          content: _basicStep(state),
+          isActive: _step >= 0,
+        ),
+        Step(
+          title: Text('Itinerary (${_stops.length})'),
+          content: _itineraryStep(),
+          isActive: _step >= 1,
+        ),
+        Step(
+          title: Text('Schedules (${_departures.length})'),
+          content: _scheduleStep(),
+          isActive: _step >= 2,
+        ),
+        Step(
+          title: const Text('Photos'),
+          content: _isEditing
+              ? TourPhotosSection(
+                  media: state.media,
+                  busy: state.mediaBusy,
+                  readOnly: _readOnly,
+                  onAdd: () =>
+                      context.read<CreateTourPackageCubit>().addImage(),
+                  onSetPrimary: (id) => context
+                      .read<CreateTourPackageCubit>()
+                      .setPrimaryImage(id),
+                  onDelete: (id) =>
+                      context.read<CreateTourPackageCubit>().deleteImage(id),
+                )
+              : const Text(
+                  'Save the draft first. You can add the cover photo on the next screen.',
+                ),
+          isActive: _step >= _photosStep,
+        ),
+        Step(
+          title: const Text('Preview & save'),
+          content: _reviewStep_(state),
+          isActive: _step >= _reviewStep,
+        ),
+      ],
+    );
+  }
+
+  Widget _basicStep(CreateTourPackageState state) => Form(
+    key: _formKey,
+    child: Column(
+      children: [
+        TextFormField(
+          controller: _title,
+          enabled: !_readOnly,
+          decoration: const InputDecoration(labelText: 'Tour title'),
+          validator: (value) => _required(value, 'Tour title'),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        TextFormField(
+          controller: _description,
+          enabled: !_readOnly,
+          minLines: 3,
+          maxLines: 5,
+          decoration: const InputDecoration(labelText: 'Description'),
+          validator: (value) => _required(value, 'Description'),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        TextFormField(
+          controller: _price,
+          enabled: !_readOnly,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(labelText: 'Base price (VND)'),
+          validator: (value) {
+            final price = num.tryParse(value ?? '');
+            if (price == null || price <= 0) return 'Enter a positive price.';
+            return _isWholeVnd(price) ? null : 'Enter a whole VND amount.';
+          },
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        TextFormField(
+          controller: _duration,
+          enabled: !_readOnly,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: 'Duration (days)'),
+          validator: (value) => _positiveInt(value ?? '') == null
+              ? 'Enter a positive number of days.'
+              : null,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        for (final (controller, label) in [
+          (_highlights, 'Highlights (optional)'),
+          (_inclusions, 'Inclusions (optional)'),
+          (_exclusions, 'Exclusions (optional)'),
+          (_requirements, 'Traveller requirements (optional)'),
+        ]) ...[
+          TextFormField(
+            controller: controller,
+            enabled: !_readOnly,
+            minLines: 1,
+            maxLines: 4,
+            maxLength: 4000,
+            decoration: InputDecoration(labelText: label),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+        ],
+        const SizedBox(height: AppSpacing.sm),
+        TourOptionsSection(
+          state: state,
+          enabled: !_readOnly,
+          selectedDestinationIds: _destinationIds,
+          selectedPolicyId: _policyId,
+          onToggleDestination: (id) => setState(() {
+            if (_destinationIds.contains(id)) {
+              _destinationIds.remove(id);
+            } else if (_destinationIds.length < maxTourDestinations) {
+              _destinationIds.add(id);
+            }
+          }),
+          onPolicyChanged: (id) => setState(() => _policyId = id),
+          onRetry: () => context.read<CreateTourPackageCubit>().loadOptions(),
+        ),
+      ],
+    ),
+  );
+
+  Widget _itineraryStep() => Column(
+    children: [
+      const Text(
+        'Choose active locations from the TripMate catalogue, then adjust each visit.',
+      ),
+      for (final entry in _stops.asMap().entries)
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: CircleAvatar(child: Text('${entry.key + 1}')),
+          title: Text(entry.value.name),
+          subtitle: Text(
+            'Day ${entry.value.dayNo} · ${entry.value.stayMinutes} min${entry.value.isOpenNow ? ' · Open now' : ''}',
+          ),
+          onTap: () => _editStop(entry.key),
+          trailing: _readOnly
+              ? null
+              : IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  tooltip: 'Remove stop',
+                  onPressed: () => setState(() => _stops.removeAt(entry.key)),
+                ),
+        ),
+      if (!_readOnly)
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            onPressed: _choosePoi,
+            icon: const Icon(Icons.add_location_alt_outlined),
+            label: const Text('Add point of interest'),
+          ),
+        ),
+    ],
+  );
+
+  Widget _scheduleStep() => Column(
+    children: [
+      const Text(
+        'Add every departure you intend to sell. Capacity is managed per departure.',
+      ),
+      for (final entry in _departures.asMap().entries)
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(
+            MaterialLocalizations.of(
+              context,
+            ).formatMediumDate(entry.value.start),
+          ),
+          subtitle: Text(
+            '${entry.value.capacity} seats · Adult ${entry.value.adultPrice ?? _price.text} VND${entry.value.meetingPoint.trim().isEmpty ? '' : ' · ${entry.value.meetingPoint}'}',
+          ),
+          onTap: () => _editDeparture(entry.key),
+          trailing: _readOnly || _departures.length == 1
+              ? null
+              : IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  tooltip: 'Remove departure',
+                  onPressed: () =>
+                      setState(() => _departures.removeAt(entry.key)),
+                ),
+        ),
+      if (!_readOnly)
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            onPressed: () {
+              final start = _departures.last.start.add(const Duration(days: 7));
+              setState(
+                () => _departures.add(
+                  _Departure(
+                    start: start,
+                    end: start.add(const Duration(hours: 8)),
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Add departure'),
+          ),
+        ),
+    ],
+  );
+
+  Widget _reviewStep_(CreateTourPackageState state) {
+    final detail = state.detail;
+    final options = state.options;
+    final destinationNames = [
+      for (final id in _destinationIds)
+        options?.destinations
+                .where((destination) => destination.id == id)
+                .map((destination) => destination.name)
+                .firstOrNull ??
+            'Destination #$id',
+    ];
+    final policyName = options?.policies
+        .where((policy) => policy.id == _policyId)
+        .map((policy) => policy.name)
+        .firstOrNull;
+    final cover = state.media.where((item) => item.isPrimary).firstOrNull;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TourPreviewCard(
+          title: _title.text.trim().isEmpty ? 'Untitled tour' : _title.text,
+          coverUrl: cover?.url,
+          destinations: destinationNames,
+          durationDays: _positiveInt(_duration.text),
+          basePrice: num.tryParse(_price.text.trim()),
+          highlights: _highlights.text,
+          inclusions: _inclusions.text,
+          exclusions: _exclusions.text,
+          policyName: policyName,
+          days: _previewDays(),
+          departures: [
+            for (final departure in _departures)
+              '${MaterialLocalizations.of(context).formatMediumDate(departure.start)} · ${departure.capacity} seats · Adult ${departure.adultPrice ?? _price.text} VND',
           ],
-        );
+        ),
+        const SizedBox(height: AppSpacing.md),
+        if (detail != null) ...[
+          TourReadinessSection(
+            blockers: detail.reviewBlockers,
+            warnings: detail.warnings,
+            poiNames: state.poiNames,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
+        Text(
+          _isEditing
+              ? 'Readiness and warnings reflect the last saved version.'
+              : 'This is saved as a Draft. Add a cover photo, then submit it for review.',
+        ),
+      ],
+    );
+  }
+
+  Map<int, List<String>> _previewDays() {
+    final days = <int, List<String>>{};
+    for (final stop in _stops) {
+      days.putIfAbsent(stop.dayNo, () => []).add(stop.name);
     }
+    return Map.fromEntries(
+      days.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
+    );
   }
 }
 
 final class _TourStop {
-  const _TourStop({required this.poi, this.dayNo = 1, this.stayMinutes = 60});
-  final PoiSummary poi;
+  const _TourStop({
+    required this.poiId,
+    required this.name,
+    this.dayNo = 1,
+    this.stayMinutes = 60,
+    this.isOpenNow = false,
+    this.plannedTime,
+    this.notes,
+  });
+  final int poiId;
+  final String name;
   final int dayNo;
   final int stayMinutes;
+  final bool isOpenNow;
+  final String? plannedTime;
+  final String? notes;
   _TourStop copyWith({int? dayNo, int? stayMinutes}) => _TourStop(
-    poi: poi,
+    poiId: poiId,
+    name: name,
     dayNo: dayNo ?? this.dayNo,
     stayMinutes: stayMinutes ?? this.stayMinutes,
+    isOpenNow: isOpenNow,
+    plannedTime: plannedTime,
+    notes: notes,
   );
 }
 
@@ -687,6 +964,7 @@ final class _Departure {
     this.childPrice,
     this.infantPrice,
     this.meetingPoint = '',
+    this.registrationDeadline,
   });
   final DateTime start;
   final DateTime end;
@@ -696,6 +974,7 @@ final class _Departure {
   final num? childPrice;
   final num? infantPrice;
   final String meetingPoint;
+  final DateTime? registrationDeadline;
 }
 
 final class _PoiPickerSheet extends StatefulWidget {

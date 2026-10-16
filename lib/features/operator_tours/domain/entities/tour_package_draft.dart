@@ -74,12 +74,24 @@ final class TourPackageDraft {
     required this.itineraryItems,
     required this.schedules,
     this.categoryId,
+    this.inclusions,
+    this.exclusions,
+    this.highlights,
+    this.travellerRequirements,
+    this.timeZoneId,
   });
   final String title;
   final String description;
   final num basePrice;
   final int durationDays;
   final int? categoryId;
+  final String? inclusions;
+  final String? exclusions;
+  final String? highlights;
+  final String? travellerRequirements;
+
+  /// Preserved from the loaded package; the backend defaults it when null.
+  final String? timeZoneId;
 
   /// Catalogue destinations in display order (1-10, unique).
   final List<int> destinationIds;
@@ -95,9 +107,19 @@ final class TourPackageDraft {
     'basePrice': basePrice,
     'durationDays': durationDays,
     'categoryId': categoryId,
+    'inclusions': _blankToNull(inclusions),
+    'exclusions': _blankToNull(exclusions),
+    'highlights': _blankToNull(highlights),
+    'travellerRequirements': _blankToNull(travellerRequirements),
+    'timeZoneId': timeZoneId,
     'destinationIds': destinationIds,
     'cancellationPolicyTemplateId': cancellationPolicyTemplateId,
     'itineraryItems': itineraryItems.map((item) => item.toJson()).toList(),
     'schedules': schedules.map((item) => item.toJson()).toList(),
   };
+}
+
+String? _blankToNull(String? value) {
+  final trimmed = value?.trim();
+  return trimmed == null || trimmed.isEmpty ? null : trimmed;
 }
