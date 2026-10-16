@@ -6,6 +6,7 @@ import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_state.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/theme/tour_search_palette.dart';
+import 'package:trip_mate_mobile/features/tour_search/presentation/widgets/dev_tour_search_controls.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/widgets/tour_list_card.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/widgets/tour_search_filter_sheet.dart';
 
@@ -29,6 +30,8 @@ class TourSearchPage extends StatelessWidget {
                   onFilterTap: () => _openFilterSheet(context, state, cubit),
                 ),
                 _ActiveFilters(state: state, cubit: cubit),
+                if (cubit.devSearchEnabled)
+                  DevTourSearchControls(state: state, cubit: cubit),
                 if (state.validationFailure case final failure?)
                   _InlineNotice(
                     message:
@@ -59,6 +62,15 @@ class TourSearchPage extends StatelessWidget {
     TourSearchState state,
     TourSearchCubit cubit,
   ) {
+    if (cubit.devSearchEnabled) {
+      cubit.loadCategories();
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => DevTourSearchFilterSheet(cubit: cubit),
+      );
+      return;
+    }
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,

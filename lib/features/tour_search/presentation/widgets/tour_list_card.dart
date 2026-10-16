@@ -105,7 +105,8 @@ class TourListCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
-
+              if (tour.aggregateRating != null)
+                Text('★ ${tour.aggregateRating}'),
               // ── Price & Availability ───────────────────────────────
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,

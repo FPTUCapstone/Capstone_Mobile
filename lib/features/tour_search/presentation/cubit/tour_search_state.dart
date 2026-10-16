@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
+import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_category.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_search_query.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summary.dart';
 
@@ -16,6 +17,10 @@ final class TourSearchState extends Equatable {
     this.isLoadingMore = false,
     this.failure,
     this.validationFailure,
+    this.isRefreshing = false,
+    this.categories = const [],
+    this.categoriesLoading = false,
+    this.categoriesFailure,
   });
 
   static const _unset = Object();
@@ -29,8 +34,12 @@ final class TourSearchState extends Equatable {
   final bool isLoadingMore;
   final Failure? failure;
   final ValidationFailure? validationFailure;
+  final bool isRefreshing;
+  final List<TourCategory> categories;
+  final bool categoriesLoading;
+  final Failure? categoriesFailure;
 
-  bool get canLoadMore => page < totalPages;
+  bool get canLoadMore => !isRefreshing && page < totalPages;
 
   TourSearchState copyWith({
     TourSearchStatus? status,
@@ -42,6 +51,10 @@ final class TourSearchState extends Equatable {
     bool? isLoadingMore,
     Object? failure = _unset,
     Object? validationFailure = _unset,
+    bool? isRefreshing,
+    List<TourCategory>? categories,
+    bool? categoriesLoading,
+    Object? categoriesFailure = _unset,
   }) {
     return TourSearchState(
       status: status ?? this.status,
@@ -51,6 +64,12 @@ final class TourSearchState extends Equatable {
       totalCount: totalCount ?? this.totalCount,
       totalPages: totalPages ?? this.totalPages,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      isRefreshing: isRefreshing ?? this.isRefreshing,
+      categories: categories ?? this.categories,
+      categoriesLoading: categoriesLoading ?? this.categoriesLoading,
+      categoriesFailure: identical(categoriesFailure, _unset)
+          ? this.categoriesFailure
+          : categoriesFailure as Failure?,
       failure: identical(failure, _unset) ? this.failure : failure as Failure?,
       validationFailure: identical(validationFailure, _unset)
           ? this.validationFailure
@@ -69,5 +88,9 @@ final class TourSearchState extends Equatable {
     isLoadingMore,
     failure,
     validationFailure,
+    isRefreshing,
+    categories,
+    categoriesLoading,
+    categoriesFailure,
   ];
 }

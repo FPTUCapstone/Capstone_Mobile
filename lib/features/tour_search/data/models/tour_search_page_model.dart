@@ -52,6 +52,7 @@ final class TourSearchItemModel {
     required this.availabilityStatus,
     required this.remainingSlots,
     this.thumbnailUrl,
+    this.aggregateRating,
   });
 
   factory TourSearchItemModel.fromJson(Map<String, Object?> json) {
@@ -75,6 +76,7 @@ final class TourSearchItemModel {
       availabilityStatus: _requiredString(json, 'availabilityStatus'),
       remainingSlots: _nullableInt(json['remainingSlots']),
       thumbnailUrl: _nullableString(json['thumbnailUrl']),
+      aggregateRating: (json['aggregateRating'] as num?)?.toDouble(),
     );
   }
 
@@ -90,6 +92,7 @@ final class TourSearchItemModel {
   final String availabilityStatus;
   final int? remainingSlots;
   final String? thumbnailUrl;
+  final double? aggregateRating;
 
   TourSummary toEntity() => TourSummary(
     tourId: tourId,
@@ -104,6 +107,7 @@ final class TourSearchItemModel {
     availabilityStatus: AvailabilityStatus.fromString(availabilityStatus),
     remainingSlots: remainingSlots,
     thumbnailUrl: thumbnailUrl,
+    aggregateRating: aggregateRating,
   );
 }
 
