@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/app/config/app_config.dart';
 import 'package:trip_mate_mobile/app/config/environment.dart';
@@ -10,6 +12,8 @@ import 'package:trip_mate_mobile/features/tour_search/data/repositories/tour_sea
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_search_query.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/usecases/search_tours_use_case.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
+
+import 'support/dev_search_evidence.dart';
 
 /// Opt-in: existing backend/embedding/Qdrant/SQL must be running with owned seed.
 /// Only reads HTTP. This harness never starts providers or modifies databases.
@@ -43,6 +47,40 @@ void main() {
       client.dio.interceptors.removeWhere(
         (item) => item.runtimeType.toString() == 'AppLoggingInterceptor',
       );
+      final evidence = <Map<String, Object?>>[];
+      client.dio.interceptors.add(
+        InterceptorsWrapper(
+          onResponse: (response, handler) {
+            evidence.add(devSearchEvidence(response, credential: key));
+            handler.next(response);
+          },
+          onError: (error, handler) {
+            final response = error.response;
+            if (response != null) {
+              evidence.add(devSearchEvidence(response, credential: key));
+            }
+            handler.next(error);
+          },
+        ),
+      );
+      addTearDown(() async {
+        final evidencePath = Platform.environment['TM70_E2E_EVIDENCE_FILE'];
+        if (evidencePath != null && evidencePath.isNotEmpty) {
+          final file = File(evidencePath).absolute;
+          final repo = Directory.current.absolute.path;
+          expect(
+            file.path.toLowerCase().startsWith(
+              '${repo.toLowerCase()}${Platform.pathSeparator}',
+            ),
+            isFalse,
+            reason: 'Evidence destination must be outside repository.',
+          );
+          await file.writeAsString(
+            '${evidence.map(jsonEncode).join('\n')}\n',
+            flush: true,
+          );
+        }
+      });
       addTearDown(client.dio.close);
       final source = DioTourSearchRemoteDataSource(client, config: config);
       final cubit = TourSearchCubit(
