@@ -25,7 +25,7 @@ abstract final class TourDetailStrings {
   static String contactOperatorLine(String phone) => '$contactOperator: $phone';
   static String destinationsLine(String destinations) =>
       '$destinationsLabel: $destinations';
-  static String durationDays(int days) => '$days days';
+  static String durationDays(int days) => days == 1 ? '1 day' : '$days days';
 
   // Departure Schedules Section
   static const String schedulesTitle = 'Available Departure Dates';

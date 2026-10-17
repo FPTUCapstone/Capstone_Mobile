@@ -56,7 +56,27 @@ class DepartureScheduleCard extends StatelessWidget {
         key: Key('schedule-${schedule.scheduleId}'),
         button: true,
         selected: isSelected,
-        label: '$window, $state',
+        label: [
+          window,
+          state,
+          formatVnd(schedule.price),
+          if (childPrice != null)
+            TourDetailStrings.childPriceLine(
+              childPrice == 0 ? TourDetailStrings.free : formatVnd(childPrice),
+            ),
+          if (infantPrice != null)
+            TourDetailStrings.infantPriceLine(
+              infantPrice == 0
+                  ? TourDetailStrings.free
+                  : formatVnd(infantPrice),
+            ),
+          if (meetingPoint != null && meetingPoint.isNotEmpty)
+            TourDetailStrings.meetingPointLine(meetingPoint),
+          if (deadline != null)
+            TourDetailStrings.registrationClosesLine(
+              formatVietnamDateTime(deadline),
+            ),
+        ].join(', '),
         onTap: onTap,
         excludeSemantics: true,
         child: InkWell(
