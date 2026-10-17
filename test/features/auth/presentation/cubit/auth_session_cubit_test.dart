@@ -2453,6 +2453,59 @@ void main() {
       },
     );
 
+    test(
+      'T13 marking an application pending keeps identity and persists it in the bound snapshot',
+      () async {
+        const rejectedOperator = AuthSession(
+          userId: 4,
+          status: 'Active',
+          role: 'TourOperator',
+          applicationStatus: TourOperatorApplicationStatus.rejected,
+          accessToken: 'backend-access-token',
+          refreshToken: 'backend-refresh-token',
+          fullName: 'Operator Owner',
+          email: 'operator@example.com',
+        );
+        final cubit = await persistAccount(
+          rejectedOperator,
+          expectedFullName: 'Operator Owner',
+        );
+
+        await cubit.markOperatorApplicationPendingApproval();
+
+        expect(cubit.state.fullName, 'Operator Owner');
+        expect(cubit.state.email, 'operator@example.com');
+        expect(
+          cubit.state.applicationStatus,
+          TourOperatorApplicationStatus.pendingApproval,
+        );
+        expect(
+          storage.values.containsKey(AppConstants.sessionApplicationStatusKey),
+          isFalse,
+        );
+        final restored = await restoreFresh();
+        expect(
+          restored.applicationStatus,
+          TourOperatorApplicationStatus.pendingApproval,
+        );
+        expect(restored.fullName, 'Operator Owner');
+        expect(restored.email, 'operator@example.com');
+      },
+    );
+
+    test(
+      'T13 marking pending writes nothing when the snapshot is not owned by the session',
+      () async {
+        final cubit = await persistAccount(_pendingOperatorSession);
+        storage.values[AppConstants.sessionUserIdKey] = '99';
+
+        await cubit.markOperatorApplicationPendingApproval();
+
+        expect(_storedSnapshot(storage)?['userId'], 4);
+        expect(storage.values[AppConstants.sessionUserIdKey], '99');
+      },
+    );
+
     test('T12 an unknown role persists nothing for the new account', () async {
       await persistAccountA();
       final writesBefore = Map.of(storage.writeCalls);

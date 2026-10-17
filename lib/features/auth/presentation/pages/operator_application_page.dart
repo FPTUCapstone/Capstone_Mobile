@@ -1,479 +1,164 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
-import 'package:trip_mate_mobile/app/theme/tripmate_visual_tokens.dart';
-import 'package:trip_mate_mobile/features/auth/domain/entities/tour_operator_application_status.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
-import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
-import 'package:trip_mate_mobile/features/auth/presentation/widgets/operator_review_process.dart';
-import 'package:trip_mate_mobile/shared/widgets/anchored_action_bar.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_application_cubit.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
-import 'package:trip_mate_mobile/shared/widgets/section_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
-/// UC-03 Operator Application Status (Screen #41).
-///
-/// The status shown here is the Backend-issued application status carried by
-/// the authenticated session (`AuthSessionCubit`). No application code, dates,
-/// company, document or rejection-reason data exists on Mobile yet, so the
-/// designed regions show that the data is not available, and no resubmission
-/// can be started or simulated. Routing of approved operators is owned by
-/// `RouteGuards`. A Tour Operator who is not yet approved can sign out here,
-/// since this page is their only signed-in destination.
-class OperatorApplicationPage extends StatelessWidget {
+class OperatorApplicationPage extends StatefulWidget {
   const OperatorApplicationPage({super.key});
+  @override
+  State<OperatorApplicationPage> createState() =>
+      _OperatorApplicationPageState();
+}
+
+class _OperatorApplicationPageState extends State<OperatorApplicationPage> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<OperatorApplicationCubit>().loadApplication();
+  }
 
   @override
-  Widget build(BuildContext context) {
-    final status = context.select(
-      (AuthSessionCubit cubit) => cubit.state.applicationStatus,
-    );
-
-    return TripMateVisualTheme(
-      child: Scaffold(
-        appBar: AppBar(title: const Text('My Application')),
-        bottomNavigationBar: switch (status) {
-          TourOperatorApplicationStatus.approved => null,
-          TourOperatorApplicationStatus.rejected => const AnchoredActionBar(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                CapabilityNote(
-                  message:
-                      'Resubmission is not available in the mobile app yet.',
-                ),
-                SizedBox(height: AppSpacing.sm),
-                _OperatorApplicationSignOut(),
-              ],
+  Widget build(
+    BuildContext context,
+  ) => BlocBuilder<OperatorApplicationCubit, OperatorApplicationState>(
+    builder: (context, state) {
+      if (state.status == OperatorApplicationStatus.loading) {
+        return const AppPageScaffold(
+          title: 'My Application',
+          content: [Center(child: CircularProgressIndicator())],
+        );
+      }
+      if (state.status == OperatorApplicationStatus.unresolved ||
+          state.application == null) {
+        return AppPageScaffold(
+          title: 'My Application',
+          content: [
+            AppAlert(
+              title: 'Application status unavailable',
+              message: state.errorMessage ?? 'Unable to load the application.',
+              type: AppAlertType.error,
             ),
-          ),
-          _ => const AnchoredActionBar(child: _OperatorApplicationSignOut()),
-        },
-        body: AppPageScaffold(
-          showAppBar: false,
-          content: switch (status) {
-            TourOperatorApplicationStatus.pendingApproval => const [
-              _PendingApplicationView(),
-            ],
-            TourOperatorApplicationStatus.rejected => const [
-              _RejectedApplicationView(),
-            ],
-            TourOperatorApplicationStatus.approved => const [
-              _ApprovedApplicationView(),
-            ],
-            TourOperatorApplicationStatus.unresolved => const [
-              AppAlert(
-                title: 'Application status unavailable',
-                message:
-                    'We could not confirm your application status. Please '
-                    'contact TripMate support.',
-                type: AppAlertType.warning,
-              ),
-            ],
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class _PendingApplicationView extends StatelessWidget {
-  const _PendingApplicationView();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Column(
-      children: [
-        _ApplicationSummaryCard(
-          icon: Icons.hourglass_top_rounded,
-          badgeLabel: 'Pending approval',
-          badgeType: StatusBadgeType.warning,
-        ),
-        SizedBox(height: AppSpacing.md),
-        _StatusMessage(
-          tone: _MessageTone.info,
-          icon: Icons.info_outline,
-          title: 'Awaiting Administrator review',
-          message:
-              'Your application is awaiting Administrator review. Tour '
-              'publishing and bookings stay unavailable until it is approved.',
-        ),
-        SizedBox(height: AppSpacing.md),
-        _UnavailableRegion(
-          icon: Icons.folder_open_outlined,
-          title: 'Attached documents',
-          message: "Your documents aren't available in the app.",
-        ),
-        SizedBox(height: AppSpacing.md),
-        _UnavailableRegion(
-          icon: Icons.assignment_outlined,
-          title: 'Declared information',
-          message: "Your declared details aren't available in the app.",
-        ),
-        SizedBox(height: AppSpacing.md),
-        // The session status says the application is under review.
-        OperatorReviewProcess(currentStep: 1),
-        SizedBox(height: AppSpacing.md),
-        AppAlert(
-          message:
-              'You can sign out and return later to check your application '
-              'status.',
-        ),
-      ],
-    );
-  }
-}
-
-class _RejectedApplicationView extends StatelessWidget {
-  const _RejectedApplicationView();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Column(
-      children: [
-        _ApplicationSummaryCard(
-          icon: Icons.cancel_outlined,
-          badgeLabel: 'Rejected',
-          badgeType: StatusBadgeType.error,
-        ),
-        SizedBox(height: AppSpacing.md),
-        _StatusMessage(
-          tone: _MessageTone.error,
-          icon: Icons.error_outline,
-          title: 'Rejection reason',
-          message: 'Reason unavailable in the app.',
-          footnote:
-              'Tour publishing and bookings stay unavailable while the '
-              'application is rejected.',
-        ),
-        SizedBox(height: AppSpacing.md),
-        _UnavailableRegion(
-          icon: Icons.folder_open_outlined,
-          title: 'Attached documents',
-          message: "Your documents aren't available in the app.",
-        ),
-        SizedBox(height: AppSpacing.md),
-        _UnavailableRegion(
-          icon: Icons.assignment_outlined,
-          title: 'Declared information',
-          message: "Your declared details aren't available in the app.",
-        ),
-      ],
-    );
-  }
-}
-
-class _ApprovedApplicationView extends StatelessWidget {
-  const _ApprovedApplicationView();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Column(
-      children: [
-        _ApplicationSummaryCard(
-          icon: Icons.check_circle_outline,
-          badgeLabel: 'Approved',
-          badgeType: StatusBadgeType.success,
-        ),
-        SizedBox(height: AppSpacing.md),
-        _StatusMessage(
-          tone: _MessageTone.info,
-          icon: Icons.info_outline,
-          title: 'Application approved',
-          message: 'Your application has been approved.',
-        ),
-      ],
-    );
-  }
-}
-
-/// The Stitch application summary card: status pill and the application
-/// reference fields. Only the status is authoritative on Mobile; the other
-/// fields have no source yet and say so.
-class _ApplicationSummaryCard extends StatelessWidget {
-  const _ApplicationSummaryCard({
-    required this.icon,
-    required this.badgeLabel,
-    required this.badgeType,
-  });
-
-  final String badgeLabel;
-  final StatusBadgeType badgeType;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final accent = switch (badgeType) {
-      StatusBadgeType.error => scheme.error,
-      StatusBadgeType.success => scheme.primary,
-      _ => TripMateVisualTokens.navy,
-    };
-    return SectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: AppSpacing.xs,
-            runSpacing: AppSpacing.xs,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(
-                'Application status',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: 18, color: accent),
-                  const SizedBox(width: AppSpacing.xxs),
-                  Flexible(
-                    child: StatusBadge(label: badgeLabel, type: badgeType),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
-            child: Divider(height: 1),
-          ),
-          const _ReferenceRow(label: 'Application code'),
-          const SizedBox(height: AppSpacing.xs),
-          const _ReferenceRow(label: 'Submission date'),
-          const SizedBox(height: AppSpacing.xs),
-          const _ReferenceRow(label: 'Review date'),
-        ],
-      ),
-    );
-  }
-}
-
-class _ReferenceRow extends StatelessWidget {
-  const _ReferenceRow({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Wrap(
-      spacing: AppSpacing.xs,
-      children: [
-        Text(
-          label,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
-        ),
-        Text(
-          'Not available',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: scheme.secondary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-enum _MessageTone { info, error }
-
-/// The tinted status-message region (Stitch's rejection-reason box).
-class _StatusMessage extends StatelessWidget {
-  const _StatusMessage({
-    required this.tone,
-    required this.icon,
-    required this.title,
-    required this.message,
-    this.footnote,
-  });
-
-  final String? footnote;
-  final IconData icon;
-  final String message;
-  final String title;
-  final _MessageTone tone;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final (background, border, accent) = switch (tone) {
-      _MessageTone.error => (
-        TripMateVisualTokens.coralLight,
-        TripMateVisualTokens.coralBorder,
-        scheme.error,
-      ),
-      _MessageTone.info => (
-        scheme.primaryContainer,
-        scheme.primary.withValues(alpha: 0.25),
-        scheme.primary,
-      ),
-    };
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(TripMateVisualTokens.cardRadius),
-        border: Border.all(color: border),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: accent, size: 22),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
+            const SizedBox(height: AppSpacing.md),
+            AppButton(
+              label: 'Retry',
+              onPressed: context
+                  .read<OperatorApplicationCubit>()
+                  .loadApplication,
+            ),
+          ],
+          footer: const _SignOutButton(),
+        );
+      }
+      final application = state.application!;
+      final rejected = state.status == OperatorApplicationStatus.rejected;
+      final pending = state.status == OperatorApplicationStatus.pending;
+      return AppPageScaffold(
+        title: 'My Application',
+        content: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Semantics(
-                    header: true,
-                    child: Text(
-                      title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: accent,
-                        fontWeight: FontWeight.w700,
+                  Row(
+                    children: [
+                      const Icon(Icons.business_outlined),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          application.companyName,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xxs),
-                  Text(
-                    message,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurface,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  if (footnote != null) ...[
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      footnote!,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
+                      StatusBadge(
+                        label: pending
+                            ? 'Pending Approval'
+                            : application.approvalStatus,
+                        type: rejected
+                            ? StatusBadgeType.error
+                            : pending
+                            ? StatusBadgeType.warning
+                            : StatusBadgeType.success,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text('Tax code ${application.taxCode}'),
+                  Text('Resubmissions: ${application.resubmissionCount}'),
                 ],
               ),
             ),
+          ),
+          if (rejected) ...[
+            const SizedBox(height: AppSpacing.md),
+            AppAlert(
+              title: 'Rejection reason',
+              message: application.rejectionReason ?? 'No reason recorded.',
+              type: AppAlertType.error,
+            ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// A designed Stitch region whose data has no source on Mobile yet.
-class _UnavailableRegion extends StatelessWidget {
-  const _UnavailableRegion({
-    required this.icon,
-    required this.title,
-    required this.message,
-  });
-
-  final IconData icon;
-  final String message;
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return SectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Semantics(
-            header: true,
-            child: Text(
-              title.toUpperCase(),
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: scheme.secondary,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.8,
-              ),
+          if (pending) ...[
+            const SizedBox(height: AppSpacing.md),
+            const AppAlert(
+              message:
+                  'Your application is pending administrator review. Tour publishing and bookings remain unavailable.',
+            ),
+          ],
+          if (state.status == OperatorApplicationStatus.approved) ...[
+            const SizedBox(height: AppSpacing.md),
+            const AppAlert(
+              message: 'Your Tour Operator application is approved.',
+              type: AppAlertType.success,
+            ),
+          ],
+          const SizedBox(height: AppSpacing.lg),
+          Text('DOCUMENTS', style: Theme.of(context).textTheme.labelSmall),
+          ...application.documents.map(
+            (document) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.description_outlined),
+              title: Text('${document.documentType} #${document.documentId}'),
+              subtitle: Text(document.status),
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            children: [
-              IconTile(icon: icon, muted: true),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  message,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ],
-          ),
+          if (state.successMessage != null)
+            AppAlert(
+              message: state.successMessage!,
+              type: AppAlertType.success,
+            ),
         ],
-      ),
-    );
-  }
+        footer: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (rejected)
+              AppButton(
+                label: 'Resubmit application',
+                onPressed: () =>
+                    context.push(AppRoutes.operatorApplicationResubmit),
+              ),
+            const SizedBox(height: AppSpacing.sm),
+            const _SignOutButton(),
+          ],
+        ),
+      );
+    },
+  );
 }
 
-/// Sign-out for a Tour Operator whose application is not approved yet.
-class _OperatorApplicationSignOut extends StatelessWidget {
-  const _OperatorApplicationSignOut();
-
+class _SignOutButton extends StatelessWidget {
+  const _SignOutButton();
   @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<AuthSessionCubit, AuthSessionState>(
-      builder: (context, state) => Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (state.errorMessage ==
-              AuthSessionCubit.signOutLocalCleanupFailureMessage) ...[
-            AppAlert(message: state.errorMessage!, type: AppAlertType.error),
-            const SizedBox(height: AppSpacing.sm),
-          ],
-          OutlinedButton.icon(
-            onPressed: state.operation == AuthSessionOperation.signOut
-                ? null
-                : () => _confirmSignOut(context),
-            icon: const Icon(Icons.logout),
-            label: const Text('Sign out'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _confirmSignOut(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Sign out of TripMate?'),
-        content: const Text(
-          'Your session on this device will end. Your application stays saved.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Sign out'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true && context.mounted) {
-      await context.read<AuthSessionCubit>().signOut();
-    }
-  }
+  Widget build(BuildContext context) => OutlinedButton.icon(
+    onPressed: () => context.read<AuthSessionCubit>().signOut(),
+    icon: const Icon(Icons.logout),
+    label: const Text('Sign out'),
+  );
 }

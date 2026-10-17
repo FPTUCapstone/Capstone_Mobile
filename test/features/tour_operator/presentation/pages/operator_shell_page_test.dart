@@ -64,6 +64,32 @@ void main() {
     expect(find.byType(AlertDialog), findsNothing);
   });
 
+  testWidgets('operator Profile tab still offers the change-password entry', (
+    tester,
+  ) async {
+    final cubit = await _authenticatedCubit();
+    addTearDown(cubit.close);
+    await _pumpShell(tester, cubit);
+
+    await tester.tap(find.text('Profile'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Change password'), findsOneWidget);
+  });
+
+  testWidgets('operator Tours tab offers the create-tour-package entry', (
+    tester,
+  ) async {
+    final cubit = await _authenticatedCubit();
+    addTearDown(cubit.close);
+    await _pumpShell(tester, cubit);
+
+    await tester.tap(find.text('Tours'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Create tour package'), findsOneWidget);
+  });
+
   testWidgets('operator shell sign-out action is disabled while in flight', (
     tester,
   ) async {

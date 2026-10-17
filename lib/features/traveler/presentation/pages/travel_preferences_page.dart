@@ -1,197 +1,227 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
-import 'package:trip_mate_mobile/app/theme/tripmate_visual_tokens.dart';
-import 'package:trip_mate_mobile/shared/widgets/anchored_action_bar.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_state.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
-import 'package:trip_mate_mobile/shared/widgets/section_card.dart';
 
-/// UC-09 Travel Preferences (Screen #46).
-///
-/// Report 3 defines three preference groups whose option sets are owned by
-/// system configuration. The Backend does not yet expose the option sets, the
-/// Traveler's current preferences or a way to save them, so each group keeps
-/// its designed section but shows an unavailable option surface: no option is
-/// listed, nothing is pre-selected and nothing can be saved or claimed as saved.
+/// UC-09: loads real options and saved preferences from the Backend on
+/// entry (triggered by the router when the Cubit is created) and saves the
+/// full five-field state. Interests and food are multi-select; Preferred
+/// Transport, Travel Pace, and Risk Tolerance are single-choice with an
+/// explicit "No preference" option that clears the field to `null`
+/// (spec §5/§7).
 class TravelPreferencesPage extends StatelessWidget {
   const TravelPreferencesPage({super.key});
 
-  static const _groups = <_PreferenceGroup>[
-    _PreferenceGroup(
-      title: 'Interest tags',
-      selectionHint: 'Select any that apply',
-      icon: Icons.interests_outlined,
-    ),
-    _PreferenceGroup(
-      title: 'Travel style',
-      selectionHint: 'Select one',
-      icon: Icons.groups_outlined,
-    ),
-    _PreferenceGroup(
-      title: 'Budget level',
-      selectionHint: 'Select one',
-      icon: Icons.payments_outlined,
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    return TripMateVisualTheme(
-      child: Builder(
-        builder: (context) {
-          final theme = Theme.of(context);
-          return Scaffold(
-            appBar: AppBar(
-              shape: const Border(),
-              actions: const [
-                IconButton(
-                  onPressed: null,
-                  tooltip: 'Reset preferences (unavailable)',
-                  icon: Icon(Icons.refresh),
-                ),
-                SizedBox(width: AppSpacing.xxs),
-              ],
+    return BlocConsumer<TravelPreferencesCubit, TravelPreferencesState>(
+      listener: (context, state) {
+        if (state.status == TravelPreferencesStatus.success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Travel preferences saved.')),
+          );
+        }
+      },
+      builder: (context, state) {
+        final cubit = context.read<TravelPreferencesCubit>();
+
+        if (state.isLoading) {
+          return const AppPageScaffold(
+            title: 'Travel Preferences',
+            content: [
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ],
+          );
+        }
+
+        if (state.status == TravelPreferencesStatus.error &&
+            state.options.preferredTransportModes.isEmpty) {
+          return AppPageScaffold(
+            title: 'Travel Preferences',
+            content: [
+              AppAlert(
+                message: state.errorMessage ?? 'Something went wrong.',
+                type: AppAlertType.error,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              AppButton(label: 'Retry', onPressed: cubit.load),
+            ],
+          );
+        }
+
+        return AppPageScaffold(
+          title: 'Travel Preferences',
+          content: [
+            const AppAlert(
+              message:
+                  'Preferences are soft constraints. The planner uses them when it can, but a valid itinerary may deviate from them.',
             ),
-            bottomNavigationBar: AnchoredActionBar(
-              child: Theme(
-                // Stitch uses the navy primary action on this screen.
-                data: theme.copyWith(
-                  filledButtonTheme: FilledButtonThemeData(
-                    style: theme.filledButtonTheme.style?.copyWith(
-                      backgroundColor: WidgetStateProperty.resolveWith(
-                        (states) => states.contains(WidgetState.disabled)
-                            ? TripMateVisualTokens.navyDeep.withValues(
-                                alpha: 0.32,
-                              )
-                            : TripMateVisualTokens.navyDeep,
-                      ),
+            const SizedBox(height: AppSpacing.lg),
+            _Section(
+              title: 'Preferred transport',
+              error: state.fieldErrors['preferredTransportMode']?.firstOrNull,
+              child: Wrap(
+                spacing: AppSpacing.xs,
+                children: [
+                  ChoiceChip(
+                    label: const Text('No preference'),
+                    selected: state.preferences.preferredTransportMode == null,
+                    onSelected: (_) => cubit.setPreferredTransportMode(null),
+                  ),
+                  ...state.options.preferredTransportModes.map(
+                    (value) => ChoiceChip(
+                      label: Text(_label(value)),
+                      selected:
+                          state.preferences.preferredTransportMode == value,
+                      onSelected: (_) => cubit.setPreferredTransportMode(value),
                     ),
                   ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const CapabilityNote(
-                      message:
-                          "Saving travel preferences isn't available in the "
-                          'app yet.',
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    const AppButton(label: 'Save preferences', onPressed: null),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).maybePop(),
-                      child: const Text('Skip'),
-                    ),
-                  ],
-                ),
+                ],
               ),
             ),
-            body: AppPageScaffold(
-              showAppBar: false,
-              content: [
-                Semantics(
-                  header: true,
-                  child: Text(
-                    'Travel Preferences',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      color: theme.colorScheme.secondary,
-                      fontWeight: FontWeight.w800,
+            _Section(
+              title: 'Travel pace',
+              error: state.fieldErrors['travelPace']?.firstOrNull,
+              child: Wrap(
+                spacing: AppSpacing.xs,
+                children: [
+                  ChoiceChip(
+                    label: const Text('No preference'),
+                    selected: state.preferences.travelPace == null,
+                    onSelected: (_) => cubit.setTravelPace(null),
+                  ),
+                  ...state.options.travelPaces.map(
+                    (value) => ChoiceChip(
+                      label: Text(_label(value)),
+                      selected: state.preferences.travelPace == value,
+                      onSelected: (_) => cubit.setTravelPace(value),
                     ),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.xxs),
-                Text(
-                  'Preferences are soft constraints used to personalise '
-                  'itineraries and recommendations. They never block '
-                  'itinerary generation.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                const CapabilityNote(
-                  message:
-                      "Options are configured by TripMate and aren't "
-                      'available in the app yet.',
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                for (final (index, group) in _groups.indexed) ...[
-                  SectionHeader(
-                    number: index + 1,
-                    icon: group.icon,
-                    title: group.title,
-                    trailing: group.selectionHint,
-                  ),
-                  _UnavailableOptionSurface(icon: group.icon),
-                  const SizedBox(height: AppSpacing.lg),
                 ],
-              ],
+              ),
             ),
-          );
-        },
-      ),
+            _Section(
+              title: 'Interests',
+              error: state.fieldErrors['interests']?.firstOrNull,
+              child: Wrap(
+                spacing: AppSpacing.xs,
+                children: state.options.interests
+                    .map(
+                      (option) => FilterChip(
+                        label: Text(_label(option.key)),
+                        selected: state.preferences.interests.contains(
+                          option.key,
+                        ),
+                        onSelected: (_) => cubit.toggleInterest(option.key),
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+            ),
+            _Section(
+              title: 'Food preference',
+              error: state.fieldErrors['foodPreferences']?.firstOrNull,
+              child: Wrap(
+                spacing: AppSpacing.xs,
+                children: state.options.foodPreferences
+                    .map(
+                      (value) => FilterChip(
+                        label: Text(_label(value)),
+                        selected: state.preferences.foodPreferences.contains(
+                          value,
+                        ),
+                        onSelected: (_) => cubit.toggleFoodPreference(value),
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+            ),
+            _Section(
+              title: 'Risk tolerance',
+              error: state.fieldErrors['riskTolerance']?.firstOrNull,
+              child: Wrap(
+                spacing: AppSpacing.xs,
+                children: [
+                  ChoiceChip(
+                    label: const Text('No preference'),
+                    selected: state.preferences.riskTolerance == null,
+                    onSelected: (_) => cubit.setRiskTolerance(null),
+                  ),
+                  ...state.options.riskTolerances.map(
+                    (value) => ChoiceChip(
+                      label: Text(_label(value)),
+                      selected: state.preferences.riskTolerance == value,
+                      onSelected: (_) => cubit.setRiskTolerance(value),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (state.errorMessage != null) ...[
+              const SizedBox(height: AppSpacing.md),
+              AppAlert(message: state.errorMessage!, type: AppAlertType.error),
+            ],
+          ],
+          footer: AppButton(
+            label: 'Save preferences',
+            isLoading: state.isSaving,
+            onPressed: state.isSaving ? null : cubit.save,
+          ),
+        );
+      },
     );
+  }
+
+  static String _label(String value) {
+    final buffer = StringBuffer();
+    for (var i = 0; i < value.length; i++) {
+      final char = value[i];
+      if (i > 0 && char == char.toUpperCase() && char != char.toLowerCase()) {
+        buffer.write(' ');
+      }
+      buffer.write(i == 0 ? char.toUpperCase() : char);
+    }
+    return buffer.toString();
   }
 }
 
-class _PreferenceGroup {
-  const _PreferenceGroup({
-    required this.title,
-    required this.selectionHint,
-    required this.icon,
-  });
+class _Section extends StatelessWidget {
+  const _Section({required this.child, required this.title, this.error});
 
-  final IconData icon;
-  final String selectionHint;
+  final Widget child;
   final String title;
-}
-
-/// The Stitch option-card shell, showing that no option set is available.
-/// It is not selectable and lists no option values.
-class _UnavailableOptionSurface extends StatelessWidget {
-  const _UnavailableOptionSurface({required this.icon});
-
-  final IconData icon;
+  final String? error;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(TripMateVisualTokens.cardRadius),
-        border: Border.all(color: scheme.outlineVariant),
-        boxShadow: TripMateVisualTokens.cardShadow,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            IconTile(icon: icon, muted: true),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Options unavailable',
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: scheme.secondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    'No options to choose from yet.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title.toUpperCase(),
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          child,
+          if (error != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              error!,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.error,
               ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }

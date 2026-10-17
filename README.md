@@ -63,9 +63,8 @@ Presentation -> Domain <- Data
 `AuthSessionCubit` manages the app session. Account data it persists (name,
 email, Tour Operator application status) is restored only when it is bound to
 the Backend-issued `userId` of the persisted session. The operator application
-status page shows the Backend-issued status from that session; the UC-02
-registration wizard uses its own Cubit and does not create an authenticated
-TripMate session. The app does not use a single global business-state BLoC.
+status page loads the application through its own Cubit; the UC-02 registration
+wizard uses its own Cubit and does not create an authenticated TripMate session.
 
 ## Project Structure
 
@@ -114,6 +113,7 @@ lib/
 |   |       |-- cubit/
 |   |       |   |-- auth_session_cubit.dart
 |   |       |   |-- auth_session_state.dart
+|   |       |   |-- operator_application_cubit.dart
 |   |       |   `-- password_demo_cubit.dart
 |   |       |-- demo/auth_demo_data.dart
 |   |       `-- pages/
@@ -127,6 +127,7 @@ lib/
 |   |           `-- splash_page.dart
 |   |-- tour_operator/presentation/pages/operator_shell_page.dart
 |   `-- traveler/presentation/
+|       |-- cubit/travel_preferences_cubit.dart
 |       `-- pages/
 |           |-- traveler_shell_page.dart
 |           |-- traveler_settings_page.dart
@@ -213,6 +214,8 @@ requires explicit same-account recovery. The separate
 The UC-12 category chips are disabled in production until Backend publishes an approved public category catalogue. `--dart-define=POI_CATEGORY_PREVIEW=true` is only for development preview and cannot enable production category filtering.
 
 Do not place tokens or secrets in Dart defines or source control.
+
+UC-13 Navigate Route uses Mapbox for the live map and turn-by-turn directions. Supply a Mapbox **public** token (`pk.`) at build time with `--dart-define=MAPBOX_ACCESS_TOKEN=pk...`. Public tokens are designed to ship inside client apps; keep it out of source control and restrict its scopes in the Mapbox account. Secret tokens (`sk.`) are rejected at startup. Without a token, navigation still works with an illustration map, straight-line distance, and no turn-by-turn instructions.
 
 ### CI/CD Demo APK Configuration
 

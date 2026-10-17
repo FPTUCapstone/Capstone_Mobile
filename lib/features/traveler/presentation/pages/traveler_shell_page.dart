@@ -8,7 +8,12 @@ import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_c
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/my_trips_page.dart';
+import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
+
+enum TravelerSectionId { home, trips, explore, bookings, profile }
 
 class TravelerShellPage extends StatefulWidget {
   const TravelerShellPage({super.key});
@@ -19,26 +24,49 @@ class TravelerShellPage extends StatefulWidget {
 
 class _TravelerShellPageState extends State<TravelerShellPage> {
   static const _destinations = <_TravelerDestination>[
-    _TravelerDestination('Trang chủ', Icons.home_outlined),
-    _TravelerDestination('Chuyến đi', Icons.map_outlined),
-    _TravelerDestination('Khám phá', Icons.explore_outlined),
-    _TravelerDestination('Đặt chỗ', Icons.confirmation_number_outlined),
-    _TravelerDestination('Hồ sơ', Icons.person_outline),
+    _TravelerDestination(
+      TravelerSectionId.home,
+      'Trang chủ',
+      Icons.home_outlined,
+    ),
+    _TravelerDestination(
+      TravelerSectionId.trips,
+      'Chuyến đi',
+      Icons.map_outlined,
+    ),
+    _TravelerDestination(
+      TravelerSectionId.explore,
+      'Khám phá',
+      Icons.explore_outlined,
+    ),
+    _TravelerDestination(
+      TravelerSectionId.bookings,
+      'Đặt chỗ',
+      Icons.confirmation_number_outlined,
+    ),
+    _TravelerDestination(
+      TravelerSectionId.profile,
+      'Hồ sơ',
+      Icons.person_outline,
+    ),
   ];
 
   var _selectedIndex = 0;
   late final PoiListCubit _exploreCubit;
+  late final MyTripsCubit _myTripsCubit;
   var _exploreLoaded = false;
 
   @override
   void initState() {
     super.initState();
     _exploreCubit = serviceLocator<PoiListCubit>();
+    _myTripsCubit = serviceLocator<MyTripsCubit>();
   }
 
   @override
   void dispose() {
     _exploreCubit.close();
+    _myTripsCubit.close();
     super.dispose();
   }
 
@@ -85,7 +113,10 @@ class _TravelerShellPageState extends State<TravelerShellPage> {
               index: _selectedIndex,
               children: [
                 _TravelerSection(destination: _destinations[0]),
-                _TravelerSection(destination: _destinations[1]),
+                BlocProvider.value(
+                  value: _myTripsCubit,
+                  child: const MyTripsPage(),
+                ),
                 BlocProvider.value(
                   value: _exploreCubit,
                   child: const ExplorePoiPage(isTraveler: true),
@@ -100,6 +131,10 @@ class _TravelerShellPageState extends State<TravelerShellPage> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
+          if (index == 1) {
+            // Reloaded on every visit: trips change in pushed routes.
+            _myTripsCubit.load();
+          }
           if (index == 2 && !_exploreLoaded) {
             _exploreLoaded = true;
             _exploreCubit.loadInitial();
@@ -144,12 +179,12 @@ class _TravelerSection extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              destination.label == 'Trang chủ'
+              destination.section == TravelerSectionId.home
                   ? 'Your next adventure starts here.'
                   : 'Feature placeholder',
               textAlign: TextAlign.center,
             ),
-            if (destination.label == 'Trang chủ') ...[
+            if (destination.section == TravelerSectionId.home) ...[
               const SizedBox(height: AppSpacing.lg),
               FilledButton.icon(
                 onPressed: () => context.push(AppRoutes.tourSearch),
@@ -157,8 +192,8 @@ class _TravelerSection extends StatelessWidget {
                 label: const Text('Tìm kiếm Tour'),
               ),
             ],
-            if (destination.label == 'Trang chủ' ||
-                destination.label == 'Hồ sơ') ...[
+            if (destination.section == TravelerSectionId.home ||
+                destination.section == TravelerSectionId.profile) ...[
               const SizedBox(height: AppSpacing.sm),
               OutlinedButton.icon(
                 onPressed: () => context.push(AppRoutes.travelerSettings),
@@ -166,8 +201,8 @@ class _TravelerSection extends StatelessWidget {
                 label: const Text('Account settings'),
               ),
             ],
-            if (destination.label == 'Trang chủ' ||
-                destination.label == 'Chuyến đi') ...[
+            if (destination.section == TravelerSectionId.home ||
+                destination.section == TravelerSectionId.trips) ...[
               const SizedBox(height: AppSpacing.sm),
               OutlinedButton.icon(
                 onPressed: () => context.push(AppRoutes.joinTravelGroup),
@@ -175,12 +210,22 @@ class _TravelerSection extends StatelessWidget {
                 label: const Text('Join travel group'),
               ),
             ],
-            if (destination.label == 'Chuyến đi') ...[
+            if (destination.section == TravelerSectionId.trips) ...[
               const SizedBox(height: AppSpacing.lg),
               FilledButton.icon(
                 onPressed: () => context.push(AppRoutes.createItinerary),
                 icon: const Icon(Icons.auto_awesome_outlined),
                 label: const Text('Create an itinerary'),
+              ),
+            ],
+            if (destination.section == TravelerSectionId.trips ||
+                destination.section == TravelerSectionId.bookings ||
+                destination.section == TravelerSectionId.profile) ...[
+              const SizedBox(height: AppSpacing.sm),
+              OutlinedButton.icon(
+                onPressed: () => context.push(AppRoutes.tripHistory),
+                icon: const Icon(Icons.history_outlined),
+                label: const Text(TripHistoryStringsEn.tripHistoryTitle),
               ),
             ],
           ],
@@ -191,8 +236,9 @@ class _TravelerSection extends StatelessWidget {
 }
 
 class _TravelerDestination {
-  const _TravelerDestination(this.label, this.icon);
+  const _TravelerDestination(this.section, this.label, this.icon);
 
-  final IconData icon;
+  final TravelerSectionId section;
   final String label;
+  final IconData icon;
 }

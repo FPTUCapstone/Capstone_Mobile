@@ -99,6 +99,75 @@ class _OperatorSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (destination.label == 'Tours') {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                destination.icon,
+                size: 56,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'Manage tours',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              const Text(
+                'Create a commercial tour package, keep editing your drafts and submit them for review.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              OutlinedButton.icon(
+                onPressed: () => context.push(AppRoutes.operatorTours),
+                icon: const Icon(Icons.list_alt_outlined),
+                label: const Text('My tour packages'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              FilledButton.icon(
+                onPressed: () => context.push(AppRoutes.createTourPackage),
+                icon: const Icon(Icons.add),
+                label: const Text('Create tour package'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (destination.label == 'Profile') {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                destination.icon,
+                size: 56,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'Operator Profile',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              const Text('Feature placeholder', textAlign: TextAlign.center),
+              const SizedBox(height: AppSpacing.md),
+              OutlinedButton.icon(
+                onPressed: () => context.push(AppRoutes.operatorChangePassword),
+                icon: const Icon(Icons.lock_outline),
+                label: const Text('Change password'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     if (destination.label == 'Coupons') {
       return Center(
         child: Padding(

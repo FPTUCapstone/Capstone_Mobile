@@ -2,22 +2,44 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_stop.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_route.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/reroute_proposal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/services/navigation_location_tracker.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/demo/active_trip_demo_fixtures.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/demo/demo_navigation_session_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/active_trip_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/navigation_map_canvas.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/reroute_proposal_sheet.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_alert_banner.dart';
 
+import '../cubit/active_trip_cubit_test.dart';
+
 void main() {
-  Widget buildTestWidget({
+  void usePhoneSurface(WidgetTester tester) {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+  }
+
+  // The existing RerouteProposalSheet (UC-15) is laid out for wider screens.
+  void useWideSurface(WidgetTester tester) {
+    tester.view.physicalSize = const Size(2400, 3600);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+  }
+
+  Widget buildPage({
     ActiveTripCubit? cubit,
     String? title,
     ItineraryRepository? repository,
+    FakeSessionRepository? sessionRepository,
+    NavigationLocationTracker? locationTracker,
     bool isDemoMode = false,
   }) {
     return MaterialApp(
@@ -26,397 +48,454 @@ void main() {
         title: title,
         cubit: cubit,
         repository: repository,
+        sessionRepository: sessionRepository,
+        locationTracker: locationTracker,
+        useMapbox: false,
         isDemoMode: isDemoMode,
       ),
     );
   }
 
-  group('ActiveTripPage', () {
-    testWidgets(
-      'renders maneuver banner, map canvas with pending banner, and stop ETA',
-      (tester) async {
-        final cubit = ActiveTripCubit(
-          itineraryId: 101,
-          itineraryTitle: 'Đà Nẵng City Explorer',
-          initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
-          initialAlerts: const [],
-          isDemoMode: true,
-        );
+  Future<ActiveTripCubit> startedDemoCubit() async {
+    final cubit = ActiveTripCubit(
+      itineraryId: 101,
+      itineraryTitle: 'Đà Nẵng City Explorer',
+      sessionRepository: DemoNavigationSessionRepository(),
+      initialAlerts: const [],
+      isDemoMode: true,
+    );
+    await cubit.start();
+    return cubit;
+  }
 
-        await tester.pumpWidget(
-          buildTestWidget(cubit: cubit, isDemoMode: true),
-        );
+  group('ActiveTripPage navigation', () {
+    testWidgets(
+      'renders the preview map, target stop, and manual arrival action',
+      (tester) async {
+        usePhoneSurface(tester);
+        final cubit = await startedDemoCubit();
+
+        await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
         await tester.pumpAndSettle();
 
-        // Maneuver banner
-        expect(find.textContaining('Lê Văn Hiến'), findsOneWidget);
-
-        // Map canvas illustration preview banner
         expect(find.byType(NavigationMapCanvas), findsOneWidget);
-        expect(find.textContaining('MAP INTEGRATION PENDING'), findsOneWidget);
-
-        // Current waypoint information (rendered in pin and bottom panel)
-        expect(find.text('Marble Mountains (Ngũ Hành Sơn)'), findsWidgets);
-        expect(find.textContaining('Remaining stops'), findsOneWidget);
-
-        // Verify production UI does NOT contain manual "Arrived" action
-        // Arrival is detected automatically by the system/GPS per SRS UC-13
-        expect(find.text('Arrived at this stop'), findsNothing);
-        expect(find.text('I have arrived'), findsNothing);
-        expect(find.byKey(const Key('manual_arrived_button')), findsNothing);
+        expect(find.textContaining('MAPBOX NOT CONFIGURED'), findsOneWidget);
+        expect(find.text('Marble Mountains (Ngũ Hành Sơn)'), findsOneWidget);
+        expect(find.text('SUGGESTED NEXT'), findsOneWidget);
+        expect(find.text('MANDATORY'), findsOneWidget);
+        expect(find.text('0 of 5 stops reached'), findsOneWidget);
+        expect(find.byKey(const Key('manual_arrived_button')), findsOneWidget);
+        expect(find.text('I have arrived'), findsOneWidget);
 
         await cubit.close();
       },
     );
 
     testWidgets(
-      'DEMO_ONLY controls are isolated and allow testing arrival progression',
+      'manual arrival asks for confirmation, then shows the exploring card',
       (tester) async {
-        final cubit = ActiveTripCubit(
-          itineraryId: 101,
-          itineraryTitle: 'Đà Nẵng City Explorer',
-          initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
-          initialAlerts: const [],
-          isDemoMode: true,
-        );
-
-        await tester.pumpWidget(
-          buildTestWidget(cubit: cubit, isDemoMode: true),
-        );
+        usePhoneSurface(tester);
+        final cubit = await startedDemoCubit();
+        await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
         await tester.pumpAndSettle();
 
-        // Demo controls toggle exists
-        final demoToggle = find.byTooltip('DEMO_ONLY Controls');
-        expect(demoToggle, findsOneWidget);
+        await tester.tap(find.byKey(const Key('manual_arrived_button')));
+        await tester.pumpAndSettle();
+        expect(find.text('Mark as arrived?'), findsOneWidget);
 
-        await tester.tap(demoToggle);
+        await tester.tap(find.text("I'm here"));
         await tester.pumpAndSettle();
 
-        expect(find.text('DEMO_ONLY Test Controls'), findsOneWidget);
-
-        // Inside demo controls: Simulate GPS arrival action exists
-        final simulateArrival = find.text('Simulate Stop Arrival');
-        expect(simulateArrival, findsOneWidget);
-
-        // Tap simulate GPS arrival
-        await tester.tap(simulateArrival);
-        await tester.pumpAndSettle();
-
-        // Next waypoint is now active
-        expect(find.text('Cơm Gà Bà Buội'), findsWidgets);
-        expect(find.textContaining('Remaining stops'), findsOneWidget);
-
-        await cubit.close();
-      },
-    );
-
-    testWidgets(
-      'production mode (isDemoMode: false) does NOT render DEMO_ONLY Controls banner',
-      (tester) async {
-        final cubit = ActiveTripCubit(
-          itineraryId: 101,
-          itineraryTitle: 'Real Trip',
-          isDemoMode: false,
-        );
-
-        await tester.pumpWidget(
-          buildTestWidget(cubit: cubit, isDemoMode: false),
-        );
-        await tester.pumpAndSettle();
-
-        expect(find.text('DEMO_ONLY Controls'), findsNothing);
-        expect(find.byTooltip('DEMO_ONLY Controls'), findsNothing);
-        expect(find.byIcon(Icons.build_circle_outlined), findsNothing);
-
-        await cubit.close();
-      },
-    );
-
-    testWidgets(
-      'demo mode (isDemoMode: true) DOES render DEMO_ONLY Controls banner',
-      (tester) async {
-        final cubit = ActiveTripCubit(
-          itineraryId: 101,
-          itineraryTitle: 'Demo Trip',
-          isDemoMode: true,
-        );
-
-        await tester.pumpWidget(
-          buildTestWidget(cubit: cubit, isDemoMode: true),
-        );
-        await tester.pumpAndSettle();
-
-        expect(find.byTooltip('DEMO_ONLY Controls'), findsOneWidget);
-        expect(find.byIcon(Icons.build_circle_outlined), findsOneWidget);
-
-        await tester.tap(find.byIcon(Icons.build_circle_outlined));
-        await tester.pumpAndSettle();
-
-        expect(find.text('DEMO_ONLY Test Controls'), findsOneWidget);
-
-        await cubit.close();
-      },
-    );
-
-    testWidgets(
-      'renders dismissible TripAlertBanner when undismissed alert is present',
-      (tester) async {
-        final cubit = ActiveTripCubit(
-          itineraryId: 101,
-          itineraryTitle: 'Đà Nẵng City Explorer',
-          initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
-          initialAlerts: ActiveTripDemoFixtures.createSampleAlerts(),
-          isDemoMode: true,
-        );
-
-        await tester.pumpWidget(
-          buildTestWidget(cubit: cubit, isDemoMode: true),
-        );
-        await tester.pumpAndSettle();
-
-        expect(find.byType(TripAlertBanner), findsOneWidget);
-        expect(find.textContaining('Severe weather warning'), findsOneWidget);
-
-        await cubit.close();
-      },
-    );
-
-    testWidgets(
-      'shows RerouteProposalSheet when proposal is triggered and handles accept',
-      (tester) async {
-        final cubit = ActiveTripCubit(
-          itineraryId: 101,
-          itineraryTitle: 'Đà Nẵng City Explorer',
-          initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
-          initialAlerts: const [],
-          isDemoMode: true,
-        );
-
-        await tester.pumpWidget(
-          buildTestWidget(cubit: cubit, isDemoMode: true),
-        );
-        await tester.pumpAndSettle();
-
-        expect(find.byType(RerouteProposalSheet), findsNothing);
-
-        cubit.openRerouteProposal();
-        await tester.pumpAndSettle();
-
-        expect(find.byType(RerouteProposalSheet), findsOneWidget);
-        expect(find.text('Suggested Route Change'), findsOneWidget);
-        expect(find.text('Reason for Re-routing'), findsOneWidget);
-
-        await tester.tap(find.text('Accept Re-routing'));
-        await tester.pumpAndSettle();
-
-        expect(find.byType(RerouteProposalSheet), findsNothing);
-        expect(cubit.state.itineraryVersion, 2);
-
-        await cubit.close();
-      },
-    );
-
-    testWidgets(
-      'declining RerouteProposalSheet retains original route without incrementing version',
-      (tester) async {
-        final cubit = ActiveTripCubit(
-          itineraryId: 101,
-          itineraryTitle: 'Đà Nẵng City Explorer',
-          initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
-          initialAlerts: const [],
-          isDemoMode: true,
-        );
-
-        await tester.pumpWidget(
-          buildTestWidget(cubit: cubit, isDemoMode: true),
-        );
-        await tester.pumpAndSettle();
-
-        cubit.openRerouteProposal();
-        await tester.pumpAndSettle();
-
-        expect(find.byType(RerouteProposalSheet), findsOneWidget);
-
-        await tester.tap(find.text('Keep Current Route'));
-        await tester.pumpAndSettle();
-
-        expect(find.byType(RerouteProposalSheet), findsNothing);
-        expect(cubit.state.itineraryVersion, 1);
-
-        await cubit.close();
-      },
-    );
-
-    testWidgets(
-      'closing RerouteProposalSheet via close icon keeps proposal pending and allows reopening',
-      (tester) async {
-        final cubit = ActiveTripCubit(
-          itineraryId: 101,
-          itineraryTitle: 'Đà Nẵng City Explorer',
-          initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
-          initialAlerts: const [],
-          isDemoMode: true,
-        );
-
-        await tester.pumpWidget(
-          buildTestWidget(cubit: cubit, isDemoMode: true),
-        );
-        await tester.pumpAndSettle();
-
-        // 1. Open proposal sheet
-        cubit.openRerouteProposal();
-        await tester.pumpAndSettle();
-        expect(find.byType(RerouteProposalSheet), findsOneWidget);
-
-        // 2. Tap close icon (tooltip: 'Close without changing plan')
-        final closeButton = find.byTooltip('Close without changing plan');
-        expect(closeButton, findsOneWidget);
-        await tester.tap(closeButton);
-        await tester.pumpAndSettle();
-
-        // Sheet is dismissed
-        expect(find.byType(RerouteProposalSheet), findsNothing);
-
-        // Crucial: proposal must NOT be marked declined! It must remain pending!
         expect(
-          cubit.state.activeRerouteProposal?.status,
-          RerouteStatus.pending,
+          find.text('You are at Marble Mountains (Ngũ Hành Sơn)'),
+          findsOneWidget,
         );
-        expect(cubit.state.isRerouteSheetVisible, isFalse);
+        expect(find.text('EXPLORING'), findsOneWidget);
+        expect(find.text('1 of 5 stops reached'), findsOneWidget);
 
-        // 3. User can reopen the pending proposal
-        cubit.openRerouteProposal();
+        await tester.tap(find.byKey(const Key('depart_button')));
         await tester.pumpAndSettle();
 
-        expect(find.byType(RerouteProposalSheet), findsOneWidget);
+        expect(find.text('Cơm Gà Bà Buội'), findsOneWidget);
+        expect(find.text('NAVIGATING'), findsOneWidget);
 
         await cubit.close();
       },
     );
 
-    testWidgets(
-      'external dismissal of RerouteProposalSheet keeps proposal pending and synchronizes visibility',
-      (tester) async {
-        final cubit = ActiveTripCubit(
-          itineraryId: 101,
-          itineraryTitle: 'Đà Nẵng City Explorer',
-          initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
-          initialAlerts: const [],
-          isDemoMode: true,
-        );
-
-        await tester.pumpWidget(
-          buildTestWidget(cubit: cubit, isDemoMode: true),
-        );
-        await tester.pumpAndSettle();
-
-        cubit.openRerouteProposal();
-        await tester.pumpAndSettle();
-        expect(find.byType(RerouteProposalSheet), findsOneWidget);
-        expect(cubit.state.isRerouteSheetVisible, isTrue);
-
-        // Simulate external dismissal (e.g. tapping barrier / popping modal)
-        Navigator.of(tester.element(find.byType(RerouteProposalSheet))).pop();
-        await tester.pumpAndSettle();
-
-        expect(find.byType(RerouteProposalSheet), findsNothing);
-        expect(cubit.state.isRerouteSheetVisible, isFalse);
-        expect(
-          cubit.state.activeRerouteProposal?.status,
-          RerouteStatus.pending,
-        );
-
-        // Reopen works because state was properly synchronized
-        cubit.openRerouteProposal();
-        await tester.pumpAndSettle();
-        expect(find.byType(RerouteProposalSheet), findsOneWidget);
-
-        await cubit.close();
-      },
-    );
-
-    testWidgets('renders completion summary when all waypoints are reached', (
+    testWidgets('GPS-detected arrival prompt can be confirmed or postponed', (
       tester,
     ) async {
-      final cubit = ActiveTripCubit(
-        itineraryId: 101,
-        itineraryTitle: 'Đà Nẵng City Explorer',
-        initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
-        initialAlerts: const [],
-        isDemoMode: true,
+      usePhoneSurface(tester);
+      final cubit = await startedDemoCubit();
+      await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('DEMO_ONLY Controls'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Simulate Stop Arrival'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Have you arrived?'), findsOneWidget);
+      await tester.tap(find.text('Not yet'));
+      await tester.pumpAndSettle();
+      expect(cubit.state.arrivalPromptItemId, isNull);
+      expect(cubit.state.isExploring, isFalse);
+
+      cubit.demoSimulateArrivalAtNextStop();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("Yes, I'm here"));
+      await tester.pumpAndSettle();
+
+      expect(cubit.state.isExploring, isTrue);
+      expect(
+        find.text('Arrived at Marble Mountains (Ngũ Hành Sơn).'),
+        findsOneWidget,
       );
-
-      await tester.pumpWidget(buildTestWidget(cubit: cubit, isDemoMode: true));
-      await tester.pumpAndSettle();
-
-      // Simulate reaching all 5 stops
-      cubit.onSystemDetectedArrival();
-      cubit.onSystemDetectedArrival();
-      cubit.onSystemDetectedArrival();
-      cubit.onSystemDetectedArrival();
-      cubit.onSystemDetectedArrival();
-      await tester.pumpAndSettle();
-
-      expect(find.text('Trip Completed!'), findsOneWidget);
-      expect(find.text('Back to Home'), findsOneWidget);
-
-      // Dismiss dialog
-      Navigator.of(tester.element(find.text('Trip Completed!'))).pop();
-      await tester.pumpAndSettle();
 
       await cubit.close();
     });
 
-    testWidgets(
-      'direct Active Trip route without state.extra does NOT fabricate "Đà Nẵng Day Trip"',
-      (tester) async {
-        final repo = _FakeItineraryRepository(
-          detail: _createSampleDetail(
-            itineraryId: 101,
-            title: 'Hanoi Heritage Tour',
-          ),
-        );
-
-        await tester.pumpWidget(
-          buildTestWidget(title: null, repository: repo, isDemoMode: false),
-        );
-        await tester.pumpAndSettle();
-
-        expect(find.text('Đà Nẵng Day Trip'), findsNothing);
-        expect(find.text('Đà Nẵng City Explorer'), findsNothing);
-        expect(find.text('Hanoi Heritage Tour'), findsOneWidget);
-      },
-    );
-
-    testWidgets('shows loading state while metadata is being retrieved', (
+    testWidgets('skipping warns about mandatory stops and moves on', (
       tester,
     ) async {
-      final completer = Completer<ItineraryDetail>();
-      final repo = _CompleterItineraryRepository(completer);
+      usePhoneSurface(tester);
+      final cubit = await startedDemoCubit();
+      await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('skip_target_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Skip this stop?'), findsOneWidget);
+      expect(
+        find.textContaining('This is a mandatory stop in your itinerary.'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Skip stop'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cơm Gà Bà Buội'), findsOneWidget);
+      expect(cubit.state.isExploring, isFalse);
+
+      await cubit.close();
+    });
+
+    testWidgets('finishing confirms unvisited stops and shows the summary', (
+      tester,
+    ) async {
+      usePhoneSurface(tester);
+      final cubit = await startedDemoCubit();
+      await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('finish_trip_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Finish this trip?'), findsOneWidget);
+      expect(
+        find.textContaining('5 stops have not been visited'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Finish trip'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Navigation ended'), findsOneWidget);
+      expect(find.textContaining('You reached 0 of 5 stops'), findsOneWidget);
+      expect(find.text('Back to Home'), findsOneWidget);
+
+      await cubit.close();
+    });
+
+    testWidgets('the stop list shows statuses and per-stop actions', (
+      tester,
+    ) async {
+      usePhoneSurface(tester);
+      final cubit = await startedDemoCubit();
+      await cubit.skipItem(1002);
+      await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('View all stops'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Skipped'), findsOneWidget);
+      expect(find.textContaining('Heading here'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('stop_actions_1003')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Navigate here'));
+      await tester.pumpAndSettle();
+
+      expect(cubit.state.targetItemId, 1003);
+
+      await cubit.close();
+    });
+
+    testWidgets('GPS ticks do not rebuild the shell; session changes do', (
+      tester,
+    ) async {
+      usePhoneSurface(tester);
+      final cubit = await startedDemoCubit();
+      await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
+      await tester.pumpAndSettle();
+
+      final before = tester.widget<NavigationMapCanvas>(
+        find.byType(NavigationMapCanvas),
+      );
+
+      cubit.updatePosition(
+        NavigationPosition(
+          coordinate: const NavigationCoordinate(
+            latitude: 16.0544,
+            longitude: 108.2022,
+          ),
+          timestamp: DateTime.now(),
+        ),
+      );
+      await tester.pump();
+      final afterGps = tester.widget<NavigationMapCanvas>(
+        find.byType(NavigationMapCanvas),
+      );
+      expect(identical(before, afterGps), isTrue);
+      await tester.pump();
+      expect(find.textContaining('(straight line)'), findsOneWidget);
+
+      await cubit.skipItem(1001);
+      await tester.pump();
+      final afterSkip = tester.widget<NavigationMapCanvas>(
+        find.byType(NavigationMapCanvas),
+      );
+      expect(identical(afterGps, afterSkip), isFalse);
+
+      await cubit.close();
+    });
+
+    testWidgets('toggling the stop list does not rebuild the shell', (
+      tester,
+    ) async {
+      usePhoneSurface(tester);
+      final cubit = await startedDemoCubit();
+      await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
+      await tester.pumpAndSettle();
+      final before = tester.widget<NavigationMapCanvas>(
+        find.byType(NavigationMapCanvas),
+      );
+
+      await tester.tap(find.text('View all stops'));
+      await tester.pumpAndSettle();
+      expect(find.text('Hide stops'), findsOneWidget);
+      await tester.tap(find.text('Hide stops'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('View all stops'), findsOneWidget);
+      expect(
+        identical(
+          before,
+          tester.widget<NavigationMapCanvas>(find.byType(NavigationMapCanvas)),
+        ),
+        isTrue,
+      );
+
+      await cubit.close();
+    });
+
+    testWidgets('location permission denial offers settings and retry', (
+      tester,
+    ) async {
+      usePhoneSurface(tester);
+      final tracker = FakeLocationTracker()
+        ..access = NavigationLocationAccess.denied;
+      addTearDown(tracker.dispose);
 
       await tester.pumpWidget(
-        buildTestWidget(title: null, repository: repo, isDemoMode: false),
+        buildPage(
+          title: 'Real Trip',
+          sessionRepository: FakeSessionRepository(),
+          locationTracker: tracker,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Location permission required'), findsOneWidget);
+      expect(find.text('Open settings'), findsOneWidget);
+      expect(find.text('Try again'), findsOneWidget);
+    });
+  });
+
+  group('ActiveTripPage start states', () {
+    testWidgets('shows a specific error when the trip cannot start', (
+      tester,
+    ) async {
+      usePhoneSurface(tester);
+      final sessions = FakeSessionRepository()
+        ..startFailure = const NavigationFailure(
+          'Only an Active itinerary can be navigated. Accept the itinerary first.',
+          reason: NavigationFailureReason.itineraryNotActive,
+        );
+
+      await tester.pumpWidget(
+        buildPage(title: 'Real Trip', sessionRepository: sessions),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Unable to start navigation'), findsOneWidget);
+      expect(
+        find.text(
+          'Only an Active itinerary can be navigated. Accept the itinerary first.',
+        ),
+        findsOneWidget,
+      );
+
+      // Retrying cannot make the itinerary Active: only "Go back" is offered.
+      expect(find.text('Retry'), findsNothing);
+      expect(find.text('Go back'), findsOneWidget);
+    });
+
+    testWidgets('offers Retry when the start failed for a network reason', (
+      tester,
+    ) async {
+      usePhoneSurface(tester);
+      final sessions = FakeSessionRepository()
+        ..startFailure = const NetworkFailure();
+
+      await tester.pumpWidget(
+        buildPage(title: 'Real Trip', sessionRepository: sessions),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Please check your connection.'), findsOneWidget);
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+      expect(find.text('Marble Mountains (Ngũ Hành Sơn)'), findsOneWidget);
+    });
+
+    testWidgets('offers Resume or End when another trip is in progress', (
+      tester,
+    ) async {
+      usePhoneSurface(tester);
+      final sessions = FakeSessionRepository()
+        ..startFailure = const NavigationFailure(
+          'You already have a trip in progress.',
+          reason: NavigationFailureReason.activeSessionExists,
+          activeSessionId: 77,
+        )
+        ..others[77] = ActiveTripDemoFixtures.createDemoSession(
+          itineraryId: 55,
+          sessionId: 77,
+        );
+
+      await tester.pumpWidget(
+        buildPage(title: 'Real Trip', sessionRepository: sessions),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('You are already navigating another trip'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Itinerary #55'), findsOneWidget);
+      expect(find.text('Resume that trip'), findsOneWidget);
+
+      await tester.tap(find.text('End it and start this trip'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('End and start'));
+      await tester.pumpAndSettle();
+
+      expect(sessions.calls, contains('complete:77'));
+      expect(find.text('Marble Mountains (Ngũ Hành Sơn)'), findsOneWidget);
+    });
+
+    testWidgets('resuming the same trip tells the Traveler', (tester) async {
+      usePhoneSurface(tester);
+      final sessions = FakeSessionRepository()
+        ..startFailure = const NavigationFailure(
+          'You already have a trip in progress.',
+          reason: NavigationFailureReason.activeSessionExists,
+          activeSessionId: 9001,
+        )
+        ..others[9001] = ActiveTripDemoFixtures.createDemoSession();
+
+      await tester.pumpWidget(
+        buildPage(title: 'Real Trip', sessionRepository: sessions),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Resumed your trip in progress.'), findsOneWidget);
+      expect(find.text('Marble Mountains (Ngũ Hành Sơn)'), findsOneWidget);
+    });
+
+    testWidgets('production mode hides DEMO_ONLY controls', (tester) async {
+      usePhoneSurface(tester);
+      await tester.pumpWidget(
+        buildPage(
+          title: 'Real Trip',
+          sessionRepository: FakeSessionRepository(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('DEMO_ONLY Controls'), findsNothing);
+      expect(find.byIcon(Icons.build_circle_outlined), findsNothing);
+    });
+
+    testWidgets('demo mode shows the DEMO_ONLY controls and fixture title', (
+      tester,
+    ) async {
+      usePhoneSurface(tester);
+      await tester.pumpWidget(buildPage(isDemoMode: true));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Đà Nẵng Day Trip'), findsOneWidget);
+      await tester.tap(find.byTooltip('DEMO_ONLY Controls'));
+      await tester.pumpAndSettle();
+      expect(find.text('DEMO_ONLY Test Controls'), findsOneWidget);
+    });
+
+    testWidgets('loads the itinerary title without fabricating demo titles', (
+      tester,
+    ) async {
+      usePhoneSurface(tester);
+      final repo = _FakeItineraryRepository(
+        detail: _detail(title: 'Hanoi Heritage Tour'),
+      );
+
+      await tester.pumpWidget(
+        buildPage(repository: repo, sessionRepository: FakeSessionRepository()),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Đà Nẵng Day Trip'), findsNothing);
+      expect(find.text('Hanoi Heritage Tour'), findsOneWidget);
+    });
+
+    testWidgets('shows loading while metadata is being retrieved', (
+      tester,
+    ) async {
+      usePhoneSurface(tester);
+      final completer = Completer<ItineraryDetail>();
+
+      await tester.pumpWidget(
+        buildPage(
+          repository: _FakeItineraryRepository(completer: completer),
+          sessionRepository: FakeSessionRepository(),
+        ),
       );
       await tester.pump();
 
       expect(find.text('Loading trip...'), findsOneWidget);
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
-      completer.complete(
-        _createSampleDetail(itineraryId: 101, title: 'Saigon Explorer'),
-      );
+      completer.complete(_detail(title: 'Saigon Explorer'));
       await tester.pumpAndSettle();
-
       expect(find.text('Saigon Explorer'), findsOneWidget);
     });
 
-    testWidgets('shows error state when metadata retrieval fails', (
-      tester,
-    ) async {
-      final repo = _FakeItineraryRepository(shouldThrow: true);
-
+    testWidgets('shows an error when metadata retrieval fails', (tester) async {
+      usePhoneSurface(tester);
       await tester.pumpWidget(
-        buildTestWidget(title: null, repository: repo, isDemoMode: false),
+        buildPage(repository: _FakeItineraryRepository(shouldThrow: true)),
       );
       await tester.pumpAndSettle();
 
@@ -425,147 +504,127 @@ void main() {
       expect(find.text('Retry'), findsOneWidget);
       expect(find.text('Go back'), findsOneWidget);
     });
+  });
 
-    testWidgets(
-      'explicit demo mode may show fixture title when no title passed',
-      (tester) async {
-        await tester.pumpWidget(buildTestWidget(title: null, isDemoMode: true));
-        await tester.pumpAndSettle();
+  group('ActiveTripPage UC-14/UC-15 demo', () {
+    testWidgets('renders the alert banner for an undismissed alert', (
+      tester,
+    ) async {
+      useWideSurface(tester);
+      final cubit = ActiveTripCubit(
+        itineraryId: 101,
+        sessionRepository: DemoNavigationSessionRepository(),
+        initialAlerts: ActiveTripDemoFixtures.createSampleAlerts(),
+        isDemoMode: true,
+      );
+      await cubit.start();
 
-        expect(find.text('Đà Nẵng Day Trip'), findsOneWidget);
-      },
-    );
+      await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
+      await tester.pumpAndSettle();
 
-    testWidgets(
-      'coordinate-only position updates do not trigger presentation shell rebuild',
-      (tester) async {
-        final cubit = ActiveTripCubit(
-          itineraryId: 101,
-          itineraryTitle: 'Đà Nẵng City Explorer',
-          initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
-          initialAlerts: const [],
-          isDemoMode: true,
-        );
+      expect(find.byType(TripAlertBanner), findsOneWidget);
+      expect(find.textContaining('Severe weather warning'), findsOneWidget);
+      await cubit.close();
+    });
 
-        await tester.pumpWidget(
-          buildTestWidget(cubit: cubit, isDemoMode: true),
-        );
-        await tester.pumpAndSettle();
+    testWidgets('accepting the reroute proposal bumps the version', (
+      tester,
+    ) async {
+      useWideSurface(tester);
+      final cubit = await startedDemoCubit();
+      await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
+      await tester.pumpAndSettle();
 
-        final canvasBefore = tester.widget<NavigationMapCanvas>(
-          find.byType(NavigationMapCanvas),
-        );
+      cubit.openRerouteProposal();
+      await tester.pumpAndSettle();
+      expect(find.byType(RerouteProposalSheet), findsOneWidget);
 
-        // Update only coordinates (GPS sensor tick)
-        cubit.updatePosition(latitude: 16.0544, longitude: 108.2022);
-        await tester.pump();
+      await tester.tap(find.text('Accept Re-routing'));
+      await tester.pumpAndSettle();
 
-        final canvasAfterGps = tester.widget<NavigationMapCanvas>(
-          find.byType(NavigationMapCanvas),
-        );
+      expect(find.byType(RerouteProposalSheet), findsNothing);
+      expect(cubit.state.itineraryVersion, 2);
+      await cubit.close();
+    });
 
-        // Shell did not rebuild: widget instance remains identical
-        expect(identical(canvasBefore, canvasAfterGps), isTrue);
+    testWidgets('declining keeps the version', (tester) async {
+      useWideSurface(tester);
+      final cubit = await startedDemoCubit();
+      await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
+      await tester.pumpAndSettle();
 
-        // Presentation-affecting change (e.g. arrival/advance) DOES trigger rebuild
-        cubit.onSystemDetectedArrival();
-        await tester.pump();
+      cubit.openRerouteProposal();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Keep Current Route'));
+      await tester.pumpAndSettle();
 
-        final canvasAfterArrival = tester.widget<NavigationMapCanvas>(
-          find.byType(NavigationMapCanvas),
-        );
-        expect(identical(canvasAfterGps, canvasAfterArrival), isFalse);
+      expect(find.byType(RerouteProposalSheet), findsNothing);
+      expect(cubit.state.itineraryVersion, 1);
+      await cubit.close();
+    });
 
-        await cubit.close();
-      },
-    );
+    testWidgets('closing or dismissing the sheet keeps the proposal pending', (
+      tester,
+    ) async {
+      useWideSurface(tester);
+      final cubit = await startedDemoCubit();
+      await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
+      await tester.pumpAndSettle();
 
-    testWidgets(
-      'toggling all stops expands and collapses list locally without root shell rebuild',
-      (tester) async {
-        final cubit = ActiveTripCubit(
-          itineraryId: 101,
-          itineraryTitle: 'Đà Nẵng City Explorer',
-          initialWaypoints: ActiveTripDemoFixtures.createDefaultWaypoints(),
-          initialAlerts: const [],
-          isDemoMode: true,
-        );
+      cubit.openRerouteProposal();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Close without changing plan'));
+      await tester.pumpAndSettle();
 
-        await tester.pumpWidget(
-          buildTestWidget(cubit: cubit, isDemoMode: true),
-        );
-        await tester.pumpAndSettle();
+      expect(find.byType(RerouteProposalSheet), findsNothing);
+      expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.pending);
 
-        final canvasBefore = tester.widget<NavigationMapCanvas>(
-          find.byType(NavigationMapCanvas),
-        );
+      cubit.openRerouteProposal();
+      await tester.pumpAndSettle();
+      Navigator.of(tester.element(find.byType(RerouteProposalSheet))).pop();
+      await tester.pumpAndSettle();
 
-        expect(find.text('View all stops'), findsOneWidget);
-        expect(find.text('Hide stops'), findsNothing);
+      expect(cubit.state.isRerouteSheetVisible, isFalse);
+      expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.pending);
 
-        // Expand stops
-        await tester.tap(find.text('View all stops'));
-        await tester.pumpAndSettle();
-
-        expect(find.text('Hide stops'), findsOneWidget);
-        expect(find.text('View all stops'), findsNothing);
-
-        // Root presentation shell was NOT rebuilt by local expand toggle
-        final canvasAfterExpand = tester.widget<NavigationMapCanvas>(
-          find.byType(NavigationMapCanvas),
-        );
-        expect(identical(canvasBefore, canvasAfterExpand), isTrue);
-
-        // Collapse stops
-        await tester.tap(find.text('Hide stops'));
-        await tester.pumpAndSettle();
-
-        expect(find.text('View all stops'), findsOneWidget);
-        expect(find.text('Hide stops'), findsNothing);
-
-        final canvasAfterCollapse = tester.widget<NavigationMapCanvas>(
-          find.byType(NavigationMapCanvas),
-        );
-        expect(identical(canvasBefore, canvasAfterCollapse), isTrue);
-
-        await cubit.close();
-      },
-    );
+      cubit.openRerouteProposal();
+      await tester.pumpAndSettle();
+      expect(find.byType(RerouteProposalSheet), findsOneWidget);
+      await cubit.close();
+    });
   });
 }
 
-ItineraryDetail _createSampleDetail({
-  required int itineraryId,
-  required String title,
-}) {
-  return ItineraryDetail(
-    itineraryId: itineraryId,
-    schedulingRequestId: 1,
-    title: title,
-    version: 1,
-    status: 'Active',
-    validFrom: null,
-    validTo: null,
-    canManage: true,
-    totalEstimatedCost: 150000,
-    totalDurationMinutes: 180,
-    items: const [],
-  );
-}
+ItineraryDetail _detail({required String title}) => ItineraryDetail(
+  itineraryId: 101,
+  schedulingRequestId: 1,
+  title: title,
+  version: 1,
+  status: 'Active',
+  validFrom: null,
+  validTo: null,
+  canManage: true,
+  totalEstimatedCost: 150000,
+  totalDurationMinutes: 180,
+  items: const [],
+);
 
 final class _FakeItineraryRepository implements ItineraryRepository {
-  _FakeItineraryRepository({this.detail, this.shouldThrow = false});
+  _FakeItineraryRepository({
+    this.detail,
+    this.completer,
+    this.shouldThrow = false,
+  });
 
   final ItineraryDetail? detail;
+  final Completer<ItineraryDetail>? completer;
   final bool shouldThrow;
 
   @override
   Future<ItineraryDetail> getById(int itineraryId) async {
-    if (shouldThrow) {
-      throw Exception('Server unreachable');
-    }
-    return detail ??
-        _createSampleDetail(itineraryId: itineraryId, title: 'Sample Trip');
+    if (shouldThrow) throw Exception('Server unreachable');
+    if (completer != null) return completer!.future;
+    return detail ?? _detail(title: 'Sample Trip');
   }
 
   @override
@@ -578,46 +637,15 @@ final class _FakeItineraryRepository implements ItineraryRepository {
   Future<ItineraryDetail> accept(int itineraryId) => throw UnimplementedError();
 
   @override
-  Future<ItineraryDetail> adjustItems({
-    required int itineraryId,
-    required List<int> orderedVisitPoiIds,
-    required String idempotencyKey,
-  }) => throw UnimplementedError();
-
-  @override
   Future<ItineraryDetail> regenerate({
     required int itineraryId,
     required String idempotencyKey,
   }) => throw UnimplementedError();
-}
-
-final class _CompleterItineraryRepository implements ItineraryRepository {
-  _CompleterItineraryRepository(this.completer);
-
-  final Completer<ItineraryDetail> completer;
 
   @override
-  Future<ItineraryDetail> getById(int itineraryId) => completer.future;
-
-  @override
-  Future<GeneratedItinerary> generate({
-    required ItineraryGenerationRequest request,
-    required String idempotencyKey,
-  }) => throw UnimplementedError();
-
-  @override
-  Future<ItineraryDetail> accept(int itineraryId) => throw UnimplementedError();
-
-  @override
-  Future<ItineraryDetail> adjustItems({
+  Future<ItineraryDetail> updateStops({
     required int itineraryId,
-    required List<int> orderedVisitPoiIds,
-    required String idempotencyKey,
-  }) => throw UnimplementedError();
-
-  @override
-  Future<ItineraryDetail> regenerate({
-    required int itineraryId,
+    required List<ItineraryStop> stops,
     required String idempotencyKey,
   }) => throw UnimplementedError();
 }

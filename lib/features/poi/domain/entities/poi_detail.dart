@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:trip_mate_mobile/features/poi/domain/entities/cost_kind.dart';
 
 final class PoiDetail extends Equatable {
   const PoiDetail({
@@ -24,6 +25,8 @@ final class PoiDetail extends Equatable {
     this.scenicScore,
     this.photoRating,
     this.averageRating,
+    this.estimatedVisitCost,
+    this.costKind,
   });
 
   final int id;
@@ -41,6 +44,10 @@ final class PoiDetail extends Equatable {
   final double? scenicScore;
   final double? photoRating;
   final double? averageRating;
+
+  /// Per person; null when unknown (never "free").
+  final double? estimatedVisitCost;
+  final CostKind? costKind;
   final int reviewCount;
   final bool isOpenNow;
   final List<PoiOpeningHour> openingHours;
@@ -66,6 +73,8 @@ final class PoiDetail extends Equatable {
     scenicScore,
     photoRating,
     averageRating,
+    estimatedVisitCost,
+    costKind,
     reviewCount,
     isOpenNow,
     openingHours,

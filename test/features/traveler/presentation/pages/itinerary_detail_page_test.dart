@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_stop.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/itinerary_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_detail_page.dart';
@@ -26,18 +28,65 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Day plan'), findsOneWidget);
-    expect(find.text('Accept itinerary'), findsOneWidget);
-    expect(find.text('Reorder or remove places'), findsOneWidget);
-    expect(find.text('This place is currently unavailable.'), findsOneWidget);
-    expect(find.text('Travel: 15 min'), findsOneWidget);
+    expect(find.text('Địa điểm này hiện không hoạt động.'), findsOneWidget);
+    expect(find.text('khoảng 15 phút'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Sắp xếp hoặc bỏ địa điểm'), 200);
+    expect(find.text('Chấp nhận lịch trình'), findsOneWidget);
+    expect(find.text('Sắp xếp hoặc bỏ địa điểm'), findsOneWidget);
 
-    await tester.tap(find.text('Reorder or remove places'));
+    await tester.ensureVisible(find.text('Sắp xếp hoặc bỏ địa điểm'));
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Sắp xếp hoặc bỏ địa điểm'));
     await tester.pumpAndSettle();
 
     final list = tester.widget<ReorderableListView>(
       find.byType(ReorderableListView),
     );
     expect(list.onReorderItem, isNotNull);
+  });
+
+  testWidgets('owner cannot change a trip that is being navigated', (
+    tester,
+  ) async {
+    final navigated = ItineraryDetail(
+      itineraryId: _ownerDetail.itineraryId,
+      schedulingRequestId: _ownerDetail.schedulingRequestId,
+      title: _ownerDetail.title,
+      version: _ownerDetail.version,
+      status: 'Active',
+      validFrom: _ownerDetail.validFrom,
+      validTo: _ownerDetail.validTo,
+      canManage: true,
+      totalEstimatedCost: _ownerDetail.totalEstimatedCost,
+      totalDurationMinutes: _ownerDetail.totalDurationMinutes,
+      items: _ownerDetail.items,
+      isNavigationInProgress: true,
+    );
+    final cubit = ItineraryDetailCubit(repository: _Repository(navigated));
+    addTearDown(cubit.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider.value(
+          value: cubit,
+          child: const ItineraryDetailPage(itineraryId: 10),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('navigation_in_progress_notice')),
+      200,
+    );
+
+    expect(
+      find.byKey(const Key('navigation_in_progress_notice')),
+      findsOneWidget,
+    );
+    expect(find.text('Sắp xếp hoặc bỏ địa điểm'), findsNothing);
+    expect(find.byTooltip('Tạo lại lịch trình'), findsNothing);
   });
 
   testWidgets('timeline keeps Vietnam itinerary time instead of device time', (
@@ -75,7 +124,13 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Reorder or remove places'));
+      await tester.scrollUntilVisible(
+        find.text('Sắp xếp hoặc bỏ địa điểm'),
+        200,
+      );
+      await tester.ensureVisible(find.text('Sắp xếp hoặc bỏ địa điểm'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Sắp xếp hoặc bỏ địa điểm'));
       await tester.pumpAndSettle();
 
       final list = tester.widget<ReorderableListView>(
@@ -83,14 +138,83 @@ void main() {
       );
       list.onReorderItem!(0, 1);
       await tester.pump();
-      await tester.tap(find.text('Save adjustment'));
+      await tester.tap(find.text('Lưu thay đổi'));
       await tester.pumpAndSettle();
 
-      expect(repository.adjustedOrders, [
-        [102, 101],
+      expect(repository.sentStops, [
+        const [ItineraryStop(poiId: 102), ItineraryStop(poiId: 101)],
       ]);
     },
   );
+
+  testWidgets('draft itinerary asks for acceptance before navigation', (
+    tester,
+  ) async {
+    final cubit = ItineraryDetailCubit(repository: _Repository(_ownerDetail));
+    addTearDown(cubit.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider.value(
+          value: cubit,
+          child: const ItineraryDetailPage(itineraryId: 10),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bắt đầu dẫn đường'), findsNothing);
+    await tester.scrollUntilVisible(
+      find.text('Chấp nhận lịch trình để bắt đầu dẫn đường.'),
+      200,
+    );
+    expect(
+      find.text('Chấp nhận lịch trình để bắt đầu dẫn đường.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('active itinerary starts navigation for this itinerary', (
+    tester,
+  ) async {
+    final cubit = ItineraryDetailCubit(repository: _Repository(_memberDetail));
+    addTearDown(cubit.close);
+    Object? openedExtra;
+    final router = GoRouter(
+      initialLocation: '/traveler/itineraries/10',
+      routes: [
+        GoRoute(
+          path: '/traveler/itineraries/:itineraryId',
+          builder: (_, _) => BlocProvider.value(
+            value: cubit,
+            child: const ItineraryDetailPage(itineraryId: 10),
+          ),
+        ),
+        GoRoute(
+          path: '/traveler/trips/:itineraryId/live',
+          builder: (_, state) {
+            openedExtra = state.extra;
+            return Text('Live trip ${state.pathParameters['itineraryId']}');
+          },
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Chấp nhận lịch trình để bắt đầu dẫn đường.'),
+      findsNothing,
+    );
+    await tester.scrollUntilVisible(find.text('Bắt đầu dẫn đường'), 200);
+    await tester.tap(find.text('Bắt đầu dẫn đường'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Live trip 10'), findsOneWidget);
+    expect(openedExtra, _memberDetail);
+  });
 
   testWidgets('group member sees the timeline without owner actions', (
     tester,
@@ -108,10 +232,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Read-only access (Group member)'), findsOneWidget);
-    expect(find.text('Accept itinerary'), findsNothing);
-    expect(find.text('Reorder or remove places'), findsNothing);
-    expect(find.byTooltip('Regenerate itinerary'), findsNothing);
+    expect(find.text('Chỉ xem (thành viên nhóm)'), findsOneWidget);
+    expect(find.text('Chấp nhận lịch trình'), findsNothing);
+    expect(find.text('Sắp xếp hoặc bỏ địa điểm'), findsNothing);
+    expect(find.byTooltip('Tạo lại lịch trình'), findsNothing);
   });
 
   testWidgets(
@@ -133,7 +257,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('You do not have access to this itinerary.'),
+        find.text('Bạn không có quyền xem lịch trình này.'),
         findsOneWidget,
       );
     },
@@ -155,7 +279,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('This itinerary could not be found.'), findsOneWidget);
+    expect(find.text('Không tìm thấy lịch trình này.'), findsOneWidget);
   });
 }
 
@@ -225,7 +349,9 @@ final class _Repository implements ItineraryRepository {
 
   final ItineraryDetail detail;
   final Failure? failure;
-  final adjustedOrders = <List<int>>[];
+  final sentStops = <List<ItineraryStop>>[];
+  final updatedDetails = <ItineraryDetail>[];
+  Failure? updateFailure;
 
   @override
   Future<GeneratedItinerary> generate({
@@ -249,12 +375,13 @@ final class _Repository implements ItineraryRepository {
   }) => throw UnimplementedError();
 
   @override
-  Future<ItineraryDetail> adjustItems({
+  Future<ItineraryDetail> updateStops({
     required int itineraryId,
-    required List<int> orderedVisitPoiIds,
+    required List<ItineraryStop> stops,
     required String idempotencyKey,
   }) async {
-    adjustedOrders.add(List<int>.from(orderedVisitPoiIds));
-    return detail;
+    sentStops.add(stops);
+    if (updateFailure != null) throw updateFailure!;
+    return updatedDetails.isEmpty ? detail : updatedDetails.removeAt(0);
   }
 }

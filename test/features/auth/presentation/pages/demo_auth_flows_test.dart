@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,8 +17,12 @@ import 'package:trip_mate_mobile/features/auth/domain/entities/traveler_registra
 import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/login_page.dart';
-import 'package:trip_mate_mobile/features/auth/presentation/pages/operator_application_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/traveler_registration_page.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_preference_options.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_preferences.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_preferences_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_preferences_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_settings_page.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 
@@ -84,54 +86,29 @@ void main() {
     expect(session.state.isAuthenticated, isTrue);
   });
 
-  testWidgets('pending Operator can sign out after confirmation', (
-    tester,
-  ) async {
-    final storage = _MemoryStorage({
-      AppConstants.accessTokenKey: 'access',
-      AppConstants.refreshTokenKey: 'refresh',
-      AppConstants.sessionRoleKey: 'tourOperator',
-      AppConstants.sessionUserIdKey: '4',
-      AppConstants.sessionOwnerSnapshotKey: jsonEncode({
-        'userId': 4,
-        'role': 'tourOperator',
-        'applicationStatus': 'pendingApproval',
-        'fullName': null,
-        'email': null,
-      }),
-      AppConstants.keepSignedInKey: 'true',
-    });
-    final session = AuthSessionCubit(null, storage);
-    addTearDown(session.close);
-    await session.restoreSession();
-    await tester.pumpWidget(
-      BlocProvider<AuthSessionCubit>.value(
-        value: session,
-        child: _page(const OperatorApplicationPage()),
-      ),
-    );
+  testWidgets(
+    'Travel preferences controls update Cubit state from the Backend',
+    (tester) async {
+      final repository = _FakeTravelPreferencesRepository();
+      final cubit = TravelPreferencesCubit(repository);
+      addTearDown(cubit.close);
+      await tester.pumpWidget(
+        BlocProvider<TravelPreferencesCubit>.value(
+          value: cubit,
+          child: _page(const TravelPreferencesPage()),
+        ),
+      );
+      await cubit.load();
+      await tester.pumpAndSettle();
 
-    expect(find.text('PENDING APPROVAL'), findsOneWidget);
-    expect(find.textContaining('simulated locally'), findsNothing);
-    await _tapVisible(tester, find.text('Sign out'));
-    await tester.pumpAndSettle();
-    expect(find.text('Sign out of TripMate?'), findsOneWidget);
-    await tester.tap(find.text('Cancel'));
-    await tester.pumpAndSettle();
-    expect(session.state.isAuthenticated, isTrue);
+      expect(find.text('Beach'), findsOneWidget);
 
-    await _tapVisible(tester, find.text('Sign out'));
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(
-        of: find.byType(AlertDialog),
-        matching: find.text('Sign out'),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(session.state.isAuthenticated, isFalse);
-    expect(storage.values.containsKey(AppConstants.accessTokenKey), isFalse);
-  });
+      await _tapVisible(tester, find.text('Car'));
+      await tester.pump();
+
+      expect(cubit.state.preferences.preferredTransportMode, 'Car');
+    },
+  );
 
   // --- UC-05 BR-13: failed backend revocation still completes local logout.
 
@@ -303,6 +280,28 @@ Future<void> _tapVisible(WidgetTester tester, Finder finder) async {
     scrollable: find.byType(Scrollable).first,
   );
   await tester.tap(finder);
+}
+
+final class _FakeTravelPreferencesRepository
+    implements TravelPreferencesRepository {
+  @override
+  Future<TravelPreferenceOptions> getOptions() async =>
+      const TravelPreferenceOptions(
+        interests: [InterestOption(key: 'beach', source: 'Tag')],
+        preferredTransportModes: ['Car', 'Motorbike'],
+        travelPaces: ['Relaxed', 'Moderate', 'Fast'],
+        foodPreferences: ['NoRestriction', 'Vegetarian'],
+        riskTolerances: ['Low', 'Medium', 'High'],
+      );
+
+  @override
+  Future<TravelPreferences> getPreferences() async =>
+      const TravelPreferences.empty();
+
+  @override
+  Future<TravelPreferences> updatePreferences(
+    TravelPreferences preferences,
+  ) async => preferences;
 }
 
 final class _MemoryStorage implements SecureStorageService {

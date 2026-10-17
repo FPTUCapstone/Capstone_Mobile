@@ -364,6 +364,52 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     }
   }
 
+  Future<void> markOperatorApplicationPendingApproval() async {
+    if (!state.isAuthenticated || state.role != UserRole.tourOperator) return;
+    final storage = _secureStorage;
+    if (storage != null) {
+      await _persistPendingApprovalInSnapshot(storage);
+    }
+    emit(
+      AuthSessionState.authenticated(
+        UserRole.tourOperator,
+        applicationStatus: TourOperatorApplicationStatus.pendingApproval,
+        fullName: state.fullName,
+        email: state.email,
+      ),
+    );
+  }
+
+  /// Rewrites the owner-bound snapshot with the new application status. The
+  /// legacy unbound status key is never written, and nothing is persisted when
+  /// the stored snapshot cannot be proven to belong to the current owner, so
+  /// the in-memory state stays authoritative for this running session.
+  Future<void> _persistPendingApprovalInSnapshot(
+    SecureStorageService storage,
+  ) async {
+    try {
+      final owned = await _readOwnedSnapshot(storage, UserRole.tourOperator);
+      if (owned == null) return;
+      final ownerId = int.parse(
+        (await storage.read(AppConstants.sessionUserIdKey))!.trim(),
+      );
+      await storage.write(
+        AppConstants.sessionOwnerSnapshotKey,
+        jsonEncode({
+          'userId': ownerId,
+          'role': UserRole.tourOperator.name,
+          'applicationStatus':
+              TourOperatorApplicationStatus.pendingApproval.name,
+          'fullName': owned.fullName,
+          'email': owned.email,
+        }),
+      );
+    } catch (_) {
+      // A failed write leaves the previous snapshot; restore then reports the
+      // earlier status rather than any other account's data.
+    }
+  }
+
   Future<void> signIn({
     required String email,
     required String password,

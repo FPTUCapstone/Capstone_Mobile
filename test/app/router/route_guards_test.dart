@@ -76,8 +76,20 @@ void main() {
           builder: (_, _) => const Text('Operator application'),
         ),
         GoRoute(
+          path: AppRoutes.operatorApplicationResubmit,
+          builder: (_, _) => const Text('Operator application resubmit'),
+        ),
+        GoRoute(
           path: AppRoutes.joinTravelGroup,
           builder: (_, _) => const Text('Join Group'),
+        ),
+        GoRoute(
+          path: AppRoutes.tripHistory,
+          builder: (_, _) => const Text('Trip history'),
+        ),
+        GoRoute(
+          path: AppRoutes.tripReviewPattern,
+          builder: (_, _) => const Text('Trip review'),
         ),
       ],
     );
@@ -122,6 +134,45 @@ void main() {
       AppRoutes.operatorApplication,
     );
   });
+
+  testWidgets(
+    'TourOperator Rejected is permitted to open the resubmit application route',
+    (tester) async {
+      const session = AuthSessionState.authenticated(
+        UserRole.tourOperator,
+        applicationStatus: TourOperatorApplicationStatus.rejected,
+      );
+      expect(
+        await resolve(tester, session, AppRoutes.operatorApplicationResubmit),
+        AppRoutes.operatorApplicationResubmit,
+      );
+    },
+  );
+
+  testWidgets(
+    'TourOperator PendingApproval cannot open the resubmit route directly',
+    (tester) async {
+      const session = AuthSessionState.authenticated(
+        UserRole.tourOperator,
+        applicationStatus: TourOperatorApplicationStatus.pendingApproval,
+      );
+      expect(
+        await resolve(tester, session, AppRoutes.operatorApplicationResubmit),
+        AppRoutes.operatorApplication,
+      );
+    },
+  );
+
+  testWidgets(
+    'TourOperator unresolved cannot open the resubmit route directly',
+    (tester) async {
+      const session = AuthSessionState.authenticated(UserRole.tourOperator);
+      expect(
+        await resolve(tester, session, AppRoutes.operatorApplicationResubmit),
+        AppRoutes.operatorApplication,
+      );
+    },
+  );
 
   testWidgets('TourOperator unresolved fails closed to the application view', (
     tester,
@@ -232,6 +283,44 @@ void main() {
         ),
         AppRoutes.operatorApplication,
       );
+    },
+  );
+
+  testWidgets(
+    'UC-32/33 routes permit Traveler and deny Guest and TourOperator',
+    (tester) async {
+      for (final route in [
+        AppRoutes.tripHistory,
+        AppRoutes.tripReview('trip-tour-003'),
+      ]) {
+        expect(
+          await resolve(
+            tester,
+            const AuthSessionState.unauthenticated(),
+            route,
+          ),
+          AppRoutes.login,
+        );
+        expect(
+          await resolve(
+            tester,
+            const AuthSessionState.authenticated(UserRole.traveler),
+            route,
+          ),
+          route,
+        );
+        expect(
+          await resolve(
+            tester,
+            const AuthSessionState.authenticated(
+              UserRole.tourOperator,
+              applicationStatus: TourOperatorApplicationStatus.approved,
+            ),
+            route,
+          ),
+          AppRoutes.operator,
+        );
+      }
     },
   );
 

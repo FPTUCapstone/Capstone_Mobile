@@ -58,6 +58,19 @@ abstract final class ErrorMapper {
       if (extractErrorCode(responseData) == 'coupon.code_conflict') {
         return const ConflictFailure('This coupon code is already in use.');
       }
+      final operatorTourCode = extractErrorCode(responseData);
+      if (operatorTourCode == 'operator_tour.edit_locked' ||
+          operatorTourCode == 'operator_tour.invalid_state') {
+        return const ConflictFailure(
+          'This tour package can no longer be changed. Only Draft or Rejected packages are editable.',
+        );
+      }
+      if (operatorTourCode ==
+          'operator_tour.idempotency_key_payload_mismatch') {
+        return const ConflictFailure(
+          'This request conflicts with an earlier save. Please reopen the form and try again.',
+        );
+      }
       final (message, groupId) = _extractConflictDetails(responseData);
       return ConflictFailure(
         message ?? 'Conflict occurred. Please try again.',
@@ -69,9 +82,22 @@ abstract final class ErrorMapper {
     if (statusCode == 422) {
       final data = error.response?.data;
       final errorCode = data is Map ? extractErrorCode(data) : null;
+      if (errorCode == 'operator_tour.review_prerequisites_missing') {
+        return const ConstraintFailure(
+          'This tour is not ready for review yet. Add a cover photo, a future departure, a destination and a cancellation policy, then try again.',
+        );
+      }
       if (errorCode == 'coupon.tour_not_eligible') {
         return const ConstraintFailure(
           'A selected tour is not approved for coupons. Refresh and choose another tour.',
+        );
+      }
+      if (errorCode == 'itinerary.stop_infeasible') {
+        return _stopInfeasible(data);
+      }
+      if (errorCode == 'itinerary.no_alternative') {
+        return const ConstraintFailure(
+          'No other places fit this trip\'s time, area and budget. Your current itinerary is already the best option.',
         );
       }
       if (errorCode == 'planning.constraints_infeasible' ||
@@ -113,6 +139,40 @@ abstract final class ErrorMapper {
       if (value is String && value.trim().isNotEmpty) return value.trim();
     }
     return null;
+  }
+
+  /// Problem-details extensions are serialized at the root; some proxies nest
+  /// them under `extensions`, so both are read.
+  static StopInfeasibleFailure _stopInfeasible(Object? data) {
+    Object? read(String key) {
+      if (data is! Map) return null;
+      final extensions = data['extensions'];
+      return data[key] ?? (extensions is Map ? extensions[key] : null);
+    }
+
+    final arrival = read('plannedArrival');
+    final reason = read('reason');
+    final closesAt = read('closesAt');
+    return StopInfeasibleFailure(
+      poiId: switch (read('poiId')) {
+        final num value => value.toInt(),
+        final String value => int.tryParse(value),
+        _ => null,
+      },
+      reason: reason is String ? reason : null,
+      plannedArrival: arrival is String
+          ? DateTime.tryParse(arrival)?.toUtc()
+          : null,
+      closesAt: closesAt is String ? closesAt : null,
+      overflowMinutes: switch (read('overflowMinutes')) {
+        final num value => value.toInt(),
+        _ => null,
+      },
+      overflowVnd: switch (read('overflowVnd')) {
+        final num value => value.toDouble(),
+        _ => null,
+      },
+    );
   }
 
   static String? _extractSafePlanningMessage(Object? data) {

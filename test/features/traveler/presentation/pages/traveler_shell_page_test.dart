@@ -19,8 +19,12 @@ import 'package:trip_mate_mobile/features/poi/domain/entities/poi_query.dart';
 import 'package:trip_mate_mobile/features/poi/domain/repositories/poi_repository.dart';
 import 'package:trip_mate_mobile/features/poi/domain/usecases/get_pois_use_case.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_shell_page.dart';
+import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
+
+import '../cubit/my_trips_cubit_test.dart';
 
 Future<AuthSessionCubit> _authenticatedCubit({
   _RecordingAuthRepository? repository,
@@ -54,14 +58,44 @@ Future<void> _pumpShell(WidgetTester tester, AuthSessionCubit cubit) async {
 }
 
 void main() {
+  late FakeItineraryListRepository tripRepository;
+
   setUp(() async {
     await serviceLocator.reset();
-    serviceLocator.registerFactory<PoiListCubit>(
-      () => PoiListCubit(getPois: GetPoisUseCase(_EmptyPoiRepository())),
-    );
+    tripRepository = FakeItineraryListRepository({
+      1: tripPage([tripSummary(60014, openSessionId: 11)]),
+    });
+    serviceLocator
+      ..registerFactory<PoiListCubit>(
+        () => PoiListCubit(getPois: GetPoisUseCase(_EmptyPoiRepository())),
+      )
+      ..registerFactory<MyTripsCubit>(
+        () => MyTripsCubit(repository: tripRepository),
+      );
   });
 
   tearDown(serviceLocator.reset);
+
+  testWidgets('trips tab lists the traveler itineraries on each visit', (
+    tester,
+  ) async {
+    final cubit = await _authenticatedCubit();
+    addTearDown(cubit.close);
+    await _pumpShell(tester, cubit);
+
+    await tester.tap(find.text('Chuyến đi'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Trip 60014'), findsOneWidget);
+    expect(find.text('Trip in progress'), findsOneWidget);
+    expect(find.text('Feature placeholder'), findsNothing);
+
+    await tester.tap(find.text('Trang chủ'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Chuyến đi'));
+    await tester.pumpAndSettle();
+    expect(tripRepository.requestedPages, [1, 1]);
+  });
 
   testWidgets('traveler shell sign-out uses the backend-integrated flow once', (
     tester,
@@ -144,6 +178,61 @@ void main() {
       expect(
         find.text(AuthSessionCubit.signOutRemoteFailureMessage),
         findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'F-05: shell routes to sections and renders Trip History button in trips, bookings, and profile sections',
+    (tester) async {
+      final cubit = await _authenticatedCubit();
+      addTearDown(cubit.close);
+      await _pumpShell(tester, cubit);
+
+      // Home section (index 0): Trip History button is not rendered on screen
+      expect(
+        find.widgetWithText(
+          OutlinedButton,
+          TripHistoryStringsEn.tripHistoryTitle,
+        ),
+        findsNothing,
+      );
+
+      // Switch to trips tab (index 1): the My trips page keeps the Trip
+      // History button next to its own actions.
+      await tester.tap(find.byIcon(Icons.map_outlined));
+      await tester.pumpAndSettle();
+      expect(find.text('My trips'), findsOneWidget);
+      expect(
+        find.widgetWithText(
+          OutlinedButton,
+          TripHistoryStringsEn.tripHistoryTitle,
+        ),
+        findsOneWidget,
+      );
+
+      // Switch to bookings tab (index 3): Trip History button is displayed
+      await tester.tap(find.byIcon(Icons.confirmation_number_outlined));
+      await tester.pumpAndSettle();
+      expect(find.text('Traveler Đặt chỗ'), findsOneWidget);
+      expect(
+        find.widgetWithText(
+          OutlinedButton,
+          TripHistoryStringsEn.tripHistoryTitle,
+        ),
+        findsOneWidget,
+      );
+
+      // Switch to profile tab (index 4): Trip History button is displayed
+      await tester.tap(find.byIcon(Icons.person_outline));
+      await tester.pumpAndSettle();
+      expect(find.text('Traveler Hồ sơ'), findsOneWidget);
+      expect(
+        find.widgetWithText(
+          OutlinedButton,
+          TripHistoryStringsEn.tripHistoryTitle,
+        ),
+        findsOneWidget,
       );
     },
   );

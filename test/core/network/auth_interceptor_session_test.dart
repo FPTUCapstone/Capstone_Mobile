@@ -73,6 +73,11 @@ void main() {
     },
   );
 
+  test('UC-09: 401 on travel preferences invalidates the session', () async {
+    await driveError('/api/v1/traveler/preferences', 401, bearer: true);
+    expect(invalidated, 1);
+  });
+
   test(
     '401 without a Bearer credential does not invalidate a session',
     () async {
@@ -88,6 +93,16 @@ void main() {
       await driveError('/api/v1/auth/google', 401, bearer: true);
       await driveError('/api/v1/auth/verify-email', 401, bearer: true);
       expect(invalidated, 0);
+    },
+  );
+
+  test(
+    'UC-07: 401 on the authenticated change-password endpoints still invalidates the session',
+    () async {
+      await driveError('/api/v1/auth/change-password', 401, bearer: true);
+      expect(invalidated, 1);
+      await driveError('/api/v1/auth/web/change-password', 401, bearer: true);
+      expect(invalidated, 2);
     },
   );
 

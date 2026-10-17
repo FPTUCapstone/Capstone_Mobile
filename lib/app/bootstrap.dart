@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/widgets.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:trip_mate_mobile/app/app.dart';
 import 'package:trip_mate_mobile/app/config/app_config.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
@@ -11,5 +12,9 @@ Future<void> bootstrap({AppConfig? config}) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await GoogleSignIn.instance.initialize();
   await configureDependencies(config: config);
+  final mapboxAccessToken = serviceLocator<AppConfig>().mapboxAccessToken;
+  if (mapboxAccessToken != null) {
+    MapboxOptions.setAccessToken(mapboxAccessToken);
+  }
   runApp(const TripMateApp());
 }
