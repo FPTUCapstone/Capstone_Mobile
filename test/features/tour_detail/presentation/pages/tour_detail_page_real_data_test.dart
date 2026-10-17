@@ -428,6 +428,16 @@ void main() {
       final label = tester.getSemantics(find.byKey(const Key('schedule-503')));
       expect(label.label, contains('01/12/2026 08:00'));
       expect(label.label, contains(TourDetailStrings.soldOut));
+
+      // The bookable departure also reads out price, child/infant and meeting point.
+      final rich = tester
+          .getSemantics(find.byKey(const Key('schedule-501')))
+          .label;
+      expect(rich, contains('2,890,000 VND'));
+      expect(rich, contains('Child: 900,000 VND'));
+      expect(rich, contains('Infant: Free'));
+      expect(rich, contains('Meeting point: Sảnh khách sạn Mường Thanh'));
+      expect(rich, contains('8 slots remaining'));
       handle.dispose();
     });
   });
