@@ -56,22 +56,26 @@ final class TourDetailCubit extends Cubit<TourDetailState> {
         emit(
           TourDetailState.error(
             TourDetailState.notFoundMessage,
+            failureKind: TourDetailFailureKind.notFound,
             initialSummary: state.initialSummary,
             isDemoMode: isDemoMode,
           ),
         );
         return;
       }
-      final firstAvailable = detail.schedules
-          .where((schedule) => !schedule.isSoldOut)
+      final firstSelectable = detail.schedules
+          .where((schedule) => schedule.isSelectable)
           .firstOrNull;
       emit(
         TourDetailState.success(
           tourDetail: detail,
           initialSummary: state.initialSummary,
-          selectedScheduleId:
-              firstAvailable?.scheduleId ??
-              detail.schedules.firstOrNull?.scheduleId,
+          selectedScheduleId: firstSelectable?.scheduleId,
+          // Departures exist but none can be booked: say so (MSG65) instead of
+          // leaving a silently disabled Book Now.
+          scheduleError: detail.schedules.isNotEmpty && firstSelectable == null
+              ? TourDetailState.msg65
+              : null,
           isDemoMode: isDemoMode,
         ),
       );
@@ -104,8 +108,8 @@ final class TourDetailCubit extends Cubit<TourDetailState> {
     emit(
       state.copyWith(
         selectedScheduleId: scheduleId,
-        scheduleError: schedule.isSoldOut ? TourDetailState.msg65 : null,
-        clearScheduleError: !schedule.isSoldOut,
+        scheduleError: schedule.isSelectable ? null : TourDetailState.msg65,
+        clearScheduleError: schedule.isSelectable,
       ),
     );
   }
@@ -136,6 +140,12 @@ final class TourDetailCubit extends Cubit<TourDetailState> {
             remainingSlots: 0,
             totalSlots: schedule.totalSlots,
             availabilityStatus: AvailabilityStatus.soldOut,
+            endAtUtc: schedule.endAtUtc,
+            meetingPoint: schedule.meetingPoint,
+            registrationDeadlineUtc: schedule.registrationDeadlineUtc,
+            childPrice: schedule.childPrice,
+            infantPrice: schedule.infantPrice,
+            bookable: false,
           ),
         )
         .toList();
@@ -184,5 +194,9 @@ final class TourDetailCubit extends Cubit<TourDetailState> {
     reviews: reviews ?? detail.reviews,
     averageRating: reviews?.isEmpty == true ? null : detail.averageRating,
     reviewCount: reviewCount ?? detail.reviewCount,
+    destinationSummary: detail.destinationSummary,
+    cancellationRules: detail.cancellationRules,
+    hasBookableSchedule: detail.hasBookableSchedule,
+    asOfUtc: detail.asOfUtc,
   );
 }
