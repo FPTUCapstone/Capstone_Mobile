@@ -7,13 +7,14 @@ the approved Backend DTO. Write mapping and Cubit tests first.
 
 ## Task 2 — Booking handoff
 
-After UC-27 booking confirmation supplies a booking ID, create/reuse payment
+After UC-27 Mobile is merged into `develop` and booking confirmation supplies a booking ID, create/reuse payment
 and show loading/error/retry state. Display only server amount/currency.
 
 ## Task 3 — Checkout handling
 
-Implement local Mock checkout actions. Implement external browser launch for
-PayOS checkout URLs and an App Link receiver that refreshes canonical status.
+Implement local Mock checkout actions and external browser launch for PayOS
+checkout URLs. Defer the App Link receiver to the staging task after a verified
+HTTPS domain exists; local Mock refreshes status directly in-app.
 
 ## Task 4 — Result screen and tests
 

@@ -2,8 +2,9 @@
 
 ## Status
 
-Draft for approval. Mobile adopts the same UC-28 Backend contract as Web after
-the UC-27 booking entry is available on its branch.
+Draft for approval. Mobile adopts the same UC-28 Backend contract as Web only
+after UC-27 Mobile is merged into `develop`; UC-28 Mobile then rebases on that
+merged baseline.
 
 ## Scope
 
@@ -28,8 +29,9 @@ calculation and administrator payment tools.
 
 Mobile consumes the same create/reuse and status endpoints as Web. The mock
 completion route is used only for a local mock checkout. The app receives
-`bookingId`, `paymentId`, `checkoutUrl`, `amount`, `currency`, `status` and
-`expiresAtUtc`; it does not generate references or amounts.
+`bookingId`, `paymentId`, `checkoutUrl`, `amount`, `currency`, `status`,
+`paymentLinkExpiresAtUtc` and `bookingPaymentExpiresAtUtc`; it does not
+generate references or amounts.
 
 ## App links
 
@@ -45,3 +47,6 @@ deep-link testing is deferred to staging.
 - Mock success/cancel/expire has the same visible status results as Web.
 - Network, expired and unauthorized states are handled without showing raw
   errors or declaring payment successful.
+- `PAYMENT_BOOKING_NOT_ELIGIBLE`, `PAYMENT_BOOKING_EXPIRED`,
+  `PAYMENT_NOT_FOUND`, `PAYMENT_GATEWAY_UNAVAILABLE` and
+  `PAYMENT_MOCK_DISABLED` map to clear localized states.
