@@ -192,13 +192,14 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         path: AppRoutes.bookTourPattern,
         name: AppRouteNames.bookTour,
         builder: (_, state) {
-          final scheduleId = state.uri.queryParameters['scheduleId'];
+          final scheduleId =
+              state.uri.queryParameters['scheduleId'] ??
+               state.pathParameters['tourId'];
           if (scheduleId == null || scheduleId.isEmpty) {
             return const Scaffold(
               body: Center(child: Text('A departure schedule is required.')),
             );
           }
-
           return BlocProvider(
             create: (_) => serviceLocator<BookTourCubit>(param1: scheduleId),
             child: const BookTourPage(),
