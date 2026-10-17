@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:trip_mate_mobile/features/tour_detail/domain/entities/tour_cancellation_rule.dart';
 import 'package:trip_mate_mobile/features/tour_detail/domain/entities/tour_itinerary_day.dart';
 import 'package:trip_mate_mobile/features/tour_detail/domain/entities/tour_review_item.dart';
 import 'package:trip_mate_mobile/features/tour_detail/domain/entities/tour_schedule_item.dart';
@@ -25,6 +26,10 @@ final class TourDetail extends Equatable {
     this.reviews = const [],
     this.averageRating,
     this.reviewCount = 0,
+    this.destinationSummary = '',
+    this.cancellationRules = const [],
+    this.hasBookableSchedule,
+    this.asOfUtc,
   });
 
   final String tourId;
@@ -47,6 +52,18 @@ final class TourDetail extends Equatable {
   final double? averageRating;
   final int reviewCount;
 
+  /// Display line for the destinations ("Da Nang, Hoi An"); empty when absent.
+  final String destinationSummary;
+
+  /// Structured policy, longest notice first. When empty, [cancellationPolicy] text is shown.
+  final List<TourCancellationRule> cancellationRules;
+
+  /// Server flag; null for data that does not carry it.
+  final bool? hasBookableSchedule;
+
+  /// When the slot figures were read (BR-59: a snapshot, not a reservation).
+  final DateTime? asOfUtc;
+
   @override
   List<Object?> get props => [
     tourId,
@@ -68,5 +85,9 @@ final class TourDetail extends Equatable {
     reviews,
     averageRating,
     reviewCount,
+    destinationSummary,
+    cancellationRules,
+    hasBookableSchedule,
+    asOfUtc,
   ];
 }

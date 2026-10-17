@@ -69,7 +69,7 @@ import 'package:trip_mate_mobile/features/poi/domain/usecases/get_poi_location_u
 import 'package:trip_mate_mobile/features/poi/domain/usecases/get_pois_use_case.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
-import 'package:trip_mate_mobile/features/tour_detail/data/datasources/pending_tour_detail_data_source.dart';
+import 'package:trip_mate_mobile/features/tour_detail/data/datasources/dio_tour_detail_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/tour_detail/data/datasources/tour_detail_data_source.dart';
 import 'package:trip_mate_mobile/features/tour_detail/data/repositories/tour_detail_repository_impl.dart';
 import 'package:trip_mate_mobile/features/tour_detail/domain/repositories/tour_detail_repository.dart';
@@ -221,7 +221,7 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     // ── Tour Detail ────────────────────────────────────────────────────
     ..registerLazySingleton<TourDetailDataSource>(
-      () => const PendingTourDetailDataSource(),
+      () => DioTourDetailRemoteDataSource(serviceLocator()),
     )
     ..registerLazySingleton<TourDetailRepository>(
       () => TourDetailRepositoryImpl(serviceLocator()),

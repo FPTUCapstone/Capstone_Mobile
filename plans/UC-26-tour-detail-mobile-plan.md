@@ -1,6 +1,6 @@
 # UC-26 Mobile plan
 
-Pending approval of `specs/UC-26-tour-detail-mobile-spec.md`. Work in worktree `Capstone_Mobile_UC26`, branch
+Approved together with `specs/UC-26-tour-detail-mobile-spec.md` (2026-10-17). Work in worktree `Capstone_Mobile_UC26`, branch
 `feature/uc26-mobile-tour-detail` from `origin/develop` (`b461698`). Every task is test first; verify with the listed
 command before moving on. Baseline on the clean checkout: `flutter analyze` — no issues; `flutter test` — 1257 passed.
 
@@ -34,7 +34,7 @@ Verify: page tests and `flutter test test/app/router`.
 
 ## Task 6 — Verification
 `dart format --set-exit-if-changed .`, `flutter analyze`, full `flutter test`, `flutter build apk --debug` (if the Android
-SDK is installed by then). Two-pass self-review. No push before the developer chooses.
+SDK is installed by then). The committed debug manifest overlay (`usesCleartextTraffic`) lands with this work. Two-pass self-review. No push before the developer chooses.
 
 ## Task 7 — Android UAT (assisted)
 Install Android SDK / AVD with the developer, run against the local UC-26 Backend and the seeded UAT database, and
