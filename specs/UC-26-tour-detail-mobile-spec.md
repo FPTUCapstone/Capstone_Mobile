@@ -1,6 +1,6 @@
 # UC-26 View Tour Details — Mobile spec
 
-Status: **PROPOSED — awaiting developer approval.**
+Status: **APPROVED** (developer, 2026-10-17). Cleartext decision: option (b), committed debug-only overlay.
 
 SRS: Report 3 §3.5.3 (UC-26), BR-54, BR-56, BR-59, BR-60, BR-96, MSG65, MSG127, MSG128.
 Platform: `SHARED_WEB_MOBILE` (`Capstone_FE/docs/WEB_SCOPE_MATRIX.md`, row UC-26); Mobile screen #65 "Tour Details".
@@ -70,9 +70,8 @@ remainingSlots?, availabilityStatus (available|soldOut|unknown), bookable}]`, `h
 The machine has Flutter but no Android SDK, `adb` or emulator. After the code is done I will walk the developer through
 installing Android Studio / SDK command-line tools and creating an AVD, then run the app with
 `--dart-define=API_BASE_URL=http://10.0.2.2:5021` against the UC-26 UAT database and Backend. A debug build needs
-cleartext HTTP to the local Backend: **decision needed** — either (a) an uncommitted local debug manifest overlay used
-only for UAT (recommended, no repo change), or (b) a committed `android/app/src/debug/AndroidManifest.xml` with
-`usesCleartextTraffic="true"` (debug builds only).
+cleartext HTTP to the local Backend: **decided, option (b)** — a committed `android/app/src/debug/AndroidManifest.xml`
+with `usesCleartextTraffic="true"` (debug builds only; release builds are unaffected).
 
 ## Risks / notes
 
