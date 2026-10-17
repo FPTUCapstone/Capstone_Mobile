@@ -1,7 +1,7 @@
 # UC-27 Mobile Specification — Book Tour
 
 **Platform:** Flutter
-**Status:** Draft — UI-first delivery allowed; live booking is blocked by approved Backend contract
+**Status:** Draft — UI-first delivery allowed; quote/create API exists, while the live entry remains blocked by UC-26 tour detail and cross-platform OpenAPI/error-map approval
 **Sources:** SRS §3.5.4 and UC-27 Backend contract
 
 ## 1. Scope
@@ -12,9 +12,9 @@ Mobile never calculates price, reserves a seat locally, initializes payment, iss
 
 ## 2. Entry and identifiers
 
-UC-26 provides the selected `tourId` and `tourScheduleId`. The Mobile transport DTO uses string IDs to match the shared contract and preserve SQL Server `BIGINT` values exactly.
+UC-26 provides the selected `tourId` and navigation argument `scheduleId`. `scheduleId` identifies the dated departure and is sent to Backend as JSON field `tourScheduleId`. The Mobile transport DTO uses string IDs to match the shared contract and preserve SQL Server `BIGINT` values exactly.
 
-Until UC-26 and UC-27 APIs are available, a development-only labelled Demo fixture may render a departure and read-only quote. It must not create bookings, reserve capacity or open payment.
+Until the UC-26 tour-detail/departure API is available, a development-only labelled Demo fixture may render a departure and read-only quote. It must not create bookings, reserve capacity or open payment.
 
 ## 3. Participant and effective-price policy
 
@@ -52,7 +52,7 @@ Idempotency-Key: <UUID>
 
 The request contains `tourScheduleId`, the participant list with `participantType`, and optional voucher. It contains no price, total, expiry or separate participant count. The app generates one UUID per submission intent and reuses it only for retrying that same request.
 
-On `201 Created` or idempotent `200 OK`, show booking code, `PendingPayment`, amounts and `paymentExpiresAt` returned by the server. The Traveler may then choose **Pay now** to navigate to UC-28. When the visible expiry passes, refresh booking status; never mark it expired locally.
+On `201 Created` or idempotent `200 OK`, clear `idDocumentNumber` and other document inputs from form state, then show booking code, `PendingPayment`, amounts and `paymentExpiresAt` returned by the server. The Traveler may then choose **Pay now** to navigate to UC-28. UC-27 does not fetch booking status after expiry: that requires an approved booking-detail/status endpoint owned by UC-28 or Booking Details. Until then, it only displays the server-issued expiry and never marks the booking expired locally.
 
 ## 5. Errors and availability
 
@@ -65,5 +65,6 @@ The confirmation dialog, loading state, inline errors, retry and accessibility l
 - Participant type selection produces server quote type counts.
 - Price breakdown, total and expiry are displayed only from Backend responses.
 - Create includes `Idempotency-Key` and never creates a duplicate after retry.
+- A successful create clears document inputs from memory.
 - Success stops at PendingPayment; payment is explicitly user initiated in UC-28.
 - Demo is explicit, development-only and non-mutating.
