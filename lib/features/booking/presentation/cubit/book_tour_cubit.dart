@@ -3,9 +3,11 @@ import 'dart:convert';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
+import 'package:trip_mate_mobile/features/booking/domain/entities/booking_contact.dart';
 import 'package:trip_mate_mobile/features/booking/domain/entities/booking_participant.dart';
 import 'package:trip_mate_mobile/features/booking/domain/entities/participant_type.dart';
 import 'package:trip_mate_mobile/features/booking/domain/usecases/create_booking_use_case.dart';
+import 'package:trip_mate_mobile/features/booking/domain/usecases/get_booking_contact_use_case.dart';
 import 'package:trip_mate_mobile/features/booking/domain/usecases/quote_booking_use_case.dart';
 import 'package:trip_mate_mobile/features/booking/presentation/cubit/book_tour_state.dart';
 import 'package:uuid/uuid.dart';
@@ -19,16 +21,20 @@ final class BookTourCubit extends Cubit<BookTourState> {
     required String tourScheduleId,
     required QuoteBookingUseCase quoteBooking,
     required CreateBookingUseCase createBooking,
+    required GetBookingContactUseCase getBookingContact,
   }) : _tourScheduleId = tourScheduleId,
        _quoteBooking = quoteBooking,
        _createBooking = createBooking,
+       _getBookingContact = getBookingContact,
        super(const BookTourState()) {
     _requestQuote();
+    _loadBookingContact();
   }
 
   final String _tourScheduleId;
   final QuoteBookingUseCase _quoteBooking;
   final CreateBookingUseCase _createBooking;
+  final GetBookingContactUseCase _getBookingContact;
 
   Timer? _debounce;
   int _quoteGeneration = 0;
@@ -49,6 +55,38 @@ final class BookTourCubit extends Cubit<BookTourState> {
 
   void setAgreedToTerms(bool value) =>
       emit(state.copyWith(agreedToTerms: value));
+
+  /// A profile lookup is only a convenience. Its failure must never prevent a
+  /// Traveler from completing the form manually, and it must not overwrite a
+  /// field they have already edited while the request was in flight.
+  Future<void> _loadBookingContact() async {
+    try {
+      final contact = await _getBookingContact();
+      if (isClosed) return;
+      _prefillBlankContactFields(contact);
+    } on Failure {
+      // Leave the form empty and usable when a profile is unavailable.
+    }
+  }
+
+  void _prefillBlankContactFields(BookingContact contact) {
+    final fullName = state.leadFullName.trim().isEmpty
+        ? contact.fullName
+        : state.leadFullName;
+    final phone = state.leadPhone.trim().isEmpty
+        ? (contact.phoneNumber ?? '')
+        : state.leadPhone;
+    final email = state.leadEmail.trim().isEmpty
+        ? (contact.email ?? '')
+        : state.leadEmail;
+    emit(
+      state.copyWith(
+        leadFullName: fullName,
+        leadPhone: phone,
+        leadEmail: email,
+      ),
+    );
+  }
 
   /// Stages a voucher code; the next quote tells the user whether it was accepted (BR-63 —
   /// this Cubit never decides eligibility itself).

@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/booking/domain/entities/booking_participant.dart';
 import 'package:trip_mate_mobile/features/booking/domain/entities/participant_type.dart';
 import 'package:trip_mate_mobile/features/booking/domain/usecases/create_booking_use_case.dart';
+import 'package:trip_mate_mobile/features/booking/domain/usecases/get_booking_contact_use_case.dart';
 import 'package:trip_mate_mobile/features/booking/domain/usecases/quote_booking_use_case.dart';
 import 'package:trip_mate_mobile/features/booking/presentation/cubit/book_tour_cubit.dart';
 import 'package:trip_mate_mobile/features/booking/presentation/cubit/book_tour_state.dart';
@@ -12,12 +13,45 @@ BookTourCubit _cubit(FakeBookingRepository repository) => BookTourCubit(
   tourScheduleId: '123',
   quoteBooking: QuoteBookingUseCase(repository),
   createBooking: CreateBookingUseCase(repository),
+  getBookingContact: GetBookingContactUseCase(repository),
 );
 
 Future<void> _settle() =>
     Future<void>.delayed(const Duration(milliseconds: 400));
 
 void main() {
+  group('lead contact prefill', () {
+    test(
+      'loads profile contact values without making them immutable',
+      () async {
+        final repository = FakeBookingRepository();
+        final cubit = _cubit(repository);
+        addTearDown(cubit.close);
+
+        await _settle();
+
+        expect(cubit.state.leadFullName, 'Nguyen Van A');
+        expect(cubit.state.leadPhone, '0912345678');
+        expect(cubit.state.leadEmail, 'traveler@example.com');
+
+        cubit.updateLeadPhone('');
+        expect(cubit.state.leadPhone, isEmpty);
+      },
+    );
+
+    test('keeps the form usable when profile lookup fails', () async {
+      final repository = FakeBookingRepository(failContactLookup: true);
+      final cubit = _cubit(repository);
+      addTearDown(cubit.close);
+
+      await _settle();
+
+      expect(cubit.state.leadFullName, isEmpty);
+      expect(cubit.state.leadPhone, isEmpty);
+      expect(cubit.state.quoteStatus, QuoteStatus.ready);
+    });
+  });
+
   group('quote', () {
     test(
       'requests a quote for the initial participant counts on construction',

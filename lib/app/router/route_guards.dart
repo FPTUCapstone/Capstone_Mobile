@@ -10,7 +10,9 @@ abstract final class RouteGuards {
     final isAuthRoute = location.startsWith(AppRoutes.authPrefix);
     final isTravelerRoute = _isInScope(location, AppRoutes.travelerPrefix);
     final isOperatorRoute = _isInScope(location, AppRoutes.operatorPrefix);
-    final isProtectedRoute = isTravelerRoute || isOperatorRoute;
+    final isBookTourRoute = _isBookTourRoute(location);
+    final isProtectedRoute =
+        isTravelerRoute || isOperatorRoute || isBookTourRoute;
 
     if (!session.isAuthenticated) {
       if (isProtectedRoute) {
@@ -48,7 +50,7 @@ abstract final class RouteGuards {
       return AppRoutes.traveler;
     }
     if (session.role == UserRole.tourOperator) {
-      if (isTravelerRoute) {
+      if (isTravelerRoute || isBookTourRoute) {
         return operatorHome;
       }
       // A non-approved operator may never remain on the approved workspace.
@@ -66,6 +68,9 @@ abstract final class RouteGuards {
 
   static bool _isInScope(String path, String prefix) =>
       path == prefix || path.startsWith('$prefix/');
+
+  static bool _isBookTourRoute(String path) =>
+      RegExp(r'^/explore/tours/[^/]+/book$').hasMatch(path);
 
   static String? _safeReturnLocation(AuthSessionState session, Uri loginUri) {
     final rawTarget = loginUri.queryParameters['from'];
