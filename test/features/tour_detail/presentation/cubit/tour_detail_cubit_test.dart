@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/tour_detail/domain/entities/tour_detail.dart';
 import 'package:trip_mate_mobile/features/tour_detail/domain/entities/tour_schedule_item.dart';
@@ -299,6 +301,35 @@ void main() {
       expect(cubit.state.errorMessage, TourDetailState.msg127);
     });
 
+    test(
+      'leaving the screen while loading does not emit after close',
+      () async {
+        final completer = Completer<TourDetail?>();
+        final cubit = TourDetailCubit(
+          getTourDetail: GetTourDetail(_DeferredRepository(completer)),
+        );
+
+        final loading = cubit.load('1');
+        await cubit.close();
+        completer.complete(detail([schedule('open', bookable: true)]));
+
+        await expectLater(loading, completes);
+      },
+    );
+
+    test('leaving the screen while a load fails does not throw', () async {
+      final completer = Completer<TourDetail?>();
+      final cubit = TourDetailCubit(
+        getTourDetail: GetTourDetail(_DeferredRepository(completer)),
+      );
+
+      final loading = cubit.load('1');
+      await cubit.close();
+      completer.completeError(Exception('offline'));
+
+      await expectLater(loading, completes);
+    });
+
     test('never shows the pending view for a real source', () async {
       final cubit = cubitFor(_FakeRepository.failing());
 
@@ -353,4 +384,16 @@ final class _FakeRepository implements TourDetailRepository {
     if (fail) throw Exception('network down');
     return result;
   }
+}
+
+final class _DeferredRepository implements TourDetailRepository {
+  _DeferredRepository(this._completer);
+
+  final Completer<TourDetail?> _completer;
+
+  @override
+  Future<TourDetail?> getTourDetail(
+    String tourId, {
+    TourSummary? initialSummary,
+  }) => _completer.future;
 }

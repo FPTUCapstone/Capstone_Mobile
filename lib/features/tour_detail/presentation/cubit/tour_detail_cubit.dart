@@ -52,6 +52,8 @@ final class TourDetailCubit extends Cubit<TourDetailState> {
         tourId,
         initialSummary: state.initialSummary,
       );
+      // The user may have left the screen while the request was in flight.
+      if (isClosed) return;
       if (detail == null) {
         emit(
           TourDetailState.error(
@@ -87,6 +89,7 @@ final class TourDetailCubit extends Cubit<TourDetailState> {
         ),
       );
     } on Object {
+      if (isClosed) return;
       emit(
         TourDetailState.error(
           TourDetailState.msg127,
