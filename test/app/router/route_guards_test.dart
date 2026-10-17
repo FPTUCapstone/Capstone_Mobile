@@ -91,6 +91,10 @@ void main() {
           path: AppRoutes.tripReviewPattern,
           builder: (_, _) => const Text('Trip review'),
         ),
+        GoRoute(
+          path: AppRoutes.tourDetailPattern,
+          builder: (_, _) => const Text('Tour detail'),
+        ),
       ],
     );
     addTearDown(router.dispose);
@@ -473,6 +477,75 @@ void main() {
       expect(await resolve(tester, session, login), AppRoutes.traveler);
     }
   });
+
+  testWidgets(
+    'UC-26: authenticated Traveler is permitted to return to an explore tour detail route from login',
+    (tester) async {
+      const session = AuthSessionState.authenticated(UserRole.traveler);
+      final login = Uri(
+        path: AppRoutes.login,
+        queryParameters: {'from': '/explore/tours/rec-101'},
+      ).toString();
+
+      expect(await resolve(tester, session, login), '/explore/tours/rec-101');
+    },
+  );
+
+  testWidgets(
+    'unauthenticated guest attempting tourRecommendations is redirected to login with from param',
+    (tester) async {
+      const session = AuthSessionState.unauthenticated();
+      final router = GoRouter(
+        initialLocation: AppRoutes.tourRecommendations,
+        redirect: (_, state) => RouteGuards.redirect(session, state),
+        routes: [
+          GoRoute(
+            path: AppRoutes.login,
+            builder: (_, _) => const Text('Sign In'),
+          ),
+          GoRoute(
+            path: AppRoutes.tourRecommendations,
+            builder: (_, _) => const Text('Tour Recommendations'),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sign In'), findsOneWidget);
+      expect(find.text('Tour Recommendations'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'unauthenticated guest can access tourDetailPattern without redirect',
+    (tester) async {
+      const session = AuthSessionState.unauthenticated();
+      final router = GoRouter(
+        initialLocation: AppRoutes.tourDetail('123'),
+        redirect: (_, state) => RouteGuards.redirect(session, state),
+        routes: [
+          GoRoute(
+            path: AppRoutes.login,
+            builder: (_, _) => const Text('Sign In'),
+          ),
+          GoRoute(
+            path: AppRoutes.tourDetailPattern,
+            builder: (_, _) => const Text('Tour Detail 123'),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tour Detail 123'), findsOneWidget);
+      expect(find.text('Sign In'), findsNothing);
+    },
+  );
 }
 
 final class _PendingLogoutRepository implements AuthRepository {

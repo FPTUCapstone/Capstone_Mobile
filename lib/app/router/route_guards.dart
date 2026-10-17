@@ -79,7 +79,8 @@ abstract final class RouteGuards {
     }
 
     if (session.role == UserRole.traveler &&
-        _isInScope(target.path, AppRoutes.travelerPrefix)) {
+        (_isInScope(target.path, AppRoutes.travelerPrefix) ||
+            _isInScope(target.path, AppRoutes.explore))) {
       return target.toString();
     }
     if (session.role == UserRole.tourOperator &&
