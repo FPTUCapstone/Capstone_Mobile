@@ -39,6 +39,7 @@ void main() {
       addTearDown(session.close);
       addTearDown(serviceLocator.reset);
 
+      // Mirrors app.dart: the session cubit is provided above the router.
       await tester.pumpWidget(
         BlocProvider<AuthSessionCubit>.value(
           value: session,

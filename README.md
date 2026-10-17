@@ -60,9 +60,11 @@ Presentation -> Domain <- Data
 - **Core** contains reusable infrastructure such as Dio, storage, dependency
   injection, errors, and validation. It contains no TripMate business feature.
 
-`AuthSessionCubit` manages the app session. Some screens, including the separate
-operator application status page, remain demos; the UC-02 registration wizard
-uses its own Cubit and does not create an authenticated TripMate session.
+`AuthSessionCubit` manages the app session. Account data it persists (name,
+email, Tour Operator application status) is restored only when it is bound to
+the Backend-issued `userId` of the persisted session. The operator application
+status page loads the application through its own Cubit; the UC-02 registration
+wizard uses its own Cubit and does not create an authenticated TripMate session.
 
 ## Project Structure
 

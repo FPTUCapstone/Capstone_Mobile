@@ -1,237 +1,217 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
-import 'package:trip_mate_mobile/core/utils/validators.dart';
+import 'package:trip_mate_mobile/app/theme/tripmate_visual_tokens.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
+import 'package:trip_mate_mobile/shared/widgets/anchored_action_bar.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
-import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
+import 'package:trip_mate_mobile/shared/widgets/section_card.dart';
 
-class TravelerProfilePage extends StatefulWidget {
+/// UC-08 Traveler Profile (Screen #45).
+///
+/// Only the Backend-issued identity carried by the authenticated session
+/// (`fullName`, `email`) is real data here. The Backend does not yet expose a
+/// profile read/update contract, so the profile is presented read-only: every
+/// other value is shown as not provided, and nothing can be changed or "saved".
+class TravelerProfilePage extends StatelessWidget {
   const TravelerProfilePage({super.key});
 
-  @override
-  State<TravelerProfilePage> createState() => _TravelerProfilePageState();
-}
-
-class _TravelerProfilePageState extends State<TravelerProfilePage> {
-  static const _initialName = 'Nguyen Minh Phuc';
-  static const _initialPhone = '0905 123 456';
-  static const _initialBirthDate = '26/09/2004';
-  static const _initialCity = 'Da Nang';
-
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController(text: _initialName);
-  final _phoneController = TextEditingController(text: _initialPhone);
-  final _birthDateController = TextEditingController(text: _initialBirthDate);
-  final _cityController = TextEditingController(text: _initialCity);
-  var _avatarChanged = false;
-  var _isSaving = false;
-  var _phoneVerified = false;
-
-  @override
-  void dispose() {
-    _birthDateController.dispose();
-    _cityController.dispose();
-    _nameController.dispose();
-    _phoneController.dispose();
-    super.dispose();
-  }
+  static const _notProvided = 'Not provided';
 
   @override
   Widget build(BuildContext context) {
-    return AppPageScaffold(
-      title: 'Edit Profile',
-      actions: [
-        IconButton(
-          onPressed: _isSaving ? null : _save,
-          tooltip: 'Save changes',
-          icon: const Icon(Icons.check),
+    final fullName = context.select((AuthSessionCubit c) => c.state.fullName);
+    final email = context.select((AuthSessionCubit c) => c.state.email);
+
+    return TripMateVisualTheme(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Profile'),
+          actions: const [
+            TextButton(onPressed: null, child: Text('Save')),
+            SizedBox(width: AppSpacing.xxs),
+          ],
         ),
-      ],
-      content: [
-        const SizedBox(height: AppSpacing.md),
-        Center(
-          child: Stack(
-            clipBehavior: Clip.none,
+        bottomNavigationBar: const AnchoredActionBar(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              CircleAvatar(
-                radius: 42,
-                child: _avatarChanged
-                    ? const Icon(Icons.landscape, size: 38)
-                    : const Text(
-                        'PN',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+              CapabilityNote(
+                message: "Profile editing isn't available in the app yet.",
               ),
-              Positioned(
-                right: -4,
-                bottom: -2,
-                child: IconButton.filled(
-                  onPressed: _changePhoto,
-                  tooltip: 'Change photo demo',
-                  icon: const Icon(Icons.photo_camera_outlined, size: 18),
-                ),
-              ),
+              SizedBox(height: AppSpacing.xs),
+              AppButton(label: 'Save changes', onPressed: null),
             ],
           ),
         ),
-        Center(
-          child: TextButton(
-            onPressed: _changePhoto,
-            child: Text(
-              _avatarChanged ? 'Demo photo selected' : 'Change photo',
+        body: AppPageScaffold(
+          showAppBar: false,
+          content: [
+            const SizedBox(height: AppSpacing.sm),
+            _ProfileHeader(fullName: fullName),
+            const SizedBox(height: AppSpacing.lg),
+            const FieldLabel('Full name'),
+            ReadOnlyField(
+              icon: Icons.person_outline,
+              value: fullName,
+              placeholder: 'Name not available',
+            ),
+            const SizedBox(height: AppSpacing.md),
+            const FieldLabel('Phone number'),
+            const ReadOnlyField(
+              icon: Icons.phone_outlined,
+              placeholder: _notProvided,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            const FieldLabel('Email address', trailing: _ReadOnlyChip()),
+            ReadOnlyField(
+              icon: Icons.mail_outline,
+              value: email,
+              placeholder: 'Email not available',
+              tinted: true,
+              helper: 'Your email identifies your account.',
+            ),
+            const SizedBox(height: AppSpacing.md),
+            const FieldLabel('Address'),
+            const ReadOnlyField(
+              icon: Icons.location_on_outlined,
+              placeholder: _notProvided,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            const FieldLabel('Date of birth'),
+            const ReadOnlyField(
+              icon: Icons.calendar_today_outlined,
+              placeholder: _notProvided,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            const FieldLabel('Gender'),
+            const ReadOnlyField(icon: Icons.wc, placeholder: _notProvided),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileHeader extends StatelessWidget {
+  const _ProfileHeader({required this.fullName});
+
+  final String? fullName;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Column(
+      children: [
+        Semantics(
+          label: 'No profile photo available',
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 4),
+              boxShadow: TripMateVisualTokens.cardShadow,
+            ),
+            child: CircleAvatar(
+              radius: 46,
+              backgroundColor: scheme.primaryContainer,
+              foregroundColor: scheme.primary,
+              child: const Icon(Icons.person_outline, size: 46),
             ),
           ),
         ),
-        const SizedBox(height: AppSpacing.md),
-        Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              AppTextField(
-                controller: _nameController,
-                label: 'Full name',
-                validator: (value) =>
-                    Validators.requiredField(value, fieldName: 'Full name'),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              const AppTextField(
-                enabled: false,
-                initialValue: 'Email unavailable',
-                label: 'Email address',
-              ),
-              const SizedBox(height: AppSpacing.md),
-              AppTextField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                label: 'Phone number',
-                suffix: TextButton(
-                  onPressed: _verifyPhone,
-                  child: Text(_phoneVerified ? 'Verified' : 'Verify'),
-                ),
-                validator: Validators.phone,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              AppTextField(
-                controller: _birthDateController,
-                label: 'Date of birth',
-                onTap: _selectBirthDate,
-                readOnly: true,
-                suffix: const Icon(Icons.calendar_today_outlined),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              AppTextField(
-                controller: _cityController,
-                label: 'Home city',
-                onTap: _selectCity,
-                readOnly: true,
-                suffix: const Icon(Icons.chevron_right),
-              ),
-            ],
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          fullName ?? 'Name not available',
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: scheme.secondary,
+            fontWeight: FontWeight.w700,
           ),
+          textAlign: TextAlign.center,
         ),
-        const SizedBox(height: AppSpacing.md),
-        const Text(
-          'Your account role is assigned by TripMate and cannot be changed from this screen.',
+        const SizedBox(height: AppSpacing.xs),
+        const _TravelerPill(),
+        const SizedBox(height: AppSpacing.sm),
+        OutlinedButton.icon(
+          onPressed: null,
+          icon: const Icon(Icons.photo_camera_outlined, size: 18),
+          label: const Text('Change avatar'),
         ),
       ],
-      footer: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AppButton(
-            isLoading: _isSaving,
-            label: 'Save changes',
-            onPressed: _save,
-          ),
-          TextButton(onPressed: _discard, child: const Text('Discard changes')),
-        ],
+    );
+  }
+}
+
+/// The role badge from the Stitch profile header (navy pill).
+class _TravelerPill extends StatelessWidget {
+  const _TravelerPill();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: TripMateVisualTokens.navy,
+        borderRadius: BorderRadius.circular(20),
       ),
-    );
-  }
-
-  void _changePhoto() {
-    setState(() => _avatarChanged = true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Demo avatar selected. No gallery was opened.'),
-      ),
-    );
-  }
-
-  void _discard() {
-    setState(() {
-      _avatarChanged = false;
-      _birthDateController.text = _initialBirthDate;
-      _cityController.text = _initialCity;
-      _nameController.text = _initialName;
-      _phoneController.text = _initialPhone;
-      _phoneVerified = false;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile demo changes discarded.')),
-    );
-  }
-
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-    setState(() => _isSaving = true);
-    await Future<void>.delayed(const Duration(milliseconds: 450));
-    if (!mounted) {
-      return;
-    }
-    setState(() => _isSaving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Profile changes saved locally for the demo.'),
-      ),
-    );
-  }
-
-  Future<void> _selectBirthDate() async {
-    final selected = await showDatePicker(
-      context: context,
-      firstDate: DateTime(1940),
-      initialDate: DateTime(2004, 9, 26),
-      lastDate: DateTime.now(),
-    );
-    if (selected != null) {
-      _birthDateController.text =
-          '${selected.day.toString().padLeft(2, '0')}/'
-          '${selected.month.toString().padLeft(2, '0')}/${selected.year}';
-    }
-  }
-
-  void _selectCity() {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: ['Da Nang', 'Ha Noi', 'Ho Chi Minh City', 'Hue']
-              .map(
-                (city) => ListTile(
-                  title: Text(city),
-                  onTap: () {
-                    _cityController.text = city;
-                    Navigator.pop(sheetContext);
-                  },
-                ),
-              )
-              .toList(growable: false),
+          children: [
+            Icon(
+              Icons.luggage_outlined,
+              size: 14,
+              color: TripMateVisualTokens.tealLight,
+            ),
+            SizedBox(width: 6),
+            Text(
+              'TRAVELER',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
 
-  void _verifyPhone() {
-    setState(() => _phoneVerified = true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Phone verification simulated locally.')),
+/// Marks the email as read-only where Stitch places its status chip.
+class _ReadOnlyChip extends StatelessWidget {
+  const _ReadOnlyChip();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_outline, size: 14, color: scheme.onSurfaceVariant),
+            const SizedBox(width: 4),
+            Text(
+              'Read only',
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
