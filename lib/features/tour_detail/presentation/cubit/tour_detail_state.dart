@@ -5,6 +5,10 @@ import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summa
 
 enum TourDetailStatus { initial, loading, pendingIntegration, error, success }
 
+/// Why the detail could not be shown: the tour is gone/not public (no Retry),
+/// or loading failed (Retry makes sense).
+enum TourDetailFailureKind { notFound, unavailable }
+
 final class TourDetailState extends Equatable {
   const TourDetailState({
     required this.status,
@@ -13,6 +17,7 @@ final class TourDetailState extends Equatable {
     this.selectedScheduleId,
     this.scheduleError,
     this.errorMessage,
+    this.failureKind,
     this.isDemoMode = false,
   });
 
@@ -45,11 +50,13 @@ final class TourDetailState extends Equatable {
 
   const TourDetailState.error(
     String message, {
+    TourDetailFailureKind failureKind = TourDetailFailureKind.unavailable,
     TourSummary? initialSummary,
     bool isDemoMode = false,
   }) : this(
          status: TourDetailStatus.error,
          errorMessage: message,
+         failureKind: failureKind,
          initialSummary: initialSummary,
          isDemoMode: isDemoMode,
        );
@@ -75,6 +82,7 @@ final class TourDetailState extends Equatable {
   final String? selectedScheduleId;
   final String? scheduleError;
   final String? errorMessage;
+  final TourDetailFailureKind? failureKind;
   final bool isDemoMode;
 
   bool get isLoading => status == TourDetailStatus.loading;
@@ -123,6 +131,7 @@ final class TourDetailState extends Equatable {
           ? null
           : (scheduleError ?? this.scheduleError),
       errorMessage: errorMessage ?? this.errorMessage,
+      failureKind: failureKind,
       isDemoMode: isDemoMode ?? this.isDemoMode,
     );
   }
@@ -135,6 +144,7 @@ final class TourDetailState extends Equatable {
     selectedScheduleId,
     scheduleError,
     errorMessage,
+    failureKind,
     isDemoMode,
   ];
 }
