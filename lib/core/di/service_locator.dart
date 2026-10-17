@@ -40,6 +40,13 @@ import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_email
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_operator_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/services/operator_document_picker.dart';
+import 'package:trip_mate_mobile/features/booking/data/datasources/booking_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/booking/data/repositories/booking_repository_impl.dart';
+import 'package:trip_mate_mobile/features/booking/domain/repositories/booking_repository.dart';
+import 'package:trip_mate_mobile/features/booking/domain/usecases/create_booking_use_case.dart';
+import 'package:trip_mate_mobile/features/booking/domain/usecases/get_booking_contact_use_case.dart';
+import 'package:trip_mate_mobile/features/booking/domain/usecases/quote_booking_use_case.dart';
+import 'package:trip_mate_mobile/features/booking/presentation/cubit/book_tour_cubit.dart';
 import 'package:trip_mate_mobile/features/coupon/data/datasources/coupon_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/coupon/data/repositories/coupon_repository_impl.dart';
 import 'package:trip_mate_mobile/features/coupon/domain/repositories/coupon_repository.dart';
@@ -265,6 +272,29 @@ Future<void> configureDependencies({AppConfig? config}) async {
         media: serviceLocator(),
         getPoiDetail: serviceLocator(),
         imagePicker: serviceLocator(),
+      ),
+    )
+    ..registerLazySingleton<BookingRemoteDataSource>(
+      () => DioBookingRemoteDataSource(serviceLocator()),
+    )
+    ..registerLazySingleton<BookingRepository>(
+      () => BookingRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<QuoteBookingUseCase>(
+      () => QuoteBookingUseCase(serviceLocator()),
+    )
+    ..registerFactory<CreateBookingUseCase>(
+      () => CreateBookingUseCase(serviceLocator()),
+    )
+    ..registerFactory<GetBookingContactUseCase>(
+      () => GetBookingContactUseCase(serviceLocator()),
+    )
+    ..registerFactoryParam<BookTourCubit, String, void>(
+      (tourScheduleId, _) => BookTourCubit(
+        tourScheduleId: tourScheduleId,
+        quoteBooking: serviceLocator(),
+        createBooking: serviceLocator(),
+        getBookingContact: serviceLocator(),
       ),
     )
     ..registerLazySingleton<AuthRemoteDataSource>(

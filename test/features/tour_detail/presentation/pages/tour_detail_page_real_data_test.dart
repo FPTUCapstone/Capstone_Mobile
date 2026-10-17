@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/core/constants/app_constants.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
@@ -490,23 +492,49 @@ void main() {
       expect(find.text('Da Nang Discovery 3D2N'), findsOneWidget);
     });
 
-    testWidgets('a signed-in traveler reaches the booking handoff', (
-      tester,
-    ) async {
-      _tall(tester);
-      final session = await _signedInTraveler();
-      addTearDown(session.close);
-      await tester.pumpWidget(
-        buildPage(detail: detailFrom(richPayload()), authCubit: session),
-      );
-      await tester.pumpAndSettle();
+    testWidgets(
+      'a signed-in traveler opens booking for the selected departure',
+      (tester) async {
+        _tall(tester);
+        final session = await _signedInTraveler();
+        addTearDown(session.close);
+        final router = GoRouter(
+          initialLocation: AppRoutes.tourDetail('1'),
+          routes: [
+            GoRoute(
+              path: AppRoutes.tourDetailPattern,
+              builder: (_, _) => TourDetailPage(
+                tourId: '1',
+                getTourDetail: GetTourDetail(
+                  _Repository(detailFrom(richPayload()), null),
+                ),
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.bookTourPattern,
+              name: AppRouteNames.bookTour,
+              builder: (_, state) => Text(
+                'Booking schedule ${state.uri.queryParameters['scheduleId']}',
+              ),
+            ),
+          ],
+        );
+        addTearDown(router.dispose);
+        await tester.pumpWidget(
+          BlocProvider<AuthSessionCubit>.value(
+            value: session,
+            child: MaterialApp.router(routerConfig: router),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      await tester.tap(bookNow());
-      await tester.pumpAndSettle();
+        await tester.tap(bookNow());
+        await tester.pumpAndSettle();
 
-      expect(find.text(TourDetailStrings.bookingWorkflowTitle), findsOneWidget);
-      expect(find.text(TourDetailStrings.loginRequiredTitle), findsNothing);
-    });
+        expect(find.text('Booking schedule 501'), findsOneWidget);
+        expect(find.text(TourDetailStrings.loginRequiredTitle), findsNothing);
+      },
+    );
 
     testWidgets('selecting a closed departure disables Book Now and says why', (
       tester,

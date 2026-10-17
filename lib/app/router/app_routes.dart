@@ -11,6 +11,7 @@ abstract final class AppRoutes {
   static const poiDetailPattern = '/explore/poi/:id';
   static const tourSearch = '/explore/tours';
   static const tourDetailPattern = '/explore/tours/:tourId';
+  static const bookTourPattern = '/explore/tours/:tourId/book';
   static const traveler = '/traveler';
   static const tourRecommendations = '/traveler/tours/recommendations';
   static const travelerSettings = '/traveler/settings';
@@ -65,6 +66,10 @@ abstract final class AppRoutes {
   static String poiDetail(int id) => '/explore/poi/$id';
   static String tourDetail(String tourId, {bool demo = false}) =>
       demo ? '/explore/tours/$tourId?demo=true' : '/explore/tours/$tourId';
+  static String bookTour(String tourId, String scheduleId) => Uri(
+    path: '/explore/tours/$tourId/book',
+    queryParameters: {'scheduleId': scheduleId},
+  ).toString();
   static const authPrefix = '/auth';
   static const travelerPrefix = '/traveler';
   static const operatorPrefix = '/operator';
@@ -82,6 +87,7 @@ abstract final class AppRouteNames {
   static const poiDetail = 'poi-detail';
   static const tourSearch = 'tour-search';
   static const tourDetail = 'tour-detail';
+  static const bookTour = 'book-tour';
   static const traveler = 'traveler';
   static const tourRecommendations = 'tour-recommendations';
   static const travelerSettings = 'traveler-settings';

@@ -95,6 +95,10 @@ void main() {
           path: AppRoutes.tourDetailPattern,
           builder: (_, _) => const Text('Tour detail'),
         ),
+        GoRoute(
+          path: AppRoutes.bookTourPattern,
+          builder: (_, _) => const Text('Book tour'),
+        ),
       ],
     );
     addTearDown(router.dispose);
@@ -546,6 +550,51 @@ void main() {
       expect(find.text('Sign In'), findsNothing);
     },
   );
+
+  testWidgets(
+    'unauthenticated guest is redirected to sign in before booking a tour',
+    (tester) async {
+      const session = AuthSessionState.unauthenticated();
+      final router = GoRouter(
+        initialLocation: AppRoutes.bookTour('123', '456'),
+        redirect: (_, state) => RouteGuards.redirect(session, state),
+        routes: [
+          GoRoute(
+            path: AppRoutes.login,
+            builder: (_, _) => const Text('Sign In'),
+          ),
+          GoRoute(
+            path: AppRoutes.bookTourPattern,
+            builder: (_, _) => const Text('Book tour'),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sign In'), findsOneWidget);
+      expect(find.text('Book tour'), findsNothing);
+      expect(
+        router.routerDelegate.currentConfiguration.uri.toString(),
+        contains('from=%2Fexplore%2Ftours%2F123%2Fbook%3FscheduleId%3D456'),
+      );
+    },
+  );
+
+  testWidgets('Tour Operator cannot access the Traveler booking route', (
+    tester,
+  ) async {
+    const session = AuthSessionState.authenticated(
+      UserRole.tourOperator,
+      applicationStatus: TourOperatorApplicationStatus.approved,
+    );
+    expect(
+      await resolve(tester, session, AppRoutes.bookTour('123', '456')),
+      AppRoutes.operator,
+    );
+  });
 }
 
 final class _PendingLogoutRepository implements AuthRepository {
