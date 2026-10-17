@@ -316,5 +316,58 @@ void main() {
         },
       );
     });
+
+    testWidgets('calls onTap when provided and tapped', (tester) async {
+      const tour = TourSummary(
+        tourId: '101',
+        title: 'Tour Đà Nẵng – Hội An 3N2Đ',
+        destinations: ['Đà Nẵng', 'Hội An'],
+        operatorName: 'Công ty Du lịch Miền Trung',
+        durationDays: 3,
+        basePrice: 1500000,
+        currency: 'VND',
+        representativeScheduleId: '201',
+        departureAtUtc: null,
+        availabilityStatus: AvailabilityStatus.available,
+        remainingSlots: 6,
+      );
+      var tapped = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TourListCard(tour: tour, onTap: () => tapped = true),
+          ),
+        ),
+      );
+      await tester.tap(find.byType(TourListCard));
+
+      expect(tapped, isTrue);
+    });
+
+    testWidgets('is not tappable when onTap is omitted', (tester) async {
+      const tour = TourSummary(
+        tourId: '101',
+        title: 'Tour Đà Nẵng – Hội An 3N2Đ',
+        destinations: ['Đà Nẵng', 'Hội An'],
+        operatorName: 'Công ty Du lịch Miền Trung',
+        durationDays: 3,
+        basePrice: 1500000,
+        currency: 'VND',
+        representativeScheduleId: '201',
+        departureAtUtc: null,
+        availabilityStatus: AvailabilityStatus.available,
+        remainingSlots: 6,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: TourListCard(tour: tour)),
+        ),
+      );
+
+      final inkWell = tester.widget<InkWell>(find.byType(InkWell));
+      expect(inkWell.onTap, isNull);
+    });
   });
 }

@@ -10,6 +10,7 @@ abstract final class AppRoutes {
   static const explore = '/explore';
   static const poiDetailPattern = '/explore/poi/:id';
   static const tourSearch = '/explore/tours';
+  static const bookTourPattern = '/explore/tours/:tourId/book';
   static const traveler = '/traveler';
   static const travelerSettings = '/traveler/settings';
   static const travelerProfile = '/traveler/profile';
@@ -77,6 +78,7 @@ abstract final class AppRouteNames {
   static const explore = 'explore';
   static const poiDetail = 'poi-detail';
   static const tourSearch = 'tour-search';
+  static const bookTour = 'book-tour';
   static const traveler = 'traveler';
   static const travelerSettings = 'traveler-settings';
   static const travelerProfile = 'traveler-profile';

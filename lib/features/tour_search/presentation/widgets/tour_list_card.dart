@@ -5,124 +5,132 @@ import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summa
 import 'package:trip_mate_mobile/features/tour_search/presentation/theme/tour_search_palette.dart';
 
 class TourListCard extends StatelessWidget {
-  const TourListCard({required this.tour, super.key});
+  const TourListCard({required this.tour, this.onTap, super.key});
 
   final TourSummary tour;
+
+  /// Called when the Traveler taps the card. Omit to render a non-interactive summary.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Semantics(
       label: '${tour.title}, ${_availabilityLabel(tour)}',
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: TourSearchPalette.cardBorder),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x14102A43),
-              blurRadius: 16,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _TourThumbnail(tour: tour),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ── Title ──────────────────────────────────────────────
-                        Text(
-                          tour.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: TourSearchPalette.navy,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xxs),
-
-                        // ── Destinations ───────────────────────────────────────
-                        if (tour.destinations.isNotEmpty)
+      button: onTap != null,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: TourSearchPalette.cardBorder),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x14102A43),
+                blurRadius: 16,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _TourThumbnail(tour: tour),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // ── Title ──────────────────────────────────────────────
                           Text(
-                            tour.destinations.join(' • '),
-                            maxLines: 1,
+                            tour.title,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: TourSearchPalette.muted,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: TourSearchPalette.navy,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                        const SizedBox(height: AppSpacing.xs),
+                          const SizedBox(height: AppSpacing.xxs),
 
-                        // ── Operator & Duration ────────────────────────────────
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.business_outlined,
-                              size: 16,
-                              color: TourSearchPalette.muted,
+                          // ── Destinations ───────────────────────────────────────
+                          if (tour.destinations.isNotEmpty)
+                            Text(
+                              tour.destinations.join(' • '),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: TourSearchPalette.muted,
+                              ),
                             ),
-                            const SizedBox(width: AppSpacing.xxs),
-                            Flexible(
-                              child: Text(
-                                tour.operatorName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                          const SizedBox(height: AppSpacing.xs),
+
+                          // ── Operator & Duration ────────────────────────────────
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.business_outlined,
+                                size: 16,
+                                color: TourSearchPalette.muted,
+                              ),
+                              const SizedBox(width: AppSpacing.xxs),
+                              Flexible(
+                                child: Text(
+                                  tour.operatorName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: TourSearchPalette.navyLight,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.sm),
+                              const Icon(
+                                Icons.schedule_outlined,
+                                size: 16,
+                                color: TourSearchPalette.muted,
+                              ),
+                              const SizedBox(width: AppSpacing.xxs),
+                              Text(
+                                '${tour.durationDays} ngày',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: TourSearchPalette.navyLight,
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            const Icon(
-                              Icons.schedule_outlined,
-                              size: 16,
-                              color: TourSearchPalette.muted,
-                            ),
-                            const SizedBox(width: AppSpacing.xxs),
-                            Text(
-                              '${tour.durationDays} ngày',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: TourSearchPalette.navyLight,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sm),
-
-              // ── Price & Availability ───────────────────────────────
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: Text(
-                      _formatPrice(tour.basePrice, tour.currency),
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: TourSearchPalette.navy,
-                        fontWeight: FontWeight.w800,
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  _AvailabilityBadge(tour: tour),
-                ],
-              ),
-            ],
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
+
+                // ── Price & Availability ───────────────────────────────
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _formatPrice(tour.basePrice, tour.currency),
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: TourSearchPalette.navy,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    _AvailabilityBadge(tour: tour),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

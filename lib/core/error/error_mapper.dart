@@ -26,6 +26,12 @@ abstract final class ErrorMapper {
     }
     if (statusCode == 429) return const RateLimitFailure();
     if (statusCode == 400) {
+      if (extractErrorCode(responseData) ==
+          'tour_booking.idempotency_key_required') {
+        return const ValidationFailure(
+          'Something went wrong preparing this request. Please try again.',
+        );
+      }
       return ValidationFailure(
         _extractValidationMessage(responseData) ??
             _safeTitle(responseData) ??
@@ -49,6 +55,14 @@ abstract final class ErrorMapper {
           'One or more selected tours are no longer available.',
         );
       }
+      if (errorCode == 'tour_booking.schedule_not_found') {
+        return const NotFoundFailure(
+          'This tour departure is no longer available.',
+        );
+      }
+      if (errorCode == 'tour_booking.voucher_not_found') {
+        return const NotFoundFailure('The voucher code was not found.');
+      }
       return const NotFoundFailure();
     }
     if (statusCode == 401) return const AuthenticationFailure();
@@ -69,6 +83,33 @@ abstract final class ErrorMapper {
           'operator_tour.idempotency_key_payload_mismatch') {
         return const ConflictFailure(
           'This request conflicts with an earlier save. Please reopen the form and try again.',
+        );
+      }
+      if (operatorTourCode == 'tour_booking.idempotency_key_payload_mismatch') {
+        return const ConflictFailure(
+          'The previous booking request did not finish. Please try again.',
+          null,
+          true,
+        );
+      }
+      if (operatorTourCode == 'tour_booking.schedule_not_open') {
+        return const ConflictFailure(
+          'This tour departure is no longer open for booking.',
+        );
+      }
+      if (operatorTourCode == 'tour_booking.insufficient_capacity') {
+        return const ConflictFailure(
+          'Not enough slots remain for this departure. Please reduce the number of travelers.',
+        );
+      }
+      if (operatorTourCode == 'tour_booking.voucher_usage_limit_reached') {
+        return const ConflictFailure(
+          'This voucher has reached its usage limit.',
+        );
+      }
+      if (operatorTourCode == 'tour_booking.too_many_unpaid_bookings') {
+        return const ConflictFailure(
+          'You have too many pending bookings. Complete payment or cancel one to continue.',
         );
       }
       final (message, groupId) = _extractConflictDetails(responseData);
@@ -101,6 +142,19 @@ abstract final class ErrorMapper {
           errorCode == 'itinerary.constraints_infeasible') {
         final message = _extractSafePlanningMessage(data);
         return ConstraintFailure(message ?? const ConstraintFailure().message);
+      }
+      if (errorCode == 'tour_booking.voucher_not_eligible') {
+        return const ConstraintFailure(
+          'This voucher does not apply to the selected tour or is not currently active.',
+        );
+      }
+      if (errorCode == 'tour_booking.voucher_minimum_not_met') {
+        return const ConstraintFailure(
+          'This voucher requires a higher order amount. Add more travelers or remove the voucher.',
+        );
+      }
+      if (errorCode == 'tour_booking.participants_required') {
+        return const ConstraintFailure('At least one traveler is required.');
       }
       return const ConstraintFailure();
     }
