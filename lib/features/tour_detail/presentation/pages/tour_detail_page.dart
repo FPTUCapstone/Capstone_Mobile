@@ -644,8 +644,10 @@ class _DepartureSchedulesSection extends StatelessWidget {
                                 child: Text(
                                   isSoldOut
                                       ? TourDetailStrings.soldOut
+                                      : schedule.remainingSlots == null
+                                      ? TourDetailStrings.capacityUnknown
                                       : TourDetailStrings.remainingSlots(
-                                          schedule.remainingSlots,
+                                          schedule.remainingSlots!,
                                         ),
                                   style: TextStyle(
                                     fontSize: 11,

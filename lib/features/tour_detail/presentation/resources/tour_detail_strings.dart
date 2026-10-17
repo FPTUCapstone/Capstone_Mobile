@@ -27,6 +27,7 @@ abstract final class TourDetailStrings {
   static const String noSchedules =
       'No departure schedules currently available.';
   static const String soldOut = 'Sold Out';
+  static const String capacityUnknown = 'Capacity unknown';
   static const String selected = 'Selected';
   static const String selectDeparture = 'Select';
   static String remainingSlots(int slots) => '$slots slots remaining';
