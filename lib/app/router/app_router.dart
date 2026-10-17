@@ -38,7 +38,10 @@ import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubi
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/poi_detail_page.dart';
+import 'package:trip_mate_mobile/features/tour_detail/presentation/pages/tour_detail_page.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
+import 'package:trip_mate_mobile/features/tour_recommendations/presentation/pages/tour_recommendations_page.dart';
+import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summary.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/pages/tour_search_page.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
@@ -169,12 +172,33 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         ),
       ),
       GoRoute(
+        path: AppRoutes.tourDetailPattern,
+        name: AppRouteNames.tourDetail,
+        builder: (_, state) {
+          final tourId = state.pathParameters['tourId'] ?? '';
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final summary = state.extra is TourSummary
+              ? state.extra as TourSummary
+              : null;
+          return TourDetailPage(
+            tourId: tourId,
+            initialSummary: summary,
+            isDemoMode: isDemo,
+          );
+        },
+      ),
+      GoRoute(
         path: AppRoutes.bookTourPattern,
         name: AppRouteNames.bookTour,
         builder: (_, state) {
-          final scheduleId =
-              state.uri.queryParameters['scheduleId'] ??
-              state.pathParameters['tourId']!;
+          final scheduleId = state.uri.queryParameters['scheduleId'];
+          if (scheduleId == null || scheduleId.isEmpty) {
+            return const Scaffold(
+              body: Center(child: Text('A departure schedule is required.')),
+            );
+          }
+
           return BlocProvider(
             create: (_) => serviceLocator<BookTourCubit>(param1: scheduleId),
             child: const BookTourPage(),
@@ -211,6 +235,15 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
           create: (_) => serviceLocator<ChangePasswordCubit>(),
           child: const ChangePasswordPage(),
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.tourRecommendations,
+        name: AppRouteNames.tourRecommendations,
+        builder: (_, state) {
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          return TourRecommendationsPage(isDemoMode: isDemo);
+        },
       ),
       GoRoute(
         path: AppRoutes.createItinerary,

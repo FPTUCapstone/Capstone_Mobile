@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:trip_mate_mobile/features/poi/domain/entities/cost_kind.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 
 final class ItineraryDetail extends Equatable {
@@ -15,6 +16,10 @@ final class ItineraryDetail extends Equatable {
     required this.totalDurationMinutes,
     required this.items,
     this.isNavigationInProgress = false,
+    this.transportMode,
+    this.startLocation,
+    this.endLocation,
+    this.budgetVnd,
   });
 
   final int itineraryId;
@@ -32,6 +37,15 @@ final class ItineraryDetail extends Equatable {
   /// Someone is navigating this trip on the app: it cannot be regenerated or
   /// adjusted until that navigation ends.
   final bool isNavigationInProgress;
+
+  /// The trip's default transport; a leg may use another one. Null from older
+  /// backends.
+  final TransportMode? transportMode;
+  final ItineraryLocation? startLocation;
+  final ItineraryLocation? endLocation;
+
+  /// The budget of the scheduling request; null when none was set.
+  final double? budgetVnd;
 
   /// The owner may change the plan only while nobody is navigating it.
   bool get canEdit => canManage && !isNavigationInProgress;
@@ -57,7 +71,27 @@ final class ItineraryDetail extends Equatable {
     totalDurationMinutes,
     items,
     isNavigationInProgress,
+    transportMode,
+    startLocation,
+    endLocation,
+    budgetVnd,
   ];
+}
+
+/// Where the trip starts or ends. [address] is null for a raw coordinate.
+final class ItineraryLocation extends Equatable {
+  const ItineraryLocation({
+    required this.latitude,
+    required this.longitude,
+    this.address,
+  });
+
+  final double latitude;
+  final double longitude;
+  final String? address;
+
+  @override
+  List<Object?> get props => [latitude, longitude, address];
 }
 
 final class ItineraryDetailItem extends Equatable {
@@ -76,6 +110,12 @@ final class ItineraryDetailItem extends Equatable {
     required this.isMandatory,
     required this.recommendationReason,
     required this.isUnavailable,
+    this.travelDistanceFromPreviousMeters,
+    this.transportModeFromPrevious,
+    this.costKind,
+    this.address,
+    this.latitude,
+    this.longitude,
   });
 
   final int itemId;
@@ -93,6 +133,18 @@ final class ItineraryDetailItem extends Equatable {
   final String? recommendationReason;
   final bool isUnavailable;
 
+  /// Road distance of the leg that reaches this stop; null for older plans.
+  final int? travelDistanceFromPreviousMeters;
+
+  /// Transport used to reach this stop; null means the trip default.
+  final TransportMode? transportModeFromPrevious;
+  final CostKind? costKind;
+  final String? address;
+  final double? latitude;
+  final double? longitude;
+
+  bool get isFood => costKind == CostKind.averageSpend;
+
   @override
   List<Object?> get props => [
     itemId,
@@ -109,5 +161,11 @@ final class ItineraryDetailItem extends Equatable {
     isMandatory,
     recommendationReason,
     isUnavailable,
+    travelDistanceFromPreviousMeters,
+    transportModeFromPrevious,
+    costKind,
+    address,
+    latitude,
+    longitude,
   ];
 }

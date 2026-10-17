@@ -337,6 +337,7 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
           radiusKm: target == _PoiTarget.mandatory
               ? _searchRadiusKm.round()
               : null,
+          excludeFoodAndDrink: target == _PoiTarget.mandatory,
         ),
       ),
     );
@@ -408,6 +409,9 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
 }
 
 enum _PoiTarget { exploration, end, mandatory }
+
+/// Above this radius the form warns that stops may be far apart (Review 2).
+const _wideRadiusKm = 30;
 
 /// A starting point picked from either a geocoded address or a catalog place.
 final class _StartChoice {
@@ -677,6 +681,18 @@ final class _SettingsCard extends StatelessWidget {
             label: '${searchRadiusKm.round()} km',
             onChanged: enabled ? onRadiusChanged : null,
           ),
+          if (searchRadiusKm.round() > _wideRadiusKm)
+            Padding(
+              key: const Key('wide_radius_warning'),
+              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+              child: Text(
+                'Trên $_wideRadiusKm km, các điểm có thể cách xa nhau: mất nhiều '
+                'thời gian di chuyển hơn và ít điểm vừa lịch trình hơn.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ),
           const SizedBox(height: AppSpacing.xs),
           TextField(
             controller: budgetController,
@@ -746,10 +762,17 @@ final class _MandatoryPois extends StatelessWidget {
 }
 
 final class _PoiPickerSheet extends StatefulWidget {
-  const _PoiPickerSheet({this.near, this.radiusKm});
+  const _PoiPickerSheet({
+    this.near,
+    this.radiusKm,
+    this.excludeFoodAndDrink = false,
+  });
 
   final DeviceLocation? near;
   final int? radiusKm;
+
+  /// Must-see places cannot be restaurants (they are added after generation).
+  final bool excludeFoodAndDrink;
 
   @override
   State<_PoiPickerSheet> createState() => _PoiPickerSheetState();
@@ -766,6 +789,7 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
     context.read<PoiSearchCubit>().prepareScope(
       near: widget.near,
       radiusKm: widget.radiusKm,
+      excludeFoodAndDrink: widget.excludeFoodAndDrink,
     );
   }
 
@@ -817,6 +841,7 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
                   final activeScope = PoiSearchScope.fromLocation(
                     near: widget.near,
                     radiusKm: widget.radiusKm,
+                    excludeFoodAndDrink: widget.excludeFoodAndDrink,
                   );
                   if (state.scope != activeScope &&
                       state.status != PoiSearchStatus.searching) {
@@ -873,6 +898,7 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
     query: _queryController.text,
     near: widget.near,
     radiusKm: widget.radiusKm,
+    excludeFoodAndDrink: widget.excludeFoodAndDrink,
   );
 
   void _loadMoreWhenNearEnd() {

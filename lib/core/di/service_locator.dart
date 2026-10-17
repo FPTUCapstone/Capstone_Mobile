@@ -69,12 +69,24 @@ import 'package:trip_mate_mobile/features/poi/domain/usecases/get_poi_location_u
 import 'package:trip_mate_mobile/features/poi/domain/usecases/get_pois_use_case.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
+import 'package:trip_mate_mobile/features/tour_detail/data/datasources/pending_tour_detail_data_source.dart';
+import 'package:trip_mate_mobile/features/tour_detail/data/datasources/tour_detail_data_source.dart';
+import 'package:trip_mate_mobile/features/tour_detail/data/repositories/tour_detail_repository_impl.dart';
+import 'package:trip_mate_mobile/features/tour_detail/domain/repositories/tour_detail_repository.dart';
+import 'package:trip_mate_mobile/features/tour_detail/domain/usecases/get_tour_detail.dart';
+import 'package:trip_mate_mobile/features/tour_detail/presentation/cubit/tour_detail_cubit.dart';
+import 'package:trip_mate_mobile/features/tour_recommendations/data/datasources/tour_recommendations_data_source.dart';
+import 'package:trip_mate_mobile/features/tour_recommendations/data/repositories/tour_recommendations_repository_impl.dart';
+import 'package:trip_mate_mobile/features/tour_recommendations/domain/repositories/tour_recommendations_repository.dart';
+import 'package:trip_mate_mobile/features/tour_recommendations/domain/usecases/get_tour_recommendations.dart';
+import 'package:trip_mate_mobile/features/tour_recommendations/presentation/cubit/tour_recommendations_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_search/data/datasources/tour_search_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/tour_search/data/repositories/tour_search_repository_impl.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/repositories/tour_search_repository.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/usecases/search_tours_use_case.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/data/datasources/travel_preferences_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/traveler/data/repositories/external_review_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/itinerary_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/mapbox_directions_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/mapbox_search_box_repository_impl.dart';
@@ -84,8 +96,10 @@ import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_grou
 import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_preferences_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/services/geolocator_navigation_location_tracker.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/address_search_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/external_review_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_list_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_suggestion_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigation_session_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/route_directions_repository.dart';
@@ -110,6 +124,11 @@ import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_h
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
 
 final GetIt serviceLocator = GetIt.instance;
+
+/// The registered [T], or null when it is not registered (e.g. in widget
+/// tests or before configuration).
+T? locateOptional<T extends Object>() =>
+    serviceLocator.isRegistered<T>() ? serviceLocator<T>() : null;
 
 Future<void> configureDependencies({AppConfig? config}) async {
   if (serviceLocator.isRegistered<AppConfig>()) {
@@ -186,6 +205,30 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerFactory<TourSearchCubit>(
       () => TourSearchCubit(searchTours: serviceLocator()),
+    )
+    // ── Tour Recommendations ───────────────────────────────────────────
+    ..registerLazySingleton<TourRecommendationsDataSource>(
+      () => const PendingTourRecommendationsDataSource(),
+    )
+    ..registerLazySingleton<TourRecommendationsRepository>(
+      () => TourRecommendationsRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<GetTourRecommendations>(
+      () => GetTourRecommendations(serviceLocator()),
+    )
+    ..registerFactory<TourRecommendationsCubit>(
+      () => TourRecommendationsCubit(getTourRecommendations: serviceLocator()),
+    )
+    // ── Tour Detail ────────────────────────────────────────────────────
+    ..registerLazySingleton<TourDetailDataSource>(
+      () => const PendingTourDetailDataSource(),
+    )
+    ..registerLazySingleton<TourDetailRepository>(
+      () => TourDetailRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<GetTourDetail>(() => GetTourDetail(serviceLocator()))
+    ..registerFactory<TourDetailCubit>(
+      () => TourDetailCubit(getTourDetail: serviceLocator()),
     )
     ..registerLazySingleton<OperatorTourRemoteDataSource>(
       () => DioOperatorTourRemoteDataSource(serviceLocator()),
@@ -328,6 +371,12 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerLazySingleton<ItineraryListRepository>(
       () => ItineraryRepositoryImpl(dioClient: serviceLocator()),
+    )
+    ..registerLazySingleton<ItinerarySuggestionRepository>(
+      () => ItineraryRepositoryImpl(dioClient: serviceLocator()),
+    )
+    ..registerLazySingleton<ExternalReviewRepository>(
+      () => ExternalReviewRepositoryImpl(dioClient: serviceLocator()),
     )
     ..registerFactory<MyTripsCubit>(
       () => MyTripsCubit(repository: serviceLocator()),

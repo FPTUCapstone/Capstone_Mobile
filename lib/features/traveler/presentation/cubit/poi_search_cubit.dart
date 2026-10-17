@@ -60,10 +60,15 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
     emit(PoiSearchState.initial(scope: scope));
   }
 
-  void prepareScope({DeviceLocation? near, int? radiusKm}) {
+  void prepareScope({
+    DeviceLocation? near,
+    int? radiusKm,
+    bool excludeFoodAndDrink = false,
+  }) {
     final targetScope = PoiSearchScope.fromLocation(
       near: near,
       radiusKm: radiusKm,
+      excludeFoodAndDrink: excludeFoodAndDrink,
     );
     if (state.scope != targetScope || state.status != PoiSearchStatus.initial) {
       reset(scope: targetScope);
@@ -74,14 +79,20 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
     String? query,
     DeviceLocation? near,
     int? radiusKm,
+    bool excludeFoodAndDrink = false,
   }) async {
     final generation = ++_operationGeneration;
     final parameters = _PoiSearchParameters(
       query: query?.trim(),
       near: near,
       radiusKm: near == null ? null : radiusKm ?? maxSearchRadiusKm,
+      excludeFoodAndDrink: excludeFoodAndDrink,
     );
-    final scope = PoiSearchScope.fromLocation(near: near, radiusKm: radiusKm);
+    final scope = PoiSearchScope.fromLocation(
+      near: near,
+      radiusKm: radiusKm,
+      excludeFoodAndDrink: excludeFoodAndDrink,
+    );
     _activeSearch = parameters;
     _isLoadingMore = false;
     _currentPage = 0;
@@ -169,13 +180,20 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
     longitude: parameters.near?.longitude,
     radiusKm: parameters.radiusKm,
     page: page,
+    excludeFoodAndDrink: parameters.excludeFoodAndDrink,
   );
 }
 
 final class _PoiSearchParameters {
-  const _PoiSearchParameters({this.query, this.near, this.radiusKm});
+  const _PoiSearchParameters({
+    this.query,
+    this.near,
+    this.radiusKm,
+    this.excludeFoodAndDrink = false,
+  });
 
   final String? query;
   final DeviceLocation? near;
   final int? radiusKm;
+  final bool excludeFoodAndDrink;
 }

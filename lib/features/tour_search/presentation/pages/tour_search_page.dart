@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
-import 'package:trip_mate_mobile/features/tour_search/domain/entities/availability_status.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_state.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/theme/tour_search_palette.dart';
@@ -441,19 +440,10 @@ class _TourListBody extends StatelessWidget {
                   : const SizedBox.shrink();
             }
             final tour = state.items[index - 1];
-            final scheduleId = tour.representativeScheduleId;
-            final canBook =
-                scheduleId != null &&
-                tour.availabilityStatus == AvailabilityStatus.available;
             return TourListCard(
               tour: tour,
-              onTap: canBook
-                  ? () => context.pushNamed(
-                      AppRouteNames.bookTour,
-                      pathParameters: {'tourId': tour.tourId},
-                      queryParameters: {'scheduleId': scheduleId},
-                    )
-                  : null,
+              onTap: () =>
+                  context.push(AppRoutes.tourDetail(tour.tourId), extra: tour),
             );
           },
         ),

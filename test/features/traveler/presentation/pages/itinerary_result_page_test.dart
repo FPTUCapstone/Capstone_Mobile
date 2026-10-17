@@ -153,6 +153,8 @@ void main() {
     );
 
     expect(find.textContaining('Est.'), findsOneWidget);
+    // Same money format as the itinerary detail page.
+    expect(find.textContaining('0 VNĐ'), findsOneWidget);
     expect(find.textContaining('Travel: 15 min'), findsOneWidget);
     expect(find.text('Create another itinerary'), findsOneWidget);
   });

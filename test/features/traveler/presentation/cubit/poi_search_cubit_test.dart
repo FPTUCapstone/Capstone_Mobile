@@ -194,9 +194,23 @@ void main() {
       expect(repository.lastRadiusKm, maxSearchRadiusKm);
       expect(maxSearchRadiusKm, 100);
       expect(cubit.state.scope?.radiusKm, 100);
+      expect(repository.lastExcludeFoodAndDrink, isFalse);
       await cubit.close();
     },
   );
+
+  test('must-see searches leave restaurants out', () async {
+    final repository = _PoiRepository();
+    final cubit = PoiSearchCubit(
+      locationService: _LocationService(),
+      repository: repository,
+    );
+    addTearDown(cubit.close);
+
+    await cubit.search(query: 'Museum', excludeFoodAndDrink: true);
+
+    expect(repository.lastExcludeFoodAndDrink, isTrue);
+  });
 
   test(
     'appends the next POI page without replacing the current results',
@@ -267,6 +281,7 @@ final class _ControlledLocationService implements DeviceLocationService {
 
 final class _PoiRepository implements PointOfInterestRepository {
   int? lastRadiusKm;
+  bool? lastExcludeFoodAndDrink;
 
   @override
   Future<SelectablePoiSearchResult> search({
@@ -276,8 +291,10 @@ final class _PoiRepository implements PointOfInterestRepository {
     String? query,
     int page = 1,
     int pageSize = 50,
+    bool excludeFoodAndDrink = false,
   }) async {
     lastRadiusKm = radiusKm;
+    lastExcludeFoodAndDrink = excludeFoodAndDrink;
     return const SelectablePoiSearchResult(
       items: [
         SelectablePoi(
@@ -306,6 +323,7 @@ final class _ControlledPoiRepository implements PointOfInterestRepository {
     String? query,
     int page = 1,
     int pageSize = 50,
+    bool excludeFoodAndDrink = false,
   }) => (_completers[query ?? ''] ??= Completer<SelectablePoiSearchResult>())
       .future;
 
@@ -327,6 +345,7 @@ final class _PagedPoiRepository implements PointOfInterestRepository {
     String? query,
     int page = 1,
     int pageSize = 50,
+    bool excludeFoodAndDrink = false,
   }) async {
     pages.add(page);
     return SelectablePoiSearchResult(

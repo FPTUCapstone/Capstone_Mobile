@@ -6,21 +6,36 @@ import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_po
 enum PoiSearchStatus { initial, locating, searching, ready, failure }
 
 final class PoiSearchScope extends Equatable {
-  const PoiSearchScope({this.latitude, this.longitude, this.radiusKm});
+  const PoiSearchScope({
+    this.latitude,
+    this.longitude,
+    this.radiusKm,
+    this.excludeFoodAndDrink = false,
+  });
 
-  factory PoiSearchScope.fromLocation({DeviceLocation? near, int? radiusKm}) =>
-      PoiSearchScope(
-        latitude: near?.latitude,
-        longitude: near?.longitude,
-        radiusKm: near == null ? null : radiusKm ?? maxSearchRadiusKm,
-      );
+  factory PoiSearchScope.fromLocation({
+    DeviceLocation? near,
+    int? radiusKm,
+    bool excludeFoodAndDrink = false,
+  }) => PoiSearchScope(
+    latitude: near?.latitude,
+    longitude: near?.longitude,
+    radiusKm: near == null ? null : radiusKm ?? maxSearchRadiusKm,
+    excludeFoodAndDrink: excludeFoodAndDrink,
+  );
 
   final double? latitude;
   final double? longitude;
   final int? radiusKm;
+  final bool excludeFoodAndDrink;
 
   @override
-  List<Object?> get props => [latitude, longitude, radiusKm];
+  List<Object?> get props => [
+    latitude,
+    longitude,
+    radiusKm,
+    excludeFoodAndDrink,
+  ];
 }
 
 final class PoiSearchState extends Equatable {

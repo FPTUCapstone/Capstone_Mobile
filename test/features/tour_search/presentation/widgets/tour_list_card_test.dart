@@ -317,57 +317,36 @@ void main() {
       );
     });
 
-    testWidgets('calls onTap when provided and tapped', (tester) async {
-      const tour = TourSummary(
-        tourId: '101',
-        title: 'Tour Đà Nẵng – Hội An 3N2Đ',
-        destinations: ['Đà Nẵng', 'Hội An'],
-        operatorName: 'Công ty Du lịch Miền Trung',
-        durationDays: 3,
-        basePrice: 1500000,
-        currency: 'VND',
-        representativeScheduleId: '201',
-        departureAtUtc: null,
-        availabilityStatus: AvailabilityStatus.available,
-        remainingSlots: 6,
-      );
-      var tapped = false;
+    testWidgets(
+      'renders matching score badge in English (% match) when score is provided',
+      (tester) async {
+        const tour = TourSummary(
+          tourId: 'rec-201',
+          title: 'Tour Ba Na Hills',
+          destinations: ['Da Nang'],
+          operatorName: 'Danang Travel',
+          durationDays: 1,
+          basePrice: 1250000,
+          currency: 'VND',
+          representativeScheduleId: null,
+          departureAtUtc: null,
+          availabilityStatus: AvailabilityStatus.available,
+          remainingSlots: 5,
+          thumbnailUrl: null,
+        );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: TourListCard(tour: tour, onTap: () => tapped = true),
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(body: TourListCard(tour: tour, matchingScore: 0.95)),
           ),
-        ),
-      );
-      await tester.tap(find.byType(TourListCard));
+        );
 
-      expect(tapped, isTrue);
-    });
-
-    testWidgets('is not tappable when onTap is omitted', (tester) async {
-      const tour = TourSummary(
-        tourId: '101',
-        title: 'Tour Đà Nẵng – Hội An 3N2Đ',
-        destinations: ['Đà Nẵng', 'Hội An'],
-        operatorName: 'Công ty Du lịch Miền Trung',
-        durationDays: 3,
-        basePrice: 1500000,
-        currency: 'VND',
-        representativeScheduleId: '201',
-        departureAtUtc: null,
-        availabilityStatus: AvailabilityStatus.available,
-        remainingSlots: 6,
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: TourListCard(tour: tour)),
-        ),
-      );
-
-      final inkWell = tester.widget<InkWell>(find.byType(InkWell));
-      expect(inkWell.onTap, isNull);
-    });
+        expect(find.text('95% match'), findsOneWidget);
+        expect(
+          tester.getSemantics(find.byType(TourListCard)).label,
+          contains('95% match'),
+        );
+      },
+    );
   });
 }

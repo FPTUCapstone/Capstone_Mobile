@@ -117,6 +117,7 @@ final class NavigationSessionItem extends Equatable {
     required this.reachedAt,
     required this.skippedAt,
     this.stopNumber,
+    this.transportModeFromPrevious,
   });
 
   final int itemId;
@@ -138,6 +139,11 @@ final class NavigationSessionItem extends Equatable {
   final DateTime? reachedAt;
   final DateTime? skippedAt;
 
+  /// Mode of the leg that reaches this stop, which the traveler may have
+  /// changed per leg. Null for the first stop or when unknown; routing then
+  /// uses the session's [NavigationSession.transportMode].
+  final TransportMode? transportModeFromPrevious;
+
   /// The number shown on cards, lists and map markers.
   int get displayNumber => stopNumber ?? sequenceNo;
 
@@ -149,6 +155,7 @@ final class NavigationSessionItem extends Equatable {
     NavigationItemStatus? status,
     DateTime? reachedAt,
     DateTime? skippedAt,
+    TransportMode? transportModeFromPrevious,
   }) {
     return NavigationSessionItem(
       itemId: itemId,
@@ -164,6 +171,8 @@ final class NavigationSessionItem extends Equatable {
       reachedAt: reachedAt ?? this.reachedAt,
       skippedAt: skippedAt ?? this.skippedAt,
       stopNumber: stopNumber,
+      transportModeFromPrevious:
+          transportModeFromPrevious ?? this.transportModeFromPrevious,
     );
   }
 
@@ -182,5 +191,6 @@ final class NavigationSessionItem extends Equatable {
     reachedAt,
     skippedAt,
     stopNumber,
+    transportModeFromPrevious,
   ];
 }

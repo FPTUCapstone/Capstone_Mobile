@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_stop.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/offline_trip_package.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/offline_trip_package_cubit.dart';
@@ -581,15 +582,15 @@ final class _FakeItineraryRepository implements ItineraryRepository {
   Future<ItineraryDetail> accept(int itineraryId) => throw UnimplementedError();
 
   @override
-  Future<ItineraryDetail> adjustItems({
+  Future<ItineraryDetail> regenerate({
     required int itineraryId,
-    required List<int> orderedVisitPoiIds,
     required String idempotencyKey,
   }) => throw UnimplementedError();
 
   @override
-  Future<ItineraryDetail> regenerate({
+  Future<ItineraryDetail> updateStops({
     required int itineraryId,
+    required List<ItineraryStop> stops,
     required String idempotencyKey,
   }) => throw UnimplementedError();
 }
@@ -612,15 +613,15 @@ final class _CompleterItineraryRepository implements ItineraryRepository {
   Future<ItineraryDetail> accept(int itineraryId) => throw UnimplementedError();
 
   @override
-  Future<ItineraryDetail> adjustItems({
+  Future<ItineraryDetail> regenerate({
     required int itineraryId,
-    required List<int> orderedVisitPoiIds,
     required String idempotencyKey,
   }) => throw UnimplementedError();
 
   @override
-  Future<ItineraryDetail> regenerate({
+  Future<ItineraryDetail> updateStops({
     required int itineraryId,
+    required List<ItineraryStop> stops,
     required String idempotencyKey,
   }) => throw UnimplementedError();
 }

@@ -2,8 +2,13 @@ import 'dart:math';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_stop.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/services/itinerary_stops.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/itinerary_detail_state.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/helpers/itinerary_text.dart';
 
 final class ItineraryDetailCubit extends Cubit<ItineraryDetailState> {
   ItineraryDetailCubit({
@@ -24,7 +29,7 @@ final class ItineraryDetailCubit extends Cubit<ItineraryDetailState> {
       emit(
         const ItineraryDetailState(
           status: ItineraryDetailStatus.failure,
-          message: 'This itinerary is unavailable.',
+          message: 'Lịch trình này không khả dụng.',
         ),
       );
       return;
@@ -114,36 +119,128 @@ final class ItineraryDetailCubit extends Cubit<ItineraryDetailState> {
     }
   }
 
-  Future<void> adjustItems(List<int> orderedVisitPoiIds) async {
-    final itineraryId = _itineraryId;
-    if (itineraryId == null ||
-        state.detail?.canManage != true ||
-        state.isBusy) {
-      return;
-    }
+  /// Puts the visit stops in this order (leaving out the others).
+  Future<void> reorder(List<int> orderedVisitPoiIds) async {
+    final detail = state.detail;
+    if (detail == null) return;
     final ids = List<int>.unmodifiable(orderedVisitPoiIds);
     if (ids.isEmpty || ids.toSet().length != ids.length) {
       emit(
         ItineraryDetailState(
           status: ItineraryDetailStatus.failure,
           detail: state.detail,
-          message: 'Select at least one different location.',
+          message: 'Hãy giữ ít nhất một địa điểm và không trùng lặp.',
         ),
       );
       return;
     }
-    final key = _keyFor('adjust:${ids.join(',')}');
+    await updateStops(
+      ItineraryStops.reorder(ItineraryStops.current(detail), ids),
+    );
+  }
+
+  /// Changes the transport of the leg that reaches [toPoiId].
+  Future<void> changeLegMode({
+    required int toPoiId,
+    required TransportMode mode,
+  }) async {
+    final detail = state.detail;
+    if (detail == null) return;
+    await updateStops(
+      ItineraryStops.withLegMode(
+        ItineraryStops.current(detail),
+        toPoiId: toPoiId,
+        mode: mode,
+      ),
+    );
+  }
+
+  /// Adds a place (typically a restaurant) right after [afterPoiId].
+  Future<void> insertStop({
+    required int afterPoiId,
+    required int poiId,
+    required String poiName,
+  }) async {
+    final detail = state.detail;
+    if (detail == null) return;
+    await updateStops(
+      ItineraryStops.insertAfter(
+        ItineraryStops.current(detail),
+        afterPoiId: afterPoiId,
+        poiId: poiId,
+      ),
+      newPlaceNames: {poiId: poiName},
+    );
+  }
+
+  Future<void> replaceStop({
+    required int oldPoiId,
+    required int newPoiId,
+    required String poiName,
+  }) async {
+    final detail = state.detail;
+    if (detail == null) return;
+    await updateStops(
+      ItineraryStops.replace(
+        ItineraryStops.current(detail),
+        oldPoiId: oldPoiId,
+        newPoiId: newPoiId,
+      ),
+      newPlaceNames: {newPoiId: poiName},
+    );
+  }
+
+  Future<void> removeStop(int poiId) async {
+    final detail = state.detail;
+    if (detail == null) return;
+    final stops = ItineraryStops.remove(ItineraryStops.current(detail), poiId);
+    if (stops.isEmpty) return;
+    await updateStops(stops);
+  }
+
+  /// Re-sends the stops from before the last edit.
+  Future<void> undo() async {
+    if (isClosed) return;
+    final previous = state.undoStops;
+    if (previous == null) return;
+    await updateStops(previous, isUndo: true);
+  }
+
+  /// Saves exactly these stops as a new version. [newPlaceNames] names places
+  /// that are not in the itinerary yet, for a "does not fit" message.
+  Future<void> updateStops(
+    List<ItineraryStop> stops, {
+    Map<int, String> newPlaceNames = const {},
+    bool isUndo = false,
+  }) async {
+    if (isClosed) return;
+    final itineraryId = _itineraryId;
+    final before = state.detail;
+    if (itineraryId == null ||
+        before == null ||
+        !before.canEdit ||
+        state.isBusy ||
+        stops.isEmpty) {
+      return;
+    }
+    final pending = List<ItineraryStop>.unmodifiable(stops);
+    final key = _keyFor(
+      'stops:${pending.map((stop) => '${stop.poiId}/${stop.transportModeToNext?.name}').join(',')}',
+    );
     emit(
       ItineraryDetailState(
         status: ItineraryDetailStatus.actionInProgress,
-        detail: state.detail,
-        editingPoiIds: ids,
+        detail: before,
+        pendingStops: pending,
+        shiftedArrivals: state.shiftedArrivals,
+        undoStops: state.undoStops,
+        editRevision: state.editRevision,
       ),
     );
     try {
-      final detail = await _repository.adjustItems(
+      final detail = await _repository.updateStops(
         itineraryId: itineraryId,
-        orderedVisitPoiIds: ids,
+        stops: pending,
         idempotencyKey: key,
       );
       if (isClosed) return;
@@ -153,6 +250,9 @@ final class ItineraryDetailCubit extends Cubit<ItineraryDetailState> {
         ItineraryDetailState(
           status: ItineraryDetailStatus.loaded,
           detail: detail,
+          shiftedArrivals: ItineraryStops.arrivalShifts(before, detail),
+          undoStops: isUndo ? null : ItineraryStops.current(before),
+          editRevision: state.editRevision + 1,
         ),
       );
     } catch (error) {
@@ -160,13 +260,37 @@ final class ItineraryDetailCubit extends Cubit<ItineraryDetailState> {
         emit(
           ItineraryDetailState(
             status: ItineraryDetailStatus.failure,
-            detail: state.detail,
-            editingPoiIds: ids,
-            message: _message(error),
+            detail: before,
+            pendingStops: pending,
+            shiftedArrivals: state.shiftedArrivals,
+            // The previous successful edit can still be undone.
+            undoStops: state.undoStops,
+            editRevision: state.editRevision,
+            message: error is StopInfeasibleFailure
+                ? _stopMessage(error, before, newPlaceNames)
+                : _message(error),
           ),
         );
       }
     }
+  }
+
+  String _stopMessage(
+    StopInfeasibleFailure failure,
+    ItineraryDetail detail,
+    Map<int, String> newPlaceNames,
+  ) {
+    String? name = newPlaceNames[failure.poiId];
+    for (final item in detail.visitItems) {
+      if (name == null && item.poiId == failure.poiId) name = item.poiName;
+    }
+    final reason = unfitReasonText(
+      failure.reason,
+      closesAt: failure.closesAt,
+      overflowMinutes: failure.overflowMinutes,
+      overflowVnd: failure.overflowVnd,
+    );
+    return 'Không thể lưu: ${name ?? 'Một địa điểm'} $reason.';
   }
 
   String _keyFor(String fingerprint) {
@@ -198,22 +322,23 @@ final class ItineraryDetailCubit extends Cubit<ItineraryDetailState> {
 
   String _loadMessage(Object error) => switch (error) {
     AuthenticationFailure() =>
-      'Your session has expired. Please sign in again.',
-    PermissionFailure() => 'You do not have access to this itinerary.',
-    NotFoundFailure() => 'This itinerary could not be found.',
-    _ => 'TripMate could not load this itinerary. Please try again.',
+      'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+    PermissionFailure() => 'Bạn không có quyền xem lịch trình này.',
+    NotFoundFailure() => 'Không tìm thấy lịch trình này.',
+    _ => 'TripMate chưa tải được lịch trình. Vui lòng thử lại.',
   };
 
   String _message(Object error) => switch (error) {
     AuthenticationFailure() =>
-      'Your session has expired. Please sign in again.',
-    PermissionFailure() => 'You can view this itinerary but cannot change it.',
-    NotFoundFailure() => 'This itinerary is no longer available.',
+      'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+    PermissionFailure() =>
+      'Bạn chỉ được xem, không thể thay đổi lịch trình này.',
+    NotFoundFailure() => 'Lịch trình này không còn khả dụng.',
     ConflictFailure() =>
-      'This change conflicts with a previous request. Please try again.',
+      'Thay đổi này trùng với một yêu cầu trước đó. Vui lòng thử lại.',
     ConstraintFailure failure => failure.message,
     ValidationFailure failure => failure.message,
-    _ => 'TripMate could not update this itinerary. Please try again.',
+    _ => 'TripMate chưa cập nhật được lịch trình. Vui lòng thử lại.',
   };
 
   static String _createUuidV4() {
