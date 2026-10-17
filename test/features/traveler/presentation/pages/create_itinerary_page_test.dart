@@ -18,6 +18,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/address_se
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/poi_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_itinerary_page.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 
 void main() {
   Widget buildPage() => MultiBlocProvider(
@@ -620,6 +621,164 @@ void main() {
     );
     expect(find.text('Search by name to find a place.'), findsOneWidget);
   });
+
+  testWidgets(
+    'auto-binds primary POI with badge when exploration area is selected',
+    (tester) async {
+      final poiRepository = _ScopedPoiRepository();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiBlocProvider(
+            providers: [
+              BlocProvider(
+                create: (_) =>
+                    CreateItineraryCubit(repository: _ItineraryRepository()),
+              ),
+              BlocProvider(
+                create: (_) => PoiSearchCubit(
+                  locationService: _LocationService(),
+                  repository: poiRepository,
+                ),
+              ),
+              BlocProvider(
+                create: (_) =>
+                    AddressSearchCubit(repository: _AddressRepository()),
+              ),
+            ],
+            child: const CreateItineraryPage(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Use current location'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Explore around'));
+      await tester.pumpAndSettle();
+
+      // Verify quick suggestion chips exist
+      expect(find.text('Bà Nà Hills'), findsOneWidget);
+      expect(find.text('Sơn Trà'), findsOneWidget);
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Search places'),
+        'Explore',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('POI in Scope B'));
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.text('Must-see places'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
+      // Primary POI is auto-bound with badge
+      expect(find.text('POI in Scope B (Điểm chính)'), findsOneWidget);
+
+      // Deleting chip removes it from mandatory without breaking exploration
+      final chip = tester.widget<InputChip>(find.byType(InputChip).first);
+      chip.onDeleted!();
+      await tester.pumpAndSettle();
+
+      expect(find.text('POI in Scope B (Điểm chính)'), findsNothing);
+
+      // Scroll back up to verify "Explore around" field still holds the exploration POI
+      await tester.scrollUntilVisible(
+        find.text('Explore around'),
+        -300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('POI in Scope B'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'displays travel feasibility warning when round-trip travel exceeds 50% of available time',
+    (tester) async {
+      final poiRepository = _ScopedPoiRepository();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiBlocProvider(
+            providers: [
+              BlocProvider(
+                create: (_) =>
+                    CreateItineraryCubit(repository: _ItineraryRepository()),
+              ),
+              BlocProvider(
+                create: (_) => PoiSearchCubit(
+                  locationService: _LocationService(),
+                  repository: poiRepository,
+                ),
+              ),
+              BlocProvider(
+                create: (_) =>
+                    AddressSearchCubit(repository: _AddressRepository()),
+              ),
+            ],
+            child: const CreateItineraryPage(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Use current location'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Explore around'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Search places'),
+        'Explore',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('POI in Scope B'));
+      await tester.pumpAndSettle();
+
+      // Switch to Walking mode via onChanged
+      await tester.scrollUntilVisible(
+        find.byType(DropdownButtonFormField<TransportMode>),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      tester
+          .widget<DropdownButtonFormField<TransportMode>>(
+            find.byType(DropdownButtonFormField<TransportMode>),
+          )
+          .onChanged!(TransportMode.walking);
+      await tester.pumpAndSettle();
+
+      // Set available duration to 1 hour
+      final hoursField = find.widgetWithText(TextField, 'Hours');
+      await tester.enterText(hoursField, '1');
+      final minutesField = find.widgetWithText(TextField, 'Minutes');
+      await tester.enterText(minutesField, '0');
+      await tester.pumpAndSettle();
+
+      // Scroll up to check feasibility warning alert
+      await tester.scrollUntilVisible(
+        find.byType(AppAlert),
+        -300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
+      // Feasibility warning alert is shown
+      expect(
+        find.textContaining('Lưu ý về thời gian di chuyển:'),
+        findsOneWidget,
+      );
+    },
+  );
 }
 
 final class _ItineraryRepository implements ItineraryRepository {
