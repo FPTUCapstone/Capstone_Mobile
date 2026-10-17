@@ -1,5 +1,6 @@
 import 'package:trip_mate_mobile/core/error/error_mapper.dart';
 import 'package:trip_mate_mobile/features/booking/data/datasources/booking_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/booking/domain/entities/booking_contact.dart';
 import 'package:trip_mate_mobile/features/booking/domain/entities/booking_participant.dart';
 import 'package:trip_mate_mobile/features/booking/domain/entities/booking_quote.dart';
 import 'package:trip_mate_mobile/features/booking/domain/repositories/booking_repository.dart';
@@ -16,6 +17,10 @@ final class BookingRepositoryImpl implements BookingRepository {
       throw ErrorMapper.toFailure(error);
     }
   }
+
+  @override
+  Future<BookingContact> getBookingContact() =>
+      _guard(_remote.getBookingContact);
 
   @override
   Future<BookingQuote> quote({

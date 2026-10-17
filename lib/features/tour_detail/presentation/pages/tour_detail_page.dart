@@ -1260,9 +1260,9 @@ class _TourDetailBottomBar extends StatelessWidget {
             FilledButton(
               onPressed: () {
                 Navigator.of(ctx).pop();
-                final returnTarget = AppRoutes.tourDetail(
+                final returnTarget = AppRoutes.bookTour(
                   state.tourDetail!.tourId,
-                  demo: state.isDemoMode,
+                  state.selectedSchedule!.scheduleId,
                 );
                 context.push(
                   Uri(
@@ -1277,23 +1277,10 @@ class _TourDetailBottomBar extends StatelessWidget {
         ),
       );
     } else {
-      // Authenticated Traveler: Show boundary explanation without fabricating booking ID.
-      final detail = state.tourDetail!;
-      final schedule = state.selectedSchedule;
-      showDialog<void>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text(TourDetailStrings.bookingWorkflowTitle),
-          content: Text(
-            'Selected:\n• Tour: ${detail.title}\n• Schedule: ${schedule != null ? formatVietnamDate(schedule.departureAtUtc) : "Default"}\n• Price: ${formatVnd(schedule?.price ?? detail.basePrice)}\n\nNotice: Schedule reservation and payment workflow will be available in UC-27 & UC-28.',
-          ),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text(TourDetailStrings.close),
-            ),
-          ],
-        ),
+      context.pushNamed(
+        AppRouteNames.bookTour,
+        pathParameters: {'tourId': state.tourDetail!.tourId},
+        queryParameters: {'scheduleId': state.selectedSchedule!.scheduleId},
       );
     }
   }

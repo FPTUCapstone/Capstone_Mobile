@@ -1,4 +1,5 @@
 import 'package:trip_mate_mobile/core/error/failures.dart';
+import 'package:trip_mate_mobile/features/booking/domain/entities/booking_contact.dart';
 import 'package:trip_mate_mobile/features/booking/domain/entities/booking_participant.dart';
 import 'package:trip_mate_mobile/features/booking/domain/entities/booking_quote.dart';
 import 'package:trip_mate_mobile/features/booking/domain/entities/participant_type.dart';
@@ -46,13 +47,30 @@ BookingQuote sampleQuote({
 }
 
 final class FakeBookingRepository implements BookingRepository {
-  FakeBookingRepository({this.failQuotes = 0, this.failCreates = 0});
+  FakeBookingRepository({
+    this.failQuotes = 0,
+    this.failCreates = 0,
+    this.failContactLookup = false,
+    this.contact = const BookingContact(
+      fullName: 'Nguyen Van A',
+      phoneNumber: '0912345678',
+      email: 'traveler@example.com',
+    ),
+  });
 
   int failQuotes;
   int failCreates;
+  bool failContactLookup;
+  BookingContact contact;
   final quoteCalls = <(String, ParticipantCounts, String?)>[];
   final createKeys = <String>[];
   final createCalls = <(String, List<BookingParticipant>, String?)>[];
+
+  @override
+  Future<BookingContact> getBookingContact() async {
+    if (failContactLookup) throw const NetworkFailure();
+    return contact;
+  }
 
   @override
   Future<BookingQuote> quote({

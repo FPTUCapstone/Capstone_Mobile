@@ -44,6 +44,7 @@ import 'package:trip_mate_mobile/features/booking/data/datasources/booking_remot
 import 'package:trip_mate_mobile/features/booking/data/repositories/booking_repository_impl.dart';
 import 'package:trip_mate_mobile/features/booking/domain/repositories/booking_repository.dart';
 import 'package:trip_mate_mobile/features/booking/domain/usecases/create_booking_use_case.dart';
+import 'package:trip_mate_mobile/features/booking/domain/usecases/get_booking_contact_use_case.dart';
 import 'package:trip_mate_mobile/features/booking/domain/usecases/quote_booking_use_case.dart';
 import 'package:trip_mate_mobile/features/booking/presentation/cubit/book_tour_cubit.dart';
 import 'package:trip_mate_mobile/features/coupon/data/datasources/coupon_remote_data_source.dart';
@@ -285,11 +286,15 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerFactory<CreateBookingUseCase>(
       () => CreateBookingUseCase(serviceLocator()),
     )
+    ..registerFactory<GetBookingContactUseCase>(
+      () => GetBookingContactUseCase(serviceLocator()),
+    )
     ..registerFactoryParam<BookTourCubit, String, void>(
       (tourScheduleId, _) => BookTourCubit(
         tourScheduleId: tourScheduleId,
         quoteBooking: serviceLocator(),
         createBooking: serviceLocator(),
+        getBookingContact: serviceLocator(),
       ),
     )
     ..registerLazySingleton<AuthRemoteDataSource>(

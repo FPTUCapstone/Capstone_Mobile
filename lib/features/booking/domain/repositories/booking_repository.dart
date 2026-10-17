@@ -1,7 +1,11 @@
+import 'package:trip_mate_mobile/features/booking/domain/entities/booking_contact.dart';
 import 'package:trip_mate_mobile/features/booking/domain/entities/booking_participant.dart';
 import 'package:trip_mate_mobile/features/booking/domain/entities/booking_quote.dart';
 
 abstract interface class BookingRepository {
+  /// GET /api/v1/traveler/profile — initial values for the editable lead contact form.
+  Future<BookingContact> getBookingContact();
+
   /// POST .../tour-bookings/quote — read-only, creates nothing and reserves no capacity.
   Future<BookingQuote> quote({
     required String tourScheduleId,

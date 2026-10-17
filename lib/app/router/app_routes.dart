@@ -66,6 +66,10 @@ abstract final class AppRoutes {
   static String poiDetail(int id) => '/explore/poi/$id';
   static String tourDetail(String tourId, {bool demo = false}) =>
       demo ? '/explore/tours/$tourId?demo=true' : '/explore/tours/$tourId';
+  static String bookTour(String tourId, String scheduleId) => Uri(
+    path: '/explore/tours/$tourId/book',
+    queryParameters: {'scheduleId': scheduleId},
+  ).toString();
   static const authPrefix = '/auth';
   static const travelerPrefix = '/traveler';
   static const operatorPrefix = '/operator';
