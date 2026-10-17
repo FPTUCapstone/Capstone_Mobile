@@ -25,6 +25,8 @@ import 'package:trip_mate_mobile/features/auth/presentation/pages/splash_page.da
 import 'package:trip_mate_mobile/features/auth/presentation/pages/traveler_registration_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/verify_email_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/services/operator_document_picker.dart';
+import 'package:trip_mate_mobile/features/booking/presentation/cubit/book_tour_cubit.dart';
+import 'package:trip_mate_mobile/features/booking/presentation/pages/book_tour_page.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/cubit/create_coupon_cubit.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/pages/create_coupon_page.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
@@ -183,6 +185,22 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
             tourId: tourId,
             initialSummary: summary,
             isDemoMode: isDemo,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.bookTourPattern,
+        name: AppRouteNames.bookTour,
+        redirect: (_, state) {
+          final scheduleId = state.uri.queryParameters['scheduleId'];
+          if (scheduleId != null && scheduleId.isNotEmpty) return null;
+          return AppRoutes.tourDetail(state.pathParameters['tourId'] ?? '');
+        },
+        builder: (_, state) {
+          final scheduleId = state.uri.queryParameters['scheduleId']!;
+          return BlocProvider(
+            create: (_) => serviceLocator<BookTourCubit>(param1: scheduleId),
+            child: const BookTourPage(),
           );
         },
       ),
