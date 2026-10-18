@@ -26,6 +26,7 @@ PaymentLink parsePaymentLink(Map<String, dynamic> json) {
     amount: (json['amount'] as num?)?.toInt() ?? 0,
     currency: json['currency']?.toString() ?? 'VND',
     checkoutUrl: json['checkoutUrl']?.toString() ?? '',
+    qrCode: json['qrCode']?.toString(),
     expiresAt: (json['paymentLinkExpiresAtUtc'] ?? json['expiresAt']) != null
         ? DateTime.tryParse(
                 (json['paymentLinkExpiresAtUtc'] ?? json['expiresAt'])

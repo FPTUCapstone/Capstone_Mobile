@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
@@ -259,6 +260,7 @@ final class _PaymentPageState extends State<PaymentPage>
                 else
                   _PayOsGatewayCard(
                     checkoutUrl: active?.checkoutUrl ?? link?.checkoutUrl ?? '',
+                    qrCode: link?.qrCode,
                     isLoading: state.isLoading,
                     onOpenUrl: () {
                       final url =
@@ -511,12 +513,14 @@ final class _MockGatewayCard extends StatelessWidget {
 final class _PayOsGatewayCard extends StatelessWidget {
   const _PayOsGatewayCard({
     required this.checkoutUrl,
+    this.qrCode,
     required this.isLoading,
     required this.onOpenUrl,
     required this.onGoHome,
   });
 
   final String checkoutUrl;
+  final String? qrCode;
   final bool isLoading;
   final VoidCallback onOpenUrl;
   final VoidCallback onGoHome;
@@ -569,6 +573,28 @@ final class _PayOsGatewayCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
+          if (qrCode != null && qrCode!.isNotEmpty) ...[
+            const Text(
+              'Quét VietQR để thanh toán',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Center(
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                color: Colors.white,
+                child: QrImageView(data: qrCode!, size: 220),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            const Text(
+              'Mở ứng dụng ngân hàng để quét mã. TripMate sẽ tự xác nhận khi PayOS gửi webhook.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+          ],
           FilledButton.icon(
             onPressed: isLoading || checkoutUrl.isEmpty ? null : onOpenUrl,
             style: FilledButton.styleFrom(
@@ -580,7 +606,7 @@ final class _PayOsGatewayCard extends StatelessWidget {
             ),
             icon: const Icon(Icons.open_in_browser, size: 18),
             label: const Text(
-              'Mở Cổng Thanh Toán PayOS',
+              'Mở trang PayOS',
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
           ),

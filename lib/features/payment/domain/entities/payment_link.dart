@@ -10,6 +10,7 @@ final class PaymentLink extends Equatable {
     required this.amount,
     required this.currency,
     required this.checkoutUrl,
+    this.qrCode,
     required this.expiresAt,
     required this.status,
   });
@@ -20,6 +21,7 @@ final class PaymentLink extends Equatable {
   final int amount;
   final String currency;
   final String checkoutUrl;
+  final String? qrCode;
   final DateTime expiresAt;
   final PaymentTransactionStatus status;
 
@@ -31,6 +33,7 @@ final class PaymentLink extends Equatable {
     amount,
     currency,
     checkoutUrl,
+    qrCode,
     expiresAt,
     status,
   ];
