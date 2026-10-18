@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -53,6 +55,9 @@ final class PaymentPage extends StatefulWidget {
 final class _PaymentPageState extends State<PaymentPage>
     with WidgetsBindingObserver {
   var _checkoutWasOpened = false;
+  Timer? _confirmationTimer;
+  var _secondsToHome = 5;
+  var _paymentConfirmed = false;
 
   @override
   void initState() {
@@ -63,6 +68,7 @@ final class _PaymentPageState extends State<PaymentPage>
 
   @override
   void dispose() {
+    _confirmationTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -71,8 +77,37 @@ final class _PaymentPageState extends State<PaymentPage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _checkoutWasOpened) {
       _checkoutWasOpened = false;
-      context.read<PaymentCubit>().refreshStatus(widget.bookingId);
+      _refreshStatusAfterCheckout();
     }
+  }
+
+  Future<void> _refreshStatusAfterCheckout() async {
+    // PayOS may return the traveler to the app just before its webhook updates
+    // our database. Check briefly before exposing another payment action.
+    for (var attempt = 0; attempt < 10 && mounted; attempt++) {
+      await context.read<PaymentCubit>().refreshStatus(widget.bookingId);
+      if (!mounted || context.read<PaymentCubit>().state.paymentStatus?.isPaid == true) {
+        return;
+      }
+      if (attempt < 9) await Future<void>.delayed(const Duration(milliseconds: 1500));
+    }
+  }
+
+  void _startSuccessCountdown() {
+    if (_paymentConfirmed) return;
+    _paymentConfirmed = true;
+    _secondsToHome = 5;
+    _confirmationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() => _secondsToHome--);
+      if (_secondsToHome <= 0) {
+        timer.cancel();
+        context.go(AppRoutes.home);
+      }
+    });
   }
 
   Future<void> _launchCheckout(String url) async {
@@ -114,7 +149,7 @@ final class _PaymentPageState extends State<PaymentPage>
             );
           }
           if (state.paymentStatus?.isPaid == true) {
-            context.go(AppRoutes.home);
+            _startSuccessCountdown();
           }
         },
         builder: (context, state) {
@@ -139,7 +174,10 @@ final class _PaymentPageState extends State<PaymentPage>
 
           // 1. Success / Paid State
           if (status != null && status.isPaid) {
-            return _PaidSuccessView(status: status);
+            return _PaidSuccessView(
+              status: status,
+              secondsToHome: _secondsToHome,
+            );
           }
 
           // 2. Expired State
@@ -551,8 +589,9 @@ final class _PayOsGatewayCard extends StatelessWidget {
 }
 
 final class _PaidSuccessView extends StatelessWidget {
-  const _PaidSuccessView({required this.status});
+  const _PaidSuccessView({required this.status, required this.secondsToHome});
   final BookingPaymentStatus status;
+  final int secondsToHome;
 
   @override
   Widget build(BuildContext context) {
@@ -586,6 +625,12 @@ final class _PaidSuccessView extends StatelessWidget {
           const SizedBox(height: AppSpacing.xs),
           Text(
             'Đơn đặt tour ${status.bookingCode} đã hoàn tất thanh toán.',
+            style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Tự động trở về trang chủ sau $secondsToHome giây.',
             style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
             textAlign: TextAlign.center,
           ),
