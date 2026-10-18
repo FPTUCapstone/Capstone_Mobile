@@ -112,15 +112,34 @@ final class _PaymentPageState extends State<PaymentPage>
 
   Future<void> _launchCheckout(String url) async {
     final uri = Uri.tryParse(url);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-      _checkoutWasOpened = true;
-    } else {
+    if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không thể mở liên kết thanh toán.')),
+          const SnackBar(content: Text('Liên kết thanh toán không hợp lệ.')),
         );
       }
+      return;
+    }
+
+    try {
+      // canLaunchUrl is unreliable on Android 11+ unless every browser intent
+      // is declared in <queries>. Let Android resolve the HTTPS link directly.
+      var opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened) {
+        opened = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+      }
+      if (opened) {
+        _checkoutWasOpened = true;
+        return;
+      }
+    } catch (_) {
+      // Fall through to the actionable message below.
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không thể mở liên kết thanh toán.')),
+      );
     }
   }
 
