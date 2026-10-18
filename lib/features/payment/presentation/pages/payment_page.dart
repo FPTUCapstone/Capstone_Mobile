@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
@@ -87,14 +87,15 @@ final class _PaymentPageState extends State<PaymentPage>
   Future<void> _refreshStatusAfterCheckout() async {
     // PayOS may return the traveler to the app just before its webhook updates
     // our database. Check briefly before exposing another payment action.
+    final paymentCubit = context.read<PaymentCubit>();
     for (var attempt = 0; attempt < 10 && mounted; attempt++) {
-      await context.read<PaymentCubit>().refreshStatus(widget.bookingId);
-      if (!mounted ||
-          context.read<PaymentCubit>().state.paymentStatus?.isPaid == true) {
+      await paymentCubit.refreshStatus(widget.bookingId);
+      if (!mounted || paymentCubit.state.paymentStatus?.isPaid == true) {
         return;
       }
-      if (attempt < 9)
+      if (attempt < 9) {
         await Future<void>.delayed(const Duration(milliseconds: 1500));
+      }
     }
   }
 
@@ -120,7 +121,9 @@ final class _PaymentPageState extends State<PaymentPage>
   void _startStatusPolling() {
     if (_statusPollTimer != null) return;
     _statusPollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (mounted) context.read<PaymentCubit>().refreshStatus(widget.bookingId);
+      if (mounted) {
+        context.read<PaymentCubit>().refreshStatus(widget.bookingId);
+      }
     });
   }
 
@@ -288,9 +291,9 @@ final class _PaymentPageState extends State<PaymentPage>
                       if (url.isNotEmpty) _launchCheckout(url);
                     },
                     onGoHome: () => context.go(AppRoutes.home),
-                    onCancel: () => context
-                        .read<PaymentCubit>()
-                        .cancelPayment(widget.bookingId),
+                    onCancel: () => context.read<PaymentCubit>().cancelPayment(
+                      widget.bookingId,
+                    ),
                   ),
               ],
             ),

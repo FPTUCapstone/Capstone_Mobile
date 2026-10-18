@@ -21,6 +21,7 @@ final class FakePaymentRepository implements PaymentRepository {
 
   int createCalls = 0;
   int statusCalls = 0;
+  int cancelCalls = 0;
   int mockCalls = 0;
 
   @override
@@ -68,6 +69,13 @@ final class FakePaymentRepository implements PaymentRepository {
                   : PaymentTransactionStatus.pending),
       ),
     );
+  }
+
+  @override
+  Future<void> cancelPayment(String bookingId) async {
+    cancelCalls++;
+    initialBookingStatus = 'Cancelled';
+    initialPaymentStatus = 'Cancelled';
   }
 
   @override

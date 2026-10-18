@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/app/theme/app_theme.dart';
+import 'package:trip_mate_mobile/features/payment/domain/usecases/cancel_payment_use_case.dart';
 import 'package:trip_mate_mobile/features/payment/domain/usecases/complete_mock_payment_use_case.dart';
 import 'package:trip_mate_mobile/features/payment/domain/usecases/create_or_reuse_payment_use_case.dart';
 import 'package:trip_mate_mobile/features/payment/domain/usecases/get_booking_payment_status_use_case.dart';
@@ -19,6 +20,7 @@ void main() {
       createOrReusePayment: CreateOrReusePaymentUseCase(repository),
       getBookingPaymentStatus: GetBookingPaymentStatusUseCase(repository),
       completeMockPayment: CompleteMockPaymentUseCase(repository),
+      cancelPayment: CancelPaymentUseCase(repository),
     );
     addTearDown(cubit.close);
 
@@ -57,6 +59,7 @@ void main() {
       createOrReusePayment: CreateOrReusePaymentUseCase(repository),
       getBookingPaymentStatus: GetBookingPaymentStatusUseCase(repository),
       completeMockPayment: CompleteMockPaymentUseCase(repository),
+      cancelPayment: CancelPaymentUseCase(repository),
     );
     addTearDown(cubit.close);
 
