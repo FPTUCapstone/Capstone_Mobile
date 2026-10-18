@@ -10,62 +10,66 @@ final class PaymentCubit extends Cubit<PaymentState> {
     required CreateOrReusePaymentUseCase createOrReusePayment,
     required GetBookingPaymentStatusUseCase getBookingPaymentStatus,
     required CompleteMockPaymentUseCase completeMockPayment,
-  })  : _createOrReusePayment = createOrReusePayment,
-        _getBookingPaymentStatus = getBookingPaymentStatus,
-        _completeMockPayment = completeMockPayment,
-        super(const PaymentState());
+  }) : _createOrReusePayment = createOrReusePayment,
+       _getBookingPaymentStatus = getBookingPaymentStatus,
+       _completeMockPayment = completeMockPayment,
+       super(const PaymentState());
 
   final CreateOrReusePaymentUseCase _createOrReusePayment;
   final GetBookingPaymentStatusUseCase _getBookingPaymentStatus;
   final CompleteMockPaymentUseCase _completeMockPayment;
 
   Future<void> startPayment(String bookingId) async {
-    emit(state.copyWith(
-      status: PaymentActionStatus.loading,
-      clearFailure: true,
-    ));
+    emit(
+      state.copyWith(status: PaymentActionStatus.loading, clearFailure: true),
+    );
     try {
       final link = await _createOrReusePayment(bookingId);
       final status = await _getBookingPaymentStatus(bookingId);
-      emit(state.copyWith(
-        status: PaymentActionStatus.linkCreated,
-        paymentLink: link,
-        paymentStatus: status,
-      ));
+      emit(
+        state.copyWith(
+          status: PaymentActionStatus.linkCreated,
+          paymentLink: link,
+          paymentStatus: status,
+        ),
+      );
     } on Failure catch (failure) {
-      emit(state.copyWith(
-        status: PaymentActionStatus.failure,
-        failure: failure,
-      ));
+      emit(
+        state.copyWith(status: PaymentActionStatus.failure, failure: failure),
+      );
     } catch (_) {
-      emit(state.copyWith(
-        status: PaymentActionStatus.failure,
-        failure: const ServerFailure('Could not connect to payment gateway.'),
-      ));
+      emit(
+        state.copyWith(
+          status: PaymentActionStatus.failure,
+          failure: const ServerFailure('Could not connect to payment gateway.'),
+        ),
+      );
     }
   }
 
   Future<void> refreshStatus(String bookingId) async {
-    emit(state.copyWith(
-      status: PaymentActionStatus.loading,
-      clearFailure: true,
-    ));
+    emit(
+      state.copyWith(status: PaymentActionStatus.loading, clearFailure: true),
+    );
     try {
       final status = await _getBookingPaymentStatus(bookingId);
-      emit(state.copyWith(
-        status: PaymentActionStatus.statusLoaded,
-        paymentStatus: status,
-      ));
+      emit(
+        state.copyWith(
+          status: PaymentActionStatus.statusLoaded,
+          paymentStatus: status,
+        ),
+      );
     } on Failure catch (failure) {
-      emit(state.copyWith(
-        status: PaymentActionStatus.failure,
-        failure: failure,
-      ));
+      emit(
+        state.copyWith(status: PaymentActionStatus.failure, failure: failure),
+      );
     } catch (_) {
-      emit(state.copyWith(
-        status: PaymentActionStatus.failure,
-        failure: const ServerFailure('Could not refresh payment status.'),
-      ));
+      emit(
+        state.copyWith(
+          status: PaymentActionStatus.failure,
+          failure: const ServerFailure('Could not refresh payment status.'),
+        ),
+      );
     }
   }
 
@@ -74,27 +78,29 @@ final class PaymentCubit extends Cubit<PaymentState> {
     required String bookingId,
     required String outcome,
   }) async {
-    emit(state.copyWith(
-      status: PaymentActionStatus.loading,
-      clearFailure: true,
-    ));
+    emit(
+      state.copyWith(status: PaymentActionStatus.loading, clearFailure: true),
+    );
     try {
       await _completeMockPayment(paymentId: paymentId, outcome: outcome);
       final status = await _getBookingPaymentStatus(bookingId);
-      emit(state.copyWith(
-        status: PaymentActionStatus.outcomeCompleted,
-        paymentStatus: status,
-      ));
+      emit(
+        state.copyWith(
+          status: PaymentActionStatus.outcomeCompleted,
+          paymentStatus: status,
+        ),
+      );
     } on Failure catch (failure) {
-      emit(state.copyWith(
-        status: PaymentActionStatus.failure,
-        failure: failure,
-      ));
+      emit(
+        state.copyWith(status: PaymentActionStatus.failure, failure: failure),
+      );
     } catch (_) {
-      emit(state.copyWith(
-        status: PaymentActionStatus.failure,
-        failure: const ServerFailure('Could not complete mock transaction.'),
-      ));
+      emit(
+        state.copyWith(
+          status: PaymentActionStatus.failure,
+          failure: const ServerFailure('Could not complete mock transaction.'),
+        ),
+      );
     }
   }
 }

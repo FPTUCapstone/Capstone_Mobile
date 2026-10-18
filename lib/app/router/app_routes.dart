@@ -28,6 +28,7 @@ abstract final class AppRoutes {
       queryParameters: params.isEmpty ? null : params,
     ).toString();
   }
+
   static const traveler = '/traveler';
   static const tourRecommendations = '/traveler/tours/recommendations';
   static const travelerSettings = '/traveler/settings';

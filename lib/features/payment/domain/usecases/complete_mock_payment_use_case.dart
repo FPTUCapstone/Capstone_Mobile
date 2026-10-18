@@ -8,8 +8,5 @@ final class CompleteMockPaymentUseCase {
   Future<PaymentTransactionStatus> call({
     required int paymentId,
     required String outcome,
-  }) => _repository.completeMockPayment(
-        paymentId: paymentId,
-        outcome: outcome,
-      );
+  }) => _repository.completeMockPayment(paymentId: paymentId, outcome: outcome);
 }

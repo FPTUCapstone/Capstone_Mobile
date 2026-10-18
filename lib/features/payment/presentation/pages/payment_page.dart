@@ -136,7 +136,9 @@ final class _PaymentPageState extends State<PaymentPage> {
 
           // 4. Active Checkout / Mock Checkout View
           final active = status?.activePayment;
-          final isMock = active?.gateway == 'Mock' || link?.checkoutUrl.contains('/checkout/mock') == true;
+          final isMock =
+              active?.gateway == 'Mock' ||
+              link?.checkoutUrl.contains('/checkout/mock') == true;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.md),
@@ -145,9 +147,20 @@ final class _PaymentPageState extends State<PaymentPage> {
               children: [
                 // Booking Info Card
                 _BookingSummaryCard(
-                  bookingCode: status?.bookingCode ?? widget.initialBookingCode ?? widget.bookingId,
-                  amount: active?.amount ?? widget.initialAmount ?? link?.amount ?? 0,
-                  currency: active?.currency ?? widget.initialCurrency ?? link?.currency ?? 'VND',
+                  bookingCode:
+                      status?.bookingCode ??
+                      widget.initialBookingCode ??
+                      widget.bookingId,
+                  amount:
+                      active?.amount ??
+                      widget.initialAmount ??
+                      link?.amount ??
+                      0,
+                  currency:
+                      active?.currency ??
+                      widget.initialCurrency ??
+                      link?.currency ??
+                      'VND',
                   expiresAt: status?.paymentExpiresAt,
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -157,9 +170,8 @@ final class _PaymentPageState extends State<PaymentPage> {
                     paymentId: active?.paymentId ?? link?.paymentId ?? 0,
                     bookingId: widget.bookingId,
                     isLoading: state.isLoading,
-                    onSubmit: (outcome) => context
-                        .read<PaymentCubit>()
-                        .submitMockOutcome(
+                    onSubmit: (outcome) =>
+                        context.read<PaymentCubit>().submitMockOutcome(
                           paymentId: active?.paymentId ?? link?.paymentId ?? 0,
                           bookingId: widget.bookingId,
                           outcome: outcome,
@@ -170,12 +182,13 @@ final class _PaymentPageState extends State<PaymentPage> {
                     checkoutUrl: active?.checkoutUrl ?? link?.checkoutUrl ?? '',
                     isLoading: state.isLoading,
                     onOpenUrl: () {
-                      final url = active?.checkoutUrl ?? link?.checkoutUrl ?? '';
+                      final url =
+                          active?.checkoutUrl ?? link?.checkoutUrl ?? '';
                       if (url.isNotEmpty) _launchCheckout(url);
                     },
-                    onRefresh: () => context
-                        .read<PaymentCubit>()
-                        .refreshStatus(widget.bookingId),
+                    onRefresh: () => context.read<PaymentCubit>().refreshStatus(
+                      widget.bookingId,
+                    ),
                   ),
               ],
             ),
@@ -243,7 +256,10 @@ final class _BookingSummaryCard extends StatelessWidget {
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFEF3C7),
                   borderRadius: BorderRadius.circular(8),
@@ -341,7 +357,11 @@ final class _MockGatewayCard extends StatelessWidget {
                   color: const Color(0xFFCCFBF1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.developer_mode, color: Color(0xFF0F766E), size: 22),
+                child: const Icon(
+                  Icons.developer_mode,
+                  color: Color(0xFF0F766E),
+                  size: 22,
+                ),
               ),
               const SizedBox(width: AppSpacing.sm),
               const Expanded(
@@ -350,7 +370,10 @@ final class _MockGatewayCard extends StatelessWidget {
                   children: [
                     Text(
                       'TripMate Mock Gateway',
-                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                      ),
                     ),
                     Text(
                       'Môi trường giả lập kiểm thử giao dịch',
@@ -364,29 +387,43 @@ final class _MockGatewayCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           const Text(
             'Chọn kết quả mô phỏng giao dịch:',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF334155)),
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: Color(0xFF334155),
+            ),
           ),
           const SizedBox(height: AppSpacing.sm),
           FilledButton.icon(
             onPressed: isLoading ? null : () => onSubmit('Success'),
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFF059669),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
             icon: const Icon(Icons.check_circle_outline, size: 18),
-            label: const Text('Thanh toán thành công (Success)', style: TextStyle(fontWeight: FontWeight.w700)),
+            label: const Text(
+              'Thanh toán thành công (Success)',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
           const SizedBox(height: AppSpacing.xs),
           FilledButton.icon(
             onPressed: isLoading ? null : () => onSubmit('Cancelled'),
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFD97706),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
             icon: const Icon(Icons.cancel_outlined, size: 18),
-            label: const Text('Hủy thanh toán (Cancel)', style: TextStyle(fontWeight: FontWeight.w700)),
+            label: const Text(
+              'Hủy thanh toán (Cancel)',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
@@ -427,7 +464,11 @@ final class _PayOsGatewayCard extends StatelessWidget {
                   color: const Color(0xFFE0F2FE),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.qr_code_2, color: Color(0xFF0369A1), size: 24),
+                child: const Icon(
+                  Icons.qr_code_2,
+                  color: Color(0xFF0369A1),
+                  size: 24,
+                ),
               ),
               const SizedBox(width: AppSpacing.sm),
               const Expanded(
@@ -436,7 +477,10 @@ final class _PayOsGatewayCard extends StatelessWidget {
                   children: [
                     Text(
                       'PayOS — Cổng Thanh Toán Online',
-                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                      ),
                     ),
                     Text(
                       'VietQR quét mã thanh toán 30+ ngân hàng',
@@ -452,11 +496,16 @@ final class _PayOsGatewayCard extends StatelessWidget {
             onPressed: isLoading || checkoutUrl.isEmpty ? null : onOpenUrl,
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
             icon: const Icon(Icons.open_in_browser, size: 18),
-            label: const Text('Mở Cổng Thanh Toán PayOS', style: TextStyle(fontWeight: FontWeight.w700)),
+            label: const Text(
+              'Mở Cổng Thanh Toán PayOS',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
           const SizedBox(height: AppSpacing.xs),
           OutlinedButton.icon(
@@ -464,11 +513,16 @@ final class _PayOsGatewayCard extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFF334155),
               side: const BorderSide(color: Color(0xFFCBD5E1)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
             icon: const Icon(Icons.refresh, size: 18),
-            label: const Text('Tôi đã thanh toán xong / Cập nhật', style: TextStyle(fontWeight: FontWeight.w600)),
+            label: const Text(
+              'Tôi đã thanh toán xong / Cập nhật',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
@@ -494,12 +548,20 @@ final class _PaidSuccessView extends StatelessWidget {
               color: Color(0xFFD1FAE5),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 48),
+            child: const Icon(
+              Icons.check_circle_rounded,
+              color: Color(0xFF059669),
+              size: 48,
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           const Text(
             'Thanh Toán Thành Công!',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F1B2D)),
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF0F1B2D),
+            ),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
@@ -512,11 +574,16 @@ final class _PaidSuccessView extends StatelessWidget {
             onPressed: () => context.go(AppRoutes.tripHistoryPath()),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               minimumSize: const Size.fromHeight(50),
             ),
             icon: const Icon(Icons.card_travel, size: 18),
-            label: const Text('Quản lý chuyến đi', style: TextStyle(fontWeight: FontWeight.w700)),
+            label: const Text(
+              'Quản lý chuyến đi',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
           const SizedBox(height: AppSpacing.sm),
           OutlinedButton(
@@ -524,10 +591,15 @@ final class _PaidSuccessView extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFF475569),
               side: const BorderSide(color: Color(0xFFCBD5E1)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               minimumSize: const Size.fromHeight(50),
             ),
-            child: const Text('Về Trang Chủ', style: TextStyle(fontWeight: FontWeight.w600)),
+            child: const Text(
+              'Về Trang Chủ',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
@@ -553,12 +625,20 @@ final class _ExpiredView extends StatelessWidget {
               color: Color(0xFFFEE2E2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.timer_off_outlined, color: Color(0xFFDC2626), size: 48),
+            child: const Icon(
+              Icons.timer_off_outlined,
+              color: Color(0xFFDC2626),
+              size: 48,
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           const Text(
             'Đơn Tour Đã Hết Hạn',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F1B2D)),
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF0F1B2D),
+            ),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
@@ -571,10 +651,15 @@ final class _ExpiredView extends StatelessWidget {
             onPressed: () => context.go(AppRoutes.tourSearch),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               minimumSize: const Size.fromHeight(50),
             ),
-            child: const Text('Khám phá các tour khác', style: TextStyle(fontWeight: FontWeight.w700)),
+            child: const Text(
+              'Khám phá các tour khác',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
@@ -583,10 +668,7 @@ final class _ExpiredView extends StatelessWidget {
 }
 
 final class _CancelledView extends StatelessWidget {
-  const _CancelledView({
-    required this.status,
-    required this.onRetry,
-  });
+  const _CancelledView({required this.status, required this.onRetry});
 
   final BookingPaymentStatus status;
   final VoidCallback onRetry;
@@ -605,12 +687,20 @@ final class _CancelledView extends StatelessWidget {
               color: Color(0xFFFEF3C7),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.cancel_outlined, color: Color(0xFFD97706), size: 48),
+            child: const Icon(
+              Icons.cancel_outlined,
+              color: Color(0xFFD97706),
+              size: 48,
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           const Text(
             'Giao Dịch Đã Hủy',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F1B2D)),
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF0F1B2D),
+            ),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
@@ -623,11 +713,16 @@ final class _CancelledView extends StatelessWidget {
             onPressed: onRetry,
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               minimumSize: const Size.fromHeight(50),
             ),
             icon: const Icon(Icons.payment_rounded, size: 18),
-            label: const Text('Tiến hành thanh toán lại', style: TextStyle(fontWeight: FontWeight.w700)),
+            label: const Text(
+              'Tiến hành thanh toán lại',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
           const SizedBox(height: AppSpacing.sm),
           OutlinedButton(
@@ -635,10 +730,15 @@ final class _CancelledView extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFF475569),
               side: const BorderSide(color: Color(0xFFCBD5E1)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               minimumSize: const Size.fromHeight(50),
             ),
-            child: const Text('Về danh sách tour', style: TextStyle(fontWeight: FontWeight.w600)),
+            child: const Text(
+              'Về danh sách tour',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),

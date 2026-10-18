@@ -27,8 +27,7 @@ final class PaymentRepositoryImpl implements PaymentRepository {
   Future<PaymentTransactionStatus> completeMockPayment({
     required int paymentId,
     required String outcome,
-  }) => _guard(() => _remote.completeMockPayment(
-        paymentId: paymentId,
-        outcome: outcome,
-      ));
+  }) => _guard(
+    () => _remote.completeMockPayment(paymentId: paymentId, outcome: outcome),
+  );
 }

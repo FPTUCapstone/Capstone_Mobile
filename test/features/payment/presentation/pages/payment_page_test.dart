@@ -11,7 +11,9 @@ import 'package:trip_mate_mobile/features/payment/presentation/pages/payment_pag
 import '../../payment_fakes.dart';
 
 void main() {
-  testWidgets('renders PaymentPage and displays pending payment information', (tester) async {
+  testWidgets('renders PaymentPage and displays pending payment information', (
+    tester,
+  ) async {
     final repository = FakePaymentRepository();
     final cubit = PaymentCubit(
       createOrReusePayment: CreateOrReusePaymentUseCase(repository),
@@ -44,7 +46,9 @@ void main() {
     expect(find.text('1.500.000₫'), findsWidgets);
   });
 
-  testWidgets('displays success view when booking is confirmed', (tester) async {
+  testWidgets('displays success view when booking is confirmed', (
+    tester,
+  ) async {
     final repository = FakePaymentRepository(
       initialBookingStatus: 'Confirmed',
       initialPaymentStatus: 'Paid',

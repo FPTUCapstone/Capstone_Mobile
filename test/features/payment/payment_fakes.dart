@@ -64,8 +64,8 @@ final class FakePaymentRepository implements PaymentRepository {
         status: initialBookingStatus == 'Confirmed'
             ? PaymentTransactionStatus.success
             : (initialBookingStatus == 'Expired'
-                ? PaymentTransactionStatus.expired
-                : PaymentTransactionStatus.pending),
+                  ? PaymentTransactionStatus.expired
+                  : PaymentTransactionStatus.pending),
       ),
     );
   }

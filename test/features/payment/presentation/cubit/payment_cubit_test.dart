@@ -43,15 +43,18 @@ void main() {
       expect(cubit.state.failure, isNull);
     });
 
-    test('startPayment emits failure when createOrReusePayment fails', () async {
-      repository.failCreate = true;
+    test(
+      'startPayment emits failure when createOrReusePayment fails',
+      () async {
+        repository.failCreate = true;
 
-      await cubit.startPayment('booking-123');
+        await cubit.startPayment('booking-123');
 
-      expect(repository.createCalls, 1);
-      expect(cubit.state.status, PaymentActionStatus.failure);
-      expect(cubit.state.failure?.message, 'Payment link creation failed');
-    });
+        expect(repository.createCalls, 1);
+        expect(cubit.state.status, PaymentActionStatus.failure);
+        expect(cubit.state.failure?.message, 'Payment link creation failed');
+      },
+    );
 
     test('refreshStatus updates paymentStatus', () async {
       await cubit.refreshStatus('booking-123');
@@ -71,21 +74,24 @@ void main() {
       expect(cubit.state.failure?.message, 'Status retrieval failed');
     });
 
-    test('submitMockOutcome Success transitions booking to confirmed', () async {
-      await cubit.startPayment('booking-123');
-      expect(cubit.state.paymentStatus?.isPaid, isFalse);
+    test(
+      'submitMockOutcome Success transitions booking to confirmed',
+      () async {
+        await cubit.startPayment('booking-123');
+        expect(cubit.state.paymentStatus?.isPaid, isFalse);
 
-      await cubit.submitMockOutcome(
-        paymentId: 101,
-        bookingId: 'booking-123',
-        outcome: 'Success',
-      );
+        await cubit.submitMockOutcome(
+          paymentId: 101,
+          bookingId: 'booking-123',
+          outcome: 'Success',
+        );
 
-      expect(repository.mockCalls, 1);
-      expect(cubit.state.status, PaymentActionStatus.outcomeCompleted);
-      expect(cubit.state.paymentStatus?.isPaid, isTrue);
-      expect(cubit.state.paymentStatus?.bookingStatus, 'Confirmed');
-    });
+        expect(repository.mockCalls, 1);
+        expect(cubit.state.status, PaymentActionStatus.outcomeCompleted);
+        expect(cubit.state.paymentStatus?.isPaid, isTrue);
+        expect(cubit.state.paymentStatus?.bookingStatus, 'Confirmed');
+      },
+    );
 
     test('submitMockOutcome Expired transitions booking to expired', () async {
       await cubit.submitMockOutcome(

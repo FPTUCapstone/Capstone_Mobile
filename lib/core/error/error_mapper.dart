@@ -53,9 +53,7 @@ abstract final class ErrorMapper {
         );
       }
       if (code == 'PAYMENT_CALLBACK_INVALID') {
-        return const ValidationFailure(
-          'The payment response is invalid.',
-        );
+        return const ValidationFailure('The payment response is invalid.');
       }
       return ValidationFailure(
         _extractValidationMessage(responseData) ??
