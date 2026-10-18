@@ -60,6 +60,13 @@ import 'package:trip_mate_mobile/features/operator_tours/domain/usecases/tour_pa
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/operator_tours_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/services/tour_image_picker.dart';
+import 'package:trip_mate_mobile/features/payment/data/datasources/payment_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/payment/data/repositories/payment_repository_impl.dart';
+import 'package:trip_mate_mobile/features/payment/domain/repositories/payment_repository.dart';
+import 'package:trip_mate_mobile/features/payment/domain/usecases/complete_mock_payment_use_case.dart';
+import 'package:trip_mate_mobile/features/payment/domain/usecases/create_or_reuse_payment_use_case.dart';
+import 'package:trip_mate_mobile/features/payment/domain/usecases/get_booking_payment_status_use_case.dart';
+import 'package:trip_mate_mobile/features/payment/presentation/cubit/payment_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/data/datasources/poi_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/poi/data/repositories/poi_repository_impl.dart';
 import 'package:trip_mate_mobile/features/poi/data/services/geolocator_poi_location_service.dart';
@@ -295,6 +302,28 @@ Future<void> configureDependencies({AppConfig? config}) async {
         quoteBooking: serviceLocator(),
         createBooking: serviceLocator(),
         getBookingContact: serviceLocator(),
+      ),
+    )
+    ..registerLazySingleton<PaymentRemoteDataSource>(
+      () => DioPaymentRemoteDataSource(serviceLocator()),
+    )
+    ..registerLazySingleton<PaymentRepository>(
+      () => PaymentRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<CreateOrReusePaymentUseCase>(
+      () => CreateOrReusePaymentUseCase(serviceLocator()),
+    )
+    ..registerFactory<GetBookingPaymentStatusUseCase>(
+      () => GetBookingPaymentStatusUseCase(serviceLocator()),
+    )
+    ..registerFactory<CompleteMockPaymentUseCase>(
+      () => CompleteMockPaymentUseCase(serviceLocator()),
+    )
+    ..registerFactory<PaymentCubit>(
+      () => PaymentCubit(
+        createOrReusePayment: serviceLocator(),
+        getBookingPaymentStatus: serviceLocator(),
+        completeMockPayment: serviceLocator(),
       ),
     )
     ..registerLazySingleton<AuthRemoteDataSource>(

@@ -34,6 +34,8 @@ import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/oper
 import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/create_tour_package_page.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/edit_tour_package_page.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/operator_tours_page.dart';
+import 'package:trip_mate_mobile/features/payment/presentation/cubit/payment_cubit.dart';
+import 'package:trip_mate_mobile/features/payment/presentation/pages/payment_page.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
@@ -201,6 +203,27 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
           return BlocProvider(
             create: (_) => serviceLocator<BookTourCubit>(param1: scheduleId),
             child: const BookTourPage(),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.paymentPattern,
+        name: AppRouteNames.payment,
+        builder: (_, state) {
+          final bookingId = state.pathParameters['bookingId']!;
+          final bookingCode = state.uri.queryParameters['code'];
+          final amountStr = state.uri.queryParameters['amount'];
+          final currency = state.uri.queryParameters['currency'];
+          final amount = amountStr != null ? int.tryParse(amountStr) : null;
+
+          return BlocProvider(
+            create: (_) => serviceLocator<PaymentCubit>(),
+            child: PaymentPage(
+              bookingId: bookingId,
+              initialBookingCode: bookingCode,
+              initialAmount: amount,
+              initialCurrency: currency,
+            ),
           );
         },
       ),

@@ -26,11 +26,34 @@ abstract final class ErrorMapper {
     }
     if (statusCode == 429) return const RateLimitFailure();
     if (statusCode == 400) {
-      if (extractErrorCode(responseData) ==
-          'tour_booking.idempotency_key_required') {
+      final code = extractErrorCode(responseData);
+      if (code == 'tour_booking.idempotency_key_required') {
         return const ValidationFailure(
           'Something went wrong preparing this request. Please try again.',
         );
+      }
+      if (code == 'PAYMENT_BOOKING_NOT_ELIGIBLE') {
+        return const ValidationFailure(
+          'This booking is not eligible for payment.',
+        );
+      }
+      if (code == 'PAYMENT_BOOKING_EXPIRED') {
+        return const ValidationFailure(
+          'This booking has expired. Please book a new departure.',
+        );
+      }
+      if (code == 'PAYMENT_MOCK_DISABLED') {
+        return const ValidationFailure(
+          'Mock payment is not enabled in this environment.',
+        );
+      }
+      if (code == 'PAYMENT_GATEWAY_UNAVAILABLE') {
+        return const ServerFailure(
+          'The payment gateway is temporarily unavailable. Please try again later.',
+        );
+      }
+      if (code == 'PAYMENT_CALLBACK_INVALID') {
+        return const ValidationFailure('The payment response is invalid.');
       }
       return ValidationFailure(
         _extractValidationMessage(responseData) ??
@@ -42,6 +65,9 @@ abstract final class ErrorMapper {
     if (statusCode == 404) {
       final errorCode = extractErrorCode(responseData);
       if (errorCode == 'Poi.NotFound') return const NotFoundFailure();
+      if (errorCode == 'PAYMENT_NOT_FOUND') {
+        return const NotFoundFailure('The payment transaction was not found.');
+      }
       if (errorCode == 'travel_group.group_not_found') {
         return const NotFoundFailure();
       }

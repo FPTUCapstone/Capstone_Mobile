@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/booking/domain/entities/booking_quote.dart';
@@ -1220,13 +1222,16 @@ final class _BookingConfirmedView extends StatelessWidget {
 
           // ── Actions ──────────────────────────────────────────────────────
           FilledButton.icon(
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Payment (UC-28) is not yet available on mobile. Your booking is held as Pending Payment.',
+            onPressed: () {
+              context.push(
+                AppRoutes.payment(
+                  booking.bookingId,
+                  bookingCode: booking.bookingCode,
+                  amount: booking.totalAmount,
+                  currency: booking.currency,
                 ),
-              ),
-            ),
+              );
+            },
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.primary,
               minimumSize: const Size.fromHeight(54),
