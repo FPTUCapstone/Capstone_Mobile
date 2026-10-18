@@ -50,17 +50,36 @@ final class PaymentPage extends StatefulWidget {
   State<PaymentPage> createState() => _PaymentPageState();
 }
 
-final class _PaymentPageState extends State<PaymentPage> {
+final class _PaymentPageState extends State<PaymentPage>
+    with WidgetsBindingObserver {
+  var _checkoutWasOpened = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     context.read<PaymentCubit>().startPayment(widget.bookingId);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _checkoutWasOpened) {
+      _checkoutWasOpened = false;
+      context.read<PaymentCubit>().refreshStatus(widget.bookingId);
+    }
   }
 
   Future<void> _launchCheckout(String url) async {
     final uri = Uri.tryParse(url);
     if (uri != null && await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
+      _checkoutWasOpened = true;
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -93,6 +112,9 @@ final class _PaymentPageState extends State<PaymentPage> {
                 backgroundColor: AppColors.error,
               ),
             );
+          }
+          if (state.paymentStatus?.isPaid == true) {
+            context.go(AppRoutes.home);
           }
         },
         builder: (context, state) {
@@ -186,9 +208,7 @@ final class _PaymentPageState extends State<PaymentPage> {
                           active?.checkoutUrl ?? link?.checkoutUrl ?? '';
                       if (url.isNotEmpty) _launchCheckout(url);
                     },
-                    onRefresh: () => context.read<PaymentCubit>().refreshStatus(
-                      widget.bookingId,
-                    ),
+                    onGoHome: () => context.go(AppRoutes.home),
                   ),
               ],
             ),
@@ -436,13 +456,13 @@ final class _PayOsGatewayCard extends StatelessWidget {
     required this.checkoutUrl,
     required this.isLoading,
     required this.onOpenUrl,
-    required this.onRefresh,
+    required this.onGoHome,
   });
 
   final String checkoutUrl;
   final bool isLoading;
   final VoidCallback onOpenUrl;
-  final VoidCallback onRefresh;
+  final VoidCallback onGoHome;
 
   @override
   Widget build(BuildContext context) {
@@ -509,7 +529,7 @@ final class _PayOsGatewayCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           OutlinedButton.icon(
-            onPressed: isLoading ? null : onRefresh,
+            onPressed: onGoHome,
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFF334155),
               side: const BorderSide(color: Color(0xFFCBD5E1)),
@@ -518,9 +538,9 @@ final class _PayOsGatewayCard extends StatelessWidget {
               ),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
-            icon: const Icon(Icons.refresh, size: 18),
+            icon: const Icon(Icons.home_outlined, size: 18),
             label: const Text(
-              'Tôi đã thanh toán xong / Cập nhật',
+              'Về trang chủ',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
@@ -726,7 +746,7 @@ final class _CancelledView extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           OutlinedButton(
-            onPressed: () => context.go(AppRoutes.tourSearch),
+            onPressed: () => context.go(AppRoutes.home),
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFF475569),
               side: const BorderSide(color: Color(0xFFCBD5E1)),
@@ -736,7 +756,7 @@ final class _CancelledView extends StatelessWidget {
               minimumSize: const Size.fromHeight(50),
             ),
             child: const Text(
-              'Về danh sách tour',
+              'Về trang chủ',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
