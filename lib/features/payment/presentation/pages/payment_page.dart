@@ -57,6 +57,7 @@ final class _PaymentPageState extends State<PaymentPage>
     with WidgetsBindingObserver {
   var _checkoutWasOpened = false;
   Timer? _confirmationTimer;
+  Timer? _statusPollTimer;
   var _secondsToHome = 5;
   var _paymentConfirmed = false;
 
@@ -70,6 +71,7 @@ final class _PaymentPageState extends State<PaymentPage>
   @override
   void dispose() {
     _confirmationTimer?.cancel();
+    _statusPollTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -87,10 +89,12 @@ final class _PaymentPageState extends State<PaymentPage>
     // our database. Check briefly before exposing another payment action.
     for (var attempt = 0; attempt < 10 && mounted; attempt++) {
       await context.read<PaymentCubit>().refreshStatus(widget.bookingId);
-      if (!mounted || context.read<PaymentCubit>().state.paymentStatus?.isPaid == true) {
+      if (!mounted ||
+          context.read<PaymentCubit>().state.paymentStatus?.isPaid == true) {
         return;
       }
-      if (attempt < 9) await Future<void>.delayed(const Duration(milliseconds: 1500));
+      if (attempt < 9)
+        await Future<void>.delayed(const Duration(milliseconds: 1500));
     }
   }
 
@@ -108,6 +112,13 @@ final class _PaymentPageState extends State<PaymentPage>
         timer.cancel();
         context.go(AppRoutes.home);
       }
+    });
+  }
+
+  void _startStatusPolling() {
+    if (_statusPollTimer != null) return;
+    _statusPollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (mounted) context.read<PaymentCubit>().refreshStatus(widget.bookingId);
     });
   }
 
@@ -160,6 +171,9 @@ final class _PaymentPageState extends State<PaymentPage>
       ),
       body: BlocConsumer<PaymentCubit, PaymentState>(
         listener: (context, state) {
+          if (state.paymentLink?.qrCode?.isNotEmpty == true) {
+            _startStatusPolling();
+          }
           if (state.failure != null) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -268,6 +282,9 @@ final class _PaymentPageState extends State<PaymentPage>
                       if (url.isNotEmpty) _launchCheckout(url);
                     },
                     onGoHome: () => context.go(AppRoutes.home),
+                    onCheckStatus: () => context
+                        .read<PaymentCubit>()
+                        .refreshStatus(widget.bookingId),
                   ),
               ],
             ),
@@ -517,6 +534,7 @@ final class _PayOsGatewayCard extends StatelessWidget {
     required this.isLoading,
     required this.onOpenUrl,
     required this.onGoHome,
+    required this.onCheckStatus,
   });
 
   final String checkoutUrl;
@@ -524,6 +542,7 @@ final class _PayOsGatewayCard extends StatelessWidget {
   final bool isLoading;
   final VoidCallback onOpenUrl;
   final VoidCallback onGoHome;
+  final VoidCallback onCheckStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -595,21 +614,38 @@ final class _PayOsGatewayCard extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
           ],
-          FilledButton.icon(
-            onPressed: isLoading || checkoutUrl.isEmpty ? null : onOpenUrl,
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          if (qrCode == null || qrCode!.isEmpty)
+            FilledButton.icon(
+              onPressed: isLoading || checkoutUrl.isEmpty ? null : onOpenUrl,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
               ),
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              icon: const Icon(Icons.open_in_browser, size: 18),
+              label: const Text(
+                'Mở trang PayOS',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            )
+          else
+            FilledButton.icon(
+              onPressed: isLoading ? null : onCheckStatus,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              icon: const Icon(Icons.sync, size: 18),
+              label: const Text(
+                'Kiểm tra thanh toán',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
-            icon: const Icon(Icons.open_in_browser, size: 18),
-            label: const Text(
-              'Mở trang PayOS',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
           const SizedBox(height: AppSpacing.xs),
           OutlinedButton.icon(
             onPressed: onGoHome,
