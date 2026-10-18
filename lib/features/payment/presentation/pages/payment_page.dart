@@ -388,18 +388,6 @@ final class _MockGatewayCard extends StatelessWidget {
             icon: const Icon(Icons.cancel_outlined, size: 18),
             label: const Text('Hủy thanh toán (Cancel)', style: TextStyle(fontWeight: FontWeight.w700)),
           ),
-          const SizedBox(height: AppSpacing.xs),
-          OutlinedButton.icon(
-            onPressed: isLoading ? null : () => onSubmit('Expired'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFFDC2626),
-              side: const BorderSide(color: Color(0xFFFCA5A5)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-            icon: const Icon(Icons.timer_off_outlined, size: 18),
-            label: const Text('Mô phỏng hết hạn (Expire)', style: TextStyle(fontWeight: FontWeight.w700)),
-          ),
         ],
       ),
     );
@@ -532,7 +520,7 @@ final class _PaidSuccessView extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           OutlinedButton(
-            onPressed: () => context.go(AppRoutes.explore),
+            onPressed: () => context.go(AppRoutes.home),
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFF475569),
               side: const BorderSide(color: Color(0xFFCBD5E1)),
