@@ -8,6 +8,8 @@ abstract interface class PaymentRemoteDataSource {
 
   Future<BookingPaymentStatus> getBookingPaymentStatus(String bookingId);
 
+  Future<void> cancelPayment(String bookingId);
+
   Future<PaymentTransactionStatus> completeMockPayment({
     required int paymentId,
     required String outcome,
@@ -38,6 +40,13 @@ final class DioPaymentRemoteDataSource implements PaymentRemoteDataSource {
         ? response.data!['data'] as Map<String, dynamic>
         : response.data ?? <String, dynamic>{};
     return parseBookingPaymentStatus(data);
+  }
+
+  @override
+  Future<void> cancelPayment(String bookingId) async {
+    await _dio.post<void>(
+      '/api/v1/traveler/bookings/$bookingId/payment/cancel',
+    );
   }
 
   @override

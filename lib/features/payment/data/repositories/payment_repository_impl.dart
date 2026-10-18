@@ -24,6 +24,10 @@ final class PaymentRepositoryImpl implements PaymentRepository {
       _guard(() => _remote.getBookingPaymentStatus(bookingId));
 
   @override
+  Future<void> cancelPayment(String bookingId) =>
+      _guard(() => _remote.cancelPayment(bookingId));
+
+  @override
   Future<PaymentTransactionStatus> completeMockPayment({
     required int paymentId,
     required String outcome,

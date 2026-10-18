@@ -101,6 +101,8 @@ final class _PaymentPageState extends State<PaymentPage>
   void _startSuccessCountdown() {
     if (_paymentConfirmed) return;
     _paymentConfirmed = true;
+    _statusPollTimer?.cancel();
+    _statusPollTimer = null;
     _secondsToHome = 5;
     _confirmationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
@@ -184,6 +186,10 @@ final class _PaymentPageState extends State<PaymentPage>
           }
           if (state.paymentStatus?.isPaid == true) {
             _startSuccessCountdown();
+          }
+          if (state.paymentStatus?.isCancelledTx == true) {
+            _statusPollTimer?.cancel();
+            _statusPollTimer = null;
           }
         },
         builder: (context, state) {
@@ -282,9 +288,9 @@ final class _PaymentPageState extends State<PaymentPage>
                       if (url.isNotEmpty) _launchCheckout(url);
                     },
                     onGoHome: () => context.go(AppRoutes.home),
-                    onCheckStatus: () => context
+                    onCancel: () => context
                         .read<PaymentCubit>()
-                        .refreshStatus(widget.bookingId),
+                        .cancelPayment(widget.bookingId),
                   ),
               ],
             ),
@@ -534,7 +540,7 @@ final class _PayOsGatewayCard extends StatelessWidget {
     required this.isLoading,
     required this.onOpenUrl,
     required this.onGoHome,
-    required this.onCheckStatus,
+    required this.onCancel,
   });
 
   final String checkoutUrl;
@@ -542,7 +548,7 @@ final class _PayOsGatewayCard extends StatelessWidget {
   final bool isLoading;
   final VoidCallback onOpenUrl;
   final VoidCallback onGoHome;
-  final VoidCallback onCheckStatus;
+  final VoidCallback onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -629,23 +635,24 @@ final class _PayOsGatewayCard extends StatelessWidget {
                 'Mở trang PayOS',
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
-            )
-          else
-            FilledButton.icon(
-              onPressed: isLoading ? null : onCheckStatus,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              icon: const Icon(Icons.sync, size: 18),
-              label: const Text(
-                'Kiểm tra thanh toán',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
             ),
+          const SizedBox(height: AppSpacing.xs),
+          OutlinedButton.icon(
+            onPressed: isLoading ? null : onCancel,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFDC2626),
+              side: const BorderSide(color: Color(0xFFFCA5A5)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            icon: const Icon(Icons.cancel_outlined, size: 18),
+            label: const Text(
+              'Hủy thanh toán',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
           const SizedBox(height: AppSpacing.xs),
           OutlinedButton.icon(
             onPressed: onGoHome,

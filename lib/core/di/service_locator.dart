@@ -63,6 +63,7 @@ import 'package:trip_mate_mobile/features/operator_tours/presentation/services/t
 import 'package:trip_mate_mobile/features/payment/data/datasources/payment_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/payment/data/repositories/payment_repository_impl.dart';
 import 'package:trip_mate_mobile/features/payment/domain/repositories/payment_repository.dart';
+import 'package:trip_mate_mobile/features/payment/domain/usecases/cancel_payment_use_case.dart';
 import 'package:trip_mate_mobile/features/payment/domain/usecases/complete_mock_payment_use_case.dart';
 import 'package:trip_mate_mobile/features/payment/domain/usecases/create_or_reuse_payment_use_case.dart';
 import 'package:trip_mate_mobile/features/payment/domain/usecases/get_booking_payment_status_use_case.dart';
@@ -319,11 +320,15 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerFactory<CompleteMockPaymentUseCase>(
       () => CompleteMockPaymentUseCase(serviceLocator()),
     )
+    ..registerFactory<CancelPaymentUseCase>(
+      () => CancelPaymentUseCase(serviceLocator()),
+    )
     ..registerFactory<PaymentCubit>(
       () => PaymentCubit(
         createOrReusePayment: serviceLocator(),
         getBookingPaymentStatus: serviceLocator(),
         completeMockPayment: serviceLocator(),
+        cancelPayment: serviceLocator(),
       ),
     )
     ..registerLazySingleton<AuthRemoteDataSource>(
