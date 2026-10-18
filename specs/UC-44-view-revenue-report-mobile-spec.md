@@ -12,7 +12,7 @@ Included in scope:
 - Destination integration in `OperatorShellPage` (replacing the placeholder under the `Revenue` destination).
 - State management via `OperatorRevenueCubit` and `OperatorRevenueState`.
 - Filter controls: Period quick chips (This Month, Last Month, Last 30 Days, Custom Range), Granularity chips (Daily, Weekly, Monthly), and Tour Package filter picker.
-- Financial Summary cards: Gross Revenue, Payments Received, Discounts Given, Platform Commission (with rate), and Net Payout Due.
+- Financial summary: four primary cards (Gross Revenue, Net Payout, Platform Commission, Total Bookings / Travelers) plus an expandable settlement detail showing Payments Received, Discounts Given, and Refunded Amount.
 - Mobile-optimized Trend Chart: Bar/indicator visualizer showing Gross vs Net earnings across periods.
 - Tour Breakdown list: Touch-friendly card items displaying tour code, name, bookings, travelers, gross amount, and net amount.
 - Empty, loading, and error states conforming to SRS messages (MSG29, MSG126, MSG127, MSG128).
@@ -34,9 +34,10 @@ Excluded from scope:
 3. **Summary KPI Section**:
    - 2x2 grid of responsive cards:
      - **Gross Revenue** (Primary brand text, total sales volume).
-     - **Net Payout** (Highlighted in success color, net earnings after commission & discounts).
+     - **Net Payout** (Highlighted in success color, server-calculated collected sales less refunds and commission).
      - **Platform Commission** (Deduction display with commission rate e.g. 10%).
      - **Total Bookings / Travelers** (Operational volume).
+   - Expandable settlement detail: Payments Received, Discounts Given, Refunded Amount, and the server-provided calculation explanation.
 4. **Trend Chart**:
    - Visual bar chart displaying weekly/monthly comparisons between Gross and Net.
 5. **Tour Breakdown List**:
@@ -81,7 +82,7 @@ lib/features/tour_operator/
 
 - **BR-105**: Authenticated Operator context. Token injected automatically via `DioClient` / secure storage.
 - **BR-109 / BR-112**: All computations and aggregations originate authoritatively from the server.
-- **CR-07**: Dates formatted using `dd/MM/yyyy` in Asia/Ho_Chi_Minh. Currencies formatted with Vietnamese Dong symbol (`₫`).
+- **CR-07**: Dates are sent as `YYYY-MM-DD`, displayed using `dd/MM/yyyy` in Asia/Ho_Chi_Minh, and weekly labels are displayed exactly as supplied by the server. Currencies formatted with Vietnamese Dong symbol (`₫`).
 - **Validation**:
   - `startDate > endDate` triggers inline error snackbar or indicator with `MSG29`.
   - Empty results trigger an empty-state illustration with `MSG128` ("No records found matching your criteria.").
