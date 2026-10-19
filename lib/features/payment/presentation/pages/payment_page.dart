@@ -160,6 +160,60 @@ final class _PaymentPageState extends State<PaymentPage>
     }
   }
 
+  Future<void> _openBankingApp(String? paymentDeepLink) async {
+    final uri = paymentDeepLink == null ? null : Uri.tryParse(paymentDeepLink);
+    // A gateway may provide a bank-app deep link in the future. Never fall back
+    // to the PayOS web checkout here: the native QR flow must stay in-app.
+    if (uri != null &&
+        uri.hasScheme &&
+        uri.scheme != 'http' &&
+        uri.scheme != 'https') {
+      try {
+        if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
+      } catch (_) {
+        // Show the same actionable guidance below.
+      }
+    }
+
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.sm,
+          AppSpacing.lg,
+          AppSpacing.xl,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Mở ứng dụng ngân hàng',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            const Text(
+              'TripMate không thu thập thông tin ngân hàng. Hãy mở ứng dụng ngân hàng của bạn, chọn Quét QR và quét mã VietQR trên màn hình này.',
+              style: TextStyle(fontSize: 14, color: Color(0xFF475569)),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            FilledButton(
+              onPressed: () => Navigator.of(sheetContext).pop(),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                backgroundColor: AppColors.primary,
+              ),
+              child: const Text('Đã hiểu'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -291,6 +345,7 @@ final class _PaymentPageState extends State<PaymentPage>
                       if (url.isNotEmpty) _launchCheckout(url);
                     },
                     onGoHome: () => context.go(AppRoutes.home),
+                    onOpenBankApp: () => _openBankingApp(link?.qrCode),
                     onCancel: () => context.read<PaymentCubit>().cancelPayment(
                       widget.bookingId,
                     ),
@@ -542,6 +597,7 @@ final class _PayOsGatewayCard extends StatelessWidget {
     this.qrCode,
     required this.isLoading,
     required this.onOpenUrl,
+    required this.onOpenBankApp,
     required this.onGoHome,
     required this.onCancel,
   });
@@ -550,6 +606,7 @@ final class _PayOsGatewayCard extends StatelessWidget {
   final String? qrCode;
   final bool isLoading;
   final VoidCallback onOpenUrl;
+  final VoidCallback onOpenBankApp;
   final VoidCallback onGoHome;
   final VoidCallback onCancel;
 
@@ -622,6 +679,22 @@ final class _PayOsGatewayCard extends StatelessWidget {
               style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
             ),
             const SizedBox(height: AppSpacing.lg),
+            FilledButton.icon(
+              onPressed: isLoading ? null : onOpenBankApp,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              icon: const Icon(Icons.account_balance_outlined, size: 18),
+              label: const Text(
+                'Mở ứng dụng ngân hàng',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
           ],
           if (qrCode == null || qrCode!.isEmpty)
             FilledButton.icon(

@@ -77,6 +77,30 @@ void main() {
     });
 
     test(
+      'cancelPayment records cancellation and stops exposing a pending attempt',
+      () async {
+        await cubit.cancelPayment('booking-123');
+
+        expect(repository.cancelCalls, 1);
+        expect(repository.statusCalls, 1);
+        expect(cubit.state.status, PaymentActionStatus.statusLoaded);
+        expect(cubit.state.paymentStatus?.isCancelledTx, isTrue);
+      },
+    );
+
+    test(
+      'cancelPayment emits a failure when cancellation cannot be completed',
+      () async {
+        repository.failCancel = true;
+
+        await cubit.cancelPayment('booking-123');
+
+        expect(cubit.state.status, PaymentActionStatus.failure);
+        expect(cubit.state.failure?.message, 'Payment cancellation failed');
+      },
+    );
+
+    test(
       'submitMockOutcome Success transitions booking to confirmed',
       () async {
         await cubit.startPayment('booking-123');

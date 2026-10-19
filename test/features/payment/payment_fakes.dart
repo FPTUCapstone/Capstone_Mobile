@@ -7,7 +7,9 @@ final class FakePaymentRepository implements PaymentRepository {
     this.failCreate = false,
     this.failStatus = false,
     this.failMock = false,
+    this.failCancel = false,
     this.mockCheckoutUrl = 'https://pay.payos.vn/web/test123',
+    this.qrCode,
     this.initialBookingStatus = 'PendingPayment',
     this.initialPaymentStatus = 'Pending',
   });
@@ -15,7 +17,9 @@ final class FakePaymentRepository implements PaymentRepository {
   bool failCreate;
   bool failStatus;
   bool failMock;
+  bool failCancel;
   String mockCheckoutUrl;
+  String? qrCode;
   String initialBookingStatus;
   String initialPaymentStatus;
 
@@ -37,6 +41,7 @@ final class FakePaymentRepository implements PaymentRepository {
       amount: 1500000,
       currency: 'VND',
       checkoutUrl: mockCheckoutUrl,
+      qrCode: qrCode,
       expiresAt: DateTime.now().add(const Duration(minutes: 15)),
       status: PaymentTransactionStatus.pending,
     );
@@ -66,7 +71,9 @@ final class FakePaymentRepository implements PaymentRepository {
             ? PaymentTransactionStatus.success
             : (initialBookingStatus == 'Expired'
                   ? PaymentTransactionStatus.expired
-                  : PaymentTransactionStatus.pending),
+                  : (initialBookingStatus == 'Cancelled'
+                        ? PaymentTransactionStatus.cancelled
+                        : PaymentTransactionStatus.pending)),
       ),
     );
   }
@@ -74,6 +81,9 @@ final class FakePaymentRepository implements PaymentRepository {
   @override
   Future<void> cancelPayment(String bookingId) async {
     cancelCalls++;
+    if (failCancel) {
+      throw const ServerFailure('Payment cancellation failed');
+    }
     initialBookingStatus = 'Cancelled';
     initialPaymentStatus = 'Cancelled';
   }

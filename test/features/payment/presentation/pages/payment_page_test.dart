@@ -48,6 +48,37 @@ void main() {
     expect(find.text('1.500.000₫'), findsWidgets);
   });
 
+  testWidgets('shows the native banking-app action when PayOS provides VietQR', (
+    tester,
+  ) async {
+    final repository = FakePaymentRepository(
+      qrCode:
+          '00020101021238570010A00000072701270006970436011308810004555550208QRIBFTTA530370454061500005802VN6304TEST',
+    );
+    final cubit = PaymentCubit(
+      createOrReusePayment: CreateOrReusePaymentUseCase(repository),
+      getBookingPaymentStatus: GetBookingPaymentStatusUseCase(repository),
+      completeMockPayment: CompleteMockPaymentUseCase(repository),
+      cancelPayment: CancelPaymentUseCase(repository),
+    );
+    addTearDown(cubit.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: BlocProvider.value(
+          value: cubit,
+          child: const PaymentPage(bookingId: 'booking-test-id'),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Quét VietQR để thanh toán'), findsOneWidget);
+    expect(find.text('Mở ứng dụng ngân hàng'), findsOneWidget);
+  });
+
   testWidgets('displays success view when booking is confirmed', (
     tester,
   ) async {
