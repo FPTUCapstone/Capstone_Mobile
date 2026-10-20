@@ -189,7 +189,13 @@ class _TravelerSection extends StatelessWidget {
               FilledButton.icon(
                 onPressed: () => context.push(AppRoutes.tourSearch),
                 icon: const Icon(Icons.tour_outlined),
-                label: const Text('Tìm kiếm Tour'),
+                label: const Text('Search Tours'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              OutlinedButton.icon(
+                onPressed: () => context.push(AppRoutes.tourRecommendations),
+                icon: const Icon(Icons.recommend_outlined),
+                label: const Text('Tour Recommendations'),
               ),
             ],
             if (destination.section == TravelerSectionId.home ||

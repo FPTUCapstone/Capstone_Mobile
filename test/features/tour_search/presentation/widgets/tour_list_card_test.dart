@@ -6,6 +6,48 @@ import 'package:trip_mate_mobile/features/tour_search/presentation/widgets/tour_
 
 void main() {
   group('TourListCard', () {
+    for (final rating in <double?>[null, 4.5]) {
+      testWidgets('preserves navigation and nullable rating $rating', (
+        tester,
+      ) async {
+        var taps = 0;
+        final tour = TourSummary(
+          tourId: '9007199254740995',
+          title: 'Integrated search result',
+          destinations: const ['Da Nang'],
+          operatorName: 'Operator',
+          durationDays: 2,
+          basePrice: 900000,
+          currency: 'VND',
+          representativeScheduleId: null,
+          departureAtUtc: null,
+          availabilityStatus: AvailabilityStatus.unknown,
+          remainingSlots: null,
+          aggregateRating: rating,
+        );
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TourListCard(
+                tour: tour,
+                matchingScore: 0.8,
+                onTap: () => taps++,
+              ),
+            ),
+          ),
+        );
+        expect(find.text('80% match'), findsOneWidget);
+        expect(
+          find.text('★ 4.5'),
+          rating == null ? findsNothing : findsOneWidget,
+        );
+        expect(find.textContaining('null'), findsNothing);
+        await tester.tap(find.text('Integrated search result'));
+        expect(taps, 1);
+        expect(tester.takeException(), isNull);
+      });
+    }
+
     testWidgets('renders tour details correctly for available tour', (
       tester,
     ) async {
@@ -316,5 +358,37 @@ void main() {
         },
       );
     });
+
+    testWidgets(
+      'renders matching score badge in English (% match) when score is provided',
+      (tester) async {
+        const tour = TourSummary(
+          tourId: 'rec-201',
+          title: 'Tour Ba Na Hills',
+          destinations: ['Da Nang'],
+          operatorName: 'Danang Travel',
+          durationDays: 1,
+          basePrice: 1250000,
+          currency: 'VND',
+          representativeScheduleId: null,
+          departureAtUtc: null,
+          availabilityStatus: AvailabilityStatus.available,
+          remainingSlots: 5,
+          thumbnailUrl: null,
+        );
+
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(body: TourListCard(tour: tour, matchingScore: 0.95)),
+          ),
+        );
+
+        expect(find.text('95% match'), findsOneWidget);
+        expect(
+          tester.getSemantics(find.byType(TourListCard)).label,
+          contains('95% match'),
+        );
+      },
+    );
   });
 }

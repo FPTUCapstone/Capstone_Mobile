@@ -40,6 +40,13 @@ import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_email
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_operator_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/services/operator_document_picker.dart';
+import 'package:trip_mate_mobile/features/booking/data/datasources/booking_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/booking/data/repositories/booking_repository_impl.dart';
+import 'package:trip_mate_mobile/features/booking/domain/repositories/booking_repository.dart';
+import 'package:trip_mate_mobile/features/booking/domain/usecases/create_booking_use_case.dart';
+import 'package:trip_mate_mobile/features/booking/domain/usecases/get_booking_contact_use_case.dart';
+import 'package:trip_mate_mobile/features/booking/domain/usecases/quote_booking_use_case.dart';
+import 'package:trip_mate_mobile/features/booking/presentation/cubit/book_tour_cubit.dart';
 import 'package:trip_mate_mobile/features/coupon/data/datasources/coupon_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/coupon/data/repositories/coupon_repository_impl.dart';
 import 'package:trip_mate_mobile/features/coupon/domain/repositories/coupon_repository.dart';
@@ -53,6 +60,14 @@ import 'package:trip_mate_mobile/features/operator_tours/domain/usecases/tour_pa
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/operator_tours_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/services/tour_image_picker.dart';
+import 'package:trip_mate_mobile/features/payment/data/datasources/payment_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/payment/data/repositories/payment_repository_impl.dart';
+import 'package:trip_mate_mobile/features/payment/domain/repositories/payment_repository.dart';
+import 'package:trip_mate_mobile/features/payment/domain/usecases/cancel_payment_use_case.dart';
+import 'package:trip_mate_mobile/features/payment/domain/usecases/complete_mock_payment_use_case.dart';
+import 'package:trip_mate_mobile/features/payment/domain/usecases/create_or_reuse_payment_use_case.dart';
+import 'package:trip_mate_mobile/features/payment/domain/usecases/get_booking_payment_status_use_case.dart';
+import 'package:trip_mate_mobile/features/payment/presentation/cubit/payment_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/data/datasources/poi_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/poi/data/repositories/poi_repository_impl.dart';
 import 'package:trip_mate_mobile/features/poi/data/services/geolocator_poi_location_service.dart';
@@ -63,6 +78,17 @@ import 'package:trip_mate_mobile/features/poi/domain/usecases/get_poi_location_u
 import 'package:trip_mate_mobile/features/poi/domain/usecases/get_pois_use_case.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
+import 'package:trip_mate_mobile/features/tour_detail/data/datasources/dio_tour_detail_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/tour_detail/data/datasources/tour_detail_data_source.dart';
+import 'package:trip_mate_mobile/features/tour_detail/data/repositories/tour_detail_repository_impl.dart';
+import 'package:trip_mate_mobile/features/tour_detail/domain/repositories/tour_detail_repository.dart';
+import 'package:trip_mate_mobile/features/tour_detail/domain/usecases/get_tour_detail.dart';
+import 'package:trip_mate_mobile/features/tour_detail/presentation/cubit/tour_detail_cubit.dart';
+import 'package:trip_mate_mobile/features/tour_recommendations/data/datasources/tour_recommendations_data_source.dart';
+import 'package:trip_mate_mobile/features/tour_recommendations/data/repositories/tour_recommendations_repository_impl.dart';
+import 'package:trip_mate_mobile/features/tour_recommendations/domain/repositories/tour_recommendations_repository.dart';
+import 'package:trip_mate_mobile/features/tour_recommendations/domain/usecases/get_tour_recommendations.dart';
+import 'package:trip_mate_mobile/features/tour_recommendations/presentation/cubit/tour_recommendations_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_search/data/datasources/tour_search_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/tour_search/data/repositories/tour_search_repository_impl.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/repositories/tour_category_repository.dart';
@@ -207,6 +233,30 @@ Future<void> configureDependencies({AppConfig? config}) async {
         loadCategories: serviceLocator(),
       ),
     )
+    // ── Tour Recommendations ───────────────────────────────────────────
+    ..registerLazySingleton<TourRecommendationsDataSource>(
+      () => const PendingTourRecommendationsDataSource(),
+    )
+    ..registerLazySingleton<TourRecommendationsRepository>(
+      () => TourRecommendationsRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<GetTourRecommendations>(
+      () => GetTourRecommendations(serviceLocator()),
+    )
+    ..registerFactory<TourRecommendationsCubit>(
+      () => TourRecommendationsCubit(getTourRecommendations: serviceLocator()),
+    )
+    // ── Tour Detail ────────────────────────────────────────────────────
+    ..registerLazySingleton<TourDetailDataSource>(
+      () => DioTourDetailRemoteDataSource(serviceLocator()),
+    )
+    ..registerLazySingleton<TourDetailRepository>(
+      () => TourDetailRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<GetTourDetail>(() => GetTourDetail(serviceLocator()))
+    ..registerFactory<TourDetailCubit>(
+      () => TourDetailCubit(getTourDetail: serviceLocator()),
+    )
     ..registerLazySingleton<OperatorTourRemoteDataSource>(
       () => DioOperatorTourRemoteDataSource(serviceLocator()),
     )
@@ -248,6 +298,55 @@ Future<void> configureDependencies({AppConfig? config}) async {
         media: serviceLocator(),
         getPoiDetail: serviceLocator(),
         imagePicker: serviceLocator(),
+      ),
+    )
+    ..registerLazySingleton<BookingRemoteDataSource>(
+      () => DioBookingRemoteDataSource(serviceLocator()),
+    )
+    ..registerLazySingleton<BookingRepository>(
+      () => BookingRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<QuoteBookingUseCase>(
+      () => QuoteBookingUseCase(serviceLocator()),
+    )
+    ..registerFactory<CreateBookingUseCase>(
+      () => CreateBookingUseCase(serviceLocator()),
+    )
+    ..registerFactory<GetBookingContactUseCase>(
+      () => GetBookingContactUseCase(serviceLocator()),
+    )
+    ..registerFactoryParam<BookTourCubit, String, void>(
+      (tourScheduleId, _) => BookTourCubit(
+        tourScheduleId: tourScheduleId,
+        quoteBooking: serviceLocator(),
+        createBooking: serviceLocator(),
+        getBookingContact: serviceLocator(),
+      ),
+    )
+    ..registerLazySingleton<PaymentRemoteDataSource>(
+      () => DioPaymentRemoteDataSource(serviceLocator()),
+    )
+    ..registerLazySingleton<PaymentRepository>(
+      () => PaymentRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<CreateOrReusePaymentUseCase>(
+      () => CreateOrReusePaymentUseCase(serviceLocator()),
+    )
+    ..registerFactory<GetBookingPaymentStatusUseCase>(
+      () => GetBookingPaymentStatusUseCase(serviceLocator()),
+    )
+    ..registerFactory<CompleteMockPaymentUseCase>(
+      () => CompleteMockPaymentUseCase(serviceLocator()),
+    )
+    ..registerFactory<CancelPaymentUseCase>(
+      () => CancelPaymentUseCase(serviceLocator()),
+    )
+    ..registerFactory<PaymentCubit>(
+      () => PaymentCubit(
+        createOrReusePayment: serviceLocator(),
+        getBookingPaymentStatus: serviceLocator(),
+        completeMockPayment: serviceLocator(),
+        cancelPayment: serviceLocator(),
       ),
     )
     ..registerLazySingleton<AuthRemoteDataSource>(
