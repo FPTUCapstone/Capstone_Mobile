@@ -165,7 +165,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
             Center(
               child: TextButton.icon(
-                onPressed: () => context.go(AppRoutes.explore),
+                onPressed: () => context.go(AppRoutes.guestHome),
                 icon: const Icon(Icons.travel_explore),
                 label: const Text('Duyệt khám phá không cần đăng nhập'),
               ),
@@ -237,14 +237,11 @@ class _TripMateMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Container(
-        width: 64,
-        height: 64,
-        decoration: BoxDecoration(
-          color: AppColors.primary,
-          borderRadius: BorderRadius.circular(19),
-        ),
-        child: const Icon(Icons.landscape, color: Colors.white, size: 34),
+      child: Image.asset(
+        'assets/images/logo/tripmate_emblem_512.png',
+        width: 68,
+        height: 68,
+        fit: BoxFit.contain,
       ),
     );
   }
