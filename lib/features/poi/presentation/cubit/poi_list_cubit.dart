@@ -15,7 +15,8 @@ final class PoiListCubit extends Cubit<PoiListState> {
 
   final GetPoisUseCase _getPois;
   final GetPoiLocationUseCase? _getLocation;
-  bool _requestInFlight = false;
+  int _requestEpoch = 0;
+  int _latestResolvedEpoch = 0;
 
   Future<void> loadInitial() => _replace(state.query.copyWith(page: 1));
 
@@ -40,19 +41,35 @@ final class PoiListCubit extends Cubit<PoiListState> {
     ),
   );
 
-  void setMapView(bool value) => emit(state.copyWith(isMapView: value));
+  void setMapView(bool value) {
+    if (isClosed) return;
+    emit(state.copyWith(isMapView: value));
+  }
 
-  void selectPoi(int id) => emit(state.copyWith(selectedPoiId: id));
+  void selectPoi(int id) {
+    if (isClosed) return;
+    emit(state.copyWith(selectedPoiId: id));
+  }
 
-  void dismissLocationMessage() => emit(state.copyWith(locationMessage: null));
+  void dismissLocationMessage() {
+    if (isClosed) return;
+    emit(state.copyWith(locationMessage: null));
+  }
 
   Future<void> loadNextPage() async {
-    if (_requestInFlight || state.isLoadingMore || !state.canLoadMore) return;
-    _requestInFlight = true;
+    if (isClosed ||
+        state.isLoadingMore ||
+        !state.canLoadMore ||
+        _latestResolvedEpoch < _requestEpoch) {
+      return;
+    }
+    final requestEpoch = _requestEpoch;
+    final query = state.query;
+    final nextPage = state.page + 1;
     emit(state.copyWith(isLoadingMore: true, failure: null));
     try {
-      final nextPage = state.page + 1;
-      final result = await _getPois(state.query.copyWith(page: nextPage));
+      final result = await _getPois(query.copyWith(page: nextPage));
+      if (isClosed || requestEpoch != _requestEpoch) return;
       final byId = {for (final item in state.items) item.id: item};
       for (final item in result.items) {
         byId[item.id] = item;
@@ -71,49 +88,58 @@ final class PoiListCubit extends Cubit<PoiListState> {
         ),
       );
     } on ValidationFailure catch (failure) {
+      if (isClosed || requestEpoch != _requestEpoch) return;
       emit(state.copyWith(isLoadingMore: false, validationFailure: failure));
     } on Failure catch (failure) {
+      if (isClosed || requestEpoch != _requestEpoch) return;
       emit(state.copyWith(isLoadingMore: false, failure: failure));
-    } finally {
-      _requestInFlight = false;
     }
   }
 
   Future<void> requestLocation() async {
-    if (_getLocation == null || state.isLocating) return;
+    if (isClosed || _getLocation == null || state.isLocating) return;
+    final requestEpoch = ++_requestEpoch;
     emit(state.copyWith(isLocating: true, locationMessage: null));
     try {
       final location = await _getLocation();
+      if (isClosed || requestEpoch != _requestEpoch) return;
       await _replace(
         state.query.copyWith(
           originLatitude: location.latitude,
           originLongitude: location.longitude,
           page: 1,
         ),
+        isLocating: true,
       );
     } on LocationPermissionFailure catch (failure) {
+      if (isClosed || requestEpoch != _requestEpoch) return;
+      _latestResolvedEpoch = requestEpoch;
       emit(state.copyWith(isLocating: false, locationMessage: failure.message));
     } on Failure catch (failure) {
+      if (isClosed || requestEpoch != _requestEpoch) return;
+      _latestResolvedEpoch = requestEpoch;
       emit(state.copyWith(isLocating: false, locationMessage: failure.message));
     }
   }
 
-  Future<void> _replace(PoiQuery query) async {
-    if (_requestInFlight) return;
-    _requestInFlight = true;
+  Future<void> _replace(PoiQuery query, {bool isLocating = false}) async {
+    if (isClosed) return;
+    final requestEpoch = ++_requestEpoch;
     final hasData = state.items.isNotEmpty;
     emit(
       state.copyWith(
         status: hasData ? PoiListStatus.success : PoiListStatus.loading,
         query: query,
         isLoadingMore: false,
-        isLocating: state.isLocating,
+        isLocating: isLocating,
         failure: null,
         validationFailure: null,
       ),
     );
     try {
       final result = await _getPois(query);
+      if (isClosed || requestEpoch != _requestEpoch) return;
+      _latestResolvedEpoch = requestEpoch;
       emit(
         state.copyWith(
           status: PoiListStatus.success,
@@ -129,6 +155,8 @@ final class PoiListCubit extends Cubit<PoiListState> {
         ),
       );
     } on ValidationFailure catch (failure) {
+      if (isClosed || requestEpoch != _requestEpoch) return;
+      _latestResolvedEpoch = requestEpoch;
       emit(
         state.copyWith(
           status: hasData ? PoiListStatus.success : PoiListStatus.failure,
@@ -137,6 +165,8 @@ final class PoiListCubit extends Cubit<PoiListState> {
         ),
       );
     } on Failure catch (failure) {
+      if (isClosed || requestEpoch != _requestEpoch) return;
+      _latestResolvedEpoch = requestEpoch;
       emit(
         state.copyWith(
           status: hasData ? PoiListStatus.success : PoiListStatus.failure,
@@ -144,8 +174,6 @@ final class PoiListCubit extends Cubit<PoiListState> {
           failure: failure,
         ),
       );
-    } finally {
-      _requestInFlight = false;
     }
   }
 }
