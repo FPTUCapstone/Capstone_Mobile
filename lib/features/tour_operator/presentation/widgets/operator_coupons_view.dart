@@ -4,14 +4,41 @@ import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_empty_state.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
 /// Promotional Coupons List view for Tour Operator (SRS #81, #82, #83).
 class OperatorCouponsView extends StatelessWidget {
-  const OperatorCouponsView({super.key});
+  const OperatorCouponsView({this.isDemoMode = false, super.key});
+
+  final bool isDemoMode;
 
   @override
   Widget build(BuildContext context) {
+    if (!isDemoMode) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => context.push(AppRoutes.createCoupon),
+          icon: const Icon(Icons.add),
+          label: const Text('Tạo coupon mới'),
+          backgroundColor: AppColors.secondary,
+          foregroundColor: Colors.white,
+        ),
+        body: const Padding(
+          padding: EdgeInsets.all(AppSpacing.lg),
+          child: Center(
+            child: AppEmptyState(
+              icon: Icons.confirmation_number_outlined,
+              title: 'Chưa có mã khuyến mãi',
+              message:
+                  'Tính năng quản lý và phân phối coupon đối tác đang chờ kết nối API hệ thống (PENDING_BE_INTEGRATION).',
+            ),
+          ),
+        ),
+      );
+    }
+
     final coupons = [
       _CouponData(
         code: 'DANANG2026',
@@ -51,6 +78,35 @@ class OperatorCouponsView extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
+          Container(
+            margin: const EdgeInsets.only(bottom: AppSpacing.md),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF3C7),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFF59E0B)),
+            ),
+            child: const Row(
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: Color(0xFFD97706),
+                  size: 18,
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '[DỮ LIỆU THỬ NGHIỆM - DEMO] Danh sách mã giảm giá dưới đây là dữ liệu mẫu.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF92400E),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

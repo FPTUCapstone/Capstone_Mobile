@@ -583,7 +583,10 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
       GoRoute(
         path: AppRoutes.operator,
         name: AppRouteNames.operator,
-        builder: (_, _) => const OperatorShellPage(),
+        builder: (_, state) {
+          final isDemo = state.uri.queryParameters['demo'] == 'true';
+          return OperatorShellPage(isDemoMode: isDemo);
+        },
       ),
       GoRoute(
         path: AppRoutes.operatorTours,

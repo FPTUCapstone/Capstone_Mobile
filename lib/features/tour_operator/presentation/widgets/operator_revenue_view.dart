@@ -2,17 +2,66 @@ import 'package:flutter/material.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_empty_state.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
 /// Revenue, Analytics, Payout History and Settlement Request view for Tour Operator (SRS #89, #90, #91, #92).
 class OperatorRevenueView extends StatelessWidget {
-  const OperatorRevenueView({super.key});
+  const OperatorRevenueView({this.isDemoMode = false, super.key});
+
+  final bool isDemoMode;
 
   @override
   Widget build(BuildContext context) {
+    if (!isDemoMode) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Center(
+            child: AppEmptyState(
+              icon: Icons.account_balance_wallet_outlined,
+              title: 'Báo cáo doanh thu & Quyết toán',
+              message:
+                  'Dữ liệu doanh thu, số dư tài khoản và lịch sử quyết toán đối tác đang chờ kết nối cổng thanh toán máy chủ (PENDING_BE_INTEGRATION).',
+            ),
+          ),
+        ),
+      );
+    }
+
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
+        Container(
+          margin: const EdgeInsets.only(bottom: AppSpacing.md),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEF3C7),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFF59E0B)),
+          ),
+          child: const Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: Color(0xFFD97706),
+                size: 18,
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '[DỮ LIỆU THỬ NGHIỆM - DEMO] Số dư khả dụng và lịch sử giao dịch dưới đây là dữ liệu mẫu.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF92400E),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         // Revenue Overview Hero
         _buildFinancialHero(context),
         const SizedBox(height: AppSpacing.md),
@@ -331,9 +380,9 @@ class OperatorRevenueView extends StatelessWidget {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text(
-                    'Yêu cầu quyết toán đã được gửi đến Administrator.',
+                    'Chế độ dữ liệu mẫu: Thao tác giả lập thành công, không gọi API thanh toán thực tế.',
                   ),
-                  backgroundColor: AppColors.success,
+                  backgroundColor: AppColors.secondary,
                 ),
               );
             },

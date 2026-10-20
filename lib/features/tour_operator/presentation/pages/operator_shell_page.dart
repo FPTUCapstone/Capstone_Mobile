@@ -14,7 +14,9 @@ import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/ope
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 
 class OperatorShellPage extends StatefulWidget {
-  const OperatorShellPage({super.key});
+  const OperatorShellPage({this.isDemoMode = false, super.key});
+
+  final bool isDemoMode;
 
   @override
   State<OperatorShellPage> createState() => _OperatorShellPageState();
@@ -88,13 +90,14 @@ class _OperatorShellPageState extends State<OperatorShellPage> {
               index: _selectedIndex,
               children: [
                 OperatorDashboardView(
+                  isDemoMode: widget.isDemoMode,
                   onNavigateToTab: (index) =>
                       setState(() => _selectedIndex = index),
                 ),
                 _OperatorToursHub(),
-                const OperatorBookingsView(),
-                const OperatorRevenueView(),
-                const OperatorCouponsView(),
+                OperatorBookingsView(isDemoMode: widget.isDemoMode),
+                OperatorRevenueView(isDemoMode: widget.isDemoMode),
+                OperatorCouponsView(isDemoMode: widget.isDemoMode),
                 const OperatorProfileView(),
               ],
             ),

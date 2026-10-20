@@ -8,7 +8,9 @@ import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
 /// Customer Bookings & Passenger Manifest view for Tour Operator (SRS #84, #85, #86, #87).
 class OperatorBookingsView extends StatefulWidget {
-  const OperatorBookingsView({super.key});
+  const OperatorBookingsView({this.isDemoMode = false, super.key});
+
+  final bool isDemoMode;
 
   @override
   State<OperatorBookingsView> createState() => _OperatorBookingsViewState();
@@ -17,7 +19,7 @@ class OperatorBookingsView extends StatefulWidget {
 class _OperatorBookingsViewState extends State<OperatorBookingsView> {
   var _selectedFilter = 'all';
 
-  // Supported booking models for operator tours
+  // Supported booking models for operator tours (Demo mode fixtures only)
   final _bookings = [
     _OperatorBookingItem(
       bookingCode: 'BK-2026-901',
@@ -76,6 +78,23 @@ class _OperatorBookingsViewState extends State<OperatorBookingsView> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.isDemoMode) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Center(
+            child: AppEmptyState(
+              icon: Icons.confirmation_number_outlined,
+              title: 'Chưa có đơn đặt tour',
+              message:
+                  'Tính năng quản lý danh sách hành khách và đơn đặt chỗ đang chờ kết nối API hệ thống (PENDING_BE_INTEGRATION).',
+            ),
+          ),
+        ),
+      );
+    }
+
     final filtered = _bookings.where((b) {
       if (_selectedFilter == 'pending') {
         return b.status == _BookingStatus.pendingCheckIn ||
@@ -92,6 +111,31 @@ class _OperatorBookingsViewState extends State<OperatorBookingsView> {
 
     return Column(
       children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          color: const Color(0xFFFEF3C7),
+          child: const Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: Color(0xFFD97706),
+                size: 16,
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '[DỮ LIỆU THỬ NGHIỆM - DEMO] Danh sách khách hàng và mã đặt chỗ là dữ liệu mẫu.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF92400E),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         // Filter Chips Row
         Container(
           color: Colors.white,
@@ -458,7 +502,7 @@ class _OperatorBookingsViewState extends State<OperatorBookingsView> {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text(
-                    'Yêu cầu hoàn tiền đã được chuyển sang cổng thanh toán!',
+                    'Chế độ dữ liệu mẫu: Thao tác giả lập thành công, không gọi API thanh toán thực tế.',
                   ),
                 ),
               );
