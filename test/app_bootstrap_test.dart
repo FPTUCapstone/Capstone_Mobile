@@ -23,37 +23,49 @@ void main() {
 
   tearDown(() => serviceLocator.reset());
 
-  testWidgets('sign-in screen renders on app bootstrap', (tester) async {
+  testWidgets('guest landing screen renders on app bootstrap', (tester) async {
     await tester.pumpWidget(const TripMateApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Welcome back'), findsOneWidget);
-    expect(find.text('Sign in'), findsOneWidget);
-    expect(find.text('Email address'), findsOneWidget);
+    expect(
+      find.text('Hành trình trọn vẹn,\ntrải nghiệm thông minh'),
+      findsOneWidget,
+    );
+    expect(find.text('Tìm tour Đà Nẵng, Hội An, Huế...'), findsOneWidget);
+    expect(find.text('Tour du lịch thịnh hành'), findsOneWidget);
+    expect(find.text('Đăng nhập'), findsWidgets);
+    expect(find.text('Đăng ký'), findsOneWidget);
     expect(find.text('Demo credentials'), findsNothing);
     expect(find.text('Open demo screen index'), findsNothing);
     expect(find.text('Phone / OTP'), findsNothing);
   });
 
-  testWidgets('guest can enter public POI exploration without signing in', (
-    tester,
-  ) async {
-    await tester.pumpWidget(const TripMateApp());
-    await tester.pumpAndSettle();
+  testWidgets(
+    'guest can navigate to login and return via guest browse action',
+    (tester) async {
+      await tester.pumpWidget(const TripMateApp());
+      await tester.pumpAndSettle();
 
-    final guestExploreLink = find.text('Duyệt khám phá không cần đăng nhập');
-    await tester.scrollUntilVisible(
-      guestExploreLink,
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.widgetWithText(TextButton, 'Duyệt khám phá không cần đăng nhập'),
-    );
-    await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      await tester.tap(find.widgetWithText(TextButton, 'Đăng nhập').first);
+      await tester.pumpAndSettle();
 
-    expect(find.text('Khám phá miền Trung'), findsOneWidget);
-    expect(find.text('Đăng nhập'), findsOneWidget);
-  });
+      expect(find.text('Welcome back'), findsOneWidget);
+      expect(find.text('Sign in'), findsOneWidget);
+
+      final guestExploreLink = find.text('Duyệt khám phá không cần đăng nhập');
+      await tester.scrollUntilVisible(
+        guestExploreLink,
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(guestExploreLink);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Hành trình trọn vẹn,\ntrải nghiệm thông minh'),
+        findsOneWidget,
+      );
+    },
+  );
 }

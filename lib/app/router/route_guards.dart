@@ -22,7 +22,7 @@ abstract final class RouteGuards {
         ).toString();
       }
       if (location == AppRoutes.splash) {
-        return AppRoutes.login;
+        return AppRoutes.guestHome;
       }
       return null;
     }

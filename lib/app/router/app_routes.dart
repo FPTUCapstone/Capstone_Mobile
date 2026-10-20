@@ -8,6 +8,7 @@ abstract final class AppRoutes {
   static const operatorRegistration = '/auth/register/operator';
   static const operatorEmailRecovery = '/auth/operator/verify-email';
   static const explore = '/explore';
+  static const guestHome = '/guest/home';
   static const poiDetailPattern = '/explore/poi/:id';
   static const tourSearch = '/explore/tours';
   static const tourDetailPattern = '/explore/tours/:tourId';
@@ -101,6 +102,7 @@ abstract final class AppRouteNames {
   static const operatorRegistration = 'operator-registration';
   static const operatorEmailRecovery = 'operator-email-recovery';
   static const explore = 'explore';
+  static const guestHome = 'guest-home';
   static const poiDetail = 'poi-detail';
   static const tourSearch = 'tour-search';
   static const tourDetail = 'tour-detail';
