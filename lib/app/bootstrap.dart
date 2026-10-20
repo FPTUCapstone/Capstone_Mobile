@@ -9,12 +9,26 @@ import 'package:trip_mate_mobile/firebase_options.dart';
 
 Future<void> bootstrap({AppConfig? config}) async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await GoogleSignIn.instance.initialize();
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint('Firebase initialization skipped or failed: $e');
+  }
+  try {
+    await GoogleSignIn.instance.initialize();
+  } catch (e) {
+    debugPrint('GoogleSignIn initialization skipped: $e');
+  }
   await configureDependencies(config: config);
   final mapboxAccessToken = serviceLocator<AppConfig>().mapboxAccessToken;
   if (mapboxAccessToken != null) {
-    MapboxOptions.setAccessToken(mapboxAccessToken);
+    try {
+      MapboxOptions.setAccessToken(mapboxAccessToken);
+    } catch (e) {
+      debugPrint('Mapbox setAccessToken skipped: $e');
+    }
   }
   runApp(const TripMateApp());
 }
