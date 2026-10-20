@@ -42,4 +42,7 @@ abstract final class TripFormatters {
     }
     return '${buffer.toString()} VND';
   }
+
+  /// Alias for formatting currency amount in VND.
+  static String formatCurrencyVnd(int amount) => formatVnd(amount);
 }
