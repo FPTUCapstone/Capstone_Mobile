@@ -922,6 +922,8 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
                 body = _buildTourSkeletonList();
               } else if (state.items.isNotEmpty) {
                 body = _buildDynamicTourList(state.items);
+              } else if (state.status == TourSearchStatus.failure) {
+                body = _buildTourRetryState(context);
               } else {
                 body = _buildCuratedTourList(context);
               }
@@ -1118,6 +1120,63 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
     );
   }
 
+  Widget _buildTourRetryState(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.cloud_off_outlined,
+            color: AppColors.muted,
+            size: 32,
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Không thể tải danh sách tour du lịch mới nhất',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: AppColors.ink,
+            ),
+          ),
+          const SizedBox(height: 2),
+          const Text(
+            'Kiểm tra kết nối mạng và thử lại, hoặc khám phá danh mục tour.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 11, color: AppColors.muted),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () => _tourCubit?.loadInitial(),
+                icon: const Icon(Icons.refresh, size: 14),
+                label: const Text('Thử lại', style: TextStyle(fontSize: 12)),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                onPressed: () => context.push(AppRoutes.tourSearch),
+                icon: const Icon(Icons.travel_explore, size: 14),
+                label: const Text(
+                  'Khám phá tour',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCuratedTourList(BuildContext context) {
     final tours = [
       {
@@ -1175,8 +1234,7 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () =>
-                    context.push(AppRoutes.tourDetail(t['id'] as String)),
+                onTap: () => context.push(AppRoutes.tourSearch),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

@@ -426,31 +426,31 @@ class TravelerHomeDashboardView extends StatelessWidget {
   }
 
   Widget _buildFeaturedToursSection(BuildContext context) {
-    // Curated tours showcase
+    // Curated tours showcase directing to verified catalog
     final sampleTours = [
       _TourCardData(
-        id: '1',
+        id: 'hue',
         title: 'Khám phá Cố đô Huế & Ca Huế sông Hương',
         duration: '1 Ngày',
         rating: 4.9,
         price: 850000,
-        tag: 'Bán chạy',
+        tag: 'Gợi ý khám phá',
       ),
       _TourCardData(
-        id: '2',
+        id: 'bana',
         title: 'Bà Nà Hills & Cầu Vàng trọn gói',
         duration: '1 Ngày',
         rating: 4.8,
         price: 1250000,
-        tag: 'Nổi bật',
+        tag: 'Gợi ý khám phá',
       ),
       _TourCardData(
-        id: '3',
+        id: 'hoian',
         title: 'Hội An phố cổ & Rừng dừa Bảy Mẫu',
         duration: 'Nửa ngày',
         rating: 4.9,
         price: 650000,
-        tag: 'Ưu đãi',
+        tag: 'Gợi ý khám phá',
       ),
     ];
 
@@ -485,7 +485,7 @@ class TravelerHomeDashboardView extends StatelessWidget {
                 margin: const EdgeInsets.only(right: AppSpacing.sm),
                 child: AppCard(
                   padding: const EdgeInsets.all(AppSpacing.md),
-                  onTap: () => context.push(AppRoutes.tourDetail(tour.id)),
+                  onTap: () => context.push(AppRoutes.tourSearch),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

@@ -47,4 +47,21 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'GuestLandingPage displays curated tour section safely without synthetic broken detail routes',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: GuestLandingPage())),
+      );
+      await tester.pumpAndSettle();
+
+      // Curated tour cards are present in home list
+      expect(find.text('Tour du lịch thịnh hành'), findsOneWidget);
+      expect(
+        find.text('Khám phá Cố đô Huế & Ca Huế Sông Hương'),
+        findsOneWidget,
+      );
+    },
+  );
 }
