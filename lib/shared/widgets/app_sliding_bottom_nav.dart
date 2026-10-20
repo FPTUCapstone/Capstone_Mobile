@@ -23,9 +23,9 @@ class AppNavDestination {
   final String? badge;
 }
 
-/// A high-performance, mobile-first bottom navigation bar featuring clear
-/// active/inactive distinction, a subtle circular ripple feedback on tap,
-/// full accessibility semantics, and zero layout shifts.
+/// A high-performance, mobile-first bottom navigation bar featuring a persistent
+/// animated sliding highlight capsule, clear active/inactive distinction, a subtle
+/// circular ripple feedback on tap, full accessibility semantics, and zero layout shifts.
 class AppSlidingBottomNav extends StatelessWidget {
   const AppSlidingBottomNav({
     required this.selectedIndex,
@@ -35,7 +35,7 @@ class AppSlidingBottomNav extends StatelessWidget {
     this.highlightColor = AppColors.primarySoft,
     this.activeColor = AppColors.secondary,
     this.inactiveColor = AppColors.muted,
-    this.showHighlightCapsule = false,
+    this.showHighlightCapsule = true,
     super.key,
   }) : assert(destinations.length >= 2, 'Must have at least 2 destinations'),
        assert(
@@ -55,7 +55,7 @@ class AppSlidingBottomNav extends StatelessWidget {
   /// Background color of the navigation bar container.
   final Color backgroundColor;
 
-  /// Background color of the moving capsule indicator (if enabled).
+  /// Background color of the moving capsule indicator.
   final Color highlightColor;
 
   /// Text and icon color for the active tab.
@@ -65,8 +65,7 @@ class AppSlidingBottomNav extends StatelessWidget {
   final Color inactiveColor;
 
   /// Whether to display a moving capsule background behind the active tab.
-  /// Defaults to `false` to avoid heavy block overlays and maintain a clean,
-  /// modern native look with circular tap ripples.
+  /// Defaults to `true` to deliver the persistent sliding highlight experience.
   final bool showHighlightCapsule;
 
   @override
@@ -98,31 +97,31 @@ class AppSlidingBottomNav extends StatelessWidget {
                 final totalWidth = constraints.maxWidth;
                 final slotWidth = totalWidth / count;
                 // Capsule width is proportional to slot width, clamped to comfortable bounds.
-                final pillWidth = (slotWidth - 10).clamp(48.0, 78.0);
+                final pillWidth = (slotWidth - 12).clamp(52.0, 76.0);
                 final pillLeft =
                     selectedIndex * slotWidth + (slotWidth - pillWidth) / 2;
 
                 return Stack(
                   alignment: Alignment.centerLeft,
                   children: [
-                    // Moving highlight capsule (hidden by default for clean native UI)
+                    // Moving highlight capsule (animates smoothly between tabs)
                     AnimatedPositioned(
                       duration: disableAnimations
                           ? Duration.zero
                           : const Duration(milliseconds: 280),
                       curve: Curves.easeOutCubic,
                       left: pillLeft,
-                      top: 7,
+                      top: 9,
                       width: pillWidth,
-                      height: 50,
+                      height: 46,
                       child: showHighlightCapsule
                           ? Container(
                               decoration: BoxDecoration(
                                 color: highlightColor,
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(23),
                                 border: Border.all(
-                                  color: activeColor.withValues(alpha: 0.22),
-                                  width: 1.2,
+                                  color: activeColor.withValues(alpha: 0.20),
+                                  width: 1.0,
                                 ),
                                 boxShadow: [
                                   BoxShadow(

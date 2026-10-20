@@ -108,17 +108,60 @@ void main() {
       ),
     );
 
-    // Initial position of AnimatedPositioned
-    final initialPos = tester.widget<AnimatedPositioned>(
-      find.byType(AnimatedPositioned),
+    // Capsule container is rendered with rounded pill styling by default
+    final capsuleFinder = find.descendant(
+      of: find.byType(AnimatedPositioned),
+      matching: find.byType(Container),
     );
-    expect(initialPos.duration, const Duration(milliseconds: 280));
+    expect(capsuleFinder, findsOneWidget);
+    final initialLeft = tester.getRect(capsuleFinder).left;
 
     // Tap last tab
     await tester.tap(find.text('Tài khoản'));
     await tester.pump(); // Start animation
-    await tester.pump(const Duration(milliseconds: 140)); // Mid animation
+    await tester.pump(const Duration(milliseconds: 80)); // Mid-flight animation
+
+    final midLeft = tester.getRect(capsuleFinder).left;
+    expect(midLeft, greaterThan(initialLeft));
+
     await tester.pumpAndSettle(); // End animation
+
+    final endLeft = tester.getRect(capsuleFinder).left;
+    expect(endLeft, greaterThan(midLeft));
+    expect(selected, 3);
+    expect(find.byIcon(Icons.person), findsOneWidget);
+  });
+
+  testWidgets('handles rapid switching across multiple tabs smoothly', (
+    tester,
+  ) async {
+    var selected = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            return Scaffold(
+              bottomNavigationBar: AppSlidingBottomNav(
+                selectedIndex: selected,
+                onDestinationSelected: (index) {
+                  setState(() => selected = index);
+                },
+                destinations: testDestinations,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    // Rapidly tap through all tabs
+    await tester.tap(find.text('Khám phá'));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.text('Tour'));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.text('Tài khoản'));
+    await tester.pumpAndSettle();
 
     expect(selected, 3);
     expect(find.byIcon(Icons.person), findsOneWidget);
