@@ -2,13 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
+import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/operator_bookings_view.dart';
+import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/operator_coupons_view.dart';
+import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/operator_dashboard_view.dart';
+import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/operator_profile_view.dart';
+import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/operator_revenue_view.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 
 class OperatorShellPage extends StatefulWidget {
-  const OperatorShellPage({super.key});
+  const OperatorShellPage({this.isDemoMode = false, super.key});
+
+  final bool isDemoMode;
 
   @override
   State<OperatorShellPage> createState() => _OperatorShellPageState();
@@ -16,12 +24,24 @@ class OperatorShellPage extends StatefulWidget {
 
 class _OperatorShellPageState extends State<OperatorShellPage> {
   static const _destinations = <_OperatorDestination>[
-    _OperatorDestination('Dashboard', Icons.dashboard_outlined),
-    _OperatorDestination('Tours', Icons.tour_outlined),
-    _OperatorDestination('Bookings', Icons.book_online_outlined),
-    _OperatorDestination('Revenue', Icons.payments_outlined),
-    _OperatorDestination('Coupons', Icons.confirmation_number_outlined),
-    _OperatorDestination('Profile', Icons.business_outlined),
+    _OperatorDestination(
+      'Dashboard',
+      Icons.dashboard_outlined,
+      Icons.dashboard,
+    ),
+    _OperatorDestination('Tours', Icons.tour_outlined, Icons.tour),
+    _OperatorDestination(
+      'Bookings',
+      Icons.book_online_outlined,
+      Icons.book_online,
+    ),
+    _OperatorDestination('Revenue', Icons.payments_outlined, Icons.payments),
+    _OperatorDestination(
+      'Coupons',
+      Icons.confirmation_number_outlined,
+      Icons.confirmation_number,
+    ),
+    _OperatorDestination('Profile', Icons.business_outlined, Icons.business),
   ];
 
   var _selectedIndex = 0;
@@ -39,7 +59,10 @@ class _OperatorShellPageState extends State<OperatorShellPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Operator · ${_destinations[_selectedIndex].label}'),
+        title: Text(
+          'Operator · ${_destinations[_selectedIndex].label}',
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
         actions: [
           IconButton(
             // Busy state comes from the Cubit's own sign-out marker, so a
@@ -65,11 +88,18 @@ class _OperatorShellPageState extends State<OperatorShellPage> {
           Expanded(
             child: IndexedStack(
               index: _selectedIndex,
-              children: _destinations
-                  .map(
-                    (destination) => _OperatorSection(destination: destination),
-                  )
-                  .toList(growable: false),
+              children: [
+                OperatorDashboardView(
+                  isDemoMode: widget.isDemoMode,
+                  onNavigateToTab: (index) =>
+                      setState(() => _selectedIndex = index),
+                ),
+                _OperatorToursHub(),
+                OperatorBookingsView(isDemoMode: widget.isDemoMode),
+                OperatorRevenueView(isDemoMode: widget.isDemoMode),
+                OperatorCouponsView(isDemoMode: widget.isDemoMode),
+                const OperatorProfileView(),
+              ],
             ),
           ),
         ],
@@ -83,6 +113,7 @@ class _OperatorShellPageState extends State<OperatorShellPage> {
             .map(
               (destination) => NavigationDestination(
                 icon: Icon(destination.icon),
+                selectedIcon: Icon(destination.selectedIcon),
                 label: destination.label,
               ),
             )
@@ -92,133 +123,57 @@ class _OperatorShellPageState extends State<OperatorShellPage> {
   }
 }
 
-class _OperatorSection extends StatelessWidget {
-  const _OperatorSection({required this.destination});
-
-  final _OperatorDestination destination;
-
+class _OperatorToursHub extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    if (destination.label == 'Tours') {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                destination.icon,
-                size: 56,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                'Manage tours',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              const Text(
-                'Create a commercial tour package, keep editing your drafts and submit them for review.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              OutlinedButton.icon(
-                onPressed: () => context.push(AppRoutes.operatorTours),
-                icon: const Icon(Icons.list_alt_outlined),
-                label: const Text('My tour packages'),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              FilledButton.icon(
-                onPressed: () => context.push(AppRoutes.createTourPackage),
-                icon: const Icon(Icons.add),
-                label: const Text('Create tour package'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-    if (destination.label == 'Profile') {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                destination.icon,
-                size: 56,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                'Operator Profile',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              const Text('Feature placeholder', textAlign: TextAlign.center),
-              const SizedBox(height: AppSpacing.md),
-              OutlinedButton.icon(
-                onPressed: () => context.push(AppRoutes.operatorChangePassword),
-                icon: const Icon(Icons.lock_outline),
-                label: const Text('Change password'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-    if (destination.label == 'Coupons') {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                destination.icon,
-                size: 56,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                'Offer a discount',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              const Text(
-                'Create a coupon for your approved tours.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              FilledButton.icon(
-                onPressed: () => context.push(AppRoutes.createCoupon),
-                icon: const Icon(Icons.add),
-                label: const Text('Create coupon'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              destination.icon,
-              size: 56,
-              color: Theme.of(context).colorScheme.primary,
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppColors.primarySoft,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.tour_outlined,
+                size: 38,
+                color: AppColors.secondary,
+              ),
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Operator ${destination.label}',
-              style: Theme.of(context).textTheme.titleLarge,
+              'Manage tours',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink,
+              ),
             ),
             const SizedBox(height: AppSpacing.xs),
-            const Text('Feature placeholder', textAlign: TextAlign.center),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 320),
+              child: const Text(
+                'Create a commercial tour package, keep editing your drafts and submit them for review.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.muted, height: 1.4),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            OutlinedButton.icon(
+              onPressed: () => context.push(AppRoutes.operatorTours),
+              icon: const Icon(Icons.list_alt_outlined),
+              label: const Text('My tour packages'),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            FilledButton.icon(
+              onPressed: () => context.push(AppRoutes.createTourPackage),
+              icon: const Icon(Icons.add),
+              label: const Text('Create tour package'),
+            ),
           ],
         ),
       ),
@@ -227,8 +182,9 @@ class _OperatorSection extends StatelessWidget {
 }
 
 class _OperatorDestination {
-  const _OperatorDestination(this.label, this.icon);
+  const _OperatorDestination(this.label, this.icon, this.selectedIcon);
 
-  final IconData icon;
   final String label;
+  final IconData icon;
+  final IconData selectedIcon;
 }

@@ -205,13 +205,14 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerFactory<PoiDetailCubit>(() => PoiDetailCubit(serviceLocator()))
     // ── Tour Search ────────────────────────────────────────────────────
-    ..registerLazySingleton<DioTourSearchRemoteDataSource>(
+    // Cancellation belongs to one consumer (Guest or Search), not the app.
+    ..registerFactory<DioTourSearchRemoteDataSource>(
       () => DioTourSearchRemoteDataSource(
         serviceLocator(),
         config: serviceLocator(),
       ),
     )
-    ..registerLazySingleton<TourSearchRemoteDataSource>(
+    ..registerFactory<TourSearchRemoteDataSource>(
       () => serviceLocator<DioTourSearchRemoteDataSource>(),
     )
     ..registerLazySingleton<TourCategoryRepository>(
@@ -220,7 +221,7 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerLazySingleton<LoadTourCategoriesUseCase>(
       () => LoadTourCategoriesUseCase(serviceLocator()),
     )
-    ..registerLazySingleton<TourSearchRepository>(
+    ..registerFactory<TourSearchRepository>(
       () => TourSearchRepositoryImpl(serviceLocator()),
     )
     ..registerFactory<SearchToursUseCase>(

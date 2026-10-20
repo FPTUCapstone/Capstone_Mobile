@@ -29,6 +29,7 @@ import 'package:trip_mate_mobile/features/booking/presentation/cubit/book_tour_c
 import 'package:trip_mate_mobile/features/booking/presentation/pages/book_tour_page.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/cubit/create_coupon_cubit.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/pages/create_coupon_page.dart';
+import 'package:trip_mate_mobile/features/guest/presentation/pages/guest_landing_page.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/operator_tours_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/create_tour_package_page.dart';
@@ -152,6 +153,11 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
             isTraveler: sessionCubit.state.role == UserRole.traveler,
           ),
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.guestHome,
+        name: AppRouteNames.guestHome,
+        builder: (_, _) => const GuestLandingPage(),
       ),
       GoRoute(
         path: AppRoutes.poiDetailPattern,
@@ -577,7 +583,10 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
       GoRoute(
         path: AppRoutes.operator,
         name: AppRouteNames.operator,
-        builder: (_, _) => const OperatorShellPage(),
+        builder: (_, state) {
+          final isDemo = state.uri.queryParameters['demo'] == 'true';
+          return OperatorShellPage(isDemoMode: isDemo);
+        },
       ),
       GoRoute(
         path: AppRoutes.operatorTours,
