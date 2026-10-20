@@ -9,15 +9,22 @@ import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
 /// Tour Operator Dashboard screen implementing SRS #75 & QR Check-in shortcut (SRS #88).
 class OperatorDashboardView extends StatelessWidget {
-  const OperatorDashboardView({required this.onNavigateToTab, super.key});
+  const OperatorDashboardView({
+    required this.onNavigateToTab,
+    this.isDemoMode = false,
+    super.key,
+  });
 
   final void Function(int index) onNavigateToTab;
+  final bool isDemoMode;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
+        if (isDemoMode) _buildDemoBanner(),
+
         // Operator Welcome Header
         _buildHeader(context),
         const SizedBox(height: AppSpacing.md),
@@ -37,6 +44,34 @@ class OperatorDashboardView extends StatelessWidget {
         // Recent Bookings Snapshot
         _buildRecentBookingsSection(context),
       ],
+    );
+  }
+
+  Widget _buildDemoBanner() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF3C7),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFF59E0B)),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 18),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '[DỮ LIỆU THỬ NGHIỆM - DEMO] Chỉ số tài chính & đơn đặt chỗ dưới đây là dữ liệu mẫu.',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF92400E),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -200,8 +235,8 @@ class OperatorDashboardView extends StatelessWidget {
             Expanded(
               child: _MetricCard(
                 title: 'Tour hoạt động',
-                value: '4 gói',
-                subtitle: '2 bản nháp',
+                value: isDemoMode ? '4 gói' : '--',
+                subtitle: isDemoMode ? '2 bản nháp' : 'Chờ kết nối API',
                 icon: Icons.tour_outlined,
                 color: const Color(0xFF0284C7),
                 onTap: () => onNavigateToTab(1), // Tours tab
@@ -211,8 +246,8 @@ class OperatorDashboardView extends StatelessWidget {
             Expanded(
               child: _MetricCard(
                 title: 'Đơn đặt chỗ',
-                value: '18 lượt',
-                subtitle: '5 chờ check-in',
+                value: isDemoMode ? '18 lượt' : '--',
+                subtitle: isDemoMode ? '5 chờ check-in' : 'Chờ kết nối API',
                 icon: Icons.confirmation_number_outlined,
                 color: const Color(0xFF0D9488),
                 onTap: () => onNavigateToTab(2), // Bookings tab
@@ -226,8 +261,8 @@ class OperatorDashboardView extends StatelessWidget {
             Expanded(
               child: _MetricCard(
                 title: 'Doanh thu tháng',
-                value: '38.500.000 đ',
-                subtitle: 'Đã sẵn sàng rút',
+                value: isDemoMode ? '38.500.000 đ' : '-- đ',
+                subtitle: isDemoMode ? 'Đã sẵn sàng rút' : 'Chờ kết nối API',
                 icon: Icons.payments_outlined,
                 color: const Color(0xFF059669),
                 onTap: () => onNavigateToTab(3), // Revenue tab
@@ -237,8 +272,8 @@ class OperatorDashboardView extends StatelessWidget {
             Expanded(
               child: _MetricCard(
                 title: 'Mã giảm giá',
-                value: '3 mã',
-                subtitle: 'Đang áp dụng',
+                value: isDemoMode ? '3 mã' : '--',
+                subtitle: isDemoMode ? 'Đang áp dụng' : 'Chờ kết nối API',
                 icon: Icons.local_offer_outlined,
                 color: const Color(0xFFD97706),
                 onTap: () => onNavigateToTab(4), // Coupons tab
@@ -251,6 +286,40 @@ class OperatorDashboardView extends StatelessWidget {
   }
 
   Widget _buildTodayDeparturesCard(BuildContext context) {
+    if (!isDemoMode) {
+      return AppCard(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(
+                  Icons.directions_bus_outlined,
+                  size: 18,
+                  color: AppColors.muted,
+                ),
+                SizedBox(width: 6),
+                Text(
+                  'Khởi hành hôm nay',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: AppColors.ink,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            const Text(
+              'Chưa có lịch tour khởi hành trong ngày (PENDING_BE_INTEGRATION).',
+              style: TextStyle(fontSize: 13, color: AppColors.muted),
+            ),
+          ],
+        ),
+      );
+    }
+
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
@@ -323,6 +392,43 @@ class OperatorDashboardView extends StatelessWidget {
   }
 
   Widget _buildRecentBookingsSection(BuildContext context) {
+    if (!isDemoMode) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Đơn đặt tour gần đây',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.ink,
+                ),
+              ),
+              TextButton(
+                onPressed: () => onNavigateToTab(2),
+                child: const Text('Xem tất cả'),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          const AppCard(
+            padding: EdgeInsets.all(AppSpacing.md),
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'Chưa có đơn đặt tour gần đây hoặc đang chờ đồng bộ API.',
+                  style: TextStyle(fontSize: 13, color: AppColors.muted),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -445,11 +551,14 @@ class OperatorDashboardView extends StatelessWidget {
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.check_circle, color: AppColors.success),
-              SizedBox(width: 8),
-              Text('Check-in thành công'),
+              Icon(
+                isDemoMode ? Icons.check_circle : Icons.info_outline,
+                color: isDemoMode ? AppColors.success : AppColors.secondary,
+              ),
+              const SizedBox(width: 8),
+              Text(isDemoMode ? 'Check-in thành công (Demo)' : 'Đã quét mã vé'),
             ],
           ),
           content: Column(
@@ -461,14 +570,17 @@ class OperatorDashboardView extends StatelessWidget {
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 6),
-              const Text('Hành khách: Đã xác thực hợp lệ.'),
-              const Text('Trạng thái: Đã đánh dấu tham gia tour khởi hành.'),
+              Text(
+                isDemoMode
+                    ? 'Hành khách: Đã xác thực hợp lệ (Dữ liệu mẫu).'
+                    : 'Tính năng kết nối API xác thực vé đối tác đang chờ triển khai (PENDING_BE_INTEGRATION).',
+              ),
             ],
           ),
           actions: [
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Hoàn tất'),
+              child: const Text('Đóng'),
             ),
           ],
         ),
