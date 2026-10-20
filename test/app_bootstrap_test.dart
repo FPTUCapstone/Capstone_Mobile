@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trip_mate_mobile/app/app.dart';
+import 'package:trip_mate_mobile/app/bootstrap.dart';
 import 'package:trip_mate_mobile/app/config/app_config.dart';
+import 'package:trip_mate_mobile/app/config/app_initialization_status.dart';
 import 'package:trip_mate_mobile/app/config/environment.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
@@ -22,6 +24,44 @@ void main() {
   });
 
   tearDown(() => serviceLocator.reset());
+
+  test('AppInitializationStatus tracks degraded status cleanly', () {
+    const degraded = AppInitializationStatus(
+      isFirebaseAvailable: false,
+      isGoogleSignInAvailable: false,
+      isMapboxAvailable: false,
+      firebaseError: 'Firebase initialization unavailable in test',
+    );
+
+    expect(degraded.isDegraded, isTrue);
+    expect(degraded.isFullyInitialized, isFalse);
+    expect(degraded.firebaseError, isNotNull);
+
+    const full = AppInitializationStatus(
+      isFirebaseAvailable: true,
+      isGoogleSignInAvailable: true,
+      isMapboxAvailable: true,
+    );
+
+    expect(full.isDegraded, isFalse);
+    expect(full.isFullyInitialized, isTrue);
+  });
+
+  test(
+    'bootstrap records initialization status in service locator without throwing',
+    () async {
+      final status = await bootstrap(
+        config: AppConfig(
+          environment: Environment.development,
+          apiBaseUrl: Uri.parse('https://api.test.invalid'),
+        ),
+        launchApp: false,
+      );
+
+      expect(serviceLocator.isRegistered<AppInitializationStatus>(), isTrue);
+      expect(serviceLocator<AppInitializationStatus>(), equals(status));
+    },
+  );
 
   testWidgets('guest landing screen renders on app bootstrap', (tester) async {
     await tester.pumpWidget(const TripMateApp());
