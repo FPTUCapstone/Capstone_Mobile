@@ -58,3 +58,5 @@ app.*.map.json
 
 # Local Dart defines with the Mapbox token (flutter run --dart-define-from-file=mapbox.local.json)
 mapbox.local.json
+
+/config/mapbox.local.json
