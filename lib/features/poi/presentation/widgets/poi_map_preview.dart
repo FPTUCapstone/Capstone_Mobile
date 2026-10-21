@@ -35,6 +35,19 @@ class PoiMapPreview extends StatefulWidget {
   /// Optional override for testing environments without native platform views.
   final bool? useMapbox;
 
+  static bool isValidCoordinate(double? lat, double? lng) {
+    if (lat == null || lng == null) return false;
+    if (lat.isNaN || lng.isNaN) return false;
+    if (lat < -90.0 || lat > 90.0) return false;
+    if (lng < -180.0 || lng > 180.0) return false;
+    if (lat.abs() < 0.0001 && lng.abs() < 0.0001) return false;
+    return true;
+  }
+
+  static bool isValidPoiCoordinate(PoiSummary poi) {
+    return isValidCoordinate(poi.latitude, poi.longitude);
+  }
+
   @override
   State<PoiMapPreview> createState() => _PoiMapPreviewState();
 }
@@ -52,6 +65,7 @@ class _PoiMapPreviewState extends State<PoiMapPreview> {
   Future<void> _syncQueue = Future.value();
   bool _hasInitialFramed = false;
   double _currentZoom = 10.0;
+  int _latestLocationRequestId = 0;
 
   void _handleCameraChange(CameraChangedEventData event) {
     final newZoom = event.cameraState.zoom;
@@ -137,7 +151,9 @@ class _PoiMapPreviewState extends State<PoiMapPreview> {
       return _HeadlessMapFallback(state: widget.state, cubit: widget.cubit);
     }
 
-    final validPois = widget.state.items.where(_isValidPoiCoordinate).toList();
+    final validPois = widget.state.items
+        .where(PoiMapPreview.isValidPoiCoordinate)
+        .toList();
     final firstPoi = validPois.isNotEmpty ? validPois.first : null;
     final initialCenter = firstPoi != null
         ? Point(coordinates: Position(firstPoi.longitude, firstPoi.latitude))
@@ -354,7 +370,9 @@ class _PoiMapPreviewState extends State<PoiMapPreview> {
     await circleManager.deleteAll();
     await pointManager.deleteAll();
 
-    final validPois = widget.state.items.where(_isValidPoiCoordinate).toList();
+    final validPois = widget.state.items
+        .where(PoiMapPreview.isValidPoiCoordinate)
+        .toList();
     if (validPois.isEmpty) return;
 
     final selectedId = widget.state.selectedPoiId;
@@ -438,28 +456,30 @@ class _PoiMapPreviewState extends State<PoiMapPreview> {
   }
 
   Future<void> _handleLocationRequest() async {
-    await widget.cubit.requestLocation();
-    final lat = widget.state.query.originLatitude;
-    final lng = widget.state.query.originLongitude;
-    if (lat != null && lng != null && _map != null) {
-      await _map!.easeTo(
-        CameraOptions(
-          center: Point(coordinates: Position(lng, lat)),
-          zoom: 14.5,
-        ),
-        MapAnimationOptions(duration: 600),
-      );
-    }
-  }
+    final requestId = ++_latestLocationRequestId;
+    try {
+      await widget.cubit.requestLocation();
+      if (!mounted || requestId != _latestLocationRequestId) return;
 
-  static bool _isValidPoiCoordinate(PoiSummary poi) {
-    final lat = poi.latitude;
-    final lng = poi.longitude;
-    if (lat.isNaN || lng.isNaN) return false;
-    if (lat < -90.0 || lat > 90.0) return false;
-    if (lng < -180.0 || lng > 180.0) return false;
-    if (lat.abs() < 0.0001 && lng.abs() < 0.0001) return false;
-    return true;
+      final latestState = widget.cubit.state;
+      final lat = latestState.query.originLatitude;
+      final lng = latestState.query.originLongitude;
+
+      if (!PoiMapPreview.isValidCoordinate(lat, lng)) {
+        return;
+      }
+
+      final map = _map;
+      if (map != null) {
+        await map.easeTo(
+          CameraOptions(
+            center: Point(coordinates: Position(lng!, lat!)),
+            zoom: 14.5,
+          ),
+          MapAnimationOptions(duration: 600),
+        );
+      }
+    } catch (_) {}
   }
 }
 
