@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide Size;
 import 'package:trip_mate_mobile/app/config/app_config.dart';
-import 'package:trip_mate_mobile/app/config/app_initialization_status.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
@@ -15,6 +14,24 @@ import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_state.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/widgets/poi_image.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/widgets/poi_status_and_rating.dart';
+
+/// Abstraction for Mapbox map interactions, enabling isolated unit testing
+/// of camera motions, lifecycle, and annotation synchronization.
+abstract class PoiMapController {
+  Future<void> initOptionalSettings();
+  Future<bool> initAnnotationManagers({
+    required void Function(int poiId) onPoiSelected,
+  });
+  Future<void> syncMarkers({
+    required List<PoiSummary> pois,
+    required int? selectedId,
+    required bool showLabels,
+    required bool fit,
+    required bool easeToSelected,
+  });
+  Future<void> easeToLocation(double latitude, double longitude);
+  void dispose();
+}
 
 /// Real interactive Mapbox map for POI Explore (Screen #50 / UC-12).
 ///
@@ -26,6 +43,7 @@ class PoiMapPreview extends StatefulWidget {
     required this.state,
     required this.cubit,
     this.useMapbox,
+    this.controller,
     super.key,
   });
 
@@ -34,6 +52,9 @@ class PoiMapPreview extends StatefulWidget {
 
   /// Optional override for testing environments without native platform views.
   final bool? useMapbox;
+
+  /// Optional injected controller for testing without native GL surfaces.
+  final PoiMapController? controller;
 
   static bool isValidCoordinate(double? lat, double? lng) {
     if (lat == null || lng == null) return false;
@@ -56,17 +77,21 @@ class _PoiMapPreviewState extends State<PoiMapPreview> {
   static const double _minZoomForLabels = 12.2;
 
   final _viewportController = ViewportController();
-  MapboxMap? _map;
-  CircleAnnotationManager? _circleManager;
-  PointAnnotationManager? _pointManager;
-  Cancelable? _circleTapSub;
-  Cancelable? _pointTapSub;
+  PoiMapController? _controller;
   StreamSubscription<Object?>? _panSub;
   Future<void> _syncQueue = Future.value();
   bool _hasInitialFramed = false;
   double _currentZoom = 10.0;
-  int _latestLocationRequestId = 0;
   String? _annotationInitError;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.controller != null) {
+      _controller = widget.controller;
+      _initController(_controller!);
+    }
+  }
 
   void _handleCameraChange(CameraChangedEventData event) {
     final newZoom = event.cameraState.zoom;
@@ -78,24 +103,15 @@ class _PoiMapPreviewState extends State<PoiMapPreview> {
     }
   }
 
-  bool get _isMapboxAvailable {
-    if (widget.useMapbox != null) return widget.useMapbox!;
-    if (kIsWeb) return false;
-    // Check headless test environment
-    if (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST')) {
-      return false;
-    }
-    final config = locateOptional<AppConfig>();
-    final token = config?.mapboxAccessToken;
-    if (token == null || token.isEmpty) return false;
-    final initStatus = locateOptional<AppInitializationStatus>();
-    if (initStatus != null && !initStatus.isMapboxAvailable) return false;
-    return true;
-  }
-
   String? get _tokenConfigurationError {
     final config = locateOptional<AppConfig>();
-    final token = config?.mapboxAccessToken;
+    if (config == null) {
+      if (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST')) {
+        return null;
+      }
+      return 'Chưa cấu hình MAPBOX_ACCESS_TOKEN trong tệp cấu hình môi trường.';
+    }
+    final token = config.mapboxAccessToken;
     if (token == null || token.isEmpty) {
       return 'Chưa cấu hình MAPBOX_ACCESS_TOKEN trong tệp cấu hình môi trường.';
     }
@@ -108,7 +124,7 @@ class _PoiMapPreviewState extends State<PoiMapPreview> {
   @override
   void didUpdateWidget(PoiMapPreview oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!_isMapboxAvailable) return;
+    if (_controller == null) return;
 
     final itemsChanged = !listEquals(oldWidget.state.items, widget.state.items);
     final selectedChanged =
@@ -122,7 +138,7 @@ class _PoiMapPreviewState extends State<PoiMapPreview> {
   @override
   void dispose() {
     unawaited(_panSub?.cancel());
-    _cleanupManagers();
+    _controller?.dispose();
     _viewportController.dispose();
     super.dispose();
   }
@@ -133,24 +149,32 @@ class _PoiMapPreviewState extends State<PoiMapPreview> {
       return _EmptyMap(onReset: widget.cubit.resetFilters);
     }
 
-    if (!_isMapboxAvailable) {
-      // Check test environment or explicit test override first
-      if (widget.useMapbox == false ||
-          (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST'))) {
-        return _HeadlessMapFallback(state: widget.state, cubit: widget.cubit);
-      }
-
-      final tokenError = _tokenConfigurationError;
-      if (tokenError != null) {
-        return _MapboxUnavailableView(
-          title: 'Bản đồ Mapbox chưa sẵn sàng',
-          message: tokenError,
-          onReset: widget.cubit.resetFilters,
-        );
-      }
+    if (widget.useMapbox == false) {
       return _HeadlessMapFallback(state: widget.state, cubit: widget.cubit);
     }
 
+    if (widget.controller != null) {
+      return _buildInteractiveMap(context, isMock: true);
+    }
+
+    final tokenError = _tokenConfigurationError;
+    if (tokenError != null) {
+      return _MapboxUnavailableView(
+        title: 'Bản đồ Mapbox chưa sẵn sàng',
+        message: tokenError,
+        onReset: widget.cubit.resetFilters,
+      );
+    }
+
+    if (kIsWeb ||
+        (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST'))) {
+      return _HeadlessMapFallback(state: widget.state, cubit: widget.cubit);
+    }
+
+    return _buildInteractiveMap(context, isMock: false);
+  }
+
+  Widget _buildInteractiveMap(BuildContext context, {required bool isMock}) {
     final validPois = widget.state.items
         .where(PoiMapPreview.isValidPoiCoordinate)
         .toList();
@@ -164,15 +188,23 @@ class _PoiMapPreviewState extends State<PoiMapPreview> {
         return Stack(
           clipBehavior: Clip.none,
           children: [
-            // Native Mapbox Map
+            // Native Mapbox Map or Mock Surface
             Positioned.fill(
-              child: MapWidget(
-                key: const ValueKey('mapbox-poi-explore-map'),
-                viewport: CameraViewportState(center: initialCenter, zoom: 12),
-                viewportController: _viewportController,
-                onMapCreated: _onMapCreated,
-                onCameraChangeListener: _handleCameraChange,
-              ),
+              child: isMock
+                  ? const ColoredBox(
+                      key: ValueKey('mapbox-poi-explore-map'),
+                      color: Color(0xFFE8ECEF),
+                    )
+                  : MapWidget(
+                      key: const ValueKey('mapbox-poi-explore-map'),
+                      viewport: CameraViewportState(
+                        center: initialCenter,
+                        zoom: 12,
+                      ),
+                      viewportController: _viewportController,
+                      onMapCreated: _onMapCreated,
+                      onCameraChangeListener: _handleCameraChange,
+                    ),
             ),
 
             // Top Status Badge: Mapbox Active
@@ -219,52 +251,6 @@ class _PoiMapPreviewState extends State<PoiMapPreview> {
               ),
             ),
 
-            if (_annotationInitError != null)
-              Positioned(
-                top: 56,
-                left: 16,
-                right: 16,
-                child: Material(
-                  elevation: 4,
-                  borderRadius: BorderRadius.circular(12),
-                  color: AppColors.cardBackground,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.warning_amber_rounded,
-                          color: AppColors.warning,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _annotationInitError!,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.ink,
-                            ),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            final map = _map;
-                            if (map != null) {
-                              _initMapFeatures(map);
-                            }
-                          },
-                          child: const Text('Thử lại'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
             // Floating Location Button
             Positioned(
               right: 16,
@@ -306,6 +292,56 @@ class _PoiMapPreviewState extends State<PoiMapPreview> {
               ),
             ),
 
+            // Essential Annotation Manager Initialization Error Banner with Retry
+            if (_annotationInitError case final errorMessage?)
+              Positioned(
+                top: 68,
+                left: 16,
+                right: 76,
+                child: Card(
+                  elevation: 4,
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: AppColors.error),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.warning_amber_rounded,
+                          color: AppColors.error,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            errorMessage,
+                            style: const TextStyle(
+                              color: AppColors.ink,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: _retryAnnotationInit,
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                          ),
+                          child: const Text('Thử lại'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
             // Bottom Selected POI Preview Card
             if (widget.state.selectedPoi case final poi?)
               Align(
@@ -335,63 +371,61 @@ class _PoiMapPreviewState extends State<PoiMapPreview> {
   }
 
   Future<void> _onMapCreated(MapboxMap map) async {
-    _map = map;
+    unawaited(_panSub?.cancel());
     _panSub = map.gestures.pan.gestureEvents.listen((_) {});
-    await _initMapFeatures(map);
+
+    final controller = _RealMapboxController(map);
+    _controller = controller;
+    await _initController(controller);
   }
 
-  Future<void> _initMapFeatures(MapboxMap map) async {
+  Future<void> _initController(PoiMapController controller) async {
     try {
-      await map.location.updateSettings(
-        LocationComponentSettings(enabled: true, pulsingEnabled: true),
-      );
+      await controller.initOptionalSettings();
     } catch (e) {
-      debugPrint('[Mapbox] Optional location component settings failed: $e');
+      debugPrint('[Mapbox] Optional settings failed during initialization: $e');
+    }
+    if (!mounted) return;
+
+    final success = await controller.initAnnotationManagers(
+      onPoiSelected: widget.cubit.selectPoi,
+    );
+    if (!mounted) return;
+
+    if (!success) {
+      setState(() {
+        _annotationInitError = 'Không thể tải điểm đánh dấu trên bản đồ.';
+      });
+      return;
     }
 
-    try {
-      await map.scaleBar.updateSettings(ScaleBarSettings(enabled: false));
-    } catch (e) {
-      debugPrint('[Mapbox] Optional scale bar settings failed: $e');
+    if (_annotationInitError != null) {
+      setState(() {
+        _annotationInitError = null;
+      });
     }
 
-    _cleanupManagers();
-    try {
-      final circleManager = await map.annotations
-          .createCircleAnnotationManager();
-      final pointManager = await map.annotations.createPointAnnotationManager();
+    _scheduleSync(fit: !_hasInitialFramed);
+    _hasInitialFramed = true;
+  }
 
-      if (!mounted) return;
-      _circleManager = circleManager;
-      _pointManager = pointManager;
+  Future<void> _retryAnnotationInit() async {
+    final controller = _controller;
+    if (controller == null || !mounted) return;
 
-      _circleTapSub = circleManager.tapEvents(
-        onTap: (annotation) {
-          final id = _extractPoiId(annotation.customData);
-          if (id != null) widget.cubit.selectPoi(id);
-        },
-      );
-      _pointTapSub = pointManager.tapEvents(
-        onTap: (annotation) {
-          final id = _extractPoiId(annotation.customData);
-          if (id != null) widget.cubit.selectPoi(id);
-        },
-      );
+    setState(() {
+      _annotationInitError = null;
+    });
 
-      if (_annotationInitError != null) {
-        setState(() {
-          _annotationInitError = null;
-        });
-      }
-    } catch (e) {
-      debugPrint(
-        '[Mapbox] Essential annotation managers failed to initialize: $e',
-      );
-      if (mounted) {
-        setState(() {
-          _annotationInitError = 'Không thể khởi tạo đánh dấu bản đồ.';
-        });
-      }
+    final success = await controller.initAnnotationManagers(
+      onPoiSelected: widget.cubit.selectPoi,
+    );
+    if (!mounted) return;
+
+    if (!success) {
+      setState(() {
+        _annotationInitError = 'Không thể tải điểm đánh dấu trên bản đồ.';
+      });
       return;
     }
 
@@ -399,164 +433,39 @@ class _PoiMapPreviewState extends State<PoiMapPreview> {
     _hasInitialFramed = true;
   }
 
-  void _cleanupManagers() {
-    _circleTapSub?.cancel();
-    _circleTapSub = null;
-    _pointTapSub?.cancel();
-    _pointTapSub = null;
-    _circleManager = null;
-    _pointManager = null;
-  }
-
-  static int? _extractPoiId(Map<dynamic, dynamic>? customData) {
-    final rawId = customData?['poiId'];
-    return switch (rawId) {
-      final num n => n.toInt(),
-      final String s => int.tryParse(s),
-      _ => null,
-    };
-  }
-
   void _scheduleSync({bool fit = false, bool easeToSelected = false}) {
-    if (_map == null) return;
+    final controller = _controller;
+    if (controller == null) return;
+
+    final showLabels = _currentZoom >= _minZoomForLabels;
     _syncQueue = _syncQueue
-        .then((_) => _syncMarkers(fit: fit, easeToSelected: easeToSelected))
+        .then(
+          (_) => controller.syncMarkers(
+            pois: widget.state.items,
+            selectedId: widget.state.selectedPoiId,
+            showLabels: showLabels,
+            fit: fit,
+            easeToSelected: easeToSelected,
+          ),
+        )
         .catchError((Object _) {});
   }
 
-  Future<void> _syncMarkers({
-    required bool fit,
-    bool easeToSelected = false,
-  }) async {
-    final map = _map;
-    final circleManager = _circleManager;
-    final pointManager = _pointManager;
-
-    if (!mounted ||
-        map == null ||
-        circleManager == null ||
-        pointManager == null) {
-      return;
-    }
-
-    try {
-      final camera = await map.getCameraState();
-      _currentZoom = camera.zoom;
-    } catch (_) {}
-
-    await circleManager.deleteAll();
-    await pointManager.deleteAll();
-
-    final validPois = widget.state.items
-        .where(PoiMapPreview.isValidPoiCoordinate)
-        .toList();
-    if (validPois.isEmpty) return;
-
-    final selectedId = widget.state.selectedPoiId;
-
-    // Draw Circle Annotations (Markers)
-    await circleManager.createMulti([
-      for (final poi in validPois)
-        CircleAnnotationOptions(
-          geometry: Point(coordinates: Position(poi.longitude, poi.latitude)),
-          circleRadius: poi.id == selectedId ? 11.0 : 8.0,
-          circleColor:
-              (poi.id == selectedId ? AppColors.secondary : AppColors.primary)
-                  .toARGB32(),
-          circleStrokeColor:
-              (poi.id == selectedId ? AppColors.freshGreen : Colors.white)
-                  .toARGB32(),
-          circleStrokeWidth: poi.id == selectedId ? 3.5 : 2.0,
-          customData: {'poiId': poi.id},
-        ),
-    ]);
-
-    // Draw Point Annotations (POI Name Labels) ONLY when zoomed in sufficiently (>= _minZoomForLabels).
-    // When zoomed out, labels are hidden to avoid overlapping/cluttering, while the clean circle
-    // pins remain visible and clickable, and the bottom card displays the selected POI details.
-    final showLabels = _currentZoom >= _minZoomForLabels;
-    if (showLabels) {
-      await pointManager.createMulti([
-        for (final poi in validPois)
-          PointAnnotationOptions(
-            geometry: Point(coordinates: Position(poi.longitude, poi.latitude)),
-            textField: poi.name,
-            textSize: poi.id == selectedId ? 12.0 : 11.0,
-            textOffset: [0, 1.8],
-            textColor: AppColors.ink.toARGB32(),
-            textHaloColor: Colors.white.toARGB32(),
-            textHaloWidth: 1.5,
-            customData: {'poiId': poi.id},
-          ),
-      ]);
-    }
-
-    if (easeToSelected && selectedId != null) {
-      final selectedPoi = validPois
-          .where((p) => p.id == selectedId)
-          .firstOrNull;
-      if (selectedPoi != null) {
-        await map.easeTo(
-          CameraOptions(
-            center: Point(
-              coordinates: Position(
-                selectedPoi.longitude,
-                selectedPoi.latitude,
-              ),
-            ),
-            zoom: 14.0,
-          ),
-          MapAnimationOptions(duration: 500),
-        );
-        return;
-      }
-    }
-
-    if (fit) {
-      final camera = await map.cameraForCoordinatesPadding(
-        [
-          for (final p in validPois)
-            Point(coordinates: Position(p.longitude, p.latitude)),
-        ],
-        CameraOptions(),
-        MbxEdgeInsets(
-          top: 90,
-          left: 48,
-          bottom: widget.state.selectedPoi != null ? 220 : 64,
-          right: 48,
-        ),
-        15,
-        null,
-      );
-      if (mounted) await map.setCamera(camera);
-    }
-  }
-
   Future<void> _handleLocationRequest() async {
-    final requestId = ++_latestLocationRequestId;
-    try {
-      await widget.cubit.requestLocation();
-      if (!mounted || requestId != _latestLocationRequestId) return;
+    await widget.cubit.requestLocation();
+    if (!mounted) return;
 
-      final latestState = widget.cubit.state;
-      final lat = latestState.query.originLatitude;
-      final lng = latestState.query.originLongitude;
+    final latestState = widget.cubit.state;
+    final lat = latestState.query.originLatitude;
+    final lng = latestState.query.originLongitude;
 
-      if (!PoiMapPreview.isValidCoordinate(lat, lng)) {
-        return;
-      }
-
-      final map = _map;
-      if (map != null) {
-        await map.easeTo(
-          CameraOptions(
-            center: Point(coordinates: Position(lng!, lat!)),
-            zoom: 14.5,
-          ),
-          MapAnimationOptions(duration: 600),
-        );
-      }
-    } catch (_) {}
+    if (latestState.locationMessage == null &&
+        PoiMapPreview.isValidCoordinate(lat, lng) &&
+        _controller != null) {
+      try {
+        await _controller!.easeToLocation(lat!, lng!);
+      } catch (_) {}
+    }
   }
 }
 
@@ -814,5 +723,194 @@ class _HeadlessMapFallback extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+/// Real implementation of [PoiMapController] wrapping native [MapboxMap].
+class _RealMapboxController implements PoiMapController {
+  _RealMapboxController(this._map);
+
+  final MapboxMap _map;
+  CircleAnnotationManager? _circleManager;
+  PointAnnotationManager? _pointManager;
+  Cancelable? _circleTapSub;
+  Cancelable? _pointTapSub;
+
+  @override
+  Future<void> initOptionalSettings() async {
+    try {
+      await _map.location.updateSettings(
+        LocationComponentSettings(enabled: true, pulsingEnabled: true),
+      );
+    } catch (e) {
+      debugPrint('[Mapbox] Optional location component settings failed: $e');
+    }
+
+    try {
+      await _map.scaleBar.updateSettings(ScaleBarSettings(enabled: false));
+    } catch (e) {
+      debugPrint('[Mapbox] Optional scale bar settings failed: $e');
+    }
+  }
+
+  @override
+  Future<bool> initAnnotationManagers({
+    required void Function(int poiId) onPoiSelected,
+  }) async {
+    _cleanupManagers();
+    try {
+      final circleManager = await _map.annotations
+          .createCircleAnnotationManager();
+      final pointManager = await _map.annotations
+          .createPointAnnotationManager();
+
+      _circleManager = circleManager;
+      _pointManager = pointManager;
+
+      _circleTapSub = circleManager.tapEvents(
+        onTap: (annotation) {
+          final id = _extractPoiId(annotation.customData);
+          if (id != null) onPoiSelected(id);
+        },
+      );
+      _pointTapSub = pointManager.tapEvents(
+        onTap: (annotation) {
+          final id = _extractPoiId(annotation.customData);
+          if (id != null) onPoiSelected(id);
+        },
+      );
+      return true;
+    } catch (e) {
+      debugPrint(
+        '[Mapbox] Essential annotation managers failed to initialize: $e',
+      );
+      _cleanupManagers();
+      return false;
+    }
+  }
+
+  void _cleanupManagers() {
+    _circleTapSub?.cancel();
+    _circleTapSub = null;
+    _pointTapSub?.cancel();
+    _pointTapSub = null;
+    _circleManager = null;
+    _pointManager = null;
+  }
+
+  static int? _extractPoiId(Map<dynamic, dynamic>? customData) {
+    final rawId = customData?['poiId'];
+    return switch (rawId) {
+      final num n => n.toInt(),
+      final String s => int.tryParse(s),
+      _ => null,
+    };
+  }
+
+  @override
+  Future<void> syncMarkers({
+    required List<PoiSummary> pois,
+    required int? selectedId,
+    required bool showLabels,
+    required bool fit,
+    required bool easeToSelected,
+  }) async {
+    final circleManager = _circleManager;
+    final pointManager = _pointManager;
+    if (circleManager == null || pointManager == null) return;
+
+    await circleManager.deleteAll();
+    await pointManager.deleteAll();
+
+    final validPois = pois.where(PoiMapPreview.isValidPoiCoordinate).toList();
+    if (validPois.isEmpty) return;
+
+    await circleManager.createMulti([
+      for (final poi in validPois)
+        CircleAnnotationOptions(
+          geometry: Point(coordinates: Position(poi.longitude, poi.latitude)),
+          circleRadius: poi.id == selectedId ? 11.0 : 8.0,
+          circleColor:
+              (poi.id == selectedId ? AppColors.secondary : AppColors.primary)
+                  .toARGB32(),
+          circleStrokeColor:
+              (poi.id == selectedId ? AppColors.freshGreen : Colors.white)
+                  .toARGB32(),
+          circleStrokeWidth: poi.id == selectedId ? 3.5 : 2.0,
+          customData: {'poiId': poi.id},
+        ),
+    ]);
+
+    if (showLabels) {
+      await pointManager.createMulti([
+        for (final poi in validPois)
+          PointAnnotationOptions(
+            geometry: Point(coordinates: Position(poi.longitude, poi.latitude)),
+            textField: poi.name,
+            textSize: poi.id == selectedId ? 12.0 : 11.0,
+            textOffset: [0, 1.8],
+            textColor: AppColors.ink.toARGB32(),
+            textHaloColor: Colors.white.toARGB32(),
+            textHaloWidth: 1.5,
+            customData: {'poiId': poi.id},
+          ),
+      ]);
+    }
+
+    if (easeToSelected && selectedId != null) {
+      final selectedPoi = validPois
+          .where((p) => p.id == selectedId)
+          .firstOrNull;
+      if (selectedPoi != null) {
+        await _map.easeTo(
+          CameraOptions(
+            center: Point(
+              coordinates: Position(
+                selectedPoi.longitude,
+                selectedPoi.latitude,
+              ),
+            ),
+            zoom: 14.0,
+          ),
+          MapAnimationOptions(duration: 500),
+        );
+        return;
+      }
+    }
+
+    if (fit) {
+      final camera = await _map.cameraForCoordinatesPadding(
+        [
+          for (final p in validPois)
+            Point(coordinates: Position(p.longitude, p.latitude)),
+        ],
+        CameraOptions(),
+        MbxEdgeInsets(
+          top: 90,
+          left: 48,
+          bottom: selectedId != null ? 220 : 64,
+          right: 48,
+        ),
+        15,
+        null,
+      );
+      await _map.setCamera(camera);
+    }
+  }
+
+  @override
+  Future<void> easeToLocation(double latitude, double longitude) async {
+    await _map.easeTo(
+      CameraOptions(
+        center: Point(coordinates: Position(longitude, latitude)),
+        zoom: 14.5,
+      ),
+      MapAnimationOptions(duration: 600),
+    );
+  }
+
+  @override
+  void dispose() {
+    _cleanupManagers();
   }
 }
