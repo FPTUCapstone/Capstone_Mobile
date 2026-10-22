@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
-import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enums.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_records_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
 
@@ -17,16 +17,18 @@ class TripHistoryFiltersBar extends StatelessWidget {
     super.key,
   });
 
-  final TripType? selectedTripType;
+  final TripRecordTypeFilter selectedTripType;
   final DateTime? startDate;
   final DateTime? endDate;
-  final ValueChanged<TripType?> onTripTypeChanged;
+  final ValueChanged<TripRecordTypeFilter> onTripTypeChanged;
   final void Function(DateTime? start, DateTime? end) onDateRangeSelected;
   final VoidCallback onClearFilters;
   final String? validationError;
 
   bool get hasActiveFilters =>
-      selectedTripType != null || startDate != null || endDate != null;
+      selectedTripType != TripRecordTypeFilter.all ||
+      startDate != null ||
+      endDate != null;
 
   @override
   Widget build(BuildContext context) {
@@ -103,46 +105,26 @@ class TripHistoryFiltersBar extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.xs),
 
-              // Trip Type: All
-              ChoiceChip(
-                label: const Text(TripHistoryStringsEn.filterAll),
-                selected: selectedTripType == null,
-                onSelected: (selected) {
-                  if (selected) onTripTypeChanged(null);
-                },
-              ),
-              const SizedBox(width: AppSpacing.xxs),
-
-              // Trip Type: Tour
-              ChoiceChip(
-                label: const Text(TripHistoryStringsEn.filterTour),
-                selected: selectedTripType == TripType.tour,
-                onSelected: (selected) {
-                  onTripTypeChanged(selected ? TripType.tour : null);
-                },
-              ),
-              const SizedBox(width: AppSpacing.xxs),
-
-              // Trip Type: Commercial Service
-              ChoiceChip(
-                label: const Text(TripHistoryStringsEn.filterCommercialService),
-                selected: selectedTripType == TripType.commercialService,
-                onSelected: (selected) {
-                  onTripTypeChanged(
-                    selected ? TripType.commercialService : null,
-                  );
-                },
-              ),
-              const SizedBox(width: AppSpacing.xxs),
-
-              // Trip Type: Itinerary
-              ChoiceChip(
-                label: const Text(TripHistoryStringsEn.filterItinerary),
-                selected: selectedTripType == TripType.itinerary,
-                onSelected: (selected) {
-                  onTripTypeChanged(selected ? TripType.itinerary : null);
-                },
-              ),
+              for (final (type, label) in const [
+                (TripRecordTypeFilter.all, TripHistoryStringsEn.filterAll),
+                (
+                  TripRecordTypeFilter.tourBooking,
+                  TripHistoryStringsEn.filterTour,
+                ),
+                (
+                  TripRecordTypeFilter.selfPlannedItinerary,
+                  TripHistoryStringsEn.filterItinerary,
+                ),
+              ]) ...[
+                ChoiceChip(
+                  label: Text(label),
+                  selected: selectedTripType == type,
+                  onSelected: (selected) {
+                    if (selected) onTripTypeChanged(type);
+                  },
+                ),
+                const SizedBox(width: AppSpacing.xxs),
+              ],
 
               if (hasActiveFilters) ...[
                 const SizedBox(width: AppSpacing.xs),

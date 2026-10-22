@@ -9,6 +9,9 @@ import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en
 import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
 
 /// In-memory deterministic store for demo mode & acceptance test fixtures.
+///
+/// @deprecated For the Trip History screen. UC-32 demo data lives in `DemoTripRecordsData`;
+/// this store only serves the legacy review flow and the bookings tab.
 class DemoTripHistoryStore {
   DemoTripHistoryStore({DateTime? now})
     : _referenceTime = now ?? DateTime.now() {

@@ -6,6 +6,8 @@ import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en
 import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
+/// @deprecated The Trip History screen shows the refund inside `TripRecordDetailSheet` (TM-78).
+/// Kept only for callers of the legacy `TripHistoryItem`.
 class RefundStatusDialog extends StatelessWidget {
   const RefundStatusDialog({
     required this.refundInfo,

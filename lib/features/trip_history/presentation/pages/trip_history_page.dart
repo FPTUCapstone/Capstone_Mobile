@@ -5,28 +5,22 @@ import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enums.dart';
-import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
-import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
-import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_state.dart';
-import 'package:trip_mate_mobile/features/trip_history/presentation/widgets/refund_status_dialog.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_record.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_records_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_records_state.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/widgets/trip_history_card.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/widgets/trip_history_filters_bar.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/widgets/trip_record_detail_sheet.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
-import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/loading_indicator.dart';
 
+/// UC-32 View Trip History. Reads the TM-78 API through [TripRecordsCubit];
+/// the screen never invents or fills in a record.
 class TripHistoryPage extends StatefulWidget {
-  const TripHistoryPage({
-    this.initialTab = TripStatus.upcoming,
-    this.isDemoMode = false,
-    this.referenceTime,
-    super.key,
-  });
+  const TripHistoryPage({this.isDemoMode = false, super.key});
 
-  final TripStatus initialTab;
   final bool isDemoMode;
-  final DateTime? referenceTime;
 
   @override
   State<TripHistoryPage> createState() => _TripHistoryPageState();
@@ -45,17 +39,19 @@ class _TripHistoryPageState extends State<TripHistoryPage>
   @override
   void initState() {
     super.initState();
-    final initialIndex = _tabs.indexOf(widget.initialTab).clamp(0, 2);
+    final initialIndex = _tabs.indexOf(
+      context.read<TripRecordsCubit>().state.selectedTab,
+    );
     _tabController = TabController(
       length: _tabs.length,
       vsync: this,
-      initialIndex: initialIndex,
+      initialIndex: initialIndex.clamp(0, _tabs.length - 1),
     );
     _tabController.addListener(_onTabChanged);
   }
 
   void _onTabChanged() {
-    final cubit = context.read<TripHistoryCubit>();
+    final cubit = context.read<TripRecordsCubit>();
     if (cubit.state.selectedTab != _tabs[_tabController.index]) {
       cubit.switchTab(_tabs[_tabController.index]);
     }
@@ -74,88 +70,32 @@ class _TripHistoryPageState extends State<TripHistoryPage>
     );
   }
 
-  void _showBookingDetailsDialog(BuildContext context, TripHistoryItem item) {
-    showDialog<void>(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: const Text(TripHistoryStringsEn.detailsDialogTitle),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              item.title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            const Divider(),
-            const SizedBox(height: AppSpacing.xs),
-            _detailRow(TripHistoryStringsEn.labelBookingCode, item.bookingCode),
-            _detailRow(
-              TripHistoryStringsEn.labelDepartureDate,
-              TripFormatters.formatVietnamDate(item.departureDate),
-            ),
-            _detailRow(
-              TripHistoryStringsEn.labelParticipants,
-              TripHistoryStringsEn.formatParticipants(item.participantsCount),
-            ),
-            _detailRow(
-              TripHistoryStringsEn.labelTotalAmount,
-              TripFormatters.formatVnd(item.totalAmount),
-            ),
-            if (item.providerName != null)
-              _detailRow(
-                TripHistoryStringsEn.detailsProvider,
-                item.providerName!,
-              ),
-            if (item.location != null)
-              _detailRow(TripHistoryStringsEn.detailsLocation, item.location!),
-          ],
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: const Text(TripHistoryStringsEn.actionClose),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _detailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              '$label:',
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                color: AppColors.muted,
-                fontSize: 13,
-              ),
-            ),
-          ),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 13))),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _navigateToReview(
+  void _showDetail(
     BuildContext context,
-    TripHistoryItem item,
+    TripRecord record, {
+    bool highlightRefund = false,
+  }) {
+    TripRecordDetailSheet.show(
+      context,
+      record: record,
+      isDemo: widget.isDemoMode,
+      highlightRefund: highlightRefund,
+    );
+  }
+
+  /// Write review and View review both open the canonical review of the booking
+  /// the backend named in `reviewableRecord`.
+  Future<void> _openReview(
+    BuildContext context,
+    BookingTripRecord record,
   ) async {
-    final cubit = context.read<TripHistoryCubit>();
+    final cubit = context.read<TripRecordsCubit>();
+    final reviewable = record.reviewableRecord;
     final result = await context.push<bool>(
-      AppRoutes.tripReview(item.id, isDemo: widget.isDemoMode),
-      extra: item,
+      AppRoutes.canonicalTripReview(reviewable.wireKind, reviewable.id),
     );
     if (result == true && mounted) {
-      await cubit.refresh(tab: TripStatus.completed);
+      await cubit.retry();
     }
   }
 
@@ -166,9 +106,6 @@ class _TripHistoryPageState extends State<TripHistoryPage>
         title: const Text(TripHistoryStringsEn.tripHistoryTitle),
         bottom: TabBar(
           controller: _tabController,
-          onTap: (index) {
-            context.read<TripHistoryCubit>().switchTab(_tabs[index]);
-          },
           tabs: const [
             Tab(text: TripHistoryStringsEn.tabUpcoming),
             Tab(text: TripHistoryStringsEn.tabCompleted),
@@ -176,7 +113,7 @@ class _TripHistoryPageState extends State<TripHistoryPage>
           ],
         ),
       ),
-      body: BlocConsumer<TripHistoryCubit, TripHistoryState>(
+      body: BlocConsumer<TripRecordsCubit, TripRecordsState>(
         listener: (context, state) {
           final tabIndex = _tabs.indexOf(state.selectedTab);
           if (tabIndex != -1 && _tabController.index != tabIndex) {
@@ -184,19 +121,19 @@ class _TripHistoryPageState extends State<TripHistoryPage>
           }
         },
         builder: (context, state) {
-          final cubit = context.read<TripHistoryCubit>();
+          final cubit = context.read<TripRecordsCubit>();
 
           return Column(
             children: [
               const SizedBox(height: AppSpacing.xs),
               TripHistoryFiltersBar(
-                selectedTripType: state.selectedTripType,
+                selectedTripType: state.tripType,
                 startDate: state.startDate,
                 endDate: state.endDate,
                 validationError: state.validationError,
                 onTripTypeChanged: cubit.setTripType,
                 onDateRangeSelected: cubit.setDateRange,
-                onClearFilters: cubit.clearDateRange,
+                onClearFilters: cubit.clearFilters,
               ),
               const SizedBox(height: AppSpacing.xs),
               Expanded(child: _buildBody(context, state, cubit)),
@@ -209,36 +146,11 @@ class _TripHistoryPageState extends State<TripHistoryPage>
 
   Widget _buildBody(
     BuildContext context,
-    TripHistoryState state,
-    TripHistoryCubit cubit,
+    TripRecordsState state,
+    TripRecordsCubit cubit,
   ) {
-    if (state.isLoading) {
+    if (state.isLoading || state.status == TripRecordsStatus.initial) {
       return const Center(child: LoadingIndicator());
-    }
-
-    if (state.isPendingIntegration) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.cloud_sync_outlined,
-                size: 56,
-                color: AppColors.primary,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              AppAlert(
-                message:
-                    state.errorMessage ??
-                    TripHistoryStringsEn.productionIntegrationPending,
-                type: AppAlertType.info,
-              ),
-            ],
-          ),
-        ),
-      );
     }
 
     if (state.isFailure) {
@@ -292,43 +204,44 @@ class _TripHistoryPageState extends State<TripHistoryPage>
       );
     }
 
+    final summary = state.summary;
     return Column(
       children: [
+        if (summary != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.xxs,
+            ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '${TripHistoryStringsEn.summaryCompletedTrips(summary.totalCompletedTrips)}'
+                ' · ${TripHistoryStringsEn.summaryVisitedPois(summary.totalVisitedPois)}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.muted,
+                ),
+              ),
+            ),
+          ),
         Expanded(
           child: ListView.builder(
             itemCount: state.items.length,
             itemBuilder: (context, index) {
-              final item = state.items[index];
               return TripHistoryCard(
-                item: item,
-                referenceTime: widget.referenceTime,
+                record: state.items[index],
                 onViewEticket: (_) => _showEticketNotice(context),
-                onWriteReview: (t) => _navigateToReview(context, t),
-                onEditReview: (t) => _navigateToReview(context, t),
-                onViewReview: (t) => _navigateToReview(context, t),
-                onViewRefundStatus: (t) {
-                  if (t.refundInfo != null) {
-                    showDialog<void>(
-                      context: context,
-                      builder: (_) => RefundStatusDialog(
-                        refundInfo: t.refundInfo!,
-                        bookingCode: t.bookingCode,
-                      ),
-                    );
-                  }
-                },
-                onViewDetails: (t) {
-                  if (t.isItinerary && t.itineraryId != null) {
-                    context.push('/traveler/itineraries/${t.itineraryId}');
-                  } else {
-                    _showBookingDetailsDialog(context, t);
-                  }
-                },
+                onWriteReview: (r) => _openReview(context, r),
+                onViewReview: (r) => _openReview(context, r),
+                onViewRefund: (r) =>
+                    _showDetail(context, r, highlightRefund: true),
+                onViewDetails: (r) => _showDetail(context, r),
               );
             },
           ),
         ),
-        // Pagination Controls at bottom
         _buildPaginationBar(context, state, cubit),
       ],
     );
@@ -336,8 +249,8 @@ class _TripHistoryPageState extends State<TripHistoryPage>
 
   Widget _buildPaginationBar(
     BuildContext context,
-    TripHistoryState state,
-    TripHistoryCubit cubit,
+    TripRecordsState state,
+    TripRecordsCubit cubit,
   ) {
     if (state.totalPages <= 1) return const SizedBox.shrink();
 

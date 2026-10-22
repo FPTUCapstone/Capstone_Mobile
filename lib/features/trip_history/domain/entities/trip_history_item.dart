@@ -3,6 +3,9 @@ import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enum
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_refund_info.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_review.dart';
 
+/// @deprecated Legacy model of the Trip History screen, kept only for the legacy review flow and
+/// the bookings tab (`TripHistoryItem`). UC-32 (TM-78) uses `TripRecord`, `TripRecordsCubit` and
+/// `TripRecordsRepository`; do not extend this type.
 final class TripHistoryItem extends Equatable {
   const TripHistoryItem({
     required this.id,
