@@ -58,6 +58,29 @@ void main() {
     );
     expect(adapter.requests, isEmpty);
   });
+
+  test(
+    'rejects an unknown Backend refund status instead of showing Pending',
+    () async {
+      client.dio.httpClientAdapter = _Adapter(
+        jsonEncode({
+          'data': {
+            'bookingId': 42,
+            'bookingCode': 'BK-20261022-00042',
+            'refundAmount': 500000,
+            'status': 'QueuedForFinance',
+            'attemptCount': 0,
+            'requestedAtUtc': '2026-10-22T01:00:00Z',
+          },
+        }),
+      );
+
+      await expectLater(
+        dataSource.getProgress('42'),
+        throwsA(isA<FormatException>()),
+      );
+    },
+  );
 }
 
 final class _Adapter implements HttpClientAdapter {

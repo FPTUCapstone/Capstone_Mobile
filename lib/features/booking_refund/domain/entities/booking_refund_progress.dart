@@ -9,14 +9,14 @@ enum BookingRefundStatus {
   failed,
   rejected;
 
-  static BookingRefundStatus fromWire(String? value) => switch (value) {
+  static BookingRefundStatus? tryFromWire(String? value) => switch (value) {
     'Processing' => BookingRefundStatus.processing,
     'RetryPending' => BookingRefundStatus.retryPending,
     'ManualReview' => BookingRefundStatus.manualReview,
     'Processed' => BookingRefundStatus.processed,
     'Failed' => BookingRefundStatus.failed,
     'Rejected' => BookingRefundStatus.rejected,
-    _ => BookingRefundStatus.pending,
+    _ => null,
   };
 }
 

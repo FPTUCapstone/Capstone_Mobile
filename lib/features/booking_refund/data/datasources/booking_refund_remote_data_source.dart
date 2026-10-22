@@ -37,20 +37,22 @@ final class DioBookingRefundRemoteDataSource
     final requestedAt = DateTime.tryParse(
       raw['requestedAtUtc']?.toString() ?? '',
     )?.toUtc();
+    final status = BookingRefundStatus.tryFromWire(raw['status']?.toString());
     if (bookingId == null ||
         bookingId <= 0 ||
         bookingCode == null ||
         bookingCode.isEmpty ||
         amount == null ||
         amount < 0 ||
-        requestedAt == null) {
+        requestedAt == null ||
+        status == null) {
       throw const FormatException('The refund progress response is invalid.');
     }
     return BookingRefundProgress(
       bookingId: bookingId,
       bookingCode: bookingCode,
       refundAmount: amount,
-      status: BookingRefundStatus.fromWire(raw['status']?.toString()),
+      status: status,
       attemptCount: _int(raw['attemptCount']) ?? 0,
       requestedAtUtc: requestedAt,
       gatewayReference: _nullableText(raw['gatewayReference']),
