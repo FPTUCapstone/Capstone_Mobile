@@ -47,6 +47,11 @@ import 'package:trip_mate_mobile/features/booking/domain/usecases/create_booking
 import 'package:trip_mate_mobile/features/booking/domain/usecases/get_booking_contact_use_case.dart';
 import 'package:trip_mate_mobile/features/booking/domain/usecases/quote_booking_use_case.dart';
 import 'package:trip_mate_mobile/features/booking/presentation/cubit/book_tour_cubit.dart';
+import 'package:trip_mate_mobile/features/booking_refund/data/datasources/booking_refund_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/booking_refund/data/repositories/booking_refund_repository_impl.dart';
+import 'package:trip_mate_mobile/features/booking_refund/domain/repositories/booking_refund_repository.dart';
+import 'package:trip_mate_mobile/features/booking_refund/domain/usecases/get_booking_refund_progress_use_case.dart';
+import 'package:trip_mate_mobile/features/booking_refund/presentation/cubit/booking_refund_progress_cubit.dart';
 import 'package:trip_mate_mobile/features/coupon/data/datasources/coupon_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/coupon/data/repositories/coupon_repository_impl.dart';
 import 'package:trip_mate_mobile/features/coupon/domain/repositories/coupon_repository.dart';
@@ -330,6 +335,18 @@ Future<void> configureDependencies({AppConfig? config}) async {
         completeMockPayment: serviceLocator(),
         cancelPayment: serviceLocator(),
       ),
+    )
+    ..registerLazySingleton<BookingRefundRemoteDataSource>(
+      () => DioBookingRefundRemoteDataSource(serviceLocator()),
+    )
+    ..registerLazySingleton<BookingRefundRepository>(
+      () => BookingRefundRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<GetBookingRefundProgressUseCase>(
+      () => GetBookingRefundProgressUseCase(serviceLocator()),
+    )
+    ..registerFactory<BookingRefundProgressCubit>(
+      () => BookingRefundProgressCubit(getProgress: serviceLocator()),
     )
     ..registerLazySingleton<AuthRemoteDataSource>(
       () => AuthRemoteDataSourceImpl(serviceLocator()),

@@ -13,7 +13,6 @@ import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_h
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_history_page.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_review_page.dart';
-import 'package:trip_mate_mobile/features/trip_history/presentation/widgets/refund_status_dialog.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 
 class _SpyTripHistoryRepository implements TripHistoryRepository {
@@ -210,48 +209,30 @@ void main() {
       expect(find.text(TripHistoryStringsEn.detailsDialogTitle), findsNothing);
     });
 
-    testWidgets(
-      'switching to Cancelled tab displays refund status buttons and dialog',
-      (tester) async {
-        tester.view.physicalSize = const Size(400, 1400);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets('cancelled demo records do not fabricate live refund links', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(400, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-        await tester.pumpWidget(buildTestWidget());
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
 
-        // Tap Cancelled tab
-        await tester.tap(find.text(TripHistoryStringsEn.tabCancelled));
-        await tester.pumpAndSettle();
+      // Tap Cancelled tab
+      await tester.tap(find.text(TripHistoryStringsEn.tabCancelled));
+      await tester.pumpAndSettle();
 
-        expect(find.text('BK-TOUR-007'), findsOneWidget);
-        expect(find.text('BK-SRV-008'), findsOneWidget);
-        expect(find.text('BK-TOUR-009'), findsOneWidget);
+      expect(find.text('BK-TOUR-007'), findsOneWidget);
+      expect(find.text('BK-SRV-008'), findsOneWidget);
+      expect(find.text('BK-TOUR-009'), findsOneWidget);
 
-        final refundBtn = find
-            .text(TripHistoryStringsEn.actionViewRefundStatus)
-            .first;
-        await tester.tap(refundBtn);
-        await tester.pumpAndSettle();
-
-        expect(find.byType(RefundStatusDialog), findsOneWidget);
-        expect(
-          find.text(TripHistoryStringsEn.refundDialogTitle),
-          findsOneWidget,
-        );
-        expect(
-          find.text(
-            TripHistoryStringsEn.refundStateNonRefundable.toUpperCase(),
-          ),
-          findsOneWidget,
-        );
-
-        await tester.tap(find.text(TripHistoryStringsEn.actionClose));
-        await tester.pumpAndSettle();
-        expect(find.byType(RefundStatusDialog), findsNothing);
-      },
-    );
+      expect(
+        find.text(TripHistoryStringsEn.actionViewRefundStatus),
+        findsNothing,
+      );
+    });
 
     testWidgets(
       'empty state renders domain message when filter produces zero records',

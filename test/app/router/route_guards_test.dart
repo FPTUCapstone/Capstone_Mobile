@@ -100,6 +100,10 @@ void main() {
           builder: (_, _) => const Text('Book tour'),
         ),
         GoRoute(
+          path: AppRoutes.bookingRefundPattern,
+          builder: (_, _) => const Text('Refund progress'),
+        ),
+        GoRoute(
           path: AppRoutes.splash,
           builder: (_, _) => const Text('Splash'),
         ),
@@ -252,8 +256,35 @@ void main() {
         await resolve(tester, session, AppRoutes.joinTravelGroup),
         AppRoutes.login,
       );
+      expect(
+        await resolve(tester, session, AppRoutes.bookingRefund('42')),
+        AppRoutes.login,
+      );
     },
   );
+
+  testWidgets('refund progress is available to the booking traveler', (
+    tester,
+  ) async {
+    const session = AuthSessionState.authenticated(UserRole.traveler);
+    expect(
+      await resolve(tester, session, AppRoutes.bookingRefund('42')),
+      AppRoutes.bookingRefund('42'),
+    );
+  });
+
+  testWidgets('refund progress is available to an approved tour operator', (
+    tester,
+  ) async {
+    const session = AuthSessionState.authenticated(
+      UserRole.tourOperator,
+      applicationStatus: TourOperatorApplicationStatus.approved,
+    );
+    expect(
+      await resolve(tester, session, AppRoutes.bookingRefund('42')),
+      AppRoutes.bookingRefund('42'),
+    );
+  });
 
   testWidgets(
     'UC-23 Join Travel Group route guard permits Traveler and redirects TourOperator',

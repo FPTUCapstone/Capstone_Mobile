@@ -8,7 +8,6 @@ import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enum
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_state.dart';
-import 'package:trip_mate_mobile/features/trip_history/presentation/widgets/refund_status_dialog.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/widgets/trip_history_card.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/widgets/trip_history_filters_bar.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
@@ -307,14 +306,8 @@ class _TripHistoryPageState extends State<TripHistoryPage>
                 onEditReview: (t) => _navigateToReview(context, t),
                 onViewReview: (t) => _navigateToReview(context, t),
                 onViewRefundStatus: (t) {
-                  if (t.refundInfo != null) {
-                    showDialog<void>(
-                      context: context,
-                      builder: (_) => RefundStatusDialog(
-                        refundInfo: t.refundInfo!,
-                        bookingCode: t.bookingCode,
-                      ),
-                    );
+                  if (t.bookingId != null) {
+                    context.push(AppRoutes.bookingRefund('${t.bookingId}'));
                   }
                 },
                 onViewDetails: (t) {
