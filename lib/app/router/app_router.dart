@@ -26,9 +26,9 @@ import 'package:trip_mate_mobile/features/auth/presentation/pages/traveler_regis
 import 'package:trip_mate_mobile/features/auth/presentation/pages/verify_email_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/services/operator_document_picker.dart';
 import 'package:trip_mate_mobile/features/booking/presentation/cubit/book_tour_cubit.dart';
+import 'package:trip_mate_mobile/features/booking/presentation/pages/book_tour_page.dart';
 import 'package:trip_mate_mobile/features/booking_refund/presentation/cubit/booking_refund_progress_cubit.dart';
 import 'package:trip_mate_mobile/features/booking_refund/presentation/pages/booking_refund_progress_page.dart';
-import 'package:trip_mate_mobile/features/booking/presentation/pages/book_tour_page.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/cubit/create_coupon_cubit.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/pages/create_coupon_page.dart';
 import 'package:trip_mate_mobile/features/guest/presentation/pages/guest_landing_page.dart';
