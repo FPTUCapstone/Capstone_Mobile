@@ -41,6 +41,11 @@ import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_cubit
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_operator_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/services/operator_document_picker.dart';
 import 'package:trip_mate_mobile/features/booking/data/datasources/booking_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/booking_refund/data/datasources/booking_refund_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/booking_refund/data/repositories/booking_refund_repository_impl.dart';
+import 'package:trip_mate_mobile/features/booking_refund/domain/repositories/booking_refund_repository.dart';
+import 'package:trip_mate_mobile/features/booking_refund/domain/usecases/get_booking_refund_progress_use_case.dart';
+import 'package:trip_mate_mobile/features/booking_refund/presentation/cubit/booking_refund_progress_cubit.dart';
 import 'package:trip_mate_mobile/features/booking/data/repositories/booking_repository_impl.dart';
 import 'package:trip_mate_mobile/features/booking/domain/repositories/booking_repository.dart';
 import 'package:trip_mate_mobile/features/booking/domain/usecases/create_booking_use_case.dart';
@@ -330,6 +335,18 @@ Future<void> configureDependencies({AppConfig? config}) async {
         completeMockPayment: serviceLocator(),
         cancelPayment: serviceLocator(),
       ),
+    )
+    ..registerLazySingleton<BookingRefundRemoteDataSource>(
+      () => DioBookingRefundRemoteDataSource(serviceLocator()),
+    )
+    ..registerLazySingleton<BookingRefundRepository>(
+      () => BookingRefundRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<GetBookingRefundProgressUseCase>(
+      () => GetBookingRefundProgressUseCase(serviceLocator()),
+    )
+    ..registerFactory<BookingRefundProgressCubit>(
+      () => BookingRefundProgressCubit(getProgress: serviceLocator()),
     )
     ..registerLazySingleton<AuthRemoteDataSource>(
       () => AuthRemoteDataSourceImpl(serviceLocator()),

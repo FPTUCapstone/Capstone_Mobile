@@ -14,6 +14,7 @@ abstract final class AppRoutes {
   static const tourDetailPattern = '/explore/tours/:tourId';
   static const bookTourPattern = '/explore/tours/:tourId/book';
   static const paymentPattern = '/payment/:bookingId';
+  static const bookingRefundPattern = '/bookings/:bookingId/refund';
   static String payment(
     String bookingId, {
     String? bookingCode,
@@ -29,6 +30,9 @@ abstract final class AppRoutes {
       queryParameters: params.isEmpty ? null : params,
     ).toString();
   }
+
+  static String bookingRefund(String bookingId) =>
+      '/bookings/$bookingId/refund';
 
   static const traveler = '/traveler';
   static const tourRecommendations = '/traveler/tours/recommendations';
@@ -108,6 +112,7 @@ abstract final class AppRouteNames {
   static const tourDetail = 'tour-detail';
   static const bookTour = 'book-tour';
   static const payment = 'payment';
+  static const bookingRefund = 'booking-refund';
   static const traveler = 'traveler';
   static const tourRecommendations = 'tour-recommendations';
   static const travelerSettings = 'traveler-settings';
