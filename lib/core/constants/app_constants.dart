@@ -5,4 +5,5 @@ abstract final class AppConstants {
   static const sessionRoleKey = 'session_role';
   static const sessionApplicationStatusKey = 'session_application_status';
   static const keepSignedInKey = 'keep_signed_in';
+  static const pushInstallationIdKey = 'push_installation_id';
 }

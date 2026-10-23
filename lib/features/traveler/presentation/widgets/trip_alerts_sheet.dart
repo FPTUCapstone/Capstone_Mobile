@@ -8,22 +8,44 @@ class TripAlertsSheet extends StatelessWidget {
     super.key,
     required this.alerts,
     this.onReviewReroute,
+    this.onOpenAlert,
+    this.onConfirmArrival,
+    this.isLoading = false,
+    this.errorMessage,
+    this.onRetry,
   });
 
   final List<TripAlert> alerts;
   final VoidCallback? onReviewReroute;
+  final ValueChanged<TripAlert>? onOpenAlert;
+  final ValueChanged<TripAlert>? onConfirmArrival;
+  final bool isLoading;
+  final String? errorMessage;
+  final VoidCallback? onRetry;
 
   static Future<void> show(
     BuildContext context, {
     required List<TripAlert> alerts,
     VoidCallback? onReviewReroute,
+    ValueChanged<TripAlert>? onOpenAlert,
+    ValueChanged<TripAlert>? onConfirmArrival,
+    bool isLoading = false,
+    String? errorMessage,
+    VoidCallback? onRetry,
   }) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) =>
-          TripAlertsSheet(alerts: alerts, onReviewReroute: onReviewReroute),
+      builder: (_) => TripAlertsSheet(
+        alerts: alerts,
+        onReviewReroute: onReviewReroute,
+        onOpenAlert: onOpenAlert,
+        onConfirmArrival: onConfirmArrival,
+        isLoading: isLoading,
+        errorMessage: errorMessage,
+        onRetry: onRetry,
+      ),
     );
   }
 
@@ -102,6 +124,16 @@ class TripAlertsSheet extends StatelessWidget {
             ),
             const Divider(height: 1),
 
+            if (isLoading) const LinearProgressIndicator(minHeight: 2),
+            if (errorMessage != null)
+              MaterialBanner(
+                content: Text(errorMessage!),
+                actions: [
+                  if (onRetry != null)
+                    TextButton(onPressed: onRetry, child: const Text('Retry')),
+                ],
+              ),
+
             // List of alerts
             Expanded(
               child: alerts.isEmpty
@@ -135,10 +167,18 @@ class TripAlertsSheet extends StatelessWidget {
                       itemBuilder: (context, index) {
                         return _AlertListCard(
                           alert: alerts[index],
-                          onReviewReroute: () {
-                            Navigator.of(context).pop();
-                            onReviewReroute?.call();
-                          },
+                          onOpen: onOpenAlert == null
+                              ? null
+                              : () => onOpenAlert?.call(alerts[index]),
+                          onConfirmArrival: onConfirmArrival == null
+                              ? null
+                              : () => onConfirmArrival?.call(alerts[index]),
+                          onReviewReroute: onReviewReroute == null
+                              ? null
+                              : () {
+                                  Navigator.of(context).pop();
+                                  onReviewReroute?.call();
+                                },
                         );
                       },
                     ),
@@ -164,10 +204,17 @@ class TripAlertsSheet extends StatelessWidget {
 }
 
 class _AlertListCard extends StatelessWidget {
-  const _AlertListCard({required this.alert, this.onReviewReroute});
+  const _AlertListCard({
+    required this.alert,
+    this.onReviewReroute,
+    this.onOpen,
+    this.onConfirmArrival,
+  });
 
   final TripAlert alert;
   final VoidCallback? onReviewReroute;
+  final VoidCallback? onOpen;
+  final VoidCallback? onConfirmArrival;
 
   @override
   Widget build(BuildContext context) {
@@ -193,90 +240,127 @@ class _AlertListCard extends StatelessWidget {
         '${alert.timestamp.hour.toString().padLeft(2, '0')}:${alert.timestamp.minute.toString().padLeft(2, '0')}';
 
     return Card(
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppSpacing.md),
-          border: Border(left: BorderSide(color: borderColor, width: 4)),
-        ),
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: borderColor, size: 16),
-                const SizedBox(width: AppSpacing.xxs),
-                Text(
-                  severityLabel,
-                  style: TextStyle(
-                    color: borderColor,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5,
+      child: InkWell(
+        onTap: onOpen,
+        borderRadius: BorderRadius.circular(AppSpacing.md),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppSpacing.md),
+            border: Border(left: BorderSide(color: borderColor, width: 4)),
+          ),
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, color: borderColor, size: 16),
+                  const SizedBox(width: AppSpacing.xxs),
+                  Text(
+                    severityLabel,
+                    style: TextStyle(
+                      color: borderColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
                   ),
-                ),
-                const Spacer(),
-                Text(
-                  timeStr,
-                  style: const TextStyle(color: AppColors.muted, fontSize: 12),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              alert.title,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppColors.ink,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xxs),
-            Text(
-              alert.description,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.ink,
-                height: 1.3,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Row(
-              children: [
-                const Icon(
-                  Icons.place_outlined,
-                  size: 14,
-                  color: AppColors.muted,
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    alert.affectedStopName,
+                  if (alert.isRead) ...[
+                    const SizedBox(width: AppSpacing.xs),
+                    const Icon(
+                      Icons.done_all,
+                      size: 15,
+                      color: AppColors.muted,
+                    ),
+                  ],
+                  const Spacer(),
+                  Text(
+                    timeStr,
                     style: const TextStyle(
                       color: AppColors.muted,
-                      fontSize: 11,
+                      fontSize: 12,
                     ),
-                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                alert.title,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.ink,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xxs),
+              Text(
+                alert.description,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.ink,
+                  height: 1.3,
+                ),
+              ),
+              if (alert.isResolved) ...[
+                const SizedBox(height: AppSpacing.xs),
+                const Text(
+                  'Resolved',
+                  style: TextStyle(
+                    color: AppColors.success,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
-            ),
-            if (alert.rerouteProposalAvailable && onReviewReroute != null) ...[
-              const SizedBox(height: AppSpacing.sm),
-              const Divider(height: 1),
               const SizedBox(height: AppSpacing.xs),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: onReviewReroute,
-                  icon: const Icon(Icons.alt_route_rounded, size: 16),
-                  label: const Text('Review Re-routing Proposal'),
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    foregroundColor: AppColors.primary,
+              Row(
+                children: [
+                  const Icon(
+                    Icons.place_outlined,
+                    size: 14,
+                    color: AppColors.muted,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      alert.affectedStopName,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 11,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              if (alert.type == TripAlertType.delay &&
+                  onConfirmArrival != null) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: onConfirmArrival,
+                    child: const Text("Confirm I've arrived"),
                   ),
                 ),
-              ),
+              ],
+              if (alert.rerouteProposalAvailable &&
+                  onReviewReroute != null) ...[
+                const SizedBox(height: AppSpacing.sm),
+                const Divider(height: 1),
+                const SizedBox(height: AppSpacing.xs),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: onReviewReroute,
+                    icon: const Icon(Icons.alt_route_rounded, size: 16),
+                    label: const Text('Review Re-routing Proposal'),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      foregroundColor: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

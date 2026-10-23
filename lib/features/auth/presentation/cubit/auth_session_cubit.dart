@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/core/constants/app_constants.dart';
 import 'package:trip_mate_mobile/core/error/exceptions.dart';
+import 'package:trip_mate_mobile/core/push/push_device_coordinator.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/auth_credentials.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/auth_session.dart';
@@ -17,11 +20,13 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     this._authRepository,
     this._secureStorage,
     this._firebaseAuthService,
+    this._pushDeviceLifecycle,
   ]) : super(const AuthSessionState.unauthenticated());
 
   final AuthRepository? _authRepository;
   final SecureStorageService? _secureStorage;
   final AuthIdentityService? _firebaseAuthService;
+  final PushDeviceLifecycle? _pushDeviceLifecycle;
   bool _verificationActionInProgress = false;
 
   Future<String?> get currentFirebaseUserEmail async =>
@@ -47,6 +52,8 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
       ),
     );
 
+    await _pushDeviceLifecycle?.onBeforeLogout();
+
     final storage = _secureStorage;
     final repository = _authRepository;
     final refreshToken = storage == null
@@ -71,6 +78,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
               applicationStatus: applicationStatus,
             ),
           );
+          if (role == UserRole.traveler) {
+            unawaited(_pushDeviceLifecycle?.onAuthenticated());
+          }
         }
         rethrow;
       }
@@ -90,6 +100,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
           errorMessage: signOutLocalCleanupFailureMessage,
         ),
       );
+      if (role == UserRole.traveler) {
+        unawaited(_pushDeviceLifecycle?.onAuthenticated());
+      }
       return;
     }
 
@@ -243,6 +256,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
           ),
         ),
       );
+      if (role == UserRole.traveler) {
+        unawaited(_pushDeviceLifecycle?.onAuthenticated());
+      }
       return;
     }
 
@@ -252,6 +268,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
   /// Session-expiry hook for the network layer: an authenticated (non-auth-
   /// endpoint) 401 clears the complete local session and returns to sign-in.
   Future<void> handleSessionExpired() async {
+    if (state.role == UserRole.traveler) {
+      await _pushDeviceLifecycle?.onBeforeLogout();
+    }
     emit(const AuthSessionState.unauthenticated());
     final storage = _secureStorage;
     if (storage != null) {
@@ -498,6 +517,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
             applicationStatus: response.applicationStatus,
           ),
         );
+        if (role == UserRole.traveler) {
+          unawaited(_pushDeviceLifecycle?.onAuthenticated());
+        }
         return true;
     }
   }

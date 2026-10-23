@@ -4,18 +4,22 @@ import 'dart:math' as math;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/core/network/network_info.dart';
+import 'package:trip_mate_mobile/core/push/trip_push_messaging.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/active_trip_maneuver.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_route.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_session.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/reroute_proposal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/weather_advisory.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigation_session_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/route_directions_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/trip_alert_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/arrival_detector.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/geo_distance.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/navigation_location_tracker.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/route_progress_tracker.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/services/weather_advisory_session_store.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_state.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/demo/active_trip_demo_fixtures.dart';
 import 'package:uuid/uuid.dart';
@@ -36,8 +40,14 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
     DateTime Function()? clock,
     String? idempotencyKey,
     NetworkInfo? networkInfo,
+    TripAlertRepository? alertRepository,
+    Stream<TripPushHint>? pushHints,
+    WeatherAdvisorySessionStore? weatherAdvisoryStore,
   }) : _sessionRepository = sessionRepository,
        _networkInfo = networkInfo,
+       _alertRepository = alertRepository,
+       _weatherAdvisoryStore =
+           weatherAdvisoryStore ?? WeatherAdvisorySessionStore(),
        _locationTracker = locationTracker,
        _directionsRepository = directionsRepository,
        _itineraryRepository = itineraryRepository,
@@ -52,7 +62,13 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
            isDemoMode: isDemoMode,
            isGuidanceAvailable: directionsRepository?.isAvailable ?? false,
          ),
-       );
+       ) {
+    _pushHintSubscription = pushHints?.listen((hint) {
+      if (hint.sessionId == state.session?.sessionId) {
+        unawaited(refreshAlerts());
+      }
+    });
+  }
 
   static const offRouteThresholdMeters = 60.0;
   static const offRouteConsecutiveFixes = 3;
@@ -67,7 +83,10 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
   final ArrivalDetector _arrivalDetector;
   final DateTime Function() _clock;
   final NetworkInfo? _networkInfo;
+  final TripAlertRepository? _alertRepository;
+  final WeatherAdvisorySessionStore _weatherAdvisoryStore;
   StreamSubscription<bool>? _connectivitySubscription;
+  StreamSubscription<TripPushHint>? _pushHintSubscription;
 
   /// Set while another confirmation dialog is open, so an arrival question
   /// never stacks on top of it.
@@ -94,6 +113,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
   int _offRouteFixes = 0;
   DateTime? _arrivalDetectedAt;
   int _feedbackId = 0;
+  int _alertRefreshGeneration = 0;
 
   static ActiveTripState _initialState({
     required int itineraryId,
@@ -255,6 +275,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
       session,
       feedback: resumed ? 'Resumed your trip in progress.' : null,
     );
+    if (!state.isDemoMode) unawaited(refreshAlerts());
     if (!session.isCompleted) unawaited(_startTracking());
   }
 
@@ -393,6 +414,10 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
         ? _offRouteFixes + 1
         : 0;
     final isOffRoute = _offRouteFixes >= offRouteConsecutiveFixes;
+    if (isOffRoute &&
+        next.status != ActiveTripStatus.navigationOffRouteDeviation) {
+      unawaited(_reportDeviation(target.itemId));
+    }
     final step = progress.nextStep;
 
     return next.copyWith(
@@ -798,6 +823,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
   @override
   Future<void> close() async {
     await _connectivitySubscription?.cancel();
+    await _pushHintSubscription?.cancel();
     await _stopTracking(invalidate: true);
     return super.close();
   }
@@ -810,6 +836,9 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
       isOnline,
     ) {
       if (state.isOnline != isOnline) _emit(state.copyWith(isOnline: isOnline));
+      if (isOnline && state.session != null && !state.isDemoMode) {
+        unawaited(refreshAlerts());
+      }
     }, onError: (Object _) {});
     unawaited(
       networkInfo.isConnected
@@ -822,7 +851,164 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
     );
   }
 
-  // ───────────────────── UC-14 alerts (demo backed) ───────────────────── //
+  // ─────────────────────────── UC-14 alerts ─────────────────────────── //
+
+  Future<void> refreshAlerts() async {
+    final repository = _alertRepository;
+    final sessionId = state.session?.sessionId;
+    if (repository == null || sessionId == null || state.isTerminal) return;
+    final generation = ++_alertRefreshGeneration;
+    _emit(
+      state.copyWith(
+        alertRefreshStatus: AlertRefreshStatus.loading,
+        clearAlertRefreshError: true,
+      ),
+    );
+    List<TripAlert>? loadedAlerts;
+    List<WeatherAdvisory>? loadedAdvisories;
+    var alertFailed = false;
+    var advisoryFailed = false;
+    await Future.wait<void>([
+      () async {
+        try {
+          loadedAlerts = await repository.listAlerts(sessionId);
+        } on Failure {
+          alertFailed = true;
+          // Preserve the last server-backed alert list.
+        }
+      }(),
+      () async {
+        try {
+          loadedAdvisories = await repository.listWeatherAdvisories(sessionId);
+        } on Failure {
+          advisoryFailed = true;
+          // Preserve the current advisory independently from alert history.
+        }
+      }(),
+    ]);
+    if (isClosed || generation != _alertRefreshGeneration) return;
+    if (loadedAlerts == null && loadedAdvisories == null) {
+      _emit(
+        state.copyWith(
+          alertRefreshStatus: AlertRefreshStatus.failure,
+          alertRefreshError: 'Could not refresh alerts. Try again.',
+        ),
+      );
+      return;
+    }
+
+    final alerts = (loadedAlerts ?? state.alerts).toList()
+      ..sort((left, right) => right.timestamp.compareTo(left.timestamp));
+    final previousById = {for (final alert in state.alerts) alert.id: alert};
+    final merged = alerts
+        .map((alert) {
+          final previous = previousById[alert.id];
+          return alert.copyWith(
+            isRead: alert.isRead || (previous?.isRead ?? false),
+            isDismissedFromBanner:
+                alert.isDismissedFromBanner ||
+                (previous?.isDismissedFromBanner ?? false),
+          );
+        })
+        .toList(growable: false);
+    final banner = merged.cast<TripAlert?>().firstWhere(
+      (alert) =>
+          alert != null &&
+          !alert.isRead &&
+          !alert.isResolved &&
+          !alert.isDismissedFromBanner,
+      orElse: () => null,
+    );
+    final advisory = loadedAdvisories == null
+        ? state.activeWeatherAdvisory
+        : loadedAdvisories!.cast<WeatherAdvisory?>().firstWhere(
+            (item) =>
+                item != null &&
+                !_weatherAdvisoryStore.isDismissed(item.advisoryKey),
+            orElse: () => null,
+          );
+    _emit(
+      state.copyWith(
+        alerts: merged,
+        activeBannerAlert: banner,
+        clearBannerAlert: banner == null,
+        activeWeatherAdvisory: advisory,
+        clearWeatherAdvisory: loadedAdvisories != null && advisory == null,
+        alertRefreshStatus: alertFailed || advisoryFailed
+            ? AlertRefreshStatus.failure
+            : AlertRefreshStatus.success,
+        alertRefreshError: alertFailed || advisoryFailed
+            ? 'Some alerts could not be refreshed.'
+            : null,
+        clearAlertRefreshError: !alertFailed && !advisoryFailed,
+      ),
+    );
+  }
+
+  Future<void> acknowledgeAlert(TripAlert alert) async {
+    final repository = _alertRepository;
+    final sessionId = state.session?.sessionId;
+    final incidentId = int.tryParse(alert.id);
+    if (repository == null || sessionId == null || incidentId == null) return;
+    try {
+      await repository.acknowledgeAlert(
+        sessionId: sessionId,
+        incidentId: incidentId,
+      );
+      final updated = state.alerts
+          .map(
+            (item) => item.id == alert.id ? item.copyWith(isRead: true) : item,
+          )
+          .toList(growable: false);
+      _emit(
+        state.copyWith(
+          alerts: updated,
+          clearBannerAlert: state.activeBannerAlert?.id == alert.id,
+        ),
+      );
+    } on Failure catch (failure) {
+      _emit(
+        state.copyWith(feedback: _feedback(failure.message, isError: true)),
+      );
+    }
+  }
+
+  void dismissWeatherAdvisory() {
+    final advisory = state.activeWeatherAdvisory;
+    if (advisory == null) return;
+    _weatherAdvisoryStore.dismiss(advisory.advisoryKey);
+    _emit(state.copyWith(clearWeatherAdvisory: true));
+  }
+
+  Future<void> _reportDeviation(int targetItemId) async {
+    final repository = _alertRepository;
+    final sessionId = state.session?.sessionId;
+    if (repository == null || sessionId == null) return;
+    final eventId = const Uuid().v4();
+    final observedAtUtc = _clock().toUtc();
+    var transportAttempts = 0;
+    try {
+      late TripAlert alert;
+      while (true) {
+        try {
+          alert = await repository.reportDeviation(
+            sessionId: sessionId,
+            eventId: eventId,
+            observedAtUtc: observedAtUtc,
+            targetItemId: targetItemId,
+          );
+          break;
+        } on NetworkFailure {
+          if (++transportAttempts >= 2) rethrow;
+        }
+      }
+      if (!state.alerts.any((item) => item.id == alert.id)) addAlert(alert);
+    } on RateLimitFailure {
+      // Backend cooldown is authoritative. Do not retry this transition.
+    } on Failure {
+      // A future on-route -> off-route transition creates a fresh event.
+    }
+  }
 
   /// Dismisses banner alert. The alert REMAINS in alerts history.
   void dismissBannerAlert(String alertId) {
