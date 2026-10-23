@@ -36,6 +36,13 @@ const minAvailableMinutes = 60;
 /// Longest trip: one continuous window of 72 hours that may cross midnight.
 const maxAvailableMinutes = 72 * 60;
 
+/// Smallest "explore around" radius, in kilometres.
+const minSearchRadiusKm = 1;
+
+/// Largest "explore around" radius, in kilometres (Da Nang to Hue is about
+/// 85 km). Also the reach of place pickers that search around a location.
+const maxSearchRadiusKm = 100;
+
 enum TransportMode { walking, motorbike, car, publicTransit }
 
 enum RestPreference { auto, none, frequent }
@@ -163,7 +170,7 @@ final class ItineraryGenerationRequest extends Equatable {
     'endPoiId': endPoiId,
     'returnToStart': returnToStart,
     'availableMinutes': availableMinutes,
-    'transportMode': _transportModeName(transportMode),
+    'transportMode': transportModeApiName(transportMode),
     'searchRadiusKm': searchRadiusKm,
     'budgetVnd': budgetVnd,
     'mandatoryPoiIds': normalizedMandatoryPoiIds,
@@ -189,7 +196,8 @@ final class ItineraryGenerationRequest extends Equatable {
   ];
 }
 
-String _transportModeName(TransportMode value) => switch (value) {
+/// Backend name of [value].
+String transportModeApiName(TransportMode value) => switch (value) {
   TransportMode.walking => 'Walking',
   TransportMode.motorbike => 'Motorbike',
   TransportMode.car => 'Car',
@@ -200,4 +208,13 @@ String _restPreferenceName(RestPreference value) => switch (value) {
   RestPreference.auto => 'Auto',
   RestPreference.none => 'None',
   RestPreference.frequent => 'Frequent',
+};
+
+/// Reads a backend transport name; unknown or missing values are null.
+TransportMode? parseTransportMode(Object? value) => switch (value) {
+  'Walking' => TransportMode.walking,
+  'Motorbike' => TransportMode.motorbike,
+  'Car' => TransportMode.car,
+  'PublicTransit' => TransportMode.publicTransit,
+  _ => null,
 };

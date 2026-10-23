@@ -482,7 +482,10 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
       final route = await directions.getRoute(
         origin: origin,
         destination: _coordinateOf(target),
-        transportMode: state.session?.transportMode,
+        // Each leg may use its own mode; older sessions only carry the
+        // trip-wide one.
+        transportMode:
+            target.transportModeFromPrevious ?? state.session?.transportMode,
       );
       if (isClosed || state.targetItemId != target.itemId) return;
       _routeTracker = RouteProgressTracker(route);

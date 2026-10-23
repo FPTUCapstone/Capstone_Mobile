@@ -91,6 +91,30 @@ void main() {
           path: AppRoutes.tripReviewPattern,
           builder: (_, _) => const Text('Trip review'),
         ),
+        GoRoute(
+          path: AppRoutes.tourDetailPattern,
+          builder: (_, _) => const Text('Tour detail'),
+        ),
+        GoRoute(
+          path: AppRoutes.bookTourPattern,
+          builder: (_, _) => const Text('Book tour'),
+        ),
+        GoRoute(
+          path: AppRoutes.bookingRefundPattern,
+          builder: (_, _) => const Text('Refund progress'),
+        ),
+        GoRoute(
+          path: AppRoutes.splash,
+          builder: (_, _) => const Text('Splash'),
+        ),
+        GoRoute(
+          path: AppRoutes.guestHome,
+          builder: (_, _) => const Text('Guest home'),
+        ),
+        GoRoute(
+          path: AppRoutes.createItinerary,
+          builder: (_, _) => const Text('Create itinerary'),
+        ),
       ],
     );
     addTearDown(router.dispose);
@@ -232,8 +256,35 @@ void main() {
         await resolve(tester, session, AppRoutes.joinTravelGroup),
         AppRoutes.login,
       );
+      expect(
+        await resolve(tester, session, AppRoutes.bookingRefund('42')),
+        AppRoutes.login,
+      );
     },
   );
+
+  testWidgets('refund progress is available to the booking traveler', (
+    tester,
+  ) async {
+    const session = AuthSessionState.authenticated(UserRole.traveler);
+    expect(
+      await resolve(tester, session, AppRoutes.bookingRefund('42')),
+      AppRoutes.bookingRefund('42'),
+    );
+  });
+
+  testWidgets('refund progress is available to an approved tour operator', (
+    tester,
+  ) async {
+    const session = AuthSessionState.authenticated(
+      UserRole.tourOperator,
+      applicationStatus: TourOperatorApplicationStatus.approved,
+    );
+    expect(
+      await resolve(tester, session, AppRoutes.bookingRefund('42')),
+      AppRoutes.bookingRefund('42'),
+    );
+  });
 
   testWidgets(
     'UC-23 Join Travel Group route guard permits Traveler and redirects TourOperator',
@@ -473,6 +524,207 @@ void main() {
       expect(await resolve(tester, session, login), AppRoutes.traveler);
     }
   });
+
+  testWidgets(
+    'UC-26: authenticated Traveler is permitted to return to an explore tour detail route from login',
+    (tester) async {
+      const session = AuthSessionState.authenticated(UserRole.traveler);
+      final login = Uri(
+        path: AppRoutes.login,
+        queryParameters: {'from': '/explore/tours/rec-101'},
+      ).toString();
+
+      expect(await resolve(tester, session, login), '/explore/tours/rec-101');
+    },
+  );
+
+  testWidgets(
+    'unauthenticated guest attempting tourRecommendations is redirected to login with from param',
+    (tester) async {
+      const session = AuthSessionState.unauthenticated();
+      final router = GoRouter(
+        initialLocation: AppRoutes.tourRecommendations,
+        redirect: (_, state) => RouteGuards.redirect(session, state),
+        routes: [
+          GoRoute(
+            path: AppRoutes.login,
+            builder: (_, _) => const Text('Sign In'),
+          ),
+          GoRoute(
+            path: AppRoutes.tourRecommendations,
+            builder: (_, _) => const Text('Tour Recommendations'),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sign In'), findsOneWidget);
+      expect(find.text('Tour Recommendations'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'unauthenticated guest can access tourDetailPattern without redirect',
+    (tester) async {
+      const session = AuthSessionState.unauthenticated();
+      final router = GoRouter(
+        initialLocation: AppRoutes.tourDetail('123'),
+        redirect: (_, state) => RouteGuards.redirect(session, state),
+        routes: [
+          GoRoute(
+            path: AppRoutes.login,
+            builder: (_, _) => const Text('Sign In'),
+          ),
+          GoRoute(
+            path: AppRoutes.tourDetailPattern,
+            builder: (_, _) => const Text('Tour Detail 123'),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tour Detail 123'), findsOneWidget);
+      expect(find.text('Sign In'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'unauthenticated guest is redirected to sign in before booking a tour',
+    (tester) async {
+      const session = AuthSessionState.unauthenticated();
+      final router = GoRouter(
+        initialLocation: AppRoutes.bookTour('123', '456'),
+        redirect: (_, state) => RouteGuards.redirect(session, state),
+        routes: [
+          GoRoute(
+            path: AppRoutes.login,
+            builder: (_, _) => const Text('Sign In'),
+          ),
+          GoRoute(
+            path: AppRoutes.bookTourPattern,
+            builder: (_, _) => const Text('Book tour'),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sign In'), findsOneWidget);
+      expect(find.text('Book tour'), findsNothing);
+      expect(
+        router.routerDelegate.currentConfiguration.uri.toString(),
+        contains('from=%2Fexplore%2Ftours%2F123%2Fbook%3FscheduleId%3D456'),
+      );
+    },
+  );
+
+  testWidgets(
+    'unauthenticated guest at splash is routed to Guest Home instead of Login',
+    (tester) async {
+      const session = AuthSessionState.unauthenticated();
+      expect(
+        await resolve(tester, session, AppRoutes.splash),
+        AppRoutes.guestHome,
+      );
+    },
+  );
+
+  testWidgets('Tour Operator cannot access the Traveler booking route', (
+    tester,
+  ) async {
+    const session = AuthSessionState.authenticated(
+      UserRole.tourOperator,
+      applicationStatus: TourOperatorApplicationStatus.approved,
+    );
+    expect(
+      await resolve(tester, session, AppRoutes.bookTour('123', '456')),
+      AppRoutes.operator,
+    );
+  });
+
+  testWidgets('unauthenticated guest remains on Guest Home without redirect', (
+    tester,
+  ) async {
+    const session = AuthSessionState.unauthenticated();
+    expect(
+      await resolve(tester, session, AppRoutes.guestHome),
+      AppRoutes.guestHome,
+    );
+  });
+
+  testWidgets(
+    'authenticated Traveler at splash is routed to Traveler dashboard',
+    (tester) async {
+      const session = AuthSessionState.authenticated(UserRole.traveler);
+      expect(
+        await resolve(tester, session, AppRoutes.splash),
+        AppRoutes.traveler,
+      );
+    },
+  );
+
+  testWidgets(
+    'authenticated approved TourOperator at splash is routed to Operator workspace',
+    (tester) async {
+      const session = AuthSessionState.authenticated(
+        UserRole.tourOperator,
+        applicationStatus: TourOperatorApplicationStatus.approved,
+      );
+      expect(
+        await resolve(tester, session, AppRoutes.splash),
+        AppRoutes.operator,
+      );
+    },
+  );
+
+  testWidgets(
+    'authenticated pending TourOperator at splash is routed to application view',
+    (tester) async {
+      const session = AuthSessionState.authenticated(
+        UserRole.tourOperator,
+        applicationStatus: TourOperatorApplicationStatus.pendingApproval,
+      );
+      expect(
+        await resolve(tester, session, AppRoutes.splash),
+        AppRoutes.operatorApplication,
+      );
+    },
+  );
+
+  testWidgets(
+    'authenticated rejected TourOperator at splash is routed to application view',
+    (tester) async {
+      const session = AuthSessionState.authenticated(
+        UserRole.tourOperator,
+        applicationStatus: TourOperatorApplicationStatus.rejected,
+      );
+      expect(
+        await resolve(tester, session, AppRoutes.splash),
+        AppRoutes.operatorApplication,
+      );
+    },
+  );
+
+  testWidgets(
+    'authenticated Traveler signing in from guest itinerary action returns to createItinerary',
+    (tester) async {
+      const session = AuthSessionState.authenticated(UserRole.traveler);
+      final login = Uri(
+        path: AppRoutes.login,
+        queryParameters: {'from': AppRoutes.createItinerary},
+      ).toString();
+
+      expect(await resolve(tester, session, login), AppRoutes.createItinerary);
+    },
+  );
 }
 
 final class _PendingLogoutRepository implements AuthRepository {

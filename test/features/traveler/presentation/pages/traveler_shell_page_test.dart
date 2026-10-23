@@ -97,6 +97,19 @@ void main() {
     expect(tripRepository.requestedPages, [1, 1]);
   });
 
+  testWidgets(
+    'renders Search Tours and Tour Recommendations buttons on Home tab',
+    (tester) async {
+      final cubit = await _authenticatedCubit();
+      addTearDown(cubit.close);
+      await _pumpShell(tester, cubit);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Search Tours'), findsOneWidget);
+      expect(find.text('Tour Recommendations'), findsOneWidget);
+    },
+  );
+
   testWidgets('traveler shell sign-out uses the backend-integrated flow once', (
     tester,
   ) async {

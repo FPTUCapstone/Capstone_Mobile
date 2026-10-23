@@ -7,6 +7,8 @@ import 'package:trip_mate_mobile/app/router/create_travel_group_route_args.dart'
 import 'package:trip_mate_mobile/app/router/route_guards.dart';
 import 'package:trip_mate_mobile/app/router/travel_group_details_route_args.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/features/auth/change_password/presentation/cubit/change_password_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/change_password/presentation/pages/change_password_page.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/cubit/password_recovery_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/pages/password_recovery_page.dart';
@@ -23,13 +25,28 @@ import 'package:trip_mate_mobile/features/auth/presentation/pages/splash_page.da
 import 'package:trip_mate_mobile/features/auth/presentation/pages/traveler_registration_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/verify_email_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/services/operator_document_picker.dart';
+import 'package:trip_mate_mobile/features/booking/presentation/cubit/book_tour_cubit.dart';
+import 'package:trip_mate_mobile/features/booking/presentation/pages/book_tour_page.dart';
+import 'package:trip_mate_mobile/features/booking_refund/presentation/cubit/booking_refund_progress_cubit.dart';
+import 'package:trip_mate_mobile/features/booking_refund/presentation/pages/booking_refund_progress_page.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/cubit/create_coupon_cubit.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/pages/create_coupon_page.dart';
+import 'package:trip_mate_mobile/features/guest/presentation/pages/guest_landing_page.dart';
+import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/operator_tours_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/create_tour_package_page.dart';
+import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/edit_tour_package_page.dart';
+import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/operator_tours_page.dart';
+import 'package:trip_mate_mobile/features/payment/presentation/cubit/payment_cubit.dart';
+import 'package:trip_mate_mobile/features/payment/presentation/pages/payment_page.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/poi_detail_page.dart';
+import 'package:trip_mate_mobile/features/tour_detail/presentation/pages/tour_detail_page.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
+import 'package:trip_mate_mobile/features/tour_recommendations/presentation/pages/tour_recommendations_page.dart';
+import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summary.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/pages/tour_search_page.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
@@ -61,9 +78,12 @@ import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_s
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_shell_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/trip_alerts_page.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/entities/reviewable_record_ref.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
-import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/canonical_trip_review_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_records_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/pages/canonical_trip_review_page.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_history_page.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_review_page.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
@@ -137,6 +157,11 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         ),
       ),
       GoRoute(
+        path: AppRoutes.guestHome,
+        name: AppRouteNames.guestHome,
+        builder: (_, _) => const GuestLandingPage(),
+      ),
+      GoRoute(
         path: AppRoutes.poiDetailPattern,
         name: AppRouteNames.poiDetail,
         builder: (_, state) => BlocProvider(
@@ -157,6 +182,76 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         ),
       ),
       GoRoute(
+        path: AppRoutes.tourDetailPattern,
+        name: AppRouteNames.tourDetail,
+        builder: (_, state) {
+          final tourId = state.pathParameters['tourId'] ?? '';
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          final summary = state.extra is TourSummary
+              ? state.extra as TourSummary
+              : null;
+          return TourDetailPage(
+            tourId: tourId,
+            initialSummary: summary,
+            isDemoMode: isDemo,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.bookTourPattern,
+        name: AppRouteNames.bookTour,
+        redirect: (_, state) {
+          final scheduleId = state.uri.queryParameters['scheduleId'];
+          if (scheduleId != null && scheduleId.isNotEmpty) return null;
+          return AppRoutes.tourDetail(state.pathParameters['tourId'] ?? '');
+        },
+        builder: (_, state) {
+          final scheduleId = state.uri.queryParameters['scheduleId']!;
+          return BlocProvider(
+            create: (_) => serviceLocator<BookTourCubit>(param1: scheduleId),
+            child: const BookTourPage(),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.paymentPattern,
+        name: AppRouteNames.payment,
+        builder: (_, state) {
+          final bookingId = state.pathParameters['bookingId']!;
+          final bookingCode = state.uri.queryParameters['code'];
+          final amountStr = state.uri.queryParameters['amount'];
+          final currency = state.uri.queryParameters['currency'];
+          final amount = amountStr != null ? int.tryParse(amountStr) : null;
+
+          return BlocProvider(
+            create: (_) => serviceLocator<PaymentCubit>(),
+            child: PaymentPage(
+              bookingId: bookingId,
+              initialBookingCode: bookingCode,
+              initialAmount: amount,
+              initialCurrency: currency,
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.bookingRefundPattern,
+        name: AppRouteNames.bookingRefund,
+        builder: (_, state) {
+          final bookingId = state.pathParameters['bookingId'] ?? '';
+          if (int.tryParse(bookingId) == null || int.parse(bookingId) <= 0) {
+            return const Scaffold(
+              body: ErrorView(message: 'Refund information is unavailable.'),
+            );
+          }
+          return BlocProvider(
+            create: (_) => serviceLocator<BookingRefundProgressCubit>(),
+            child: BookingRefundProgressPage(bookingId: bookingId),
+          );
+        },
+      ),
+      GoRoute(
         path: AppRoutes.traveler,
         name: AppRouteNames.traveler,
         builder: (_, _) => const TravelerShellPage(),
@@ -175,9 +270,26 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         path: AppRoutes.travelerPreferences,
         name: AppRouteNames.travelerPreferences,
         builder: (_, _) => BlocProvider(
-          create: (_) => TravelPreferencesCubit(),
+          create: (_) => serviceLocator<TravelPreferencesCubit>()..load(),
           child: const TravelPreferencesPage(),
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.travelerChangePassword,
+        name: AppRouteNames.travelerChangePassword,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<ChangePasswordCubit>(),
+          child: const ChangePasswordPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.tourRecommendations,
+        name: AppRouteNames.tourRecommendations,
+        builder: (_, state) {
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
+          return TourRecommendationsPage(isDemoMode: isDemo);
+        },
       ),
       GoRoute(
         path: AppRoutes.createItinerary,
@@ -417,7 +529,7 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
               kDebugMode && state.uri.queryParameters['demo'] == 'true';
           return BlocProvider(
             create: (_) =>
-                serviceLocator<TripHistoryCubit>(param1: isDemo)..loadInitial(),
+                serviceLocator<TripRecordsCubit>(param1: isDemo)..loadInitial(),
             child: TripHistoryPage(isDemoMode: isDemo),
           );
         },
@@ -460,6 +572,26 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         },
       ),
       GoRoute(
+        path: AppRoutes.canonicalTripReviewPattern,
+        builder: (_, state) {
+          final kind = switch (state.pathParameters['kind']) {
+            'commerceBooking' => ReviewableRecordKind.commerceBooking,
+            'serviceBooking' => ReviewableRecordKind.serviceBooking,
+            _ => null,
+          };
+          final id = int.tryParse(state.pathParameters['id'] ?? '');
+          if (kind == null || id == null || id <= 0) {
+            return const Scaffold(
+              body: ErrorView(message: 'Review information is unavailable.'),
+            );
+          }
+          final reference = ReviewableRecordRef(kind: kind, id: id);
+          return CanonicalTripReviewPage(
+            cubit: serviceLocator<CanonicalTripReviewCubit>(param1: reference),
+          );
+        },
+      ),
+      GoRoute(
         path: '/traveler/trips/:tripId',
         redirect: (_, state) {
           final tripId = state.pathParameters['tripId'] ?? '';
@@ -472,7 +604,37 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
       GoRoute(
         path: AppRoutes.operator,
         name: AppRouteNames.operator,
-        builder: (_, _) => const OperatorShellPage(),
+        builder: (_, state) {
+          final isDemo = state.uri.queryParameters['demo'] == 'true';
+          return OperatorShellPage(isDemoMode: isDemo);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.operatorTours,
+        name: AppRouteNames.operatorTours,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<OperatorToursCubit>()..load(),
+          child: const OperatorToursPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.editTourPackage,
+        name: AppRouteNames.editTourPackage,
+        builder: (_, state) => BlocProvider(
+          create: (_) => serviceLocator<CreateTourPackageCubit>(),
+          child: EditTourPackagePage(
+            tourId: int.tryParse(state.pathParameters['tourId'] ?? ''),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.createTourPackage,
+        name: AppRouteNames.createTourPackage,
+        builder: (_, _) => BlocProvider(
+          create: (_) =>
+              serviceLocator<CreateTourPackageCubit>()..loadOptions(),
+          child: const CreateTourPackagePage(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.createCoupon,
@@ -480,6 +642,14 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         builder: (_, _) => BlocProvider(
           create: (_) => serviceLocator<CreateCouponCubit>(),
           child: const CreateCouponPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.operatorChangePassword,
+        name: AppRouteNames.operatorChangePassword,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<ChangePasswordCubit>(),
+          child: const ChangePasswordPage(),
         ),
       ),
       GoRoute(

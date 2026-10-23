@@ -43,6 +43,22 @@ final class InvalidResetCredentialFailure extends Failure {
   ]);
 }
 
+/// UC-07: the submitted current password does not match the stored hash
+/// (Backend MSG17).
+final class IncorrectCurrentPasswordFailure extends Failure {
+  const IncorrectCurrentPasswordFailure([
+    super.message = 'Current password does not match our records.',
+  ]);
+}
+
+/// UC-07: the authenticated account has no local password to change
+/// (Google-only account; Backend 403 auth.local_password_unavailable).
+final class LocalPasswordUnavailableFailure extends Failure {
+  const LocalPasswordUnavailableFailure([
+    super.message = 'A local password is not available for this account.',
+  ]);
+}
+
 final class PermissionFailure extends Failure {
   const PermissionFailure([
     super.message = 'You do not have permission to access this function.',
@@ -97,6 +113,41 @@ final class ConstraintFailure extends Failure {
     super.message =
         'Your selected time, locations, or budget cannot form an itinerary.',
   ]);
+}
+
+/// An itinerary edit was not saved because one stop would not fit
+/// (`itinerary.stop_infeasible`). [poiId] names the stop that breaks;
+/// [reason] is the backend reason (`ClosedAtArrival`, `ExceedsEndTime`,
+/// `ExceedsBudget`, `OutsideRadius`, `Inactive`, `NoOpeningHours`).
+final class StopInfeasibleFailure extends Failure {
+  const StopInfeasibleFailure({
+    this.poiId,
+    this.reason,
+    this.plannedArrival,
+    this.closesAt,
+    this.overflowMinutes,
+    this.overflowVnd,
+  }) : super('A selected location does not fit the itinerary.');
+
+  final int? poiId;
+  final String? reason;
+  final DateTime? plannedArrival;
+
+  /// "HH:mm" local closing time.
+  final String? closesAt;
+  final int? overflowMinutes;
+  final double? overflowVnd;
+
+  @override
+  List<Object?> get props => [
+    message,
+    poiId,
+    reason,
+    plannedArrival,
+    closesAt,
+    overflowMinutes,
+    overflowVnd,
+  ];
 }
 
 enum NavigationFailureReason {

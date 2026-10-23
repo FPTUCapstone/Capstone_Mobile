@@ -326,4 +326,65 @@ void main() {
     expect(failure, isA<ConstraintFailure>());
     expect(failure.message, 'The selected order cannot produce an itinerary.');
   });
+
+  test('reads which stop does not fit from the problem details', () {
+    final failure = ErrorMapper.toFailure(
+      responseError(
+        statusCode: 422,
+        path: '/api/v1/itineraries/10/items',
+        data: {
+          'title': 'A selected location does not fit the itinerary.',
+          'errorCode': 'itinerary.stop_infeasible',
+          'poiId': 88,
+          'reason': 'ClosedAtArrival',
+          'plannedArrival': '2026-10-18T09:40:00+00:00',
+          'closesAt': '16:30',
+          'overflowMinutes': 70,
+          'overflowVnd': null,
+        },
+      ),
+    );
+
+    expect(failure, isA<StopInfeasibleFailure>());
+    final stop = failure as StopInfeasibleFailure;
+    expect(stop.poiId, 88);
+    expect(stop.reason, 'ClosedAtArrival');
+    expect(stop.plannedArrival, DateTime.utc(2026, 10, 18, 9, 40));
+    expect(stop.closesAt, '16:30');
+    expect(stop.overflowMinutes, 70);
+    expect(stop.overflowVnd, isNull);
+  });
+
+  test('reads stop details nested under extensions too', () {
+    final failure = ErrorMapper.toFailure(
+      responseError(
+        statusCode: 422,
+        data: {
+          'extensions': {
+            'errorCode': 'itinerary.stop_infeasible',
+            'poiId': 12,
+            'reason': 'ExceedsBudget',
+            'overflowVnd': 50000.0,
+          },
+        },
+      ),
+    );
+
+    expect(failure, isA<StopInfeasibleFailure>());
+    expect((failure as StopInfeasibleFailure).poiId, 12);
+    expect(failure.overflowVnd, 50000);
+  });
+
+  test('explains that regenerating found no other option', () {
+    final failure = ErrorMapper.toFailure(
+      responseError(
+        statusCode: 422,
+        path: '/api/v1/itineraries/10/regenerate',
+        data: {'errorCode': 'itinerary.no_alternative'},
+      ),
+    );
+
+    expect(failure, isA<ConstraintFailure>());
+    expect(failure.message, contains('already the best option'));
+  });
 }

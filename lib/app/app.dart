@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +13,7 @@ import 'package:trip_mate_mobile/core/network/session_coordinator.dart';
 import 'package:trip_mate_mobile/core/push/push_device_coordinator.dart';
 import 'package:trip_mate_mobile/core/push/trip_push_messaging.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/pages/splash_page.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigation_session_repository.dart';
 
 class TripMateApp extends StatefulWidget {
@@ -26,6 +28,7 @@ class _TripMateAppState extends State<TripMateApp> {
   late final SessionCoordinator _sessionCoordinator = serviceLocator();
   late final GoRouter _router = createAppRouter(_sessionCubit);
   StreamSubscription<TripPushHint>? _pushSubscription;
+  bool _showSplash = true;
 
   @override
   void initState() {
@@ -75,6 +78,43 @@ class _TripMateAppState extends State<TripMateApp> {
           darkTheme: AppTheme.dark,
           themeMode: ThemeMode.system,
           routerConfig: _router,
+          builder: (context, child) {
+            Widget content = Stack(
+              children: [
+                child ?? const SizedBox.shrink(),
+                if (_showSplash)
+                  Positioned.fill(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 400),
+                      child: _showSplash
+                          ? SplashPage(
+                              autoNavigate: true,
+                              onFinished: () {
+                                if (mounted) {
+                                  setState(() => _showSplash = false);
+                                }
+                              },
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ),
+              ],
+            );
+
+            if (kIsWeb) {
+              return ColoredBox(
+                color: const Color(0xFF0F172A),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 480),
+                    child: content,
+                  ),
+                ),
+              );
+            }
+
+            return content;
+          },
         ),
       ),
     );

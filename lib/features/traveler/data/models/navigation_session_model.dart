@@ -63,6 +63,7 @@ abstract final class NavigationSessionModel {
             reachedAt: item.reachedAt,
             skippedAt: item.skippedAt,
             stopNumber: numbers[item.itemId],
+            transportModeFromPrevious: item.transportModeFromPrevious,
           ),
         )
         .toList(growable: false);
@@ -110,6 +111,9 @@ abstract final class NavigationSessionModel {
       },
       reachedAt: _date(json['reachedAtUtc']),
       skippedAt: _date(json['skippedAtUtc']),
+      transportModeFromPrevious: _transportMode(
+        json['transportModeFromPrevious'],
+      ),
     );
   }
 

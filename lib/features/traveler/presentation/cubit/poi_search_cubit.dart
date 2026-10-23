@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/core/location/device_location_service.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_poi_search_result.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/poi_search_state.dart';
@@ -59,10 +60,15 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
     emit(PoiSearchState.initial(scope: scope));
   }
 
-  void prepareScope({DeviceLocation? near, int? radiusKm}) {
+  void prepareScope({
+    DeviceLocation? near,
+    int? radiusKm,
+    bool excludeFoodAndDrink = false,
+  }) {
     final targetScope = PoiSearchScope.fromLocation(
       near: near,
       radiusKm: radiusKm,
+      excludeFoodAndDrink: excludeFoodAndDrink,
     );
     if (state.scope != targetScope || state.status != PoiSearchStatus.initial) {
       reset(scope: targetScope);
@@ -73,14 +79,20 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
     String? query,
     DeviceLocation? near,
     int? radiusKm,
+    bool excludeFoodAndDrink = false,
   }) async {
     final generation = ++_operationGeneration;
     final parameters = _PoiSearchParameters(
       query: query?.trim(),
       near: near,
-      radiusKm: near == null ? null : radiusKm ?? 50,
+      radiusKm: near == null ? null : radiusKm ?? maxSearchRadiusKm,
+      excludeFoodAndDrink: excludeFoodAndDrink,
     );
-    final scope = PoiSearchScope.fromLocation(near: near, radiusKm: radiusKm);
+    final scope = PoiSearchScope.fromLocation(
+      near: near,
+      radiusKm: radiusKm,
+      excludeFoodAndDrink: excludeFoodAndDrink,
+    );
     _activeSearch = parameters;
     _isLoadingMore = false;
     _currentPage = 0;
@@ -168,13 +180,20 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
     longitude: parameters.near?.longitude,
     radiusKm: parameters.radiusKm,
     page: page,
+    excludeFoodAndDrink: parameters.excludeFoodAndDrink,
   );
 }
 
 final class _PoiSearchParameters {
-  const _PoiSearchParameters({this.query, this.near, this.radiusKm});
+  const _PoiSearchParameters({
+    this.query,
+    this.near,
+    this.radiusKm,
+    this.excludeFoodAndDrink = false,
+  });
 
   final String? query;
   final DeviceLocation? near;
   final int? radiusKm;
+  final bool excludeFoodAndDrink;
 }

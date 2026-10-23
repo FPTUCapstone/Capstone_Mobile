@@ -1,5 +1,6 @@
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_stop.dart';
 
 abstract interface class ItineraryRepository {
   Future<GeneratedItinerary> generate({
@@ -20,9 +21,12 @@ abstract interface class ItineraryRepository {
     'Persisted itinerary regeneration is not available.',
   );
 
-  Future<ItineraryDetail> adjustItems({
+  /// Saves a new version with exactly these visit stops (add, replace, remove,
+  /// reorder, or change a leg's transport). Throws `StopInfeasibleFailure`
+  /// when a stop would not fit.
+  Future<ItineraryDetail> updateStops({
     required int itineraryId,
-    required List<int> orderedVisitPoiIds,
+    required List<ItineraryStop> stops,
     required String idempotencyKey,
   }) => throw UnimplementedError(
     'Persisted itinerary adjustment is not available.',

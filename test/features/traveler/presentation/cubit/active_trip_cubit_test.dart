@@ -557,6 +557,48 @@ void main() {
       await cubit.close();
     });
 
+    test('routes with the mode the traveler chose for the leg', () async {
+      final trip = ActiveTripDemoFixtures.createDemoSession(
+        transportMode: TransportMode.motorbike,
+      );
+      repository = FakeSessionRepository(
+        initialSession: trip.copyWith(
+          items: [
+            for (final item in trip.items)
+              item.copyWith(transportModeFromPrevious: TransportMode.walking),
+          ],
+        ),
+      );
+      final directions = FakeDirections();
+      final cubit = createCubit(directions: directions);
+      await cubit.start();
+      final target = cubit.state.targetItem!;
+
+      cubit.updatePosition(at(target, offset: -0.009));
+      await pumpEventQueue();
+
+      expect(cubit.state.session?.transportMode, TransportMode.motorbike);
+      expect(directions.requestedModes, [TransportMode.walking]);
+      await cubit.close();
+    });
+
+    test('falls back to the trip mode when the leg mode is unknown', () async {
+      repository = FakeSessionRepository(
+        transportMode: TransportMode.motorbike,
+      );
+      final directions = FakeDirections();
+      final cubit = createCubit(directions: directions);
+      await cubit.start();
+      final target = cubit.state.targetItem!;
+
+      cubit.updatePosition(at(target, offset: -0.009));
+      await pumpEventQueue();
+
+      expect(target.transportModeFromPrevious, isNull);
+      expect(directions.requestedModes, [TransportMode.motorbike]);
+      await cubit.close();
+    });
+
     test(
       'three far fixes mark off-route and request a new route after the cooldown',
       () async {
@@ -912,8 +954,13 @@ final class FakeAlertRepository implements TripAlertRepository {
 /// Delegates to the in-memory demo repository and records calls; failures can
 /// be injected for the next start or mutation.
 final class FakeSessionRepository implements NavigationSessionRepository {
-  FakeSessionRepository({TransportMode? transportMode})
-    : demo = DemoNavigationSessionRepository(transportMode: transportMode);
+  FakeSessionRepository({
+    TransportMode? transportMode,
+    NavigationSession? initialSession,
+  }) : demo = DemoNavigationSessionRepository(
+         initialSession: initialSession,
+         transportMode: transportMode,
+       );
 
   final DemoNavigationSessionRepository demo;
   final Map<int, NavigationSession> others = {};

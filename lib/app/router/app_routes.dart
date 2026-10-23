@@ -8,12 +8,38 @@ abstract final class AppRoutes {
   static const operatorRegistration = '/auth/register/operator';
   static const operatorEmailRecovery = '/auth/operator/verify-email';
   static const explore = '/explore';
+  static const guestHome = '/guest/home';
   static const poiDetailPattern = '/explore/poi/:id';
   static const tourSearch = '/explore/tours';
+  static const tourDetailPattern = '/explore/tours/:tourId';
+  static const bookTourPattern = '/explore/tours/:tourId/book';
+  static const paymentPattern = '/payment/:bookingId';
+  static const bookingRefundPattern = '/bookings/:bookingId/refund';
+  static String payment(
+    String bookingId, {
+    String? bookingCode,
+    int? amount,
+    String? currency,
+  }) {
+    final params = <String, String>{};
+    if (bookingCode != null) params['code'] = bookingCode;
+    if (amount != null) params['amount'] = amount.toString();
+    if (currency != null) params['currency'] = currency;
+    return Uri(
+      path: '/payment/$bookingId',
+      queryParameters: params.isEmpty ? null : params,
+    ).toString();
+  }
+
+  static String bookingRefund(String bookingId) =>
+      '/bookings/$bookingId/refund';
+
   static const traveler = '/traveler';
+  static const tourRecommendations = '/traveler/tours/recommendations';
   static const travelerSettings = '/traveler/settings';
   static const travelerProfile = '/traveler/profile';
   static const travelerPreferences = '/traveler/preferences';
+  static const travelerChangePassword = '/traveler/change-password';
   static const createItinerary = '/traveler/itineraries/create';
   static const itineraryResult = '/traveler/itineraries/result';
   static const itineraryDetail = '/traveler/itineraries/:itineraryId';
@@ -30,10 +56,17 @@ abstract final class AppRoutes {
   static const offlinePackagePattern = '/traveler/trips/:itineraryId/offline';
   static const tripHistory = '/traveler/trips';
   static const tripReviewPattern = '/traveler/trips/:tripId/review';
+  static const canonicalTripReviewPattern = '/traveler/reviews/:kind/:id';
   static const operator = '/operator';
   static const operatorApplication = '/operator/application';
   static const operatorApplicationResubmit = '/operator/application/resubmit';
   static const createCoupon = '/operator/coupons/create';
+  static const operatorChangePassword = '/operator/change-password';
+  static const createTourPackage = '/operator/tours/create';
+  static const operatorTours = '/operator/tours';
+  static const editTourPackage = '/operator/tours/:tourId/edit';
+  static String editTourPackagePath(int tourId) =>
+      '/operator/tours/$tourId/edit';
 
   static String itineraryDetailPath(int itineraryId) =>
       '/traveler/itineraries/$itineraryId';
@@ -48,9 +81,17 @@ abstract final class AppRoutes {
   static String tripReview(String tripId, {bool isDemo = false}) => isDemo
       ? '/traveler/trips/$tripId/review?demo=true'
       : '/traveler/trips/$tripId/review';
+  static String canonicalTripReview(String kind, int id) =>
+      '/traveler/reviews/$kind/$id';
   static String groupLocationSharingPath(int groupId) =>
       '/traveler/groups/$groupId/location-sharing';
   static String poiDetail(int id) => '/explore/poi/$id';
+  static String tourDetail(String tourId, {bool demo = false}) =>
+      demo ? '/explore/tours/$tourId?demo=true' : '/explore/tours/$tourId';
+  static String bookTour(String tourId, String scheduleId) => Uri(
+    path: '/explore/tours/$tourId/book',
+    queryParameters: {'scheduleId': scheduleId},
+  ).toString();
   static const authPrefix = '/auth';
   static const travelerPrefix = '/traveler';
   static const operatorPrefix = '/operator';
@@ -65,12 +106,19 @@ abstract final class AppRouteNames {
   static const operatorRegistration = 'operator-registration';
   static const operatorEmailRecovery = 'operator-email-recovery';
   static const explore = 'explore';
+  static const guestHome = 'guest-home';
   static const poiDetail = 'poi-detail';
   static const tourSearch = 'tour-search';
+  static const tourDetail = 'tour-detail';
+  static const bookTour = 'book-tour';
+  static const payment = 'payment';
+  static const bookingRefund = 'booking-refund';
   static const traveler = 'traveler';
+  static const tourRecommendations = 'tour-recommendations';
   static const travelerSettings = 'traveler-settings';
   static const travelerProfile = 'traveler-profile';
   static const travelerPreferences = 'traveler-preferences';
+  static const travelerChangePassword = 'traveler-change-password';
   static const createItinerary = 'create-itinerary';
   static const itineraryResult = 'itinerary-result';
   static const itineraryDetail = 'itinerary-detail';
@@ -89,4 +137,8 @@ abstract final class AppRouteNames {
   static const operatorApplication = 'operator-application';
   static const operatorApplicationResubmit = 'operator-application-resubmit';
   static const createCoupon = 'create-coupon';
+  static const operatorChangePassword = 'operator-change-password';
+  static const createTourPackage = 'create-tour-package';
+  static const operatorTours = 'operator-tours';
+  static const editTourPackage = 'edit-tour-package';
 }

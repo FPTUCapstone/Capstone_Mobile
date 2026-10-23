@@ -1,3 +1,5 @@
+import 'package:trip_mate_mobile/features/poi/data/models/cost_kind_json.dart';
+import 'package:trip_mate_mobile/features/poi/domain/entities/cost_kind.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_detail.dart';
 
 final class PoiDetailModel {
@@ -24,6 +26,8 @@ final class PoiDetailModel {
     this.scenicScore,
     this.photoRating,
     this.averageRating,
+    this.estimatedVisitCost,
+    this.costKind,
   });
 
   factory PoiDetailModel.fromJson(Map<String, Object?> json) {
@@ -43,6 +47,8 @@ final class PoiDetailModel {
       scenicScore: _nullableDouble(json['scenicScore']),
       photoRating: _nullableDouble(json['photoRating']),
       averageRating: _nullableDouble(json['averageRating']),
+      estimatedVisitCost: _nullableDouble(json['estimatedVisitCost']),
+      costKind: parseCostKind(json['costKind']),
       reviewCount: _int(json, 'reviewCount'),
       isOpenNow: _bool(json, 'isOpenNow'),
       openingHours: _maps(
@@ -71,6 +77,10 @@ final class PoiDetailModel {
   final double? scenicScore;
   final double? photoRating;
   final double? averageRating;
+
+  /// Per person; null when unknown (never "free").
+  final double? estimatedVisitCost;
+  final CostKind? costKind;
   final int reviewCount;
   final bool isOpenNow;
   final List<PoiOpeningHourModel> openingHours;
@@ -95,6 +105,8 @@ final class PoiDetailModel {
     scenicScore: scenicScore,
     photoRating: photoRating,
     averageRating: averageRating,
+    estimatedVisitCost: estimatedVisitCost,
+    costKind: costKind,
     reviewCount: reviewCount,
     isOpenNow: isOpenNow,
     openingHours: openingHours.map((item) => item.toEntity()).toList(),

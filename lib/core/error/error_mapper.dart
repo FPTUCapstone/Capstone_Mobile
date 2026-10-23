@@ -26,6 +26,35 @@ abstract final class ErrorMapper {
     }
     if (statusCode == 429) return const RateLimitFailure();
     if (statusCode == 400) {
+      final code = extractErrorCode(responseData);
+      if (code == 'tour_booking.idempotency_key_required') {
+        return const ValidationFailure(
+          'Something went wrong preparing this request. Please try again.',
+        );
+      }
+      if (code == 'PAYMENT_BOOKING_NOT_ELIGIBLE') {
+        return const ValidationFailure(
+          'This booking is not eligible for payment.',
+        );
+      }
+      if (code == 'PAYMENT_BOOKING_EXPIRED') {
+        return const ValidationFailure(
+          'This booking has expired. Please book a new departure.',
+        );
+      }
+      if (code == 'PAYMENT_MOCK_DISABLED') {
+        return const ValidationFailure(
+          'Mock payment is not enabled in this environment.',
+        );
+      }
+      if (code == 'PAYMENT_GATEWAY_UNAVAILABLE') {
+        return const ServerFailure(
+          'The payment gateway is temporarily unavailable. Please try again later.',
+        );
+      }
+      if (code == 'PAYMENT_CALLBACK_INVALID') {
+        return const ValidationFailure('The payment response is invalid.');
+      }
       return ValidationFailure(
         _extractValidationMessage(responseData) ??
             _safeTitle(responseData) ??
@@ -36,6 +65,9 @@ abstract final class ErrorMapper {
     if (statusCode == 404) {
       final errorCode = extractErrorCode(responseData);
       if (errorCode == 'Poi.NotFound') return const NotFoundFailure();
+      if (errorCode == 'PAYMENT_NOT_FOUND') {
+        return const NotFoundFailure('The payment transaction was not found.');
+      }
       if (errorCode == 'travel_group.group_not_found') {
         return const NotFoundFailure();
       }
@@ -49,6 +81,14 @@ abstract final class ErrorMapper {
           'One or more selected tours are no longer available.',
         );
       }
+      if (errorCode == 'tour_booking.schedule_not_found') {
+        return const NotFoundFailure(
+          'This tour departure is no longer available.',
+        );
+      }
+      if (errorCode == 'tour_booking.voucher_not_found') {
+        return const NotFoundFailure('The voucher code was not found.');
+      }
       return const NotFoundFailure();
     }
     if (statusCode == 401) return const AuthenticationFailure();
@@ -57,6 +97,46 @@ abstract final class ErrorMapper {
     if (statusCode == 409) {
       if (extractErrorCode(responseData) == 'coupon.code_conflict') {
         return const ConflictFailure('This coupon code is already in use.');
+      }
+      final operatorTourCode = extractErrorCode(responseData);
+      if (operatorTourCode == 'operator_tour.edit_locked' ||
+          operatorTourCode == 'operator_tour.invalid_state') {
+        return const ConflictFailure(
+          'This tour package can no longer be changed. Only Draft or Rejected packages are editable.',
+        );
+      }
+      if (operatorTourCode ==
+          'operator_tour.idempotency_key_payload_mismatch') {
+        return const ConflictFailure(
+          'This request conflicts with an earlier save. Please reopen the form and try again.',
+        );
+      }
+      if (operatorTourCode == 'tour_booking.idempotency_key_payload_mismatch') {
+        return const ConflictFailure(
+          'The previous booking request did not finish. Please try again.',
+          null,
+          true,
+        );
+      }
+      if (operatorTourCode == 'tour_booking.schedule_not_open') {
+        return const ConflictFailure(
+          'This tour departure is no longer open for booking.',
+        );
+      }
+      if (operatorTourCode == 'tour_booking.insufficient_capacity') {
+        return const ConflictFailure(
+          'Not enough slots remain for this departure. Please reduce the number of travelers.',
+        );
+      }
+      if (operatorTourCode == 'tour_booking.voucher_usage_limit_reached') {
+        return const ConflictFailure(
+          'This voucher has reached its usage limit.',
+        );
+      }
+      if (operatorTourCode == 'tour_booking.too_many_unpaid_bookings') {
+        return const ConflictFailure(
+          'You have too many pending bookings. Complete payment or cancel one to continue.',
+        );
       }
       final (message, groupId) = _extractConflictDetails(responseData);
       return ConflictFailure(
@@ -69,15 +149,41 @@ abstract final class ErrorMapper {
     if (statusCode == 422) {
       final data = error.response?.data;
       final errorCode = data is Map ? extractErrorCode(data) : null;
+      if (errorCode == 'operator_tour.review_prerequisites_missing') {
+        return const ConstraintFailure(
+          'This tour is not ready for review yet. Add a cover photo, a future departure, a destination and a cancellation policy, then try again.',
+        );
+      }
       if (errorCode == 'coupon.tour_not_eligible') {
         return const ConstraintFailure(
           'A selected tour is not approved for coupons. Refresh and choose another tour.',
+        );
+      }
+      if (errorCode == 'itinerary.stop_infeasible') {
+        return _stopInfeasible(data);
+      }
+      if (errorCode == 'itinerary.no_alternative') {
+        return const ConstraintFailure(
+          'No other places fit this trip\'s time, area and budget. Your current itinerary is already the best option.',
         );
       }
       if (errorCode == 'planning.constraints_infeasible' ||
           errorCode == 'itinerary.constraints_infeasible') {
         final message = _extractSafePlanningMessage(data);
         return ConstraintFailure(message ?? const ConstraintFailure().message);
+      }
+      if (errorCode == 'tour_booking.voucher_not_eligible') {
+        return const ConstraintFailure(
+          'This voucher does not apply to the selected tour or is not currently active.',
+        );
+      }
+      if (errorCode == 'tour_booking.voucher_minimum_not_met') {
+        return const ConstraintFailure(
+          'This voucher requires a higher order amount. Add more travelers or remove the voucher.',
+        );
+      }
+      if (errorCode == 'tour_booking.participants_required') {
+        return const ConstraintFailure('At least one traveler is required.');
       }
       return const ConstraintFailure();
     }
@@ -113,6 +219,40 @@ abstract final class ErrorMapper {
       if (value is String && value.trim().isNotEmpty) return value.trim();
     }
     return null;
+  }
+
+  /// Problem-details extensions are serialized at the root; some proxies nest
+  /// them under `extensions`, so both are read.
+  static StopInfeasibleFailure _stopInfeasible(Object? data) {
+    Object? read(String key) {
+      if (data is! Map) return null;
+      final extensions = data['extensions'];
+      return data[key] ?? (extensions is Map ? extensions[key] : null);
+    }
+
+    final arrival = read('plannedArrival');
+    final reason = read('reason');
+    final closesAt = read('closesAt');
+    return StopInfeasibleFailure(
+      poiId: switch (read('poiId')) {
+        final num value => value.toInt(),
+        final String value => int.tryParse(value),
+        _ => null,
+      },
+      reason: reason is String ? reason : null,
+      plannedArrival: arrival is String
+          ? DateTime.tryParse(arrival)?.toUtc()
+          : null,
+      closesAt: closesAt is String ? closesAt : null,
+      overflowMinutes: switch (read('overflowMinutes')) {
+        final num value => value.toInt(),
+        _ => null,
+      },
+      overflowVnd: switch (read('overflowVnd')) {
+        final num value => value.toDouble(),
+        _ => null,
+      },
+    );
   }
 
   static String? _extractSafePlanningMessage(Object? data) {

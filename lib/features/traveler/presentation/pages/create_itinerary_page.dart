@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -122,6 +124,10 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
                 AppAlert(message: _formError!, type: AppAlertType.error),
                 const SizedBox(height: AppSpacing.md),
               ],
+              if (_getTravelFeasibilityWarning() case final travelWarning?) ...[
+                AppAlert(message: travelWarning, type: AppAlertType.warning),
+                const SizedBox(height: AppSpacing.md),
+              ],
               _LocationCard(
                 title: 'Starting point',
                 value: _startLabel,
@@ -181,13 +187,28 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
                     setState(() => _restPreference = value),
                 onRadiusChanged: (value) => setState(() {
                   _searchRadiusKm = value;
-                  _mandatoryPois.clear();
+                  final exp = _explorationPoi;
+                  if (exp != null) {
+                    _mandatoryPois.removeWhere((poi) {
+                      if (poi.id == exp.id) return false;
+                      final dist = _calculateDistanceKm(
+                        exp.latitude,
+                        exp.longitude,
+                        poi.latitude,
+                        poi.longitude,
+                      );
+                      return dist > value;
+                    });
+                  } else {
+                    _mandatoryPois.clear();
+                  }
                 }),
                 onBudgetChanged: _updateBudget,
               ),
               const SizedBox(height: AppSpacing.md),
               _MandatoryPois(
                 pois: _mandatoryPois,
+                primaryPoiId: _explorationPoi?.id,
                 enabled: !isGenerating && _startLocation != null,
                 onAdd: () => _showPoiPicker(_PoiTarget.mandatory),
                 onRemove: (poi) => setState(() => _mandatoryPois.remove(poi)),
@@ -210,6 +231,52 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
       _waitingForCurrentLocation = true;
     });
     context.read<PoiSearchCubit>().useCurrentLocation();
+  }
+
+  double _calculateDistanceKm(
+    double lat1,
+    double lng1,
+    double lat2,
+    double lng2,
+  ) {
+    const earthRadiusKm = 6371.0;
+    final dLat = (lat2 - lat1) * math.pi / 180.0;
+    final dLng = (lng2 - lng1) * math.pi / 180.0;
+    final midLat = ((lat1 + lat2) / 2.0) * math.pi / 180.0;
+    final x = dLng * math.cos(midLat);
+    final y = dLat;
+    return math.sqrt(x * x + y * y) * earthRadiusKm;
+  }
+
+  String? _getTravelFeasibilityWarning() {
+    final start = _startLocation;
+    final exp = _explorationPoi;
+    final available = _availableMinutes;
+    if (start == null || exp == null || available == null || available <= 0) {
+      return null;
+    }
+    final distKm = _calculateDistanceKm(
+      start.latitude,
+      start.longitude,
+      exp.latitude,
+      exp.longitude,
+    );
+
+    final speedKmh = switch (_transportMode) {
+      TransportMode.walking => 4.5,
+      TransportMode.motorbike => 35.0,
+      TransportMode.car => 30.0,
+      TransportMode.publicTransit => 20.0,
+    };
+    final roundTripHours = (distKm * 2) / speedKmh;
+    final roundTripMinutes = (roundTripHours * 60).round();
+    if (roundTripMinutes > 0.5 * available) {
+      return 'Lưu ý về thời gian di chuyển: Thời gian di chuyển 2 chiều ước tính '
+          'khoảng $roundTripMinutes phút, chiếm hơn 50% thời lượng chuyến đi '
+          '($available phút). Bạn nên cân nhắc chọn phương tiện nhanh hơn hoặc '
+          'tăng thời lượng chuyến đi.';
+    }
+    return null;
   }
 
   /// Time available is typed freely (hours + minutes): one hour up to three
@@ -337,6 +404,8 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
           radiusKm: target == _PoiTarget.mandatory
               ? _searchRadiusKm.round()
               : null,
+          excludeFoodAndDrink: target == _PoiTarget.mandatory,
+          isExploration: target == _PoiTarget.exploration,
         ),
       ),
     );
@@ -345,8 +414,15 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
       _formError = null;
       switch (target) {
         case _PoiTarget.exploration:
+          final previousPrimaryId = _explorationPoi?.id;
           _explorationPoi = selected;
-          _mandatoryPois.clear();
+          _mandatoryPois.removeWhere((poi) => poi.id == previousPrimaryId);
+          if (!_mandatoryPois.any((poi) => poi.id == selected.id)) {
+            if (_mandatoryPois.length >= 6) {
+              _mandatoryPois.removeLast();
+            }
+            _mandatoryPois.insert(0, selected);
+          }
         case _PoiTarget.end:
           _endPoi = selected;
         case _PoiTarget.mandatory:
@@ -408,6 +484,9 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
 }
 
 enum _PoiTarget { exploration, end, mandatory }
+
+/// Above this radius the form warns that stops may be far apart (Review 2).
+const _wideRadiusKm = 30;
 
 /// A starting point picked from either a geocoded address or a catalog place.
 final class _StartChoice {
@@ -671,12 +750,24 @@ final class _SettingsCard extends StatelessWidget {
           ),
           Slider(
             value: searchRadiusKm,
-            min: 1,
-            max: 50,
-            divisions: 49,
+            min: minSearchRadiusKm.toDouble(),
+            max: maxSearchRadiusKm.toDouble(),
+            divisions: maxSearchRadiusKm - minSearchRadiusKm,
             label: '${searchRadiusKm.round()} km',
             onChanged: enabled ? onRadiusChanged : null,
           ),
+          if (searchRadiusKm.round() > _wideRadiusKm)
+            Padding(
+              key: const Key('wide_radius_warning'),
+              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+              child: Text(
+                'Trên $_wideRadiusKm km, các điểm có thể cách xa nhau: mất nhiều '
+                'thời gian di chuyển hơn và ít điểm vừa lịch trình hơn.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ),
           const SizedBox(height: AppSpacing.xs),
           TextField(
             controller: budgetController,
@@ -703,12 +794,14 @@ final class _MandatoryPois extends StatelessWidget {
     required this.enabled,
     required this.onAdd,
     required this.onRemove,
+    this.primaryPoiId,
   });
 
   final List<SelectablePoi> pois;
   final bool enabled;
   final VoidCallback onAdd;
   final ValueChanged<SelectablePoi> onRemove;
+  final int? primaryPoiId;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -725,14 +818,13 @@ final class _MandatoryPois extends StatelessWidget {
           const Text('Optional. Add up to 6 places you do not want to miss.'),
           Wrap(
             spacing: AppSpacing.xs,
-            children: pois
-                .map(
-                  (poi) => InputChip(
-                    label: Text(poi.name),
-                    onDeleted: enabled ? () => onRemove(poi) : null,
-                  ),
-                )
-                .toList(),
+            children: pois.map((poi) {
+              final isPrimary = poi.id == primaryPoiId;
+              return InputChip(
+                label: Text(isPrimary ? '${poi.name} (Điểm chính)' : poi.name),
+                onDeleted: enabled ? () => onRemove(poi) : null,
+              );
+            }).toList(),
           ),
           TextButton.icon(
             onPressed: enabled && pois.length < 6 ? onAdd : null,
@@ -746,10 +838,19 @@ final class _MandatoryPois extends StatelessWidget {
 }
 
 final class _PoiPickerSheet extends StatefulWidget {
-  const _PoiPickerSheet({this.near, this.radiusKm});
+  const _PoiPickerSheet({
+    this.near,
+    this.radiusKm,
+    this.excludeFoodAndDrink = false,
+    this.isExploration = false,
+  });
 
   final DeviceLocation? near;
   final int? radiusKm;
+
+  /// Must-see places cannot be restaurants (they are added after generation).
+  final bool excludeFoodAndDrink;
+  final bool isExploration;
 
   @override
   State<_PoiPickerSheet> createState() => _PoiPickerSheetState();
@@ -759,6 +860,15 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
   final _queryController = TextEditingController();
   final _scrollController = ScrollController();
 
+  static const _popularSuggestions = [
+    'Bà Nà Hills',
+    'Sơn Trà',
+    'Ngũ Hành Sơn',
+    'Cầu Rồng',
+    'Mỹ Khê',
+    'Hòa Phú Thành',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -766,7 +876,15 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
     context.read<PoiSearchCubit>().prepareScope(
       near: widget.near,
       radiusKm: widget.radiusKm,
+      excludeFoodAndDrink: widget.excludeFoodAndDrink,
     );
+    if (widget.isExploration) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _queryController.text.isEmpty) {
+          _search();
+        }
+      });
+    }
   }
 
   @override
@@ -810,6 +928,34 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
               ),
               onSubmitted: (_) => _search(),
             ),
+            if (widget.isExploration) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Wrap(
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xxs,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    'Gợi ý:',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                  ),
+                  for (final suggestion in _popularSuggestions)
+                    ActionChip(
+                      label: Text(suggestion),
+                      labelStyle: Theme.of(context).textTheme.bodySmall,
+                      padding: EdgeInsets.zero,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      onPressed: () {
+                        _queryController.text = suggestion;
+                        _search();
+                      },
+                    ),
+                ],
+              ),
+            ],
             const SizedBox(height: AppSpacing.sm),
             Expanded(
               child: BlocBuilder<PoiSearchCubit, PoiSearchState>(
@@ -817,6 +963,7 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
                   final activeScope = PoiSearchScope.fromLocation(
                     near: widget.near,
                     radiusKm: widget.radiusKm,
+                    excludeFoodAndDrink: widget.excludeFoodAndDrink,
                   );
                   if (state.scope != activeScope &&
                       state.status != PoiSearchStatus.searching) {
@@ -873,6 +1020,7 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
     query: _queryController.text,
     near: widget.near,
     radiusKm: widget.radiusKm,
+    excludeFoodAndDrink: widget.excludeFoodAndDrink,
   );
 
   void _loadMoreWhenNearEnd() {

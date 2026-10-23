@@ -23,6 +23,9 @@ final class TripHistoryPageResult extends Equatable {
   List<Object?> get props => [items, totalCount, page, pageSize];
 }
 
+/// @deprecated Legacy model of the Trip History screen, kept only for the legacy review flow and
+/// the bookings tab (`TripHistoryRepository`). UC-32 (TM-78) uses `TripRecord`, `TripRecordsCubit` and
+/// `TripRecordsRepository`; do not extend this type.
 abstract interface class TripHistoryRepository {
   /// Returns bookings and itineraries.
   /// In demo mode, returns records for [travelerId] (defaulting to demo traveler).

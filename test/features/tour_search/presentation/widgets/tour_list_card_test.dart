@@ -316,5 +316,37 @@ void main() {
         },
       );
     });
+
+    testWidgets(
+      'renders matching score badge in English (% match) when score is provided',
+      (tester) async {
+        const tour = TourSummary(
+          tourId: 'rec-201',
+          title: 'Tour Ba Na Hills',
+          destinations: ['Da Nang'],
+          operatorName: 'Danang Travel',
+          durationDays: 1,
+          basePrice: 1250000,
+          currency: 'VND',
+          representativeScheduleId: null,
+          departureAtUtc: null,
+          availabilityStatus: AvailabilityStatus.available,
+          remainingSlots: 5,
+          thumbnailUrl: null,
+        );
+
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(body: TourListCard(tour: tour, matchingScore: 0.95)),
+          ),
+        );
+
+        expect(find.text('95% match'), findsOneWidget);
+        expect(
+          tester.getSemantics(find.byType(TourListCard)).label,
+          contains('95% match'),
+        );
+      },
+    );
   });
 }

@@ -34,13 +34,17 @@ Future<AuthSessionCubit> _authenticatedCubit({
   return cubit;
 }
 
-Future<void> _pumpShell(WidgetTester tester, AuthSessionCubit cubit) async {
+Future<void> _pumpShell(
+  WidgetTester tester,
+  AuthSessionCubit cubit, {
+  bool isDemoMode = false,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: AppTheme.light,
       home: BlocProvider<AuthSessionCubit>.value(
         value: cubit,
-        child: const OperatorShellPage(),
+        child: OperatorShellPage(isDemoMode: isDemoMode),
       ),
     ),
   );
@@ -62,6 +66,32 @@ void main() {
     expect(cubit.state.status, AuthSessionStatus.unauthenticated);
     // The existing one-tap UX stays unchanged: no confirmation step.
     expect(find.byType(AlertDialog), findsNothing);
+  });
+
+  testWidgets('operator Profile tab still offers the change-password entry', (
+    tester,
+  ) async {
+    final cubit = await _authenticatedCubit();
+    addTearDown(cubit.close);
+    await _pumpShell(tester, cubit);
+
+    await tester.tap(find.text('Profile'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Change password'), findsOneWidget);
+  });
+
+  testWidgets('operator Tours tab offers the create-tour-package entry', (
+    tester,
+  ) async {
+    final cubit = await _authenticatedCubit();
+    addTearDown(cubit.close);
+    await _pumpShell(tester, cubit);
+
+    await tester.tap(find.text('Tours'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Create tour package'), findsOneWidget);
   });
 
   testWidgets('operator shell sign-out action is disabled while in flight', (
@@ -129,6 +159,106 @@ void main() {
         find.text(AuthSessionCubit.signOutRemoteFailureMessage),
         findsNothing,
       );
+    },
+  );
+
+  testWidgets(
+    'operator shell in production mode shows truthful pending status without hardcoded finance or bookings',
+    (tester) async {
+      final cubit = await _authenticatedCubit();
+      addTearDown(cubit.close);
+      await _pumpShell(tester, cubit, isDemoMode: false);
+
+      // On Dashboard in production:
+      // Hardcoded fake revenue or fake bookings must NOT appear as real data
+      expect(find.text('38.500.000 đ'), findsNothing);
+      expect(find.text('Nguyễn Văn An'), findsNothing);
+      expect(find.text('BK-2026-901'), findsNothing);
+      expect(find.text('Chờ kết nối API'), findsWidgets);
+
+      // Navigate to Bookings tab
+      await tester.tap(find.text('Bookings'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Chưa có đơn đặt tour'), findsOneWidget);
+      expect(
+        find.text(
+          'Tính năng quản lý danh sách hành khách và đơn đặt chỗ đang chờ kết nối API hệ thống (PENDING_BE_INTEGRATION).',
+        ),
+        findsOneWidget,
+      );
+
+      // Navigate to Revenue tab
+      await tester.tap(find.text('Revenue'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Báo cáo doanh thu & Quyết toán'), findsOneWidget);
+      expect(
+        find.text(
+          'Dữ liệu doanh thu, số dư tài khoản và lịch sử quyết toán đối tác đang chờ kết nối cổng thanh toán máy chủ (PENDING_BE_INTEGRATION).',
+        ),
+        findsOneWidget,
+      );
+
+      // Navigate to Coupons tab
+      await tester.tap(find.text('Coupons'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Chưa có mã khuyến mãi'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'operator shell in demo mode isolates fixtures with prominent demo badge',
+    (tester) async {
+      final cubit = await _authenticatedCubit();
+      addTearDown(cubit.close);
+      await _pumpShell(tester, cubit, isDemoMode: true);
+
+      // On Dashboard in demo mode: demo banner is prominent
+      expect(
+        find.text(
+          '[DỮ LIỆU THỬ NGHIỆM - DEMO] Chỉ số tài chính & đơn đặt chỗ dưới đây là dữ liệu mẫu.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('38.500.000 đ'), findsOneWidget);
+
+      // Navigate to Bookings tab in demo mode
+      await tester.tap(find.text('Bookings'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          '[DỮ LIỆU THỬ NGHIỆM - DEMO] Danh sách khách hàng và mã đặt chỗ là dữ liệu mẫu.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('BK-2026-901'), findsOneWidget);
+      expect(find.text('Nguyễn Văn An'), findsOneWidget);
+
+      // Navigate to Revenue tab in demo mode
+      await tester.tap(find.text('Revenue'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          '[DỮ LIỆU THỬ NGHIỆM - DEMO] Số dư khả dụng và lịch sử giao dịch dưới đây là dữ liệu mẫu.',
+        ),
+        findsOneWidget,
+      );
+
+      // Navigate to Coupons tab in demo mode
+      await tester.tap(find.text('Coupons'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          '[DỮ LIỆU THỬ NGHIỆM - DEMO] Danh sách mã giảm giá dưới đây là dữ liệu mẫu.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('DANANG2026'), findsOneWidget);
     },
   );
 }

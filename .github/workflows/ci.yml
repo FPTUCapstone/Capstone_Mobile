@@ -40,13 +40,18 @@ jobs:
           fi
           dart run tool/validate_api_base_url.dart "$API_BASE_URL"
 
+      # MAPBOX_ACCESS_TOKEN is the public (pk.) token for the UC-13 map, address search and
+      # turn-by-turn guidance. It is optional: without it (e.g. pull requests from forks, which
+      # get no secrets) the app falls back to the illustration map.
       - name: Build debug APK
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
+          MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
         run: |
           flutter build apk --debug \
             --dart-define=APP_ENV=development \
-            --dart-define=API_BASE_URL="$API_BASE_URL"
+            --dart-define=API_BASE_URL="$API_BASE_URL" \
+            --dart-define=MAPBOX_ACCESS_TOKEN="$MAPBOX_ACCESS_TOKEN"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

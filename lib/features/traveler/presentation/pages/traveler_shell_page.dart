@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
-import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
@@ -10,8 +8,11 @@ import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.
 import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/my_trips_page.dart';
-import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/widgets/traveler_bookings_view.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/widgets/traveler_home_dashboard_view.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/widgets/traveler_profile_view.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_sliding_bottom_nav.dart';
 
 enum TravelerSectionId { home, trips, explore, bookings, profile }
 
@@ -28,26 +29,31 @@ class _TravelerShellPageState extends State<TravelerShellPage> {
       TravelerSectionId.home,
       'Trang chủ',
       Icons.home_outlined,
+      Icons.home,
     ),
     _TravelerDestination(
       TravelerSectionId.trips,
       'Chuyến đi',
       Icons.map_outlined,
+      Icons.map,
     ),
     _TravelerDestination(
       TravelerSectionId.explore,
       'Khám phá',
       Icons.explore_outlined,
+      Icons.explore,
     ),
     _TravelerDestination(
       TravelerSectionId.bookings,
       'Đặt chỗ',
       Icons.confirmation_number_outlined,
+      Icons.confirmation_number,
     ),
     _TravelerDestination(
       TravelerSectionId.profile,
       'Hồ sơ',
       Icons.person_outline,
+      Icons.person,
     ),
   ];
 
@@ -74,8 +80,6 @@ class _TravelerShellPageState extends State<TravelerShellPage> {
   Widget build(BuildContext context) {
     final session = context.watch<AuthSessionCubit>();
     final state = session.state;
-    // Only the approved local-cleanup notice is surfaced here; unrelated auth
-    // errors are not this screen's concern.
     final localCleanupFailure =
         state.status == AuthSessionStatus.authenticated &&
         state.errorMessage ==
@@ -85,15 +89,19 @@ class _TravelerShellPageState extends State<TravelerShellPage> {
       appBar: _selectedIndex == 2
           ? null
           : AppBar(
-              title: Text('Traveler · ${_destinations[_selectedIndex].label}'),
+              title: _buildAppBarTitle(_selectedIndex),
               actions: [
+                if (_selectedIndex == 0)
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none_outlined),
+                    tooltip: 'Thông báo',
+                    onPressed: () {},
+                  ),
                 IconButton(
-                  // Busy state comes from the Cubit's own sign-out marker, so
-                  // a second intent cannot start while one is in flight.
                   onPressed: state.operation == AuthSessionOperation.signOut
                       ? null
                       : session.signOut,
-                  tooltip: 'Sign out',
+                  tooltip: 'Đăng xuất',
                   icon: const Icon(Icons.logout),
                 ),
               ],
@@ -112,7 +120,10 @@ class _TravelerShellPageState extends State<TravelerShellPage> {
             child: IndexedStack(
               index: _selectedIndex,
               children: [
-                _TravelerSection(destination: _destinations[0]),
+                BlocProvider.value(
+                  value: _myTripsCubit,
+                  child: const TravelerHomeDashboardView(),
+                ),
                 BlocProvider.value(
                   value: _myTripsCubit,
                   child: const MyTripsPage(),
@@ -121,14 +132,14 @@ class _TravelerShellPageState extends State<TravelerShellPage> {
                   value: _exploreCubit,
                   child: const ExplorePoiPage(isTraveler: true),
                 ),
-                _TravelerSection(destination: _destinations[3]),
-                _TravelerSection(destination: _destinations[4]),
+                const TravelerBookingsView(),
+                const TravelerProfileView(),
               ],
             ),
           ),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: AppSlidingBottomNav(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
           if (index == 1) {
@@ -143,8 +154,9 @@ class _TravelerShellPageState extends State<TravelerShellPage> {
         },
         destinations: _destinations
             .map(
-              (destination) => NavigationDestination(
-                icon: Icon(destination.icon),
+              (destination) => AppNavDestination(
+                icon: destination.icon,
+                selectedIcon: destination.selectedIcon,
                 label: destination.label,
               ),
             )
@@ -152,93 +164,37 @@ class _TravelerShellPageState extends State<TravelerShellPage> {
       ),
     );
   }
-}
 
-class _TravelerSection extends StatelessWidget {
-  const _TravelerSection({required this.destination});
-
-  final _TravelerDestination destination;
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              destination.icon,
-              size: 56,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              'Traveler ${destination.label}',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              destination.section == TravelerSectionId.home
-                  ? 'Your next adventure starts here.'
-                  : 'Feature placeholder',
-              textAlign: TextAlign.center,
-            ),
-            if (destination.section == TravelerSectionId.home) ...[
-              const SizedBox(height: AppSpacing.lg),
-              FilledButton.icon(
-                onPressed: () => context.push(AppRoutes.tourSearch),
-                icon: const Icon(Icons.tour_outlined),
-                label: const Text('Tìm kiếm Tour'),
-              ),
-            ],
-            if (destination.section == TravelerSectionId.home ||
-                destination.section == TravelerSectionId.profile) ...[
-              const SizedBox(height: AppSpacing.sm),
-              OutlinedButton.icon(
-                onPressed: () => context.push(AppRoutes.travelerSettings),
-                icon: const Icon(Icons.manage_accounts_outlined),
-                label: const Text('Account settings'),
-              ),
-            ],
-            if (destination.section == TravelerSectionId.home ||
-                destination.section == TravelerSectionId.trips) ...[
-              const SizedBox(height: AppSpacing.sm),
-              OutlinedButton.icon(
-                onPressed: () => context.push(AppRoutes.joinTravelGroup),
-                icon: const Icon(Icons.group_add_outlined),
-                label: const Text('Join travel group'),
-              ),
-            ],
-            if (destination.section == TravelerSectionId.trips) ...[
-              const SizedBox(height: AppSpacing.lg),
-              FilledButton.icon(
-                onPressed: () => context.push(AppRoutes.createItinerary),
-                icon: const Icon(Icons.auto_awesome_outlined),
-                label: const Text('Create an itinerary'),
-              ),
-            ],
-            if (destination.section == TravelerSectionId.trips ||
-                destination.section == TravelerSectionId.bookings ||
-                destination.section == TravelerSectionId.profile) ...[
-              const SizedBox(height: AppSpacing.sm),
-              OutlinedButton.icon(
-                onPressed: () => context.push(AppRoutes.tripHistory),
-                icon: const Icon(Icons.history_outlined),
-                label: const Text(TripHistoryStringsEn.tripHistoryTitle),
-              ),
-            ],
-          ],
-        ),
-      ),
+  Widget _buildAppBarTitle(int index) {
+    if (index == 0) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset(
+            'assets/images/logo/tripmate_logo_full_512.png',
+            height: 28,
+            fit: BoxFit.contain,
+          ),
+        ],
+      );
+    }
+    return Text(
+      _destinations[index].label,
+      style: const TextStyle(fontWeight: FontWeight.w700),
     );
   }
 }
 
 class _TravelerDestination {
-  const _TravelerDestination(this.section, this.label, this.icon);
+  const _TravelerDestination(
+    this.section,
+    this.label,
+    this.icon,
+    this.selectedIcon,
+  );
 
   final TravelerSectionId section;
   final String label;
   final IconData icon;
+  final IconData selectedIcon;
 }
