@@ -126,15 +126,22 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_gro
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/canonical_trip_review_repository_impl.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/repositories/demo_trip_records_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_history_repository_impl.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_records_repository_impl.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_review_repository_impl.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/reviewable_record_ref.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_record.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/canonical_trip_review_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_history_repository.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_records_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_review_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/usecases/canonical_trip_review_use_case.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/usecases/trip_records_use_case.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/canonical_trip_review_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_record_detail_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_records_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
 
 final GetIt serviceLocator = GetIt.instance;
@@ -494,6 +501,24 @@ Future<void> configureDependencies({AppConfig? config}) async {
       (isDemoMode, _) => TripHistoryRepositoryImpl(
         demoStore: isDemoMode ? serviceLocator<DemoTripHistoryStore>() : null,
         isDemoMode: isDemoMode,
+      ),
+    )
+    ..registerFactoryParam<TripRecordsRepository, bool, void>(
+      (isDemoMode, _) => isDemoMode
+          ? const DemoTripRecordsRepository()
+          : TripRecordsRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactoryParam<TripRecordsUseCase, bool, void>(
+      (isDemoMode, _) => TripRecordsUseCase(serviceLocator(param1: isDemoMode)),
+    )
+    ..registerFactoryParam<TripRecordsCubit, bool, void>(
+      (isDemoMode, _) =>
+          TripRecordsCubit(useCase: serviceLocator(param1: isDemoMode)),
+    )
+    ..registerFactoryParam<TripRecordDetailCubit, TripRecordRef, bool>(
+      (reference, isDemoMode) => TripRecordDetailCubit(
+        useCase: serviceLocator(param1: isDemoMode),
+        reference: reference,
       ),
     )
     ..registerFactoryParam<TripReviewRepository, bool, void>(

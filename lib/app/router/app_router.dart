@@ -81,7 +81,7 @@ import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_tri
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/reviewable_record_ref.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/canonical_trip_review_cubit.dart';
-import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_records_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/pages/canonical_trip_review_page.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_history_page.dart';
@@ -526,7 +526,7 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
               kDebugMode && state.uri.queryParameters['demo'] == 'true';
           return BlocProvider(
             create: (_) =>
-                serviceLocator<TripHistoryCubit>(param1: isDemo)..loadInitial(),
+                serviceLocator<TripRecordsCubit>(param1: isDemo)..loadInitial(),
             child: TripHistoryPage(isDemoMode: isDemo),
           );
         },

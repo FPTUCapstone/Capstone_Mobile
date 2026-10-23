@@ -6,6 +6,9 @@ import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_h
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
 
+/// @deprecated Legacy model of the Trip History screen, kept only for the legacy review flow and
+/// the bookings tab (`TripHistoryCubit`). UC-32 (TM-78) uses `TripRecord`, `TripRecordsCubit` and
+/// `TripRecordsRepository`; do not extend this type.
 final class TripHistoryCubit extends Cubit<TripHistoryState> {
   TripHistoryCubit({
     required TripHistoryRepository repository,

@@ -13,6 +13,20 @@ abstract final class TripFormatters {
     return '$day/$month/$year';
   }
 
+  /// `dd/MM/yyyy HH:mm` in UTC+7 on a 24-hour clock (CR-07).
+  static String formatVietnamDateTime(DateTime dateTime) =>
+      '${formatVietnamDate(dateTime)} ${formatVietnamTime(dateTime)}';
+
+  /// `HH:mm` in UTC+7 on a 24-hour clock.
+  static String formatVietnamTime(DateTime dateTime) {
+    final vnTime = dateTime.isUtc
+        ? dateTime.add(const Duration(hours: 7))
+        : dateTime.toUtc().add(const Duration(hours: 7));
+    final hour = vnTime.hour.toString().padLeft(2, '0');
+    final minute = vnTime.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
   /// CR-07: Converts any DateTime to a Vietnam (UTC+7) calendar day.
   /// Returns a UTC DateTime with time component set to 00:00:00 for stable calendar-day comparison.
   static DateTime toVietnamCalendarDay(DateTime dateTime) {

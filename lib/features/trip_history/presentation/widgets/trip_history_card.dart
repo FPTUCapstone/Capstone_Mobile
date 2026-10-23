@@ -2,59 +2,48 @@ import 'package:flutter/material.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enums.dart';
-import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_record.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
+/// One UC-32 trip. Every button is driven by a flag the backend sent
+/// (`actions`, `review`); nothing is derived on the device.
 class TripHistoryCard extends StatelessWidget {
   const TripHistoryCard({
-    required this.item,
+    required this.record,
     required this.onViewEticket,
     required this.onWriteReview,
-    required this.onEditReview,
     required this.onViewReview,
-    required this.onViewRefundStatus,
+    required this.onViewRefund,
     required this.onViewDetails,
-    this.referenceTime,
     super.key,
   });
 
-  final TripHistoryItem item;
-  final ValueChanged<TripHistoryItem> onViewEticket;
-  final ValueChanged<TripHistoryItem> onWriteReview;
-  final ValueChanged<TripHistoryItem> onEditReview;
-  final ValueChanged<TripHistoryItem> onViewReview;
-  final ValueChanged<TripHistoryItem> onViewRefundStatus;
-  final ValueChanged<TripHistoryItem> onViewDetails;
-  final DateTime? referenceTime;
+  final TripRecord record;
+  final ValueChanged<TripRecord> onViewEticket;
+  final ValueChanged<BookingTripRecord> onWriteReview;
+  final ValueChanged<BookingTripRecord> onViewReview;
+  final ValueChanged<TripRecord> onViewRefund;
+  final ValueChanged<TripRecord> onViewDetails;
 
   @override
   Widget build(BuildContext context) {
-    final statusType = switch (item.status) {
+    final record = this.record;
+    final statusType = switch (record.tab) {
       TripStatus.upcoming => StatusBadgeType.info,
       TripStatus.completed => StatusBadgeType.success,
       TripStatus.cancelled => StatusBadgeType.error,
     };
-
-    final statusLabel = switch (item.status) {
+    final statusLabel = switch (record.tab) {
       TripStatus.upcoming => TripHistoryStringsEn.statusConfirmed,
       TripStatus.completed => TripHistoryStringsEn.statusCompleted,
       TripStatus.cancelled => TripHistoryStringsEn.statusCancelled,
     };
-
-    final typeLabel = switch (item.type) {
-      TripType.tour => TripHistoryStringsEn.filterTour,
-      TripType.commercialService =>
-        TripHistoryStringsEn.filterCommercialService,
-      TripType.itinerary => TripHistoryStringsEn.filterItinerary,
+    final typeLabel = switch (record) {
+      BookingTripRecord() => TripHistoryStringsEn.filterTour,
+      ItineraryTripRecord() => TripHistoryStringsEn.filterItinerary,
     };
-
-    final formattedDate = TripFormatters.formatVietnamDate(item.departureDate);
-    final formattedAmount = TripFormatters.formatVnd(item.totalAmount);
-    final participantsText = TripHistoryStringsEn.formatParticipants(
-      item.participantsCount,
-    );
 
     return Card(
       elevation: 1,
@@ -76,23 +65,22 @@ class TripHistoryCard extends StatelessWidget {
               runSpacing: AppSpacing.xxs,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Text(
-                  item.bookingCode,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: AppColors.muted,
+                if (record is BookingTripRecord)
+                  Text(
+                    record.bookingCode,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: AppColors.muted,
+                    ),
                   ),
-                ),
                 StatusBadge(label: typeLabel, type: StatusBadgeType.neutral),
                 StatusBadge(label: statusLabel, type: statusType),
               ],
             ),
             const SizedBox(height: AppSpacing.xs),
-
-            // Title
             Text(
-              item.title,
+              record.title,
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
@@ -100,174 +88,198 @@ class TripHistoryCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
-
-            // Info Grid: Departure Date, Participants, Total Amount
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.xs),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.calendar_today_outlined,
-                        size: 14,
-                        color: AppColors.muted,
-                      ),
-                      const SizedBox(width: AppSpacing.xxs),
-                      Text(
-                        '${TripHistoryStringsEn.labelDepartureDate}: ',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.muted,
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          formattedDate,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xxs),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.people_outline,
-                        size: 14,
-                        color: AppColors.muted,
-                      ),
-                      const SizedBox(width: AppSpacing.xxs),
-                      Text(
-                        '${TripHistoryStringsEn.labelParticipants}: ',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.muted,
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          participantsText,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xxs),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${TripHistoryStringsEn.labelTotalAmount}:',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.muted,
-                        ),
-                      ),
-                      Flexible(
-                        child: Text(
-                          formattedAmount,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                          textAlign: TextAlign.end,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            _InfoBox(record: record),
             const SizedBox(height: AppSpacing.sm),
-
-            // Contextual Action Buttons
-            Wrap(
-              spacing: AppSpacing.xs,
-              runSpacing: AppSpacing.xs,
-              children: [
-                // [View Details] is always available
-                OutlinedButton.icon(
-                  onPressed: () => onViewDetails(item),
-                  icon: const Icon(Icons.info_outline, size: 16),
-                  label: const Text(TripHistoryStringsEn.actionViewDetails),
-                  style: OutlinedButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ),
-
-                // [View E-ticket] for valid bookings
-                if (item.hasEticket)
-                  OutlinedButton.icon(
-                    onPressed: () => onViewEticket(item),
-                    icon: const Icon(Icons.qr_code, size: 16),
-                    label: const Text(TripHistoryStringsEn.actionViewEticket),
-                    style: OutlinedButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-
-                // [Write Review] for completed unreviewed bookings (BR-91, BR-92)
-                if (item.canWriteReview)
-                  FilledButton.icon(
-                    onPressed: () => onWriteReview(item),
-                    icon: const Icon(Icons.rate_review_outlined, size: 16),
-                    label: const Text(TripHistoryStringsEn.actionWriteReview),
-                    style: FilledButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-
-                // [Edit Review] for completed bookings with review < 7 days (BR-95)
-                if (item.canEditReview(referenceTime))
-                  FilledButton.tonalIcon(
-                    onPressed: () => onEditReview(item),
-                    icon: const Icon(Icons.edit_note, size: 16),
-                    label: const Text(TripHistoryStringsEn.actionEditReview),
-                    style: FilledButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-
-                // [View Review] for completed bookings with review > 7 days (read-only)
-                if (item.isReadOnlyReview(referenceTime))
-                  OutlinedButton.icon(
-                    onPressed: () => onViewReview(item),
-                    icon: const Icon(Icons.reviews_outlined, size: 16),
-                    label: const Text(TripHistoryStringsEn.actionViewReview),
-                    style: OutlinedButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-
-                // [View Refund Status] for cancelled bookings (Alternative Flow)
-                if (item.canViewRefundStatus)
-                  FilledButton.tonalIcon(
-                    onPressed: () => onViewRefundStatus(item),
-                    icon: const Icon(Icons.currency_exchange, size: 16),
-                    label: const Text(
-                      TripHistoryStringsEn.actionViewRefundStatus,
-                    ),
-                    style: FilledButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-              ],
+            _Actions(
+              record: record,
+              onViewEticket: onViewEticket,
+              onWriteReview: onWriteReview,
+              onViewReview: onViewReview,
+              onViewRefund: onViewRefund,
+              onViewDetails: onViewDetails,
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _InfoBox extends StatelessWidget {
+  const _InfoBox({required this.record});
+
+  final TripRecord record;
+
+  @override
+  Widget build(BuildContext context) {
+    final record = this.record;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.xs),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          _InfoLine(
+            icon: Icons.calendar_today_outlined,
+            label: TripHistoryStringsEn.labelDepartureDate,
+            value: TripFormatters.formatVietnamDate(record.departureAtUtc),
+          ),
+          const SizedBox(height: AppSpacing.xxs),
+          switch (record) {
+            BookingTripRecord() => Column(
+              children: [
+                _InfoLine(
+                  icon: Icons.people_outline,
+                  label: TripHistoryStringsEn.labelParticipants,
+                  value: TripHistoryStringsEn.formatParticipants(
+                    record.participantCount,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xxs),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      '${TripHistoryStringsEn.labelTotalAmount}:',
+                      style: TextStyle(fontSize: 12, color: AppColors.muted),
+                    ),
+                    Flexible(
+                      child: Text(
+                        TripFormatters.formatVnd(record.totalAmount),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                        textAlign: TextAlign.end,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            ItineraryTripRecord() => Column(
+              children: [
+                _InfoLine(
+                  icon: Icons.place_outlined,
+                  label: TripHistoryStringsEn.stopsSectionTitle,
+                  value: TripHistoryStringsEn.formatStopCount(record.stopCount),
+                ),
+                if (record.visitedCount != null) ...[
+                  const SizedBox(height: AppSpacing.xxs),
+                  _InfoLine(
+                    icon: Icons.check_circle_outline,
+                    label: TripHistoryStringsEn.stopVisited,
+                    value: TripHistoryStringsEn.formatVisitedOf(
+                      record.visitedCount!,
+                      record.stopCount,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          },
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoLine extends StatelessWidget {
+  const _InfoLine({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: AppColors.muted),
+        const SizedBox(width: AppSpacing.xxs),
+        Text(
+          '$label: ',
+          style: const TextStyle(fontSize: 12, color: AppColors.muted),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Actions extends StatelessWidget {
+  const _Actions({
+    required this.record,
+    required this.onViewEticket,
+    required this.onWriteReview,
+    required this.onViewReview,
+    required this.onViewRefund,
+    required this.onViewDetails,
+  });
+
+  final TripRecord record;
+  final ValueChanged<TripRecord> onViewEticket;
+  final ValueChanged<BookingTripRecord> onWriteReview;
+  final ValueChanged<BookingTripRecord> onViewReview;
+  final ValueChanged<TripRecord> onViewRefund;
+  final ValueChanged<TripRecord> onViewDetails;
+
+  @override
+  Widget build(BuildContext context) {
+    final record = this.record;
+    final actions = record.actions;
+    const compact = VisualDensity.compact;
+    return Wrap(
+      spacing: AppSpacing.xs,
+      runSpacing: AppSpacing.xs,
+      children: [
+        OutlinedButton.icon(
+          onPressed: () => onViewDetails(record),
+          icon: const Icon(Icons.info_outline, size: 16),
+          label: const Text(TripHistoryStringsEn.actionViewDetails),
+          style: OutlinedButton.styleFrom(visualDensity: compact),
+        ),
+        if (actions.canViewETicket && actions.ticketId != null)
+          OutlinedButton.icon(
+            onPressed: () => onViewEticket(record),
+            icon: const Icon(Icons.qr_code, size: 16),
+            label: const Text(TripHistoryStringsEn.actionViewEticket),
+            style: OutlinedButton.styleFrom(visualDensity: compact),
+          ),
+        if (record is BookingTripRecord && actions.canReview)
+          FilledButton.icon(
+            onPressed: () => onWriteReview(record),
+            icon: const Icon(Icons.rate_review_outlined, size: 16),
+            label: const Text(TripHistoryStringsEn.actionWriteReview),
+            style: FilledButton.styleFrom(visualDensity: compact),
+          ),
+        if (record is BookingTripRecord && record.review.exists)
+          OutlinedButton.icon(
+            onPressed: () => onViewReview(record),
+            icon: const Icon(Icons.reviews_outlined, size: 16),
+            label: const Text(TripHistoryStringsEn.actionViewReview),
+            style: OutlinedButton.styleFrom(visualDensity: compact),
+          ),
+        if (actions.canViewRefund)
+          FilledButton.tonalIcon(
+            onPressed: () => onViewRefund(record),
+            icon: const Icon(Icons.currency_exchange, size: 16),
+            label: const Text(TripHistoryStringsEn.actionViewRefundStatus),
+            style: FilledButton.styleFrom(visualDensity: compact),
+          ),
+      ],
     );
   }
 }
