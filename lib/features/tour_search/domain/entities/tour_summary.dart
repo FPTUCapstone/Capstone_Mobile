@@ -15,6 +15,7 @@ final class TourSummary extends Equatable {
     required this.availabilityStatus,
     required this.remainingSlots,
     this.thumbnailUrl,
+    this.aggregateRating,
   });
 
   final String tourId;
@@ -29,6 +30,7 @@ final class TourSummary extends Equatable {
   final AvailabilityStatus availabilityStatus;
   final int? remainingSlots;
   final String? thumbnailUrl;
+  final double? aggregateRating;
 
   @override
   List<Object?> get props => [
@@ -44,5 +46,6 @@ final class TourSummary extends Equatable {
     availabilityStatus,
     remainingSlots,
     thumbnailUrl,
+    aggregateRating,
   ];
 }

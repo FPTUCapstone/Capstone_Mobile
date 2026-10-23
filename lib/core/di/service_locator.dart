@@ -101,7 +101,9 @@ import 'package:trip_mate_mobile/features/tour_recommendations/domain/usecases/g
 import 'package:trip_mate_mobile/features/tour_recommendations/presentation/cubit/tour_recommendations_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_search/data/datasources/tour_search_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/tour_search/data/repositories/tour_search_repository_impl.dart';
+import 'package:trip_mate_mobile/features/tour_search/domain/repositories/tour_category_repository.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/repositories/tour_search_repository.dart';
+import 'package:trip_mate_mobile/features/tour_search/domain/usecases/load_tour_categories_use_case.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/usecases/search_tours_use_case.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/data/datasources/travel_preferences_remote_data_source.dart';
@@ -225,17 +227,34 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerFactory<PoiDetailCubit>(() => PoiDetailCubit(serviceLocator()))
     // ── Tour Search ────────────────────────────────────────────────────
-    ..registerLazySingleton<TourSearchRemoteDataSource>(
-      () => DioTourSearchRemoteDataSource(serviceLocator()),
+    // Cancellation belongs to one consumer (Guest or Search), not the app.
+    ..registerFactory<DioTourSearchRemoteDataSource>(
+      () => DioTourSearchRemoteDataSource(
+        serviceLocator(),
+        config: serviceLocator(),
+      ),
     )
-    ..registerLazySingleton<TourSearchRepository>(
+    ..registerFactory<TourSearchRemoteDataSource>(
+      () => serviceLocator<DioTourSearchRemoteDataSource>(),
+    )
+    ..registerLazySingleton<TourCategoryRepository>(
+      () => TourCategoryRepositoryImpl(serviceLocator()),
+    )
+    ..registerLazySingleton<LoadTourCategoriesUseCase>(
+      () => LoadTourCategoriesUseCase(serviceLocator()),
+    )
+    ..registerFactory<TourSearchRepository>(
       () => TourSearchRepositoryImpl(serviceLocator()),
     )
     ..registerFactory<SearchToursUseCase>(
       () => SearchToursUseCase(serviceLocator()),
     )
     ..registerFactory<TourSearchCubit>(
-      () => TourSearchCubit(searchTours: serviceLocator()),
+      () => TourSearchCubit(
+        searchTours: serviceLocator(),
+        devSearchEnabled: serviceLocator<AppConfig>().devSearchEnabled,
+        loadCategories: serviceLocator(),
+      ),
     )
     // ── Tour Recommendations ───────────────────────────────────────────
     ..registerLazySingleton<TourRecommendationsDataSource>(
