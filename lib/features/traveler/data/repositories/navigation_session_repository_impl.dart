@@ -3,11 +3,16 @@ import 'package:trip_mate_mobile/core/error/error_mapper.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/features/traveler/data/models/navigation_session_model.dart';
+import 'package:trip_mate_mobile/features/traveler/data/models/trip_alert_model.dart';
+import 'package:trip_mate_mobile/features/traveler/data/models/weather_advisory_model.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_session.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/weather_advisory.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigation_session_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/trip_alert_repository.dart';
 
 final class NavigationSessionRepositoryImpl
-    implements NavigationSessionRepository {
+    implements NavigationSessionRepository, TripAlertRepository {
   const NavigationSessionRepositoryImpl({required DioClient dioClient})
     : _dioClient = dioClient;
 
@@ -72,6 +77,78 @@ final class NavigationSessionRepositoryImpl
       '$_sessionPath/$sessionId/completion',
     ),
   );
+
+  @override
+  Future<List<TripAlert>> listAlerts(int sessionId) async {
+    try {
+      final response = await _dioClient.dio.get<List<dynamic>>(
+        '$_sessionPath/$sessionId/alerts',
+      );
+      return (response.data ?? const <dynamic>[])
+          .map((item) => TripAlertModel.fromJson(_json(item)))
+          .toList(growable: false);
+    } catch (error) {
+      throw _toFailure(error);
+    }
+  }
+
+  @override
+  Future<void> acknowledgeAlert({
+    required int sessionId,
+    required int incidentId,
+  }) async {
+    try {
+      await _dioClient.dio.put<void>(
+        '$_sessionPath/$sessionId/alerts/$incidentId/acknowledgement',
+      );
+    } catch (error) {
+      throw _toFailure(error);
+    }
+  }
+
+  @override
+  Future<List<WeatherAdvisory>> listWeatherAdvisories(int sessionId) async {
+    try {
+      final response = await _dioClient.dio.get<List<dynamic>>(
+        '$_sessionPath/$sessionId/weather-advisories',
+      );
+      return (response.data ?? const <dynamic>[])
+          .map((item) => WeatherAdvisoryModel.fromJson(_json(item)))
+          .toList(growable: false);
+    } catch (error) {
+      throw _toFailure(error);
+    }
+  }
+
+  @override
+  Future<TripAlert> reportDeviation({
+    required int sessionId,
+    required String eventId,
+    required DateTime observedAtUtc,
+    required int targetItemId,
+  }) async {
+    try {
+      final response = await _dioClient.dio.post<Map<String, dynamic>>(
+        '$_sessionPath/$sessionId/deviations',
+        data: {
+          'eventId': eventId,
+          'observedAtUtc': _utc(observedAtUtc),
+          'targetItemId': targetItemId,
+        },
+      );
+      final data = response.data;
+      if (data == null) throw const FormatException('Empty alert response.');
+      return TripAlertModel.fromJson(data);
+    } catch (error) {
+      throw _toFailure(error);
+    }
+  }
+
+  static Map<String, dynamic> _json(Object? value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    throw const FormatException('Invalid alert response.');
+  }
 
   Future<NavigationSession> _send(
     Future<Response<Map<String, dynamic>>> Function() request,

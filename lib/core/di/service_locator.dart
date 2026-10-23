@@ -1,6 +1,7 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -10,6 +11,10 @@ import 'package:trip_mate_mobile/core/location/device_location_service.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/core/network/network_info.dart';
 import 'package:trip_mate_mobile/core/network/session_coordinator.dart';
+import 'package:trip_mate_mobile/core/push/dio_push_device_repository.dart';
+import 'package:trip_mate_mobile/core/push/push_device_coordinator.dart';
+import 'package:trip_mate_mobile/core/push/push_device_repository.dart';
+import 'package:trip_mate_mobile/core/push/trip_push_messaging.dart';
 import 'package:trip_mate_mobile/core/storage/preferences_service.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/auth/data/datasources/auth_remote_data_source.dart';
@@ -69,7 +74,9 @@ import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigatio
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/route_directions_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/trip_alert_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/navigation_location_tracker.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/services/weather_advisory_session_store.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/address_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_cubit.dart';
@@ -122,6 +129,9 @@ Future<void> configureDependencies({AppConfig? config}) async {
         secureStorage: serviceLocator(),
         coordinator: serviceLocator(),
       ),
+    )
+    ..registerLazySingleton<PushDeviceRepository>(
+      () => DioPushDeviceRepository(serviceLocator()),
     )
     ..registerLazySingleton<PoiRemoteDataSource>(
       () => DioPoiRemoteDataSource(serviceLocator()),
@@ -230,6 +240,9 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerLazySingleton<NavigationSessionRepository>(
       () => NavigationSessionRepositoryImpl(dioClient: serviceLocator()),
     )
+    ..registerLazySingleton<TripAlertRepository>(
+      () => NavigationSessionRepositoryImpl(dioClient: serviceLocator()),
+    )
     ..registerLazySingleton<RouteDirectionsRepository>(() {
       final token = serviceLocator<AppConfig>().mapboxAccessToken;
       return token == null
@@ -248,6 +261,9 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerLazySingleton<NavigationLocationTracker>(
       GeolocatorNavigationLocationTracker.new,
     )
+    ..registerLazySingleton<WeatherAdvisorySessionStore>(
+      WeatherAdvisorySessionStore.new,
+    )
     ..registerFactory<TravelGroupMembersCubit>(
       () => TravelGroupMembersCubit(repository: serviceLocator()),
     )
@@ -256,6 +272,9 @@ Future<void> configureDependencies({AppConfig? config}) async {
         serviceLocator(),
         serviceLocator(),
         serviceLocator(),
+        serviceLocator.isRegistered<PushDeviceLifecycle>()
+            ? serviceLocator<PushDeviceLifecycle>()
+            : null,
       ),
     )
     ..registerFactory<RegisterCubit>(
@@ -291,4 +310,21 @@ Future<void> configureDependencies({AppConfig? config}) async {
         isDemoMode: isDemoMode,
       ),
     );
+
+  if (Firebase.apps.isNotEmpty) {
+    serviceLocator
+      ..registerLazySingleton<TripPushMessaging>(
+        () => FirebaseTripPushMessaging(FirebaseMessaging.instance),
+      )
+      ..registerLazySingleton<PushDeviceCoordinator>(
+        () => PushDeviceCoordinator(
+          repository: serviceLocator(),
+          storage: serviceLocator(),
+          messaging: serviceLocator(),
+        ),
+      )
+      ..registerLazySingleton<PushDeviceLifecycle>(
+        () => serviceLocator<PushDeviceCoordinator>(),
+      );
+  }
 }

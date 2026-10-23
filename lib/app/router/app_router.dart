@@ -358,6 +358,9 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
             itineraryId: itineraryId,
             title: title,
             isDemoMode: isDemo,
+            initialIncidentId: int.tryParse(
+              state.uri.queryParameters['incidentId'] ?? '',
+            ),
           );
         },
       ),

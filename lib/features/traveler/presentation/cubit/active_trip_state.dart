@@ -4,6 +4,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_ro
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_session.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/reroute_proposal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/weather_advisory.dart';
 
 enum ActiveTripStatus {
   navigationInitial,
@@ -20,6 +21,8 @@ enum ActiveTripStatus {
 
 /// Lifecycle of the server navigation session behind the page.
 enum ActiveTripLoadStatus { loading, ready, conflict, failed }
+
+enum AlertRefreshStatus { idle, loading, success, failure }
 
 /// One-shot message for the Traveler; [id] distinguishes repeated messages.
 final class ActiveTripFeedback extends Equatable {
@@ -66,7 +69,10 @@ final class ActiveTripState extends Equatable {
     this.feedback,
     this.isOnline = true,
     this.alerts = const [],
+    this.alertRefreshStatus = AlertRefreshStatus.idle,
+    this.alertRefreshError,
     this.activeBannerAlert,
+    this.activeWeatherAdvisory,
     this.activeRerouteProposal,
     this.isRerouteSheetVisible = false,
     this.statusMessage,
@@ -107,7 +113,10 @@ final class ActiveTripState extends Equatable {
   final ActiveTripFeedback? feedback;
   final bool isOnline;
   final List<TripAlert> alerts;
+  final AlertRefreshStatus alertRefreshStatus;
+  final String? alertRefreshError;
   final TripAlert? activeBannerAlert;
+  final WeatherAdvisory? activeWeatherAdvisory;
   final RerouteProposal? activeRerouteProposal;
   final bool isRerouteSheetVisible;
   final String? statusMessage;
@@ -158,8 +167,13 @@ final class ActiveTripState extends Equatable {
     ActiveTripFeedback? feedback,
     bool? isOnline,
     List<TripAlert>? alerts,
+    AlertRefreshStatus? alertRefreshStatus,
+    String? alertRefreshError,
+    bool clearAlertRefreshError = false,
     TripAlert? activeBannerAlert,
     bool clearBannerAlert = false,
+    WeatherAdvisory? activeWeatherAdvisory,
+    bool clearWeatherAdvisory = false,
     RerouteProposal? activeRerouteProposal,
     bool? isRerouteSheetVisible,
     String? statusMessage,
@@ -202,9 +216,16 @@ final class ActiveTripState extends Equatable {
       feedback: feedback ?? this.feedback,
       isOnline: isOnline ?? this.isOnline,
       alerts: alerts ?? this.alerts,
+      alertRefreshStatus: alertRefreshStatus ?? this.alertRefreshStatus,
+      alertRefreshError: clearAlertRefreshError
+          ? null
+          : (alertRefreshError ?? this.alertRefreshError),
       activeBannerAlert: clearBannerAlert
           ? null
           : (activeBannerAlert ?? this.activeBannerAlert),
+      activeWeatherAdvisory: clearWeatherAdvisory
+          ? null
+          : (activeWeatherAdvisory ?? this.activeWeatherAdvisory),
       activeRerouteProposal:
           activeRerouteProposal ?? this.activeRerouteProposal,
       isRerouteSheetVisible:
@@ -239,7 +260,10 @@ final class ActiveTripState extends Equatable {
     feedback,
     isOnline,
     alerts,
+    alertRefreshStatus,
+    alertRefreshError,
     activeBannerAlert,
+    activeWeatherAdvisory,
     activeRerouteProposal,
     isRerouteSheetVisible,
     statusMessage,

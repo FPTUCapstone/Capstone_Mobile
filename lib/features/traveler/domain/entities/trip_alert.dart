@@ -22,8 +22,13 @@ final class TripAlert extends Equatable {
     required this.affectedStopName,
     required this.timestamp,
     this.isDismissedFromBanner = false,
-    this.rerouteProposalAvailable = false,
-  });
+    this.messageCode = '',
+    this.affectedItemId,
+    this.resolvedAt,
+    this.isRead = false,
+    this.reroutingProposalId,
+    bool rerouteProposalAvailable = false,
+  }) : _legacyRerouteProposalAvailable = rerouteProposalAvailable;
 
   final String id;
   final String title;
@@ -33,7 +38,16 @@ final class TripAlert extends Equatable {
   final String affectedStopName;
   final DateTime timestamp;
   final bool isDismissedFromBanner;
-  final bool rerouteProposalAvailable;
+  final String messageCode;
+  final int? affectedItemId;
+  final DateTime? resolvedAt;
+  final bool isRead;
+  final int? reroutingProposalId;
+  final bool _legacyRerouteProposalAvailable;
+
+  bool get isResolved => resolvedAt != null;
+  bool get rerouteProposalAvailable =>
+      reroutingProposalId != null || _legacyRerouteProposalAvailable;
 
   TripAlert copyWith({
     String? id,
@@ -45,6 +59,11 @@ final class TripAlert extends Equatable {
     DateTime? timestamp,
     bool? isDismissedFromBanner,
     bool? rerouteProposalAvailable,
+    String? messageCode,
+    int? affectedItemId,
+    DateTime? resolvedAt,
+    bool? isRead,
+    int? reroutingProposalId,
   }) {
     return TripAlert(
       id: id ?? this.id,
@@ -58,6 +77,11 @@ final class TripAlert extends Equatable {
           isDismissedFromBanner ?? this.isDismissedFromBanner,
       rerouteProposalAvailable:
           rerouteProposalAvailable ?? this.rerouteProposalAvailable,
+      messageCode: messageCode ?? this.messageCode,
+      affectedItemId: affectedItemId ?? this.affectedItemId,
+      resolvedAt: resolvedAt ?? this.resolvedAt,
+      isRead: isRead ?? this.isRead,
+      reroutingProposalId: reroutingProposalId ?? this.reroutingProposalId,
     );
   }
 
@@ -72,5 +96,10 @@ final class TripAlert extends Equatable {
     timestamp,
     isDismissedFromBanner,
     rerouteProposalAvailable,
+    messageCode,
+    affectedItemId,
+    resolvedAt,
+    isRead,
+    reroutingProposalId,
   ];
 }
