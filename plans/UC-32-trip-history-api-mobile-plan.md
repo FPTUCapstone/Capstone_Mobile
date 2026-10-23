@@ -171,3 +171,4 @@ Deviations:
 
 Not verified: no device or emulator run; `kDebugMode == false` behaviour of the demo gate is by code reading only (a const); live integration waits on BE PR #105.
 
+Update 2026-10-23: develop gained the refund progress screen (`/bookings/:bookingId/refund`, PR #58). After merging develop, View refund opens it for the real booking id (`reviewableRecord.id`); demo mode keeps the detail sheet so a demo id never reaches the refund API. This replaces the earlier "View refund opens the sheet" decision outside demo mode.

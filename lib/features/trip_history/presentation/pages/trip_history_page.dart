@@ -83,6 +83,17 @@ class _TripHistoryPageState extends State<TripHistoryPage>
     );
   }
 
+  /// Refund tracking is the live refund-progress screen for the real booking.
+  /// Demo records carry made-up ids that must never reach the refund API, so in
+  /// demo mode the refund is shown in the detail sheet instead.
+  void _openRefund(BuildContext context, TripRecord record) {
+    if (widget.isDemoMode || record is! BookingTripRecord) {
+      _showDetail(context, record, highlightRefund: true);
+      return;
+    }
+    context.push(AppRoutes.bookingRefund('${record.reviewableRecord.id}'));
+  }
+
   /// Write review and View review both open the canonical review of the booking
   /// the backend named in `reviewableRecord`.
   Future<void> _openReview(
@@ -235,8 +246,7 @@ class _TripHistoryPageState extends State<TripHistoryPage>
                 onViewEticket: (_) => _showEticketNotice(context),
                 onWriteReview: (r) => _openReview(context, r),
                 onViewReview: (r) => _openReview(context, r),
-                onViewRefund: (r) =>
-                    _showDetail(context, r, highlightRefund: true),
+                onViewRefund: (r) => _openRefund(context, r),
                 onViewDetails: (r) => _showDetail(context, r),
               );
             },

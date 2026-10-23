@@ -11,8 +11,12 @@ abstract final class RouteGuards {
     final isTravelerRoute = _isInScope(location, AppRoutes.travelerPrefix);
     final isOperatorRoute = _isInScope(location, AppRoutes.operatorPrefix);
     final isBookTourRoute = _isBookTourRoute(location);
+    final isBookingRefundRoute = _isBookingRefundRoute(location);
     final isProtectedRoute =
-        isTravelerRoute || isOperatorRoute || isBookTourRoute;
+        isTravelerRoute ||
+        isOperatorRoute ||
+        isBookTourRoute ||
+        isBookingRefundRoute;
 
     if (!session.isAuthenticated) {
       if (isProtectedRoute) {
@@ -53,6 +57,10 @@ abstract final class RouteGuards {
       if (isTravelerRoute || isBookTourRoute) {
         return operatorHome;
       }
+      if (isBookingRefundRoute &&
+          session.applicationStatus != TourOperatorApplicationStatus.approved) {
+        return operatorHome;
+      }
       // A non-approved operator may never remain on the approved workspace.
       if (isOperatorRoute &&
           location != AppRoutes.operatorApplication &&
@@ -72,6 +80,9 @@ abstract final class RouteGuards {
   static bool _isBookTourRoute(String path) =>
       RegExp(r'^/explore/tours/[^/]+/book$').hasMatch(path);
 
+  static bool _isBookingRefundRoute(String path) =>
+      RegExp(r'^/bookings/[1-9]\d*/refund$').hasMatch(path);
+
   static String? _safeReturnLocation(AuthSessionState session, Uri loginUri) {
     final rawTarget = loginUri.queryParameters['from'];
     if (rawTarget == null) return null;
@@ -85,16 +96,22 @@ abstract final class RouteGuards {
 
     if (session.role == UserRole.traveler &&
         (_isInScope(target.path, AppRoutes.travelerPrefix) ||
-            _isInScope(target.path, AppRoutes.explore))) {
+            _isInScope(target.path, AppRoutes.explore) ||
+            _isBookingRefundRoute(target.path))) {
       return target.toString();
     }
     if (session.role == UserRole.tourOperator &&
-        _isInScope(target.path, AppRoutes.operatorPrefix) &&
-        (session.applicationStatus == TourOperatorApplicationStatus.approved ||
-            target.path == AppRoutes.operatorApplication ||
-            (session.applicationStatus ==
-                    TourOperatorApplicationStatus.rejected &&
-                target.path == AppRoutes.operatorApplicationResubmit))) {
+        ((_isInScope(target.path, AppRoutes.operatorPrefix) &&
+                (session.applicationStatus ==
+                        TourOperatorApplicationStatus.approved ||
+                    target.path == AppRoutes.operatorApplication ||
+                    (session.applicationStatus ==
+                            TourOperatorApplicationStatus.rejected &&
+                        target.path ==
+                            AppRoutes.operatorApplicationResubmit))) ||
+            (_isBookingRefundRoute(target.path) &&
+                session.applicationStatus ==
+                    TourOperatorApplicationStatus.approved))) {
       return target.toString();
     }
     return null;

@@ -71,7 +71,7 @@ void main() {
 
   /// The page inside a router that also knows the canonical review route, so
   /// the destination of Write/View review can be observed.
-  Future<void> pumpPage(WidgetTester tester) async {
+  Future<void> pumpPage(WidgetTester tester, {bool isDemo = true}) async {
     // Once, outside the route builder: a rebuild of the route must not reload.
     await cubit.loadInitial();
     final router = GoRouter(
@@ -81,8 +81,15 @@ void main() {
           path: AppRoutes.tripHistory,
           builder: (_, _) => BlocProvider<TripRecordsCubit>.value(
             value: cubit,
-            child: const TripHistoryPage(isDemoMode: true),
+            child: TripHistoryPage(isDemoMode: isDemo),
           ),
+        ),
+        GoRoute(
+          path: AppRoutes.bookingRefundPattern,
+          builder: (_, state) {
+            visited.add(state.uri.path);
+            return const Scaffold(body: Text('Refund progress stub'));
+          },
         ),
         GoRoute(
           path: AppRoutes.canonicalTripReviewPattern,
@@ -379,6 +386,45 @@ void main() {
         find.byKey(const Key('trip-detail-refund-highlighted')),
         findsOneWidget,
       );
+    });
+  });
+
+  group('refund tracking', () {
+    testWidgets('outside demo mode View refund opens the live refund progress '
+        'of the booking', (tester) async {
+      useSize(tester, const Size(400, 1600));
+      await pumpPage(tester, isDemo: false);
+      await openTab(tester, TripHistoryStringsEn.tabCancelled);
+
+      await tester.tap(
+        inCard(
+          'My Son Sanctuary Tour',
+          TripHistoryStringsEn.actionViewRefundStatus,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(visited, ['/bookings/9004/refund']);
+      expect(find.byType(TripRecordDetailSheet), findsNothing);
+    });
+
+    testWidgets('in demo mode a made-up id never reaches the refund route', (
+      tester,
+    ) async {
+      useSize(tester, const Size(400, 1600));
+      await pumpPage(tester);
+      await openTab(tester, TripHistoryStringsEn.tabCancelled);
+
+      await tester.tap(
+        inCard(
+          'My Son Sanctuary Tour',
+          TripHistoryStringsEn.actionViewRefundStatus,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(visited, isEmpty);
+      expect(find.byType(TripRecordDetailSheet), findsOneWidget);
     });
   });
 
