@@ -34,15 +34,11 @@ final class TravelGroupMember extends Equatable {
   ];
 
   /// BR-49: Selects the authoritative successor Host from active remaining members,
-  /// defined as the member with the unique earliest Joined Timestamp.
+  /// defined by earliest join time, then smallest user ID for an exact tie.
   ///
   /// Contract guarantees:
   /// - Excludes current Host (by [isHost] flag and [currentHostId] if provided).
-  /// - If exactly one eligible member has the earliest [joinedAtUtc], that member is returned.
-  /// - If multiple eligible members share the exact same earliest [joinedAtUtc],
-  ///   this returns `null` (failing closed for authoritative successor preview)
-  ///   because SRS Report 3 authorizes ONLY earliest Joined Timestamp and defines
-  ///   no authoritative tie-break rule.
+  /// - An exact timestamp tie is resolved by smallest [memberId].
   /// - Returns `null` if no eligible candidate remains (i.e. final Host).
   static TravelGroupMember? determineSuccessor(
     List<TravelGroupMember> members, {
@@ -54,25 +50,11 @@ final class TravelGroupMember extends Equatable {
     );
     if (candidates.isEmpty) return null;
 
-    DateTime? earliestTime;
-    for (final candidate in candidates) {
-      if (earliestTime == null ||
-          candidate.joinedAtUtc.isBefore(earliestTime)) {
-        earliestTime = candidate.joinedAtUtc;
-      }
-    }
-
-    final earliestCandidates = candidates
-        .where((m) => m.joinedAtUtc.isAtSameMomentAs(earliestTime!))
-        .toList();
-
-    // If more than one candidate shares the exact earliest timestamp,
-    // fail closed: no single authoritative successor exists under BR-49.
-    if (earliestCandidates.length > 1) {
-      return null;
-    }
-
-    return earliestCandidates.first;
+    candidates.sort((a, b) {
+      final byJoinedAt = a.joinedAtUtc.compareTo(b.joinedAtUtc);
+      return byJoinedAt != 0 ? byJoinedAt : a.memberId.compareTo(b.memberId);
+    });
+    return candidates.first;
   }
 
   /// Filters remaining active members eligible for Host succession (excluding Host).
@@ -87,31 +69,5 @@ final class TravelGroupMember extends Equatable {
               (currentHostId == null || m.memberId != currentHostId),
         )
         .toList();
-  }
-
-  /// Returns true if multiple eligible members share the exact same earliest joinedAtUtc.
-  static bool hasAmbiguousSuccessorTie(
-    List<TravelGroupMember> members, {
-    int? currentHostId,
-  }) {
-    final candidates = getEligibleSuccessors(
-      members,
-      currentHostId: currentHostId,
-    );
-    if (candidates.length <= 1) return false;
-
-    DateTime? earliestTime;
-    for (final candidate in candidates) {
-      if (earliestTime == null ||
-          candidate.joinedAtUtc.isBefore(earliestTime)) {
-        earliestTime = candidate.joinedAtUtc;
-      }
-    }
-
-    final earliestCandidates = candidates
-        .where((m) => m.joinedAtUtc.isAtSameMomentAs(earliestTime!))
-        .toList();
-
-    return earliestCandidates.length > 1;
   }
 }

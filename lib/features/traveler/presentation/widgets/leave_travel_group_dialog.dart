@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_member.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/leave_travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/leave_travel_group_cubit.dart';
 
 /// Canonical Screen #60: Leave Travel Group Confirmation dialog (UC-21).
 ///
@@ -13,8 +17,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_gr
 ///   3. Case C (FINAL_HOST): Group Host is the final active member.
 ///      Explains group closure (MSG130).
 ///
-/// Production Status: Truthful fail-closed implementation because Backend
-/// currently lacks leave and atomic host succession endpoints (NO_BACKEND).
+/// The preview can become stale; only the Backend response confirms the result.
 final class LeaveTravelGroupDialog extends StatefulWidget {
   const LeaveTravelGroupDialog({
     super.key,
@@ -24,7 +27,8 @@ final class LeaveTravelGroupDialog extends StatefulWidget {
     this.currentUserId,
     this.members,
     this.repository,
-    this.isServerSupported = false,
+    this.leaveRepository,
+    this.onAccessLost,
   });
 
   final int groupId;
@@ -33,7 +37,8 @@ final class LeaveTravelGroupDialog extends StatefulWidget {
   final int? currentUserId;
   final List<TravelGroupMember>? members;
   final TravelGroupRepository? repository;
-  final bool isServerSupported;
+  final LeaveTravelGroupRepository? leaveRepository;
+  final VoidCallback? onAccessLost;
 
   /// MSG61 locked message template.
   static String hostSuccessionMessage(String nextMemberName) =>
@@ -43,7 +48,7 @@ final class LeaveTravelGroupDialog extends StatefulWidget {
   static const String confirmationWarningMessage =
       'Are you sure you want to continue? This action may not be reversible.';
 
-  /// Truthful capability notice explaining why leave cannot be persisted yet.
+  /// Shown only when the leave dependency is unavailable.
   static const String serverUnavailableNotice =
       'Server support pending: Leaving travel group is waiting for backend capability and cannot be completed yet.';
 
@@ -55,14 +60,29 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
   bool _isLoading = false;
   String? _loadError;
   List<TravelGroupMember>? _resolvedMembers;
+  LeaveTravelGroupCubit? _leaveCubit;
 
   @override
   void initState() {
     super.initState();
+    final leaveRepository =
+        widget.leaveRepository ??
+        (serviceLocator.isRegistered<LeaveTravelGroupRepository>()
+            ? serviceLocator<LeaveTravelGroupRepository>()
+            : null);
+    if (leaveRepository != null) {
+      _leaveCubit = LeaveTravelGroupCubit(repository: leaveRepository);
+    }
     _resolvedMembers = widget.members;
     if (_resolvedMembers == null && widget.currentUserId != null) {
       _fetchMembers();
     }
+  }
+
+  @override
+  void dispose() {
+    _leaveCubit?.close();
+    super.dispose();
   }
 
   Future<void> _fetchMembers() async {
@@ -93,6 +113,21 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
         _isLoading = false;
         _resolvedMembers = result.members;
       });
+    } on Failure catch (failure) {
+      if (failure is PermissionFailure ||
+          failure is NotFoundFailure ||
+          failure is ConflictFailure) {
+        if (!mounted) return;
+        widget.onAccessLost?.call();
+        Navigator.of(context).pop();
+        return;
+      }
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _loadError =
+            'We could not determine group members. Leaving cannot be completed right now.';
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -105,6 +140,27 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final cubit = _leaveCubit;
+    if (cubit == null) return _buildDialog(context);
+    return BlocProvider.value(
+      value: cubit,
+      child: BlocConsumer<LeaveTravelGroupCubit, LeaveTravelGroupState>(
+        listener: (context, state) {
+          if (state.status == LeaveTravelGroupStatus.success) {
+            Navigator.of(context).pop(state.result);
+          } else if (state.status == LeaveTravelGroupStatus.stale) {
+            _fetchMembers();
+          }
+        },
+        builder: (context, state) => PopScope(
+          canPop: state.status != LeaveTravelGroupStatus.submitting,
+          child: _buildDialog(context),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDialog(BuildContext context) {
     final theme = Theme.of(context);
 
     if (_isLoading) {
@@ -133,14 +189,14 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
         actions: [
           TextButton(
             key: const Key('leave_group_cancel_button'),
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: _canCancel ? () => Navigator.of(context).pop() : null,
             child: const Text('Cancel'),
           ),
         ],
       );
     }
 
-    // Determine Case A, B, or C, or Ambiguous Tie
+    // Determine the preview. The server result remains authoritative.
     final effectiveIsHost = _isEffectiveHost();
     if (!effectiveIsHost) {
       return _buildCaseANonHost(theme);
@@ -156,13 +212,6 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
       return _buildCaseCFinalHost(theme);
     }
 
-    if (TravelGroupMember.hasAmbiguousSuccessorTie(
-      members,
-      currentHostId: widget.currentUserId,
-    )) {
-      return _buildAmbiguousSuccessor(theme);
-    }
-
     final successor = TravelGroupMember.determineSuccessor(
       members,
       currentHostId: widget.currentUserId,
@@ -173,37 +222,6 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
     } else {
       return _buildCaseCFinalHost(theme);
     }
-  }
-
-  Widget _buildAmbiguousSuccessor(ThemeData theme) {
-    return AlertDialog(
-      key: const Key('leave_travel_group_dialog_ambiguous'),
-      icon: Icon(Icons.help_outline, color: theme.colorScheme.error, size: 28),
-      title: const Text('Cannot determine next host'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Multiple members share the earliest join timestamp. '
-              'Host succession cannot be determined unambiguously without server resolution.',
-              style: theme.textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 16),
-            _buildCapabilityNotice(theme),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          key: const Key('leave_group_cancel_button'),
-          style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
-        ),
-      ],
-    );
   }
 
   Widget _buildCaseANonHost(ThemeData theme) {
@@ -233,7 +251,7 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
         TextButton(
           key: const Key('leave_group_cancel_button'),
           style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
-          onPressed: () => Navigator.of(context).pop(false),
+          onPressed: _canCancel ? () => Navigator.of(context).pop() : null,
           child: const Text('Cancel'),
         ),
         FilledButton(
@@ -243,7 +261,7 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
             foregroundColor: theme.colorScheme.onError,
             minimumSize: const Size(48, 48),
           ),
-          onPressed: widget.isServerSupported ? _handleConfirmLeave : null,
+          onPressed: _canSubmit ? _handleConfirmLeave : null,
           child: const Text('Leave Group'),
         ),
       ],
@@ -341,7 +359,7 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
         TextButton(
           key: const Key('leave_group_cancel_button'),
           style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
-          onPressed: () => Navigator.of(context).pop(false),
+          onPressed: _canCancel ? () => Navigator.of(context).pop() : null,
           child: const Text('Cancel'),
         ),
         FilledButton(
@@ -351,7 +369,7 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
             foregroundColor: theme.colorScheme.onError,
             minimumSize: const Size(48, 48),
           ),
-          onPressed: widget.isServerSupported ? _handleConfirmLeave : null,
+          onPressed: _canSubmit ? _handleConfirmLeave : null,
           child: const Text('Transfer and leave'),
         ),
       ],
@@ -393,7 +411,7 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
         TextButton(
           key: const Key('leave_group_cancel_button'),
           style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
-          onPressed: () => Navigator.of(context).pop(false),
+          onPressed: _canCancel ? () => Navigator.of(context).pop() : null,
           child: const Text('Cancel'),
         ),
         FilledButton(
@@ -403,7 +421,7 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
             foregroundColor: theme.colorScheme.onError,
             minimumSize: const Size(48, 48),
           ),
-          onPressed: widget.isServerSupported ? _handleConfirmLeave : null,
+          onPressed: _canSubmit ? _handleConfirmLeave : null,
           child: const Text('Close group and leave'),
         ),
       ],
@@ -411,6 +429,7 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
   }
 
   Widget _buildCapabilityNotice(ThemeData theme) {
+    final state = _leaveCubit?.state;
     return Container(
       key: const Key('leave_group_capability_notice'),
       padding: const EdgeInsets.all(12),
@@ -419,27 +438,49 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.info_outline,
-            size: 18,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              LeaveTravelGroupDialog.serverUnavailableNotice,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+          Text(
+            _leaveCubit == null
+                ? LeaveTravelGroupDialog.serverUnavailableNotice
+                : 'Leaving does not cancel or transfer bookings and tickets you arranged.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
+          if (state?.message != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              state!.message!,
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+          ],
+          if (state?.status == LeaveTravelGroupStatus.submitting) ...[
+            const SizedBox(height: 8),
+            const LinearProgressIndicator(),
+          ],
         ],
       ),
     );
   }
+
+  bool get _canSubmit {
+    final userId = widget.currentUserId;
+    final members = _resolvedMembers;
+    if (_leaveCubit == null ||
+        userId == null ||
+        members == null ||
+        _leaveCubit!.state.status == LeaveTravelGroupStatus.submitting) {
+      return false;
+    }
+    return members.where((member) => member.memberId == userId).length == 1 &&
+        members.where((member) => member.isHost).length == 1;
+  }
+
+  bool get _canCancel =>
+      _leaveCubit?.state.status != LeaveTravelGroupStatus.submitting;
 
   bool _isEffectiveHost() {
     final userId = widget.currentUserId;
@@ -455,7 +496,7 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
   }
 
   void _handleConfirmLeave() {
-    Navigator.of(context).pop(true);
+    _leaveCubit?.submit(widget.groupId);
   }
 }
 
