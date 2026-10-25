@@ -64,10 +64,17 @@ class _TripHistoryPageState extends State<TripHistoryPage>
     super.dispose();
   }
 
-  void _showEticketNotice(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text(TripHistoryStringsEn.noticeEticketPending)),
-    );
+  /// UC-29: the e-ticket opens by `actions.ticketId`, never the booking id.
+  /// Demo records carry made-up ids that must never reach the ticket API.
+  void _openEticket(BuildContext context, TripRecord record) {
+    final ticketId = record.actions.ticketId;
+    if (widget.isDemoMode || ticketId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(TripHistoryStringsEn.noticeEticketDemo)),
+      );
+      return;
+    }
+    context.push(AppRoutes.eTicket(ticketId));
   }
 
   void _showDetail(
@@ -243,7 +250,7 @@ class _TripHistoryPageState extends State<TripHistoryPage>
             itemBuilder: (context, index) {
               return TripHistoryCard(
                 record: state.items[index],
-                onViewEticket: (_) => _showEticketNotice(context),
+                onViewEticket: (record) => _openEticket(context, record),
                 onWriteReview: (r) => _openReview(context, r),
                 onViewReview: (r) => _openReview(context, r),
                 onViewRefund: (r) => _openRefund(context, r),
