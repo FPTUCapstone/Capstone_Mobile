@@ -56,9 +56,7 @@ final class PaymentPage extends StatefulWidget {
 final class _PaymentPageState extends State<PaymentPage>
     with WidgetsBindingObserver {
   var _checkoutWasOpened = false;
-  Timer? _confirmationTimer;
   Timer? _statusPollTimer;
-  var _secondsToHome = 5;
   var _paymentConfirmed = false;
 
   @override
@@ -70,7 +68,6 @@ final class _PaymentPageState extends State<PaymentPage>
 
   @override
   void dispose() {
-    _confirmationTimer?.cancel();
     _statusPollTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -99,23 +96,13 @@ final class _PaymentPageState extends State<PaymentPage>
     }
   }
 
-  void _startSuccessCountdown() {
+  /// UC-29 W2/M2: a paid booking stays on this page, which leads to its
+  /// e-ticket; it no longer returns home by itself.
+  void _onPaymentConfirmed() {
     if (_paymentConfirmed) return;
     _paymentConfirmed = true;
     _statusPollTimer?.cancel();
     _statusPollTimer = null;
-    _secondsToHome = 5;
-    _confirmationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      setState(() => _secondsToHome--);
-      if (_secondsToHome <= 0) {
-        timer.cancel();
-        context.go(AppRoutes.home);
-      }
-    });
   }
 
   void _startStatusPolling() {
@@ -242,7 +229,7 @@ final class _PaymentPageState extends State<PaymentPage>
             );
           }
           if (state.paymentStatus?.isPaid == true) {
-            _startSuccessCountdown();
+            _onPaymentConfirmed();
           }
           if (state.paymentStatus?.isCancelledTx == true) {
             _statusPollTimer?.cancel();
@@ -273,7 +260,7 @@ final class _PaymentPageState extends State<PaymentPage>
           if (status != null && status.isPaid) {
             return _PaidSuccessView(
               status: status,
-              secondsToHome: _secondsToHome,
+              bookingId: int.tryParse(widget.bookingId),
             );
           }
 
@@ -753,9 +740,11 @@ final class _PayOsGatewayCard extends StatelessWidget {
 }
 
 final class _PaidSuccessView extends StatelessWidget {
-  const _PaidSuccessView({required this.status, required this.secondsToHome});
+  const _PaidSuccessView({required this.status, required this.bookingId});
   final BookingPaymentStatus status;
-  final int secondsToHome;
+
+  /// The e-ticket action needs a real (numeric) booking id.
+  final int? bookingId;
 
   @override
   Widget build(BuildContext context) {
@@ -792,17 +781,30 @@ final class _PaidSuccessView extends StatelessWidget {
             style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'Tự động trở về trang chủ sau $secondsToHome giây.',
-            style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-            textAlign: TextAlign.center,
-          ),
           const SizedBox(height: AppSpacing.xl),
-          FilledButton.icon(
+          if (bookingId case final id? when id > 0) ...[
+            FilledButton.icon(
+              onPressed: () => context.go(AppRoutes.bookingETicket(id)),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                minimumSize: const Size.fromHeight(50),
+              ),
+              icon: const Icon(Icons.qr_code_2, size: 18),
+              label: const Text(
+                'Xem vé điện tử',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+          OutlinedButton.icon(
             onPressed: () => context.go(AppRoutes.tripHistoryPath()),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: Color(0xFFCBD5E1)),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
               ),
