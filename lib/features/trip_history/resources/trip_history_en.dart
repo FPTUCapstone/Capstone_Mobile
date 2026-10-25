@@ -64,8 +64,8 @@ abstract final class TripHistoryStringsEn {
   static const String actionRetry = 'Retry';
 
   // Action Notices & Tooltips
-  static const String noticeEticketPending =
-      'E-ticket service is currently being integrated. Please check back soon.';
+  static const String noticeEticketDemo =
+      'E-tickets are available for real bookings only, not in demo mode.';
   static const String noticeReviewNotCompleted =
       'Reviews can only be submitted for completed trips.';
   static const String noticeReviewAlreadyExists =

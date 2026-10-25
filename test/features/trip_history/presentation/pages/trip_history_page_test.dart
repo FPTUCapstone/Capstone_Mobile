@@ -85,6 +85,13 @@ void main() {
           ),
         ),
         GoRoute(
+          path: AppRoutes.eTicketPattern,
+          builder: (_, state) {
+            visited.add(state.uri.path);
+            return const Scaffold(body: Text('E-ticket stub'));
+          },
+        ),
+        GoRoute(
           path: AppRoutes.bookingRefundPattern,
           builder: (_, state) {
             visited.add(state.uri.path);
@@ -326,7 +333,24 @@ void main() {
   });
 
   group('actions', () {
-    testWidgets('E-ticket shows the pending notice and goes nowhere', (
+    testWidgets(
+      'E-ticket opens the ticket of actions.ticketId, never the booking',
+      (tester) async {
+        await pumpPage(tester, isDemo: false);
+
+        await tester.tap(
+          inCard(
+            'Son Tra Peninsula Tour',
+            TripHistoryStringsEn.actionViewEticket,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(visited, [AppRoutes.eTicket(7003)]);
+      },
+    );
+
+    testWidgets('E-ticket of a demo record never reaches the ticket API', (
       tester,
     ) async {
       await pumpPage(tester);
@@ -339,10 +363,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.text(TripHistoryStringsEn.noticeEticketPending),
-        findsOneWidget,
-      );
+      expect(find.text(TripHistoryStringsEn.noticeEticketDemo), findsOneWidget);
       expect(visited, isEmpty);
     });
 
