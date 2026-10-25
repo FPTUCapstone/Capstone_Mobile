@@ -31,6 +31,10 @@ import 'package:trip_mate_mobile/features/booking_refund/presentation/cubit/book
 import 'package:trip_mate_mobile/features/booking_refund/presentation/pages/booking_refund_progress_page.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/cubit/create_coupon_cubit.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/pages/create_coupon_page.dart';
+import 'package:trip_mate_mobile/features/e_ticket/domain/usecases/get_e_ticket_use_case.dart';
+import 'package:trip_mate_mobile/features/e_ticket/presentation/cubit/e_ticket_cubit.dart';
+import 'package:trip_mate_mobile/features/e_ticket/presentation/pages/e_ticket_page.dart';
+import 'package:trip_mate_mobile/features/e_ticket/resources/e_ticket_en.dart';
 import 'package:trip_mate_mobile/features/guest/presentation/pages/guest_landing_page.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/operator_tours_cubit.dart';
@@ -524,6 +528,20 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         },
       ),
       GoRoute(
+        path: AppRoutes.eTicketPattern,
+        name: AppRouteNames.eTicket,
+        builder: (_, state) =>
+            _eTicketRoute(state.pathParameters['ticketId'], ETicketKey.ticket),
+      ),
+      GoRoute(
+        path: AppRoutes.bookingETicketPattern,
+        name: AppRouteNames.bookingETicket,
+        builder: (_, state) => _eTicketRoute(
+          state.pathParameters['bookingId'],
+          ETicketKey.booking,
+        ),
+      ),
+      GoRoute(
         path: AppRoutes.tripHistory,
         name: AppRouteNames.tripHistory,
         builder: (_, state) {
@@ -677,5 +695,21 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
       appBar: AppBar(title: const Text('Page not found')),
       body: const ErrorView(message: 'Page not found.'),
     ),
+  );
+}
+
+/// UC-29: a positive id opens the ticket; anything else is answered as not
+/// found without calling the Backend.
+Widget _eTicketRoute(String? rawId, ETicketKey Function(int id) toKey) {
+  final id = int.tryParse(rawId ?? '');
+  if (id == null || id <= 0) {
+    return Scaffold(
+      appBar: AppBar(title: const Text(ETicketStrings.title)),
+      body: const Center(child: Text(ETicketStrings.notFound)),
+    );
+  }
+  return BlocProvider(
+    create: (_) => serviceLocator<ETicketCubit>(param1: toKey(id))..start(),
+    child: const ETicketPage(),
   );
 }
