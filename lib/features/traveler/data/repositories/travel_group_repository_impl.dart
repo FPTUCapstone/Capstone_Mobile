@@ -2,15 +2,19 @@ import 'package:dio/dio.dart';
 import 'package:trip_mate_mobile/core/error/error_mapper.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/features/traveler/data/models/group_invitation_model.dart';
+import 'package:trip_mate_mobile/features/traveler/data/models/leave_travel_group_model.dart';
 import 'package:trip_mate_mobile/features/traveler/data/models/travel_group_members_model.dart';
 import 'package:trip_mate_mobile/features/traveler/data/models/travel_group_model.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/leave_travel_group_result.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/leave_travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 
 /// Concrete implementation of [TravelGroupRepository] that calls the REST API.
-final class TravelGroupRepositoryImpl implements TravelGroupRepository {
+final class TravelGroupRepositoryImpl
+    implements TravelGroupRepository, LeaveTravelGroupRepository {
   const TravelGroupRepositoryImpl({required DioClient dioClient})
     : _dioClient = dioClient;
 
@@ -18,6 +22,28 @@ final class TravelGroupRepositoryImpl implements TravelGroupRepository {
 
   static const _path = '/api/v1/travel-groups';
   static const _joinPath = '/api/v1/travel-groups/join';
+
+  @override
+  Future<LeaveTravelGroupResult> leaveTravelGroup({
+    required int groupId,
+    required String idempotencyKey,
+  }) async {
+    try {
+      final response = await _dioClient.dio.post<Map<String, dynamic>>(
+        '$_path/$groupId/leave',
+        options: Options(headers: {'Idempotency-Key': idempotencyKey}),
+      );
+      final data = response.data;
+      if (data == null) throw const FormatException('Empty leave response.');
+      final result = LeaveTravelGroupModel.fromJson(data).toEntity();
+      if (result.groupId != groupId) {
+        throw const FormatException('Mismatched leave group response.');
+      }
+      return result;
+    } catch (error) {
+      throw ErrorMapper.toFailure(error);
+    }
+  }
 
   @override
   Future<TravelGroup> createTravelGroup({

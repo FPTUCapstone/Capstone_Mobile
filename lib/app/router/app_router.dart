@@ -56,6 +56,7 @@ import 'package:trip_mate_mobile/features/tour_search/presentation/pages/tour_se
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/address_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
@@ -384,6 +385,7 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
           final args = state.extra;
           return TravelGroupDetailsPage(
             groupId: groupId,
+            repository: serviceLocator<TravelGroupRepository>(),
             group: switch (args) {
               TravelGroupDetailsRouteArgs(:final group) => group,
               TravelGroup group => group,

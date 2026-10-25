@@ -124,6 +124,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/repositories/external_
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_list_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_suggestion_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/leave_travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigation_session_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/route_directions_repository.dart';
@@ -432,8 +433,14 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerFactory<TravelPreferencesCubit>(
       () => TravelPreferencesCubit(serviceLocator()),
     )
-    ..registerLazySingleton<TravelGroupRepository>(
+    ..registerLazySingleton<TravelGroupRepositoryImpl>(
       () => TravelGroupRepositoryImpl(dioClient: serviceLocator()),
+    )
+    ..registerLazySingleton<TravelGroupRepository>(
+      () => serviceLocator<TravelGroupRepositoryImpl>(),
+    )
+    ..registerLazySingleton<LeaveTravelGroupRepository>(
+      () => serviceLocator<TravelGroupRepositoryImpl>(),
     )
     ..registerLazySingleton<CouponRemoteDataSource>(
       () => DioCouponRemoteDataSource(serviceLocator()),

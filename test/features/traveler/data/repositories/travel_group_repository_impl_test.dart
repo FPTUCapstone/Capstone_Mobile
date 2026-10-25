@@ -143,6 +143,78 @@ void main() {
 
   group('TravelGroupRepositoryImpl existing operations', () {
     test(
+      'leave posts no body with stable key and parses committed outcome',
+      () async {
+        final dioClient = _createDioClient();
+        final adapter = _RecordingHttpClientAdapter(
+          body:
+              '{"groupId":42,"membershipStatus":"Left",'
+              '"groupClosed":false,"newHostUserId":17,'
+              '"leftAtUtc":"2026-10-25T08:00:00Z"}',
+        );
+        dioClient.dio.httpClientAdapter = adapter;
+        final repository = TravelGroupRepositoryImpl(dioClient: dioClient);
+
+        final result = await repository.leaveTravelGroup(
+          groupId: 42,
+          idempotencyKey: '39ad1d5a-e9e8-4c5b-966f-ea85854be949',
+        );
+
+        expect(adapter.request?.method, 'POST');
+        expect(adapter.request?.path, '/api/v1/travel-groups/42/leave');
+        expect(adapter.request?.data, isNull);
+        expect(
+          adapter.request?.headers['Idempotency-Key'],
+          '39ad1d5a-e9e8-4c5b-966f-ea85854be949',
+        );
+        expect(result.membershipStatus, 'Left');
+        expect(result.groupClosed, isFalse);
+        expect(result.newHostUserId, 17);
+        expect(result.leftAtUtc, DateTime.utc(2026, 10, 25, 8));
+      },
+    );
+
+    test('leave does not report success for an invalid response', () async {
+      final dioClient = _createDioClient();
+      final adapter = _RecordingHttpClientAdapter(
+        body:
+            '{"groupId":42,"membershipStatus":"Active",'
+            '"groupClosed":false,"newHostUserId":null,'
+            '"leftAtUtc":"2026-10-25T08:00:00Z"}',
+      );
+      dioClient.dio.httpClientAdapter = adapter;
+      final repository = TravelGroupRepositoryImpl(dioClient: dioClient);
+
+      await expectLater(
+        repository.leaveTravelGroup(
+          groupId: 42,
+          idempotencyKey: '39ad1d5a-e9e8-4c5b-966f-ea85854be949',
+        ),
+        throwsA(isA<UnknownFailure>()),
+      );
+    });
+
+    test('leave rejects a response for another group', () async {
+      final dioClient = _createDioClient();
+      final adapter = _RecordingHttpClientAdapter(
+        body:
+            '{"groupId":43,"membershipStatus":"Left",'
+            '"groupClosed":false,"newHostUserId":null,'
+            '"leftAtUtc":"2026-10-25T08:00:00Z"}',
+      );
+      dioClient.dio.httpClientAdapter = adapter;
+      final repository = TravelGroupRepositoryImpl(dioClient: dioClient);
+
+      await expectLater(
+        repository.leaveTravelGroup(
+          groupId: 42,
+          idempotencyKey: '39ad1d5a-e9e8-4c5b-966f-ea85854be949',
+        ),
+        throwsA(isA<UnknownFailure>()),
+      );
+    });
+
+    test(
       'create still posts its request and parses the raw group DTO',
       () async {
         final dioClient = _createDioClient();
