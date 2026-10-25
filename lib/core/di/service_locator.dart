@@ -61,6 +61,11 @@ import 'package:trip_mate_mobile/features/coupon/data/datasources/coupon_remote_
 import 'package:trip_mate_mobile/features/coupon/data/repositories/coupon_repository_impl.dart';
 import 'package:trip_mate_mobile/features/coupon/domain/repositories/coupon_repository.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/cubit/create_coupon_cubit.dart';
+import 'package:trip_mate_mobile/features/e_ticket/data/repositories/e_ticket_repository_impl.dart';
+import 'package:trip_mate_mobile/features/e_ticket/domain/repositories/e_ticket_repository.dart';
+import 'package:trip_mate_mobile/features/e_ticket/domain/usecases/get_e_ticket_use_case.dart';
+import 'package:trip_mate_mobile/features/e_ticket/domain/usecases/refresh_e_ticket_qr_use_case.dart';
+import 'package:trip_mate_mobile/features/e_ticket/presentation/cubit/e_ticket_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/data/datasources/operator_tour_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/operator_tours/data/repositories/operator_tour_repository_impl.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/repositories/operator_tour_repository.dart';
@@ -520,6 +525,24 @@ Future<void> configureDependencies({AppConfig? config}) async {
       (isDemoMode, _) => TripHistoryRepositoryImpl(
         demoStore: isDemoMode ? serviceLocator<DemoTripHistoryStore>() : null,
         isDemoMode: isDemoMode,
+      ),
+    )
+    // UC-29 e-ticket
+    ..registerLazySingleton<ETicketRepository>(
+      () => ETicketRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<GetETicketUseCase>(
+      () => GetETicketUseCase(serviceLocator()),
+    )
+    ..registerFactory<RefreshETicketQrUseCase>(
+      () => RefreshETicketQrUseCase(serviceLocator()),
+    )
+    ..registerFactoryParam<ETicketCubit, ETicketKey, void>(
+      (key, _) => ETicketCubit(
+        key: key,
+        getTicket: serviceLocator(),
+        refreshQr: serviceLocator(),
+        networkInfo: serviceLocator(),
       ),
     )
     ..registerFactoryParam<TripRecordsRepository, bool, void>(
