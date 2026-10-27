@@ -36,6 +36,9 @@ import 'package:trip_mate_mobile/features/e_ticket/presentation/cubit/e_ticket_c
 import 'package:trip_mate_mobile/features/e_ticket/presentation/pages/e_ticket_page.dart';
 import 'package:trip_mate_mobile/features/e_ticket/resources/e_ticket_en.dart';
 import 'package:trip_mate_mobile/features/guest/presentation/pages/guest_landing_page.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/domain/entities/operator_booking.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/operator_booking_detail_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/presentation/pages/operator_booking_detail_page.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/operator_tours_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/create_tour_package_page.dart';
@@ -635,7 +638,9 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         path: AppRoutes.operator,
         name: AppRouteNames.operator,
         builder: (_, state) {
-          final isDemo = state.uri.queryParameters['demo'] == 'true';
+          // Demo fixtures are debug-only, like every other demo route: a release build ignores the flag.
+          final isDemo =
+              kDebugMode && state.uri.queryParameters['demo'] == 'true';
           return OperatorShellPage(isDemoMode: isDemo);
         },
       ),
@@ -645,6 +650,17 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         builder: (_, _) => BlocProvider(
           create: (_) => serviceLocator<OperatorToursCubit>()..load(),
           child: const OperatorToursPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.operatorBooking,
+        name: AppRouteNames.operatorBooking,
+        builder: (_, state) => _operatorBookingRoute(
+          state.pathParameters['bookingId'],
+          isDemo: kDebugMode && state.uri.queryParameters['demo'] == 'true',
+          initialBooking: state.extra is OperatorBookingListItem
+              ? state.extra as OperatorBookingListItem
+              : null,
         ),
       ),
       GoRoute(
@@ -705,6 +721,29 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
       appBar: AppBar(title: const Text('Page not found')),
       body: const ErrorView(message: 'Page not found.'),
     ),
+  );
+}
+
+/// UC-40: a digit-only id opens the booking; anything else is answered as not
+/// found without calling the Backend. [initialBooking] is the list card the page
+/// was opened from, so its basics show before the detail arrives.
+Widget _operatorBookingRoute(
+  String? rawId, {
+  required bool isDemo,
+  OperatorBookingListItem? initialBooking,
+}) {
+  if (rawId == null || !RegExp(r'^\d+$').hasMatch(rawId)) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Page not found')),
+      body: const ErrorView(message: 'Page not found.'),
+    );
+  }
+  return BlocProvider(
+    create: (_) => serviceLocator<OperatorBookingDetailCubit>(
+      param1: rawId,
+      param2: isDemo,
+    )..load(),
+    child: OperatorBookingDetailPage(initialBooking: initialBooking),
   );
 }
 

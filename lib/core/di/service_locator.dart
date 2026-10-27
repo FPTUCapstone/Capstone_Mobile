@@ -66,6 +66,12 @@ import 'package:trip_mate_mobile/features/e_ticket/domain/repositories/e_ticket_
 import 'package:trip_mate_mobile/features/e_ticket/domain/usecases/get_e_ticket_use_case.dart';
 import 'package:trip_mate_mobile/features/e_ticket/domain/usecases/refresh_e_ticket_qr_use_case.dart';
 import 'package:trip_mate_mobile/features/e_ticket/presentation/cubit/e_ticket_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/data/repositories/demo_operator_bookings_repository.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/data/repositories/operator_bookings_repository_impl.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/domain/repositories/operator_bookings_repository.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/domain/usecases/operator_bookings_use_cases.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/operator_booking_detail_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/operator_bookings_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/data/datasources/operator_tour_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/operator_tours/data/repositories/operator_tour_repository_impl.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/repositories/operator_tour_repository.dart';
@@ -300,6 +306,39 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerLazySingleton<TourImagePicker>(FilePickerTourImagePicker.new)
     ..registerFactory<OperatorToursCubit>(
       () => OperatorToursCubit(listTours: serviceLocator()),
+    )
+    // UC-40: the live repository is the default; the demo one is served only for an explicit demo flag.
+    ..registerFactoryParam<OperatorBookingsRepository, bool, void>(
+      (isDemoMode, _) => isDemoMode
+          ? const DemoOperatorBookingsRepository()
+          : OperatorBookingsRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactoryParam<ListOperatorBookingsUseCase, bool, void>(
+      (isDemoMode, _) => ListOperatorBookingsUseCase(
+        serviceLocator<OperatorBookingsRepository>(param1: isDemoMode),
+      ),
+    )
+    ..registerFactoryParam<GetOperatorBookingUseCase, bool, void>(
+      (isDemoMode, _) => GetOperatorBookingUseCase(
+        serviceLocator<OperatorBookingsRepository>(param1: isDemoMode),
+      ),
+    )
+    ..registerFactoryParam<LoadOperatorBookingTourOptionsUseCase, bool, void>(
+      (isDemoMode, _) => LoadOperatorBookingTourOptionsUseCase(
+        serviceLocator<OperatorBookingsRepository>(param1: isDemoMode),
+      ),
+    )
+    ..registerFactoryParam<OperatorBookingsCubit, bool, void>(
+      (isDemoMode, _) => OperatorBookingsCubit(
+        listBookings: serviceLocator(param1: isDemoMode),
+        loadTourOptions: serviceLocator(param1: isDemoMode),
+      ),
+    )
+    ..registerFactoryParam<OperatorBookingDetailCubit, String, bool>(
+      (bookingId, isDemoMode) => OperatorBookingDetailCubit(
+        getBooking: serviceLocator(param1: isDemoMode),
+        bookingId: bookingId,
+      ),
     )
     ..registerFactory<CreateTourPackageCubit>(
       () => CreateTourPackageCubit(
