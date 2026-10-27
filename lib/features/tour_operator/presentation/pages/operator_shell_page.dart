@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
-import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/operator_bookings_view.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/operator_bookings_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/presentation/pages/operator_bookings_list_view.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/operator_coupons_view.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/operator_dashboard_view.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/operator_profile_view.dart';
@@ -44,7 +46,19 @@ class _OperatorShellPageState extends State<OperatorShellPage> {
     _OperatorDestination('Profile', Icons.business_outlined, Icons.business),
   ];
 
+  static const _bookingsIndex = 2;
+
   var _selectedIndex = 0;
+
+  /// The Bookings tab (UC-40) loads from the backend only once the operator first opens it.
+  var _bookingsOpened = false;
+
+  void _select(int index) {
+    setState(() {
+      _selectedIndex = index;
+      if (index == _bookingsIndex) _bookingsOpened = true;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,11 +105,20 @@ class _OperatorShellPageState extends State<OperatorShellPage> {
               children: [
                 OperatorDashboardView(
                   isDemoMode: widget.isDemoMode,
-                  onNavigateToTab: (index) =>
-                      setState(() => _selectedIndex = index),
+                  onNavigateToTab: _select,
                 ),
                 _OperatorToursHub(),
-                OperatorBookingsView(isDemoMode: widget.isDemoMode),
+                if (_bookingsOpened)
+                  BlocProvider<OperatorBookingsCubit>(
+                    create: (_) => serviceLocator<OperatorBookingsCubit>(
+                      param1: widget.isDemoMode,
+                    )..loadInitial(),
+                    child: OperatorBookingsListView(
+                      isDemoMode: widget.isDemoMode,
+                    ),
+                  )
+                else
+                  const SizedBox.shrink(),
                 OperatorRevenueView(isDemoMode: widget.isDemoMode),
                 OperatorCouponsView(isDemoMode: widget.isDemoMode),
                 const OperatorProfileView(),
@@ -106,9 +129,7 @@ class _OperatorShellPageState extends State<OperatorShellPage> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() => _selectedIndex = index);
-        },
+        onDestinationSelected: _select,
         destinations: _destinations
             .map(
               (destination) => NavigationDestination(

@@ -67,6 +67,9 @@ abstract final class AppRoutes {
   static const operatorChangePassword = '/operator/change-password';
   static const createTourPackage = '/operator/tours/create';
   static const operatorTours = '/operator/tours';
+  static const operatorBooking = '/operator/bookings/:bookingId';
+  static String operatorBookingPath(String bookingId, {bool isDemo = false}) =>
+      '/operator/bookings/$bookingId${isDemo ? '?demo=true' : ''}';
   static const editTourPackage = '/operator/tours/:tourId/edit';
   static String editTourPackagePath(int tourId) =>
       '/operator/tours/$tourId/edit';
@@ -153,5 +156,6 @@ abstract final class AppRouteNames {
   static const operatorChangePassword = 'operator-change-password';
   static const createTourPackage = 'create-tour-package';
   static const operatorTours = 'operator-tours';
+  static const operatorBooking = 'operator-booking';
   static const editTourPackage = 'edit-tour-package';
 }

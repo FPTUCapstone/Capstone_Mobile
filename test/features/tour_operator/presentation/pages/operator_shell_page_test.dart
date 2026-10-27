@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/app/theme/app_theme.dart';
 import 'package:trip_mate_mobile/core/constants/app_constants.dart';
+import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/auth_credentials.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/auth_session.dart';
@@ -12,8 +13,17 @@ import 'package:trip_mate_mobile/features/auth/domain/entities/traveler_registra
 import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/data/models/operator_bookings_json.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/data/repositories/demo_operator_bookings_repository.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/domain/entities/operator_booking.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/domain/repositories/operator_bookings_repository.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/domain/usecases/operator_bookings_use_cases.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/operator_bookings_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/resources/operator_bookings_en.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
+
+import '../../../operator_bookings/operator_bookings_fixtures.dart';
 
 Future<AuthSessionCubit> _authenticatedCubit({
   _RecordingAuthRepository? repository,
@@ -50,7 +60,49 @@ Future<void> _pumpShell(
   );
 }
 
+/// A live repository that answers one booking and records every request, so a test can see when the
+/// Bookings tab starts loading.
+final class _SpyBookingsRepository implements OperatorBookingsRepository {
+  final List<OperatorBookingsQuery> pageQueries = [];
+
+  @override
+  Future<OperatorBookingsPage> getPage(OperatorBookingsQuery query) async {
+    pageQueries.add(query);
+    return OperatorBookingsJson.page(listPageJson());
+  }
+
+  @override
+  Future<OperatorBookingDetail> getDetail(String bookingId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<List<OperatorBookingTourOption>> getTourOptions() async => const [];
+}
+
 void main() {
+  late _SpyBookingsRepository bookings;
+  late List<bool> requestedDemoFlags;
+
+  setUp(() {
+    bookings = _SpyBookingsRepository();
+    requestedDemoFlags = [];
+    serviceLocator.registerFactoryParam<OperatorBookingsCubit, bool, void>((
+      isDemoMode,
+      _,
+    ) {
+      requestedDemoFlags.add(isDemoMode);
+      final OperatorBookingsRepository repository = isDemoMode
+          ? const DemoOperatorBookingsRepository()
+          : bookings;
+      return OperatorBookingsCubit(
+        listBookings: ListOperatorBookingsUseCase(repository),
+        loadTourOptions: LoadOperatorBookingTourOptionsUseCase(repository),
+      );
+    });
+  });
+
+  tearDown(() => serviceLocator.reset());
+
   testWidgets('operator shell sign-out uses the backend-integrated flow once', (
     tester,
   ) async {
@@ -176,17 +228,23 @@ void main() {
       expect(find.text('BK-2026-901'), findsNothing);
       expect(find.text('Chờ kết nối API'), findsWidgets);
 
+      // The Bookings tab loads only when it is first selected.
+      expect(bookings.pageQueries, isEmpty);
+      expect(requestedDemoFlags, isEmpty);
+
       // Navigate to Bookings tab
       await tester.tap(find.text('Bookings'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Chưa có đơn đặt tour'), findsOneWidget);
-      expect(
-        find.text(
-          'Tính năng quản lý danh sách hành khách và đơn đặt chỗ đang chờ kết nối API hệ thống (PENDING_BE_INTEGRATION).',
-        ),
-        findsOneWidget,
-      );
+      // The live bookings come from the backend repository; there is no pending notice and no fixture.
+      expect(bookings.pageQueries, hasLength(1));
+      expect(requestedDemoFlags, [false]);
+      expect(find.text('BK-20261020-0007'), findsOneWidget);
+      expect(find.text('Chưa có đơn đặt tour'), findsNothing);
+      expect(find.textContaining('PENDING_BE_INTEGRATION'), findsNothing);
+      expect(find.text(OperatorBookingsStringsEn.demoBanner), findsNothing);
+      expect(find.text('BK-2026-901'), findsNothing);
+      expect(find.text('Nguyễn Văn An'), findsNothing);
 
       // Navigate to Revenue tab
       await tester.tap(find.text('Revenue'));
@@ -228,14 +286,17 @@ void main() {
       await tester.tap(find.text('Bookings'));
       await tester.pumpAndSettle();
 
+      expect(find.text(OperatorBookingsStringsEn.demoBanner), findsOneWidget);
+      expect(requestedDemoFlags, [true]);
       expect(
-        find.text(
-          '[DỮ LIỆU THỬ NGHIỆM - DEMO] Danh sách khách hàng và mã đặt chỗ là dữ liệu mẫu.',
-        ),
+        find.text('BK-20260914-0144'),
         findsOneWidget,
-      );
-      expect(find.text('BK-2026-901'), findsOneWidget);
-      expect(find.text('Nguyễn Văn An'), findsOneWidget);
+      ); // the newest demo booking
+      expect(find.textContaining('Dang Quoc Bao'), findsWidgets);
+      expect(bookings.pageQueries, isEmpty);
+      // The old placeholders are gone: no QR check-in, refund or pickup control in this task.
+      expect(find.textContaining('Check-in QR'), findsNothing);
+      expect(find.textContaining('hoàn tiền'), findsNothing);
 
       // Navigate to Revenue tab in demo mode
       await tester.tap(find.text('Revenue'));

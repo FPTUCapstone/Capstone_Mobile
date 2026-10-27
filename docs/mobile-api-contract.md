@@ -119,6 +119,27 @@ UC-32 View Trip History, backend TM-78 (`Capstone_BE` PR #105, `docs/TM-78-api-c
 - Errors: `invalid_record` (`400`), `unauthorized`, `forbidden`, `record_not_found` (`404`, including a record owned by someone else).
 - Mobile usage: opened by `TripRecordDetailSheet` from View details and View refund; the response `kind` and `id` must match the request or it is rejected.
 
+## GET `/api/v1/operator/bookings`
+
+UC-40 View Customer Bookings (Tour Operator), backend `Capstone_BE` PR #132 (`docs/UC-40-api-contract.md`). **Not merged or deployed when this was written; no live call has been verified from Mobile.** Mobile screens #84 (list) and #85 (detail and passenger manifest).
+
+- Authentication: Tour Operator bearer token; an Active, approved operator only. The backend scopes every answer to the operator's own tours (BR-105); the app never decides ownership.
+- Query (all optional): `tourId`, `status` (`PendingPayment`, `Confirmed`, `Cancelled`, `Completed`, `Expired`), `departureFrom`, `departureTo` (`yyyy-MM-dd`, Vietnam-time days, inclusive), `keyword` (up to 200 characters: booking code, booker name or booker e-mail), `pageNumber` (default 1), `pageSize` (default 20, at most 100). Mobile always sends `pageNumber` and `pageSize` (20) and omits an unset filter or a blank keyword.
+- Success body (no envelope): `pageNumber`, `pageSize`, `totalCount`, `totalPages`, `summary` (`totalBookings`, `totalParticipants`, `totalConfirmedAmount`) and `items[]` (`bookingId`, `bookingCode`, `tour` {`tourId`, `title`}, `schedule` {`scheduleId`, `startAtUtc`, `endAtUtc`}, `booker` {`userId`, `fullName`, `email`}, `quantity`, `totalAmount`, `discountAmount`, `status`, `paymentStatus`, `checkInStatus`, `checkedInAtUtc`, `bookedAtUtc`). Ids are JSON strings of digits; money is a decimal VND amount (for example `2400000.00`) shown rounded to whole dong (zero is `0 VND`).
+- `summary` covers the whole filtered set and is shown as returned, never recomputed: `totalBookings` counts every status; `totalParticipants` and `totalConfirmedAmount` count `Confirmed` and `Completed` only.
+- Errors: `401` (session ended, handled by `AuthInterceptor`), `403` `operator_tour.access_required` or `operator_booking.forbidden`, `404` `operator_booking.not_found`, `400` `operator_booking.invalid_date_range` (the range is also checked in the app first) and `operator_booking.invalid_filter`.
+- Mobile usage: `OperatorBookingsRepositoryImpl` parses strictly (`OperatorBookingsJson`); a malformed body is a `ServerFailure('operator_booking.invalid_response')`, never a default-filled record. `OperatorBookingsCubit` shows only canonical copy: 401, 403 and 404 are "You do not have permission to access this function." (no Retry); an inverted range is "End date must be on or after the start date."; any other failure is the generic system message with Retry; an empty page is "No records found matching your criteria.". Status and search sit on the list; tour and departure range sit in the filter sheet. `?demo=true` (debug builds only) serves `DemoOperatorBookingsRepository`; it is never a fallback for a failed call.
+
+## GET `/api/v1/operator/bookings/{bookingId}`
+
+- Authentication: as above; `bookingId` is a digit string (the app never sends another value). A booking of another operator is `403 operator_booking.forbidden`; an unknown booking is `404 operator_booking.not_found`.
+- Success body adds to the list item: `cancelledAtUtc`, `cancelReason`, `schedule.meetingPoint`, `booker.phoneNumber`, `participants[]` (`fullName`, `participantType` = `Adult`, `Child` or `Infant`; never ID documents, phone, e-mail or nationality), `ticket` (`ticketCode`, `status`, `issuedAtUtc`, `expiresAtUtc`, or null), `payment` (`gateway`, `gatewayTransactionRef`, `status`, `amount`, `succeededAtUtc`, or null; read-only, no gateway payload), `paidAmount`, `subtotalAmount`, `coupon` (`code`, `name`, `discountAmount`, or null), `canCancel` and `cancelBlockedReason` (`InvalidStatus` or `CheckedIn`).
+- Mobile usage: opened by `/operator/bookings/:bookingId` (a digit-only id; anything else is "Page not found" without a call). The page shows the tapped card's basics at once and then the detail; the response `bookingId` must equal the requested id or it is rejected. The screen carries no cancel, refund or check-in control: `canCancel` and `cancelBlockedReason` are parsed and kept for the UC-41 task. Check-in is read from `checkInStatus`; it is `NotCheckedIn` until UC-43 exists.
+
+## GET `/api/v1/operator/revenue/tours`
+
+- Used only for the tour filter of the bookings list: a plain array of `{ id, code, title, isActive }` listing every owned tour, including historical ones. Mobile keeps the id and the title. If it fails the tour filter is disabled with a hint and the list keeps working.
+
 ## Explicitly Unavailable Contracts
 
 The current BE source does not expose verified endpoints for:
@@ -127,7 +148,7 @@ The current BE source does not expose verified endpoints for:
 - Password reset or change password.
 - Traveler profile or travel preferences.
 - Explore/POI, itinerary, map, weather, tours, booking, payment, or review (trip history is documented above; the review contract is in `docs/TM-79-independent-review.md`).
-- Tour operator registration/application, uploads, tours, revenue, or bookings.
+- Tour operator registration/application, uploads, tours, revenue, booking cancellation, booking refunds or QR check-in (the read-only customer bookings list and detail are documented above).
 - Administrator authentication or admin operations.
 
 Mobile must not call guessed paths for these features. Existing screens for them remain demo/placeholder scope until BE contracts are implemented and documented.
