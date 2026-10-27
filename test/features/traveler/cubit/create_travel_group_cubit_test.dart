@@ -4,6 +4,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/group_member_removal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
@@ -14,6 +15,14 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_tra
 
 final class _SuccessRepository implements TravelGroupRepository {
   const _SuccessRepository(this._result);
+
+  @override
+  Future<GroupMemberRemoval> removeGroupMember({
+    required int groupId,
+    required int memberUserId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
   final TravelGroup _result;
 
   @override
@@ -49,6 +58,13 @@ final class _FailureRepository implements TravelGroupRepository {
   const _FailureRepository();
 
   @override
+  Future<GroupMemberRemoval> removeGroupMember({
+    required int groupId,
+    required int memberUserId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
+  @override
   Future<TravelGroup> createTravelGroup({
     required String name,
     required int itineraryId,
@@ -80,6 +96,14 @@ final class _FailureRepository implements TravelGroupRepository {
 
 final class _TypedFailureRepository implements TravelGroupRepository {
   const _TypedFailureRepository(this.failure);
+
+  @override
+  Future<GroupMemberRemoval> removeGroupMember({
+    required int groupId,
+    required int memberUserId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
   final Failure failure;
 
   @override
@@ -113,6 +137,13 @@ final class _TypedFailureRepository implements TravelGroupRepository {
 }
 
 final class _TrackingRepository implements TravelGroupRepository {
+  @override
+  Future<GroupMemberRemoval> removeGroupMember({
+    required int groupId,
+    required int memberUserId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
   final calls = <({String name, int itineraryId, String idempotencyKey})>[];
   bool shouldFail = true;
   Failure? failure;

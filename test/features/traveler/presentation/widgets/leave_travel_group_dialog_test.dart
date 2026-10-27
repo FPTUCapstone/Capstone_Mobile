@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/group_member_removal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_member.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
@@ -618,6 +619,13 @@ void main() {
 }
 
 final class _FailingRepository implements TravelGroupRepository {
+  @override
+  Future<GroupMemberRemoval> removeGroupMember({
+    required int groupId,
+    required int memberUserId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
   @override
   Future<TravelGroupMembers> getTravelGroupMembers({required int groupId}) =>
       Future.error(Exception('Simulated network error'));

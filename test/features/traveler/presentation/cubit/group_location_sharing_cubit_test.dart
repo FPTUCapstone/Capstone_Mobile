@@ -7,6 +7,7 @@ import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/core/location/device_location_service.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/group_member_removal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_member.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
@@ -66,6 +67,13 @@ class _MockLocationService implements DeviceLocationService {
 
 class _MockGroupRepository implements TravelGroupRepository {
   _MockGroupRepository({this.membersResult, this.failure});
+
+  @override
+  Future<GroupMemberRemoval> removeGroupMember({
+    required int groupId,
+    required int memberUserId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
 
   final TravelGroupMembers? membersResult;
   final Failure? failure;

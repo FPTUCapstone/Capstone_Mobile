@@ -9,6 +9,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/group_member_removal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
@@ -16,6 +17,13 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/invite_gro
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/invite_group_members_page.dart';
 
 final class _MockRepository implements TravelGroupRepository {
+  @override
+  Future<GroupMemberRemoval> removeGroupMember({
+    required int groupId,
+    required int memberUserId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
   bool shouldFail = false;
   int getInvitationCallCount = 0;
   int regenerationFailuresRemaining = 0;

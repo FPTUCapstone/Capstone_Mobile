@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
@@ -95,7 +97,8 @@ class _TravelerShellPageState extends State<TravelerShellPage> {
                   IconButton(
                     icon: const Icon(Icons.notifications_none_outlined),
                     tooltip: 'Thông báo',
-                    onPressed: () {},
+                    onPressed: () =>
+                        context.pushNamed(AppRouteNames.inAppInbox),
                   ),
                 IconButton(
                   onPressed: state.operation == AuthSessionOperation.signOut

@@ -12,6 +12,103 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/invite_gro
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/invite_group_members_state.dart';
 
 void main() {
+  group('TravelGroupRepositoryImpl removal', () {
+    test(
+      'DELETE sends the exact key and returns the committed outcome',
+      () async {
+        final client = _createDioClient();
+        final adapter = _RecordingHttpClientAdapter(
+          body:
+              '{"groupId":42,"memberUserId":102,"memberName":"Minh Anh",'
+              '"removedAtUtc":"2026-10-27T10:00:00Z"}',
+        );
+        client.dio.httpClientAdapter = adapter;
+        final repository = TravelGroupRepositoryImpl(dioClient: client);
+        const key = 'a4e3682e-0bbd-4722-a2ad-08f5c7fc8b16';
+
+        final result = await repository.removeGroupMember(
+          groupId: 42,
+          memberUserId: 102,
+          idempotencyKey: key,
+        );
+
+        expect(adapter.request?.method, 'DELETE');
+        expect(adapter.request?.path, '/api/v1/travel-groups/42/members/102');
+        expect(adapter.request?.headers['Idempotency-Key'], key);
+        expect(adapter.request?.data, isNull);
+        expect(result.groupId, 42);
+        expect(result.memberUserId, 102);
+        expect(result.memberName, 'Minh Anh');
+        expect(result.removedAtUtc, DateTime.utc(2026, 10, 27, 10));
+      },
+    );
+
+    test('permission failure is mapped safely', () async {
+      final client = _createDioClient();
+      client.dio.httpClientAdapter = _RecordingHttpClientAdapter(
+        statusCode: 403,
+        body:
+            '{"status":403,"title":"Internal detail",'
+            '"errorCode":"travel_group.host_permission_required"}',
+      );
+      final repository = TravelGroupRepositoryImpl(dioClient: client);
+      await expectLater(
+        repository.removeGroupMember(
+          groupId: 42,
+          memberUserId: 102,
+          idempotencyKey: 'a4e3682e-0bbd-4722-a2ad-08f5c7fc8b16',
+        ),
+        throwsA(isA<PermissionFailure>()),
+      );
+    });
+
+    for (final (status, failure) in <(int, Type)>[
+      (400, ValidationFailure),
+      (401, AuthenticationFailure),
+      (404, NotFoundFailure),
+      (409, ConflictFailure),
+      (500, ServerFailure),
+    ]) {
+      test('HTTP $status maps to $failure without a success result', () async {
+        final client = _createDioClient();
+        client.dio.httpClientAdapter = _RecordingHttpClientAdapter(
+          statusCode: status,
+          body:
+              '{"status":$status,"errorCode":"travel_group.member_not_active"}',
+        );
+        final repository = TravelGroupRepositoryImpl(dioClient: client);
+        await expectLater(
+          repository.removeGroupMember(
+            groupId: 42,
+            memberUserId: 102,
+            idempotencyKey: 'a4e3682e-0bbd-4722-a2ad-08f5c7fc8b16',
+          ),
+          throwsA(
+            isA<Failure>().having(
+              (error) => error.runtimeType,
+              'type',
+              failure,
+            ),
+          ),
+        );
+      });
+    }
+
+    test('network loss remains a retryable failure', () async {
+      final client = _createDioClient();
+      client.dio.httpClientAdapter = _NetworkFailureHttpClientAdapter();
+      final repository = TravelGroupRepositoryImpl(dioClient: client);
+      await expectLater(
+        repository.removeGroupMember(
+          groupId: 42,
+          memberUserId: 102,
+          idempotencyKey: 'a4e3682e-0bbd-4722-a2ad-08f5c7fc8b16',
+        ),
+        throwsA(isA<NetworkFailure>()),
+      );
+    });
+  });
+
   group('TravelGroupRepositoryImpl invitation requests', () {
     late DioClient dioClient;
     late _RecordingHttpClientAdapter adapter;

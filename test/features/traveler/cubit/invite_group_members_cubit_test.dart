@@ -4,6 +4,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/group_member_removal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
@@ -14,6 +15,13 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/invite_gro
 
 abstract class _TravelGroupRepositoryFake implements TravelGroupRepository {
   const _TravelGroupRepositoryFake();
+
+  @override
+  Future<GroupMemberRemoval> removeGroupMember({
+    required int groupId,
+    required int memberUserId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
 
   @override
   Future<TravelGroup> joinTravelGroup({

@@ -2,10 +2,12 @@ import 'package:dio/dio.dart';
 import 'package:trip_mate_mobile/core/error/error_mapper.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/features/traveler/data/models/group_invitation_model.dart';
+import 'package:trip_mate_mobile/features/traveler/data/models/group_member_removal_model.dart';
 import 'package:trip_mate_mobile/features/traveler/data/models/leave_travel_group_model.dart';
 import 'package:trip_mate_mobile/features/traveler/data/models/travel_group_members_model.dart';
 import 'package:trip_mate_mobile/features/traveler/data/models/travel_group_model.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/group_member_removal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/leave_travel_group_result.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
@@ -138,6 +140,26 @@ final class TravelGroupRepositoryImpl
         throw const FormatException('Empty travel group members response.');
       }
       return TravelGroupMembersModel.fromJson(data).toEntity();
+    } catch (error) {
+      throw ErrorMapper.toFailure(error);
+    }
+  }
+
+  @override
+  Future<GroupMemberRemoval> removeGroupMember({
+    required int groupId,
+    required int memberUserId,
+    required String idempotencyKey,
+  }) async {
+    try {
+      final response = await _dioClient.dio.delete<Map<String, dynamic>>(
+        '$_path/$groupId/members/$memberUserId',
+        options: Options(headers: {'Idempotency-Key': idempotencyKey}),
+      );
+      if (response.statusCode != 200 || response.data == null) {
+        throw const FormatException('Invalid member removal response.');
+      }
+      return GroupMemberRemovalModel.fromJson(response.data!).toEntity();
     } catch (error) {
       throw ErrorMapper.toFailure(error);
     }

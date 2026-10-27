@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/router/travel_group_details_route_args.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/group_member_removal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
@@ -13,6 +14,13 @@ import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_tra
 import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
 
 final class _MockRepository implements TravelGroupRepository {
+  @override
+  Future<GroupMemberRemoval> removeGroupMember({
+    required int groupId,
+    required int memberUserId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
   String? lastSubmittedName;
   int? lastSubmittedItineraryId;
 
