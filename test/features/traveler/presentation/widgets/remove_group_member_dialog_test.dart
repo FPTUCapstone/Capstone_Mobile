@@ -4,60 +4,45 @@ import 'package:trip_mate_mobile/features/traveler/presentation/widgets/remove_g
 
 void main() {
   group('RemoveGroupMemberDialog (UC-20 Screen #59)', () {
-    testWidgets(
-      'UC20-4: Renders MSG59 confirmation, dialog title, and capability notice',
-      (tester) async {
-        await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
-              body: RemoveGroupMemberDialog(
-                groupId: 42,
-                memberId: 102,
-                memberName: 'Minh Anh',
-              ),
+    testWidgets('UC20-4: Renders MSG59 confirmation and enabled action', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: RemoveGroupMemberDialog(
+              groupId: 42,
+              memberId: 102,
+              memberName: 'Minh Anh',
             ),
           ),
-        );
+        ),
+      );
 
-        // Dialog title
-        expect(find.text('Remove group member'), findsOneWidget);
+      // Dialog title
+      expect(find.text('Remove group member'), findsOneWidget);
 
-        // Locked MSG59 body text
-        expect(
-          find.text(
-            'Are you sure you want to remove Minh Anh from this group?',
-          ),
-          findsOneWidget,
-        );
+      // Locked MSG59 body text
+      expect(
+        find.text('Are you sure you want to remove Minh Anh from this group?'),
+        findsOneWidget,
+      );
 
-        // Capability notice explaining server support is pending
-        expect(
-          find.byKey(const Key('remove_member_capability_notice')),
-          findsOneWidget,
-        );
-        expect(
-          find.text(
-            'Server support pending: Member removal is waiting for backend capability and cannot be completed yet.',
-          ),
-          findsOneWidget,
-        );
+      // Buttons
+      expect(
+        find.byKey(const Key('remove_member_cancel_button')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('remove_member_confirm_button')),
+        findsOneWidget,
+      );
 
-        // Buttons
-        expect(
-          find.byKey(const Key('remove_member_cancel_button')),
-          findsOneWidget,
-        );
-        expect(
-          find.byKey(const Key('remove_member_confirm_button')),
-          findsOneWidget,
-        );
-
-        final confirmButton = tester.widget<FilledButton>(
-          find.byKey(const Key('remove_member_confirm_button')),
-        );
-        expect(confirmButton.onPressed, isNull);
-      },
-    );
+      final confirmButton = tester.widget<FilledButton>(
+        find.byKey(const Key('remove_member_confirm_button')),
+      );
+      expect(confirmButton.onPressed, isNotNull);
+    });
 
     testWidgets(
       'UC20-5: Cancel button dismisses dialog and returns false (no changes)',
@@ -100,7 +85,7 @@ void main() {
     );
 
     testWidgets(
-      'UC20-6, UC20-7: Destructive confirm button is disabled when server support is absent',
+      'UC20-6, UC20-7: Confirm does not claim success before server response',
       (tester) async {
         await tester.pumpWidget(
           const MaterialApp(
@@ -117,7 +102,7 @@ void main() {
         final confirmButton = tester.widget<FilledButton>(
           find.byKey(const Key('remove_member_confirm_button')),
         );
-        expect(confirmButton.onPressed, isNull);
+        expect(confirmButton.onPressed, isNotNull);
 
         // Absolutely NO fake MSG60 success
         expect(
@@ -127,48 +112,44 @@ void main() {
       },
     );
 
-    testWidgets(
-      'When isServerSupported is true, confirm button is enabled and returns true',
-      (tester) async {
-        bool? dialogResult;
+    testWidgets('Confirm button returns true', (tester) async {
+      bool? dialogResult;
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: Builder(
-                builder: (context) => ElevatedButton(
-                  onPressed: () async {
-                    dialogResult = await showDialog<bool>(
-                      context: context,
-                      builder: (_) => const RemoveGroupMemberDialog(
-                        groupId: 42,
-                        memberId: 102,
-                        memberName: 'Minh Anh',
-                        isServerSupported: true,
-                      ),
-                    );
-                  },
-                  child: const Text('Open Dialog'),
-                ),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () async {
+                  dialogResult = await showDialog<bool>(
+                    context: context,
+                    builder: (_) => const RemoveGroupMemberDialog(
+                      groupId: 42,
+                      memberId: 102,
+                      memberName: 'Minh Anh',
+                    ),
+                  );
+                },
+                child: const Text('Open Dialog'),
               ),
             ),
           ),
-        );
+        ),
+      );
 
-        await tester.tap(find.text('Open Dialog'));
-        await tester.pumpAndSettle();
+      await tester.tap(find.text('Open Dialog'));
+      await tester.pumpAndSettle();
 
-        final confirmButton = tester.widget<FilledButton>(
-          find.byKey(const Key('remove_member_confirm_button')),
-        );
-        expect(confirmButton.onPressed, isNotNull);
+      final confirmButton = tester.widget<FilledButton>(
+        find.byKey(const Key('remove_member_confirm_button')),
+      );
+      expect(confirmButton.onPressed, isNotNull);
 
-        await tester.tap(find.byKey(const Key('remove_member_confirm_button')));
-        await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('remove_member_confirm_button')));
+      await tester.pumpAndSettle();
 
-        expect(dialogResult, isTrue);
-      },
-    );
+      expect(dialogResult, isTrue);
+    });
 
     testWidgets('Meets accessibility touch target requirements (>= 48dp)', (
       tester,

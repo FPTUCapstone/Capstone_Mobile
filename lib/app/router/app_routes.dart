@@ -37,6 +37,7 @@ abstract final class AppRoutes {
   static const traveler = '/traveler';
   static const tourRecommendations = '/traveler/tours/recommendations';
   static const travelerSettings = '/traveler/settings';
+  static const inAppInbox = '/traveler/notifications';
   static const travelerProfile = '/traveler/profile';
   static const travelerPreferences = '/traveler/preferences';
   static const travelerChangePassword = '/traveler/change-password';
@@ -125,6 +126,7 @@ abstract final class AppRouteNames {
   static const traveler = 'traveler';
   static const tourRecommendations = 'tour-recommendations';
   static const travelerSettings = 'traveler-settings';
+  static const inAppInbox = 'in-app-inbox';
   static const travelerProfile = 'traveler-profile';
   static const travelerPreferences = 'traveler-preferences';
   static const travelerChangePassword = 'traveler-change-password';

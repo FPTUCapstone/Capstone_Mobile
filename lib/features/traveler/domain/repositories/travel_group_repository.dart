@@ -1,4 +1,5 @@
 import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/group_member_removal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
 
@@ -36,4 +37,11 @@ abstract interface class TravelGroupRepository {
 
   /// Gets privacy-safe details for the active members of a travel group.
   Future<TravelGroupMembers> getTravelGroupMembers({required int groupId});
+
+  /// Removes an active member. The caller retains [idempotencyKey] for retry.
+  Future<GroupMemberRemoval> removeGroupMember({
+    required int groupId,
+    required int memberUserId,
+    required String idempotencyKey,
+  });
 }

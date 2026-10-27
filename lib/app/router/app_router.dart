@@ -60,6 +60,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_gr
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/address_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/in_app_inbox_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/invite_group_members_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/itinerary_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_cubit.dart';
@@ -70,6 +71,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/pages/active_tri
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_itinerary_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_travel_group_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/group_location_sharing_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/in_app_inbox_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/invite_group_members_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_detail_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_result_page.dart';
@@ -373,6 +375,14 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
             child: JoinTravelGroupPage(isDemoMode: isDemoMode),
           );
         },
+      ),
+      GoRoute(
+        path: AppRoutes.inAppInbox,
+        name: AppRouteNames.inAppInbox,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<InAppInboxCubit>()..load(),
+          child: const InAppInboxPage(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.travelGroupDetails,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_member.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
@@ -9,8 +11,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/helpers/session_
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/remove_group_member_dialog.dart';
 import 'package:trip_mate_mobile/shared/widgets/error_view.dart';
 
-/// Read-only UC19 screen for active travel-group members, with UC-20 member
-/// removal entry point for the authenticated Group Host (Screen #59).
+/// Active group member list and UC-20 Host removal flow (Screen #59).
 ///
 /// Production Security Rule (P2): Host authority is determined STRICTLY by
 /// verifying that the authenticated user ID from the session matches the
@@ -56,41 +57,115 @@ final class _TravelGroupMembersPageState extends State<TravelGroupMembersPage> {
     }
   }
 
+  Future<void> _confirmRemoval(TravelGroupMember member) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => RemoveGroupMemberDialog(
+        groupId: widget.groupId,
+        memberId: member.memberId,
+        memberName: member.displayName,
+      ),
+    );
+    if (!mounted || confirmed != true) return;
+    await context.read<TravelGroupMembersCubit>().removeMember(
+      groupId: widget.groupId,
+      memberUserId: member.memberId,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Group members')),
-      body: BlocBuilder<TravelGroupMembersCubit, TravelGroupMembersState>(
-        builder: (context, state) => switch (state) {
-          TravelGroupMembersInitial() || TravelGroupMembersLoading() =>
-            const Center(child: CircularProgressIndicator()),
-          TravelGroupMembersSuccess(:final members) => _MembersContent(
-            members: members,
-            currentUserId: _resolvedUserId,
-          ),
-          TravelGroupMembersPermissionDenied() => const ErrorView(
-            message: 'You do not have permission to view this group’s members.',
-          ),
-          TravelGroupMembersNotFound() => const ErrorView(
-            message: 'This travel group could not be found.',
-          ),
-          TravelGroupMembersFailure() => ErrorView(
-            message: 'We could not load group members. Please try again.',
-            onRetry: () => context.read<TravelGroupMembersCubit>().load(
-              groupId: widget.groupId,
+    return BlocListener<TravelGroupMembersCubit, TravelGroupMembersState>(
+      listenWhen: (previous, current) =>
+          (current is TravelGroupMembersPermissionDenied &&
+              previous is! TravelGroupMembersPermissionDenied) ||
+          (current is TravelGroupMembersAuthenticationRequired &&
+              previous is! TravelGroupMembersAuthenticationRequired),
+      listener: (context, state) {
+        final router = GoRouter.maybeOf(context);
+        if (router != null) {
+          router.go(
+            state is TravelGroupMembersAuthenticationRequired
+                ? AppRoutes.login
+                : AppRoutes.traveler,
+          );
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Group members')),
+        body: BlocBuilder<TravelGroupMembersCubit, TravelGroupMembersState>(
+          builder: (context, state) => switch (state) {
+            TravelGroupMembersInitial() || TravelGroupMembersLoading() =>
+              const Center(child: CircularProgressIndicator()),
+            TravelGroupMembersSuccess(:final members) => _MembersContent(
+              members: members,
+              currentUserId: _resolvedUserId,
+              onRemove: _confirmRemoval,
+              notice: state.removedMemberName == null
+                  ? null
+                  : '${state.removedMemberName} has been removed from the group.',
             ),
-          ),
-        },
+            TravelGroupMembersRemoving(:final members) => _MembersContent(
+              members: members,
+              currentUserId: _resolvedUserId,
+              notice: 'Removing member...',
+            ),
+            TravelGroupMembersRemovalRetryable(:final members) =>
+              _MembersContent(
+                members: members,
+                currentUserId: _resolvedUserId,
+                notice: 'Unable to confirm removal. Please try again.',
+                onRetry: () =>
+                    context.read<TravelGroupMembersCubit>().retryRemoval(),
+              ),
+            TravelGroupMembersRemovalIssue(:final members, :final message) =>
+              _MembersContent(
+                members: members,
+                currentUserId: _resolvedUserId,
+                notice: message,
+                onRefresh: () => context.read<TravelGroupMembersCubit>().load(
+                  groupId: widget.groupId,
+                ),
+              ),
+            TravelGroupMembersPermissionDenied() => const ErrorView(
+              message:
+                  'You do not have permission to view this group’s members.',
+            ),
+            TravelGroupMembersAuthenticationRequired() => const ErrorView(
+              message: 'Please sign in to continue.',
+            ),
+            TravelGroupMembersNotFound() => const ErrorView(
+              message: 'This travel group could not be found.',
+            ),
+            TravelGroupMembersFailure() => ErrorView(
+              message: 'We could not load group members. Please try again.',
+              onRetry: () => context.read<TravelGroupMembersCubit>().load(
+                groupId: widget.groupId,
+              ),
+            ),
+          },
+        ),
       ),
     );
   }
 }
 
 final class _MembersContent extends StatelessWidget {
-  const _MembersContent({required this.members, this.currentUserId});
+  const _MembersContent({
+    required this.members,
+    this.currentUserId,
+    this.onRemove,
+    this.notice,
+    this.onRetry,
+    this.onRefresh,
+  });
 
   final TravelGroupMembers members;
   final int? currentUserId;
+  final void Function(TravelGroupMember)? onRemove;
+  final String? notice;
+  final VoidCallback? onRetry;
+  final VoidCallback? onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -101,27 +176,37 @@ final class _MembersContent extends StatelessWidget {
     // Host authority audit (P2): Authoritative loaded group members define the true Host.
     // If current authenticated user ID is unavailable or does not match loaded Host,
     // FAIL CLOSED (effectiveViewerIsHost = false). Never rely on GoRouter.extra or route flags.
-    final authoritativeHost = members.members
-        .where((m) => m.isHost)
-        .firstOrNull;
+    final hosts = members.members.where((m) => m.isHost).toList();
     final bool effectiveViewerIsHost =
         currentUserId != null &&
-        authoritativeHost != null &&
-        authoritativeHost.memberId == currentUserId;
+        hosts.length == 1 &&
+        hosts.single.memberId == currentUserId;
 
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: members.members.length + 1,
+      itemCount: members.members.length + 1 + (notice == null ? 0 : 1),
       separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         if (index == 0) {
           return _MembersHeader(members: members);
         }
+        if (notice != null && index == 1) {
+          return Row(
+            children: [
+              Expanded(child: Text(notice!)),
+              if (onRetry != null)
+                TextButton(onPressed: onRetry, child: const Text('Retry')),
+              if (onRefresh != null)
+                TextButton(onPressed: onRefresh, child: const Text('Refresh')),
+            ],
+          );
+        }
+        final memberIndex = index - 1 - (notice == null ? 0 : 1);
         return _MemberTile(
-          member: members.members[index - 1],
-          groupId: members.groupId,
+          member: members.members[memberIndex],
           isViewerHost: effectiveViewerIsHost,
           currentUserId: currentUserId,
+          onRemove: onRemove,
         );
       },
     );
@@ -157,15 +242,15 @@ final class _MembersHeader extends StatelessWidget {
 final class _MemberTile extends StatelessWidget {
   const _MemberTile({
     required this.member,
-    required this.groupId,
     this.isViewerHost = false,
     this.currentUserId,
+    this.onRemove,
   });
 
   final TravelGroupMember member;
-  final int groupId;
   final bool isViewerHost;
   final int? currentUserId;
+  final void Function(TravelGroupMember)? onRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -202,14 +287,7 @@ final class _MemberTile extends StatelessWidget {
                   foregroundColor: Theme.of(context).colorScheme.error,
                   minimumSize: const Size(48, 48),
                 ),
-                onPressed: () => showDialog<bool>(
-                  context: context,
-                  builder: (_) => RemoveGroupMemberDialog(
-                    groupId: groupId,
-                    memberId: member.memberId,
-                    memberName: member.displayName,
-                  ),
-                ),
+                onPressed: onRemove == null ? null : () => onRemove!(member),
                 child: const Text('Remove'),
               )
             : null,

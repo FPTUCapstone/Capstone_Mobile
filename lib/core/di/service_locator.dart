@@ -111,6 +111,7 @@ import 'package:trip_mate_mobile/features/tour_search/domain/usecases/search_tou
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/data/datasources/travel_preferences_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/external_review_repository_impl.dart';
+import 'package:trip_mate_mobile/features/traveler/data/repositories/in_app_notification_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/itinerary_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/mapbox_directions_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/mapbox_search_box_repository_impl.dart';
@@ -121,6 +122,7 @@ import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_pref
 import 'package:trip_mate_mobile/features/traveler/data/services/geolocator_navigation_location_tracker.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/address_search_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/external_review_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/in_app_notification_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_list_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_suggestion_repository.dart';
@@ -134,6 +136,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/repositories/trip_aler
 import 'package:trip_mate_mobile/features/traveler/domain/services/navigation_location_tracker.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/weather_advisory_session_store.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/address_search_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/in_app_inbox_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
@@ -442,6 +445,10 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerLazySingleton<LeaveTravelGroupRepository>(
       () => serviceLocator<TravelGroupRepositoryImpl>(),
     )
+    ..registerLazySingleton<InAppNotificationRepository>(
+      () => InAppNotificationRepositoryImpl(dioClient: serviceLocator()),
+    )
+    ..registerFactory<InAppInboxCubit>(() => InAppInboxCubit(serviceLocator()))
     ..registerLazySingleton<CouponRemoteDataSource>(
       () => DioCouponRemoteDataSource(serviceLocator()),
     )
