@@ -5,7 +5,6 @@ import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/widgets/booking_qr_ticket_dialog.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_history_repository_impl.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enums.dart';
@@ -282,26 +281,17 @@ class _BookingItemCard extends StatelessWidget {
             Row(
               children: [
                 if (item.status == TripStatus.upcoming) ...[
+                  // UC-29 M3: no client-built QR here; the real e-ticket opens
+                  // from Trip History and the payment result.
                   Expanded(
-                    child: FilledButton.icon(
-                      onPressed: () =>
-                          BookingQrTicketDialog.show(context, item),
-                      icon: const Icon(Icons.qr_code, size: 18),
-                      label: const Text('Vé điện tử QR'),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(44),
-                        padding: EdgeInsets.zero,
+                    child: OutlinedButton(
+                      onPressed: () => _showCancellationPolicy(context, item),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(90, 44),
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
                       ),
+                      child: const Text('Hủy vé'),
                     ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  OutlinedButton(
-                    onPressed: () => _showCancellationPolicy(context, item),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(90, 44),
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                    ),
-                    child: const Text('Hủy vé'),
                   ),
                 ] else if (item.status == TripStatus.cancelled) ...[
                   if (item.canViewRefundStatus)

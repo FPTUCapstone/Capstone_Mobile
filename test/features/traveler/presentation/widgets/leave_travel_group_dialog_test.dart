@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/group_member_removal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_member.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
@@ -296,7 +297,7 @@ void main() {
         await tester.tap(find.byKey(const Key('leave_group_cancel_button')));
         await tester.pumpAndSettle();
 
-        expect(dialogResult, isFalse);
+        expect(dialogResult, isNull);
 
         // Absolutely NO fake MSG129 success
         expect(find.text('Operation completed successfully.'), findsNothing);
@@ -304,54 +305,7 @@ void main() {
     );
 
     testWidgets(
-      'When isServerSupported is true, Case B confirm button is enabled and returns true',
-      (tester) async {
-        bool? dialogResult;
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: Builder(
-                builder: (context) => ElevatedButton(
-                  onPressed: () async {
-                    dialogResult = await showDialog<bool>(
-                      context: context,
-                      builder: (_) => LeaveTravelGroupDialog(
-                        groupId: 42,
-                        groupName: 'Da Nang crew',
-                        isHost: true,
-                        currentUserId: 101,
-                        members: [hostMember, olderMember],
-                        isServerSupported: true,
-                      ),
-                    );
-                  },
-                  child: const Text('Open Dialog'),
-                ),
-              ),
-            ),
-          ),
-        );
-
-        await tester.tap(find.text('Open Dialog'));
-        await tester.pumpAndSettle();
-
-        final confirmButton = tester.widget<FilledButton>(
-          find.byKey(const Key('transfer_and_leave_confirm_button')),
-        );
-        expect(confirmButton.onPressed, isNotNull);
-
-        await tester.tap(
-          find.byKey(const Key('transfer_and_leave_confirm_button')),
-        );
-        await tester.pumpAndSettle();
-
-        expect(dialogResult, isTrue);
-      },
-    );
-
-    testWidgets(
-      'UC21-Tie: Host with members having identical earliest Joined Timestamp fails closed with ambiguous successor state',
+      'UC21-Tie: Host previews smallest user ID at identical earliest Joined Timestamp',
       (tester) async {
         final sameTimestamp = DateTime.utc(2026, 9, 2, 8);
         final member1 = TravelGroupMember(
@@ -383,37 +337,17 @@ void main() {
           ),
         );
 
-        // Fails closed with ambiguous dialog
         expect(
-          find.byKey(const Key('leave_travel_group_dialog_ambiguous')),
+          find.byKey(const Key('leave_travel_group_dialog_case_b')),
           findsOneWidget,
         );
-        expect(find.text('Cannot determine next host'), findsOneWidget);
-        expect(
-          find.text(
-            'Multiple members share the earliest join timestamp. '
-            'Host succession cannot be determined unambiguously without server resolution.',
-          ),
-          findsOneWidget,
-        );
-
-        // Cancel button available
-        expect(
-          find.byKey(const Key('leave_group_cancel_button')),
-          findsOneWidget,
-        );
-
-        // Action buttons are NOT available
+        expect(find.text('Member One'), findsOneWidget);
         expect(
           find.byKey(const Key('transfer_and_leave_confirm_button')),
-          findsNothing,
+          findsOneWidget,
         );
         expect(
           find.byKey(const Key('leave_group_confirm_button')),
-          findsNothing,
-        );
-        expect(
-          find.byKey(const Key('close_group_and_leave_confirm_button')),
           findsNothing,
         );
       },
@@ -685,6 +619,13 @@ void main() {
 }
 
 final class _FailingRepository implements TravelGroupRepository {
+  @override
+  Future<GroupMemberRemoval> removeGroupMember({
+    required int groupId,
+    required int memberUserId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
   @override
   Future<TravelGroupMembers> getTravelGroupMembers({required int groupId}) =>
       Future.error(Exception('Simulated network error'));

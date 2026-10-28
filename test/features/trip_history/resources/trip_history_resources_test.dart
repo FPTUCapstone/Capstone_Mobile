@@ -54,7 +54,7 @@ void main() {
         TripHistoryStringsEn.actionViewRefundStatus,
         TripHistoryStringsEn.actionViewDetails,
         TripHistoryStringsEn.actionSubmitReview,
-        TripHistoryStringsEn.noticeEticketPending,
+        TripHistoryStringsEn.noticeEticketDemo,
         TripHistoryStringsEn.noticeReviewNotCompleted,
         TripHistoryStringsEn.noticeReviewAlreadyExists,
         TripHistoryStringsEn.noticeSelfPlannedNoReview,

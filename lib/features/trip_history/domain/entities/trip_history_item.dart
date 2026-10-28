@@ -3,6 +3,9 @@ import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enum
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_refund_info.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_review.dart';
 
+/// @deprecated Legacy model of the Trip History screen, kept only for the legacy review flow and
+/// the bookings tab (`TripHistoryItem`). UC-32 (TM-78) uses `TripRecord`, `TripRecordsCubit` and
+/// `TripRecordsRepository`; do not extend this type.
 final class TripHistoryItem extends Equatable {
   const TripHistoryItem({
     required this.id,
@@ -17,6 +20,7 @@ final class TripHistoryItem extends Equatable {
     this.hasEticket = false,
     this.review,
     this.refundInfo,
+    this.bookingId,
     this.itineraryId,
     this.providerName,
     this.location,
@@ -34,6 +38,10 @@ final class TripHistoryItem extends Equatable {
   final bool hasEticket;
   final TripReview? review;
   final TripRefundInfo? refundInfo;
+
+  /// Authoritative numeric booking identifier supplied by a future production
+  /// history endpoint. Demo-only trip IDs must never be used for refund APIs.
+  final int? bookingId;
   final int? itineraryId;
   final String? providerName;
   final String? location;
@@ -60,9 +68,10 @@ final class TripHistoryItem extends Equatable {
       review != null &&
       !review!.isEditable(referenceTime);
 
-  /// Cancelled bookings with refund information can display the refund status dialog.
+  /// A refund can be tracked only when the history record has both evidence of
+  /// a refund and the real booking identifier required by the Backend API.
   bool get canViewRefundStatus =>
-      status == TripStatus.cancelled && refundInfo != null;
+      status == TripStatus.cancelled && refundInfo != null && bookingId != null;
 
   /// Self-planned itineraries or linked itineraries can navigate to details.
   bool get isItinerary => type == TripType.itinerary;
@@ -81,6 +90,7 @@ final class TripHistoryItem extends Equatable {
     hasEticket,
     review,
     refundInfo,
+    bookingId,
     itineraryId,
     providerName,
     location,

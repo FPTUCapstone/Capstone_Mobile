@@ -4,6 +4,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/group_member_removal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_member.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
@@ -13,6 +14,13 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_gro
 
 class _MembersRepository implements TravelGroupRepository {
   _MembersRepository({this.members, this.failure, this.pending});
+
+  @override
+  Future<GroupMemberRemoval> removeGroupMember({
+    required int groupId,
+    required int memberUserId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
 
   final TravelGroupMembers? members;
   final Failure? failure;
@@ -140,6 +148,153 @@ void main() {
       const TravelGroupMembersNotFound(),
     ],
   );
+
+  test(
+    'uncertain removal retries with the same key and refreshes before MSG60',
+    () async {
+      final active = TravelGroupMembers(
+        groupId: 42,
+        groupName: 'Da Nang Weekend',
+        itineraryId: 10,
+        members: [
+          ...members.members,
+          TravelGroupMember(
+            memberId: 102,
+            displayName: 'Minh Anh',
+            isHost: false,
+            joinedAtUtc: DateTime.utc(2026, 9, 21, 10),
+            locationSharingEnabled: false,
+          ),
+        ],
+      );
+      final repository = _RemovalRepository(active: active, current: members);
+      final cubit = TravelGroupMembersCubit(repository: repository);
+      addTearDown(cubit.close);
+      await cubit.load(groupId: 42);
+      await cubit.removeMember(groupId: 42, memberUserId: 102);
+      expect(cubit.state, isA<TravelGroupMembersRemovalRetryable>());
+      expect(repository.keys, hasLength(1));
+      await cubit.retryRemoval();
+      expect(repository.keys, [repository.keys.first, repository.keys.first]);
+      expect(
+        cubit.state,
+        TravelGroupMembersSuccess(members, removedMemberName: 'Minh Anh'),
+      );
+    },
+  );
+
+  test('historical replay after rejoin never shows success', () async {
+    final active = TravelGroupMembers(
+      groupId: 42,
+      groupName: 'Da Nang Weekend',
+      itineraryId: 10,
+      members: [
+        ...members.members,
+        TravelGroupMember(
+          memberId: 102,
+          displayName: 'Minh Anh',
+          isHost: false,
+          joinedAtUtc: DateTime.utc(2026, 9, 21, 10),
+          locationSharingEnabled: false,
+        ),
+      ],
+    );
+    final repository = _RemovalRepository(
+      active: active,
+      current: active,
+      failFirst: false,
+    );
+    final cubit = TravelGroupMembersCubit(repository: repository);
+    addTearDown(cubit.close);
+    await cubit.load(groupId: 42);
+    await cubit.removeMember(groupId: 42, memberUserId: 102);
+    expect(cubit.state, isA<TravelGroupMembersRemovalIssue>());
+    expect(
+      (cubit.state as TravelGroupMembersRemovalIssue).members.members,
+      hasLength(2),
+    );
+  });
+
+  test(
+    'second confirmation is blocked while the first DELETE is pending',
+    () async {
+      final active = TravelGroupMembers(
+        groupId: 42,
+        groupName: 'Da Nang Weekend',
+        itineraryId: 10,
+        members: [
+          ...members.members,
+          TravelGroupMember(
+            memberId: 102,
+            displayName: 'Minh Anh',
+            isHost: false,
+            joinedAtUtc: DateTime.utc(2026, 9, 21, 10),
+            locationSharingEnabled: false,
+          ),
+        ],
+      );
+      final pending = Completer<GroupMemberRemoval>();
+      final repository = _RemovalRepository(
+        active: active,
+        current: members,
+        failFirst: false,
+        pendingRemoval: pending.future,
+      );
+      final cubit = TravelGroupMembersCubit(repository: repository);
+      addTearDown(cubit.close);
+      await cubit.load(groupId: 42);
+      final first = cubit.removeMember(groupId: 42, memberUserId: 102);
+      await cubit.removeMember(groupId: 42, memberUserId: 102);
+      expect(repository.keys, hasLength(1));
+      pending.complete(
+        GroupMemberRemoval(
+          groupId: 42,
+          memberUserId: 102,
+          memberName: 'Minh Anh',
+          removedAtUtc: DateTime.utc(2026, 10, 27),
+        ),
+      );
+      await first;
+      expect(cubit.state, isA<TravelGroupMembersSuccess>());
+    },
+  );
+}
+
+final class _RemovalRepository extends _MembersRepository {
+  _RemovalRepository({
+    required this.active,
+    required this.current,
+    this.failFirst = true,
+    this.pendingRemoval,
+  });
+
+  final TravelGroupMembers active;
+  final TravelGroupMembers current;
+  final bool failFirst;
+  final Future<GroupMemberRemoval>? pendingRemoval;
+  final List<String> keys = [];
+
+  @override
+  Future<TravelGroupMembers> getTravelGroupMembers({
+    required int groupId,
+  }) async => keys.isEmpty ? active : current;
+
+  @override
+  Future<GroupMemberRemoval> removeGroupMember({
+    required int groupId,
+    required int memberUserId,
+    required String idempotencyKey,
+  }) async {
+    keys.add(idempotencyKey);
+    if (pendingRemoval != null) return pendingRemoval!;
+    if (failFirst && keys.length == 1) throw const NetworkFailure();
+    return GroupMemberRemoval(
+      groupId: groupId,
+      memberUserId: memberUserId,
+      memberName: 'Minh Anh',
+      removedAtUtc: DateTime.utc(2026, 10, 27),
+    );
+  }
 }
 
 final class _QueuedMembersRepository extends _MembersRepository {

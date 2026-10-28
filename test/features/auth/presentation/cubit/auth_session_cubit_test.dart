@@ -9,6 +9,7 @@ import 'package:trip_mate_mobile/app/router/route_guards.dart';
 import 'package:trip_mate_mobile/core/constants/app_constants.dart';
 import 'package:trip_mate_mobile/core/error/exceptions.dart';
 import 'package:trip_mate_mobile/core/network/session_coordinator.dart';
+import 'package:trip_mate_mobile/core/push/push_device_coordinator.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/auth_credentials.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/auth_session.dart';
@@ -30,6 +31,73 @@ void main() {
       final cubit = AuthSessionCubit();
       addTearDown(cubit.close);
 
+      expect(cubit.state, const AuthSessionState.unauthenticated());
+    });
+
+    test(
+      'Traveler authentication registers push and logout removes it',
+      () async {
+        final lifecycle = _FakePushDeviceLifecycle();
+        final cubit = AuthSessionCubit(
+          FakeAuthRepository(session: _session),
+          FakeSecureStorageService(),
+          FakeFirebaseAuthService(),
+          lifecycle,
+        );
+        addTearDown(cubit.close);
+
+        await cubit.signIn(
+          email: 'traveler@example.com',
+          password: 'Password123!',
+        );
+        await Future<void>.delayed(Duration.zero);
+        await cubit.signOut();
+
+        expect(lifecycle.authenticatedCalls, 1);
+        expect(lifecycle.beforeLogoutCalls, 1);
+      },
+    );
+
+    test(
+      'TourOperator authentication does not register Traveler push',
+      () async {
+        final lifecycle = _FakePushDeviceLifecycle();
+        final cubit = AuthSessionCubit(
+          FakeAuthRepository(session: _approvedOperatorSession),
+          FakeSecureStorageService(),
+          FakeFirebaseAuthService(),
+          lifecycle,
+        );
+        addTearDown(cubit.close);
+
+        await cubit.signIn(
+          email: 'operator@example.com',
+          password: 'Password123!',
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        expect(lifecycle.authenticatedCalls, 0);
+      },
+    );
+
+    test('session expiry removes the Traveler push registration', () async {
+      final lifecycle = _FakePushDeviceLifecycle();
+      final storage = FakeSecureStorageService()
+        ..values.addAll({
+          AppConstants.accessTokenKey: 'access',
+          AppConstants.refreshTokenKey: 'refresh',
+          AppConstants.sessionRoleKey: 'traveler',
+          AppConstants.keepSignedInKey: 'true',
+        });
+      final cubit = AuthSessionCubit(null, storage, null, lifecycle);
+      addTearDown(cubit.close);
+      await cubit.restoreSession();
+      await Future<void>.delayed(Duration.zero);
+
+      await cubit.handleSessionExpired();
+
+      expect(lifecycle.authenticatedCalls, 1);
+      expect(lifecycle.beforeLogoutCalls, 1);
       expect(cubit.state, const AuthSessionState.unauthenticated());
     });
 
@@ -1458,6 +1526,17 @@ final class FakeAuthRepository implements AuthRepository {
     TravelerRegistration request,
     String firebaseIdToken,
   ) => throw UnimplementedError();
+}
+
+final class _FakePushDeviceLifecycle implements PushDeviceLifecycle {
+  int authenticatedCalls = 0;
+  int beforeLogoutCalls = 0;
+
+  @override
+  Future<void> onAuthenticated() async => authenticatedCalls++;
+
+  @override
+  Future<void> onBeforeLogout() async => beforeLogoutCalls++;
 }
 
 final class FakeSecureStorageService implements SecureStorageService {

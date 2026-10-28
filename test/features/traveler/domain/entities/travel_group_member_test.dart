@@ -33,19 +33,12 @@ void main() {
 
     test('returns null for empty members list', () {
       expect(TravelGroupMember.determineSuccessor([]), isNull);
-      expect(TravelGroupMember.hasAmbiguousSuccessorTie([]), isFalse);
     });
 
     test('returns null if host is the only member in the group', () {
       expect(
         TravelGroupMember.determineSuccessor([hostMember], currentHostId: 101),
         isNull,
-      );
-      expect(
-        TravelGroupMember.hasAmbiguousSuccessorTie([
-          hostMember,
-        ], currentHostId: 101),
-        isFalse,
       );
     });
 
@@ -59,18 +52,10 @@ void main() {
       expect(successor, isNotNull);
       expect(successor!.memberId, equals(102));
       expect(successor.displayName, equals('Bob Earliest'));
-      expect(
-        TravelGroupMember.hasAmbiguousSuccessorTie([
-          memberCharlie,
-          hostMember,
-          memberBob,
-        ], currentHostId: 101),
-        isFalse,
-      );
     });
 
     test(
-      'fails closed (returns null, reports ambiguous tie) when multiple members share identical earliest joinedAtUtc',
+      'selects smallest user ID when members share identical earliest joinedAtUtc',
       () {
         final memberDan = TravelGroupMember(
           memberId: 105,
@@ -87,21 +72,11 @@ void main() {
           hostMember,
         ];
 
-        // Fail closed for authoritative successor preview: do not arbitrarily pick one by memberId
         final successor = TravelGroupMember.determineSuccessor(
           membersWithTie,
           currentHostId: 101,
         );
-        expect(successor, isNull);
-
-        // Explicit ambiguous tie detection
-        expect(
-          TravelGroupMember.hasAmbiguousSuccessorTie(
-            membersWithTie,
-            currentHostId: 101,
-          ),
-          isTrue,
-        );
+        expect(successor?.memberId, 102);
       },
     );
 

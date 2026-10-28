@@ -5,6 +5,9 @@ import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_hist
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_history_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 
+/// @deprecated Legacy model of the Trip History screen, kept only for the legacy review flow and
+/// the bookings tab (`TripHistoryRepositoryImpl`). UC-32 (TM-78) uses `TripRecord`, `TripRecordsCubit` and
+/// `TripRecordsRepository`; do not extend this type.
 final class TripHistoryRepositoryImpl implements TripHistoryRepository {
   TripHistoryRepositoryImpl({
     DemoTripHistoryStore? demoStore,

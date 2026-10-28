@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -8,15 +10,19 @@ import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/core/network/network_info.dart';
+import 'package:trip_mate_mobile/core/push/push_device_coordinator.dart';
 import 'package:trip_mate_mobile/core/utils/trip_time_format.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/active_trip_maneuver.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_route.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_session.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigation_session_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/route_directions_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/trip_alert_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/geo_distance.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/navigation_location_tracker.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/services/weather_advisory_session_store.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_state.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/demo/demo_navigation_session_repository.dart';
@@ -25,6 +31,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/widgets/navigati
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/reroute_proposal_sheet.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_alert_banner.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_alerts_sheet.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/widgets/weather_advisory_banner.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
 class ActiveTripPage extends StatefulWidget {
@@ -39,6 +46,7 @@ class ActiveTripPage extends StatefulWidget {
     this.directionsRepository,
     this.useMapbox,
     this.isDemoMode = false,
+    this.initialIncidentId,
   });
 
   final int itineraryId;
@@ -52,17 +60,20 @@ class ActiveTripPage extends StatefulWidget {
   /// Defaults to whether a Mapbox token is configured.
   final bool? useMapbox;
   final bool isDemoMode;
+  final int? initialIncidentId;
 
   @override
   State<ActiveTripPage> createState() => _ActiveTripPageState();
 }
 
-class _ActiveTripPageState extends State<ActiveTripPage> {
+class _ActiveTripPageState extends State<ActiveTripPage>
+    with WidgetsBindingObserver {
   final _mapKey = GlobalKey<MapboxNavigationMapState>();
   bool _isRerouteSheetOpen = false;
   bool _isArrivalDialogOpen = false;
   BuildContext? _arrivalDialogContext;
   bool _isCompletionShown = false;
+  bool _didOpenInitialIncident = false;
   late bool _isLoadingMetadata;
   String? _metadataError;
   String? _resolvedTitle;
@@ -77,6 +88,7 @@ class _ActiveTripPageState extends State<ActiveTripPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final hasInitialTitle =
         widget.title != null && widget.title!.trim().isNotEmpty;
     if (widget.isDemoMode || hasInitialTitle || widget.cubit != null) {
@@ -140,7 +152,23 @@ class _ActiveTripPageState extends State<ActiveTripPage> {
           : (widget.repository ?? locateOptional<ItineraryRepository>()),
       isDemoMode: widget.isDemoMode,
       networkInfo: widget.isDemoMode ? null : locateOptional<NetworkInfo>(),
+      alertRepository: widget.isDemoMode
+          ? null
+          : locateOptional<TripAlertRepository>(),
+      pushHints: widget.isDemoMode
+          ? null
+          : locateOptional<PushDeviceCoordinator>()?.hints,
+      weatherAdvisoryStore: widget.isDemoMode
+          ? null
+          : locateOptional<WeatherAdvisorySessionStore>(),
     )..start();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited((widget.cubit ?? _ownedCubit)?.refreshAlerts());
+    }
   }
 
   @override
@@ -220,6 +248,7 @@ class _ActiveTripPageState extends State<ActiveTripPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _ownedCubit?.close();
     super.dispose();
   }
@@ -245,6 +274,10 @@ class _ActiveTripPageState extends State<ActiveTripPage> {
               prev.arrivalPromptItemId != null &&
               curr.arrivalPromptItemId == null,
           listener: (context, state) => _closeWithdrawnArrivalPrompt(),
+        ),
+        BlocListener<ActiveTripCubit, ActiveTripState>(
+          listenWhen: (previous, current) => previous.alerts != current.alerts,
+          listener: _openInitialIncident,
         ),
         BlocListener<ActiveTripCubit, ActiveTripState>(
           listenWhen: (prev, curr) =>
@@ -278,6 +311,44 @@ class _ActiveTripPageState extends State<ActiveTripPage> {
         ),
       ],
       child: child,
+    );
+  }
+
+  Future<void> _openInitialIncident(
+    BuildContext context,
+    ActiveTripState state,
+  ) async {
+    final incidentId = widget.initialIncidentId;
+    if (_didOpenInitialIncident || incidentId == null) return;
+    final alert = state.alerts.cast<TripAlert?>().firstWhere(
+      (item) => item?.id == incidentId.toString(),
+      orElse: () => null,
+    );
+    if (alert == null) return;
+    _didOpenInitialIncident = true;
+    final cubit = context.read<ActiveTripCubit>();
+    await cubit.acknowledgeAlert(alert);
+    if (!context.mounted) return;
+    final currentAlert = cubit.state.alerts.firstWhere(
+      (item) => item.id == alert.id,
+      orElse: () => alert,
+    );
+    final alerts = [
+      currentAlert,
+      ...cubit.state.alerts.where((item) => item.id != alert.id),
+    ];
+    await TripAlertsSheet.show(
+      context,
+      alerts: alerts,
+      onReviewReroute: cubit.state.activeRerouteProposal == null
+          ? null
+          : cubit.openRerouteProposal,
+      onOpenAlert: (item) => unawaited(cubit.acknowledgeAlert(item)),
+      onConfirmArrival: (item) =>
+          unawaited(_confirmAlertArrival(context, item)),
+      isLoading: cubit.state.alertRefreshStatus == AlertRefreshStatus.loading,
+      errorMessage: cubit.state.alertRefreshError,
+      onRetry: cubit.refreshAlerts,
     );
   }
 
@@ -348,15 +419,56 @@ class _ActiveTripPageState extends State<ActiveTripPage> {
                         ),
                       _LocationNotice(status: state.status, cubit: cubit),
                       const _ManeuverBannerSelector(),
+                      if (state.activeWeatherAdvisory != null)
+                        WeatherAdvisoryBanner(
+                          advisory: state.activeWeatherAdvisory!,
+                          onDismiss: cubit.dismissWeatherAdvisory,
+                        ),
                       if (state.activeBannerAlert != null)
                         TripAlertBanner(
                           alert: state.activeBannerAlert!,
                           onDismiss: () => cubit.dismissBannerAlert(
                             state.activeBannerAlert!.id,
                           ),
+                          onOpen: () async {
+                            final alert = state.activeBannerAlert!;
+                            await cubit.acknowledgeAlert(alert);
+                            if (!context.mounted) return;
+                            await TripAlertsSheet.show(
+                              context,
+                              alerts: cubit.state.alerts,
+                              onReviewReroute:
+                                  cubit.state.activeRerouteProposal == null
+                                  ? null
+                                  : cubit.openRerouteProposal,
+                              onOpenAlert: (item) =>
+                                  unawaited(cubit.acknowledgeAlert(item)),
+                              onConfirmArrival: (item) => unawaited(
+                                _confirmAlertArrival(context, item),
+                              ),
+                              isLoading:
+                                  cubit.state.alertRefreshStatus ==
+                                  AlertRefreshStatus.loading,
+                              errorMessage: cubit.state.alertRefreshError,
+                              onRetry: cubit.refreshAlerts,
+                            );
+                          },
                           onReviewReroute:
-                              state.activeBannerAlert!.rerouteProposalAvailable
+                              state
+                                      .activeBannerAlert!
+                                      .rerouteProposalAvailable &&
+                                  state.activeRerouteProposal != null
                               ? () => cubit.openRerouteProposal()
+                              : null,
+                          onConfirmArrival:
+                              state.activeBannerAlert!.type ==
+                                  TripAlertType.delay
+                              ? () => unawaited(
+                                  _confirmAlertArrival(
+                                    context,
+                                    state.activeBannerAlert!,
+                                  ),
+                                )
                               : null,
                         ),
                     ],
@@ -394,8 +506,20 @@ class _ActiveTripPageState extends State<ActiveTripPage> {
                               onPressed: () => TripAlertsSheet.show(
                                 context,
                                 alerts: state.alerts,
-                                onReviewReroute: () =>
-                                    cubit.openRerouteProposal(),
+                                onReviewReroute:
+                                    state.activeRerouteProposal == null
+                                    ? null
+                                    : cubit.openRerouteProposal,
+                                onOpenAlert: (item) =>
+                                    unawaited(cubit.acknowledgeAlert(item)),
+                                onConfirmArrival: (item) => unawaited(
+                                  _confirmAlertArrival(context, item),
+                                ),
+                                isLoading:
+                                    state.alertRefreshStatus ==
+                                    AlertRefreshStatus.loading,
+                                errorMessage: state.alertRefreshError,
+                                onRetry: cubit.refreshAlerts,
                               ),
                             ),
                           ],
@@ -527,6 +651,24 @@ class _ActiveTripPageState extends State<ActiveTripPage> {
       confirmLabel: "I'm here",
     );
     if (confirmed) await cubit.reachItem(item.itemId);
+  }
+
+  Future<void> _confirmAlertArrival(
+    BuildContext context,
+    TripAlert alert,
+  ) async {
+    final itemId = alert.affectedItemId;
+    if (itemId == null) return;
+    final item = context
+        .read<ActiveTripCubit>()
+        .state
+        .items
+        .cast<NavigationSessionItem?>()
+        .firstWhere(
+          (candidate) => candidate?.itemId == itemId,
+          orElse: () => null,
+        );
+    if (item != null) await _confirmManualArrival(context, item);
   }
 
   Future<void> _confirmSkip(

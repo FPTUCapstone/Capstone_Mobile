@@ -1,26 +1,18 @@
-## Summary
+## 1. Related PRs
+- Link related PRs or _No related PRs_
+## 2. Attention!
+**These are things you need to get done before release to production. Please read it carefully!**
+- _write here_
+## 3. Summary(short description about PRs's goal)
+- _write here_
+## 4. Link specs
+- _write here_
+## 5. Output(Image, video, JSON example)
+- _write here_
 
-<!-- What changed and why? Keep this focused on one backlog task. -->
+## Definition of Done
 
-## Related Task
-
-<!-- Required. Example: TM-29 or TM-xx. Add a link when available. -->
-
-## Changes
-
-<!-- List the meaningful code, configuration, test, and documentation changes. -->
-
--
-
-## Screens / Features Affected
-
-<!-- Identify affected roles, features, routes, and screens. Write "None" if not applicable. -->
-
--
-
-## Testing
-
-<!-- Include exact automated commands and relevant manual scenarios/results. -->
+**Testing**
 
 - [ ] `flutter pub get`
 - [ ] `dart format --set-exit-if-changed .`
@@ -28,15 +20,7 @@
 - [ ] `flutter test`
 - [ ] `flutter build apk --debug` when relevant and supported
 
-## Screenshots
-
-<!-- Required for visible UI changes. Provide before/after images or write "Not applicable". -->
-
-## Known Limitations
-
-<!-- Disclose placeholders, mocks, unfinished integrations, skipped checks, and follow-up work. -->
-
-## Checklist
+**Checklist**
 
 - [ ] Task scope is respected
 - [ ] Clean Architecture boundaries are respected

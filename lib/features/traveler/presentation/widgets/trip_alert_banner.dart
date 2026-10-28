@@ -8,12 +8,16 @@ class TripAlertBanner extends StatelessWidget {
     super.key,
     required this.alert,
     required this.onDismiss,
+    this.onOpen,
     this.onReviewReroute,
+    this.onConfirmArrival,
   });
 
   final TripAlert alert;
   final VoidCallback onDismiss;
+  final VoidCallback? onOpen;
   final VoidCallback? onReviewReroute;
+  final VoidCallback? onConfirmArrival;
 
   @override
   Widget build(BuildContext context) {
@@ -120,6 +124,25 @@ class TripAlertBanner extends StatelessWidget {
                           context,
                         ).textTheme.bodySmall?.copyWith(color: AppColors.ink),
                       ),
+                      if (onOpen != null) ...[
+                        const SizedBox(height: AppSpacing.xs),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: onOpen,
+                            child: const Text('View details'),
+                          ),
+                        ),
+                      ],
+                      if (alert.type == TripAlertType.delay &&
+                          onConfirmArrival != null)
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: onConfirmArrival,
+                            child: const Text("Confirm I've arrived"),
+                          ),
+                        ),
                       if (alert.rerouteProposalAvailable &&
                           onReviewReroute != null) ...[
                         const SizedBox(height: AppSpacing.xs),

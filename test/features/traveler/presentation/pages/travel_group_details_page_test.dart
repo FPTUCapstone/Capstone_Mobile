@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/core/error/failures.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/leave_travel_group_result.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_member.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/leave_travel_group_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_details_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/leave_travel_group_dialog.dart';
 
@@ -14,6 +19,110 @@ void main() {
     inviteCode: 'HOIAN8KP',
     itineraryId: 10,
   );
+
+  testWidgets(
+    'successor sees current Host role from member API, not stale route data',
+    (tester) async {
+      final repository = _MembersRepository([
+        TravelGroupMember(
+          memberId: 102,
+          displayName: 'Successor',
+          isHost: true,
+          joinedAtUtc: DateTime.utc(2026, 10, 2),
+          locationSharingEnabled: false,
+        ),
+      ]);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TravelGroupDetailsPage(
+            groupId: 42,
+            currentUserId: 102,
+            repository: repository,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('You are the Group Host.'), findsOneWidget);
+      expect(find.text('Invite Members'), findsOneWidget);
+    },
+  );
+
+  testWidgets('former member is redirected away from stale group details', (
+    tester,
+  ) async {
+    final repository = _MembersRepository([])
+      ..failure = const PermissionFailure();
+    final router = GoRouter(
+      initialLocation: '/traveler/groups/42',
+      routes: [
+        GoRoute(
+          path: AppRoutes.travelGroupDetails,
+          builder: (_, _) => TravelGroupDetailsPage(
+            groupId: 42,
+            group: group,
+            currentUserId: 101,
+            repository: repository,
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.traveler,
+          builder: (_, _) => const Scaffold(body: Text('Traveler home')),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Traveler home'), findsOneWidget);
+    expect(find.text('Da Nang Group'), findsNothing);
+  });
+
+  testWidgets('committed leave exits group details and reports closure', (
+    tester,
+  ) async {
+    final router = GoRouter(
+      initialLocation: '/traveler/groups/42',
+      routes: [
+        GoRoute(
+          path: AppRoutes.travelGroupDetails,
+          builder: (_, _) => TravelGroupDetailsPage(
+            groupId: 42,
+            group: group,
+            isHost: true,
+            currentUserId: 101,
+            members: [
+              TravelGroupMember(
+                memberId: 101,
+                displayName: 'Host',
+                isHost: true,
+                joinedAtUtc: DateTime.utc(2026, 10, 1),
+                locationSharingEnabled: false,
+              ),
+            ],
+            leaveRepository: _SuccessfulLeaveRepository(),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.traveler,
+          builder: (_, _) => const Scaffold(body: Text('Traveler home')),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+
+    await tester.tap(find.byKey(const Key('leave_group_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('close_group_and_leave_confirm_button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Traveler home'), findsOneWidget);
+    expect(find.byType(TravelGroupDetailsPage), findsNothing);
+  });
 
   testWidgets('View members preserves details in the back stack', (
     tester,
@@ -296,4 +405,41 @@ void main() {
       expect(router.canPop(), isTrue);
     },
   );
+}
+
+final class _SuccessfulLeaveRepository implements LeaveTravelGroupRepository {
+  @override
+  Future<LeaveTravelGroupResult> leaveTravelGroup({
+    required int groupId,
+    required String idempotencyKey,
+  }) async => LeaveTravelGroupResult(
+    groupId: groupId,
+    membershipStatus: 'Left',
+    groupClosed: true,
+    newHostUserId: null,
+    leftAtUtc: DateTime.utc(2026, 10, 25),
+  );
+}
+
+final class _MembersRepository implements TravelGroupRepository {
+  _MembersRepository(this.members);
+
+  final List<TravelGroupMember> members;
+  Failure? failure;
+
+  @override
+  Future<TravelGroupMembers> getTravelGroupMembers({
+    required int groupId,
+  }) async {
+    if (failure != null) throw failure!;
+    return TravelGroupMembers(
+      groupId: groupId,
+      groupName: 'Current group',
+      itineraryId: 7,
+      members: members,
+    );
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

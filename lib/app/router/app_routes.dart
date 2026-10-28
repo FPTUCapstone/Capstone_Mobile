@@ -14,6 +14,7 @@ abstract final class AppRoutes {
   static const tourDetailPattern = '/explore/tours/:tourId';
   static const bookTourPattern = '/explore/tours/:tourId/book';
   static const paymentPattern = '/payment/:bookingId';
+  static const bookingRefundPattern = '/bookings/:bookingId/refund';
   static String payment(
     String bookingId, {
     String? bookingCode,
@@ -30,9 +31,13 @@ abstract final class AppRoutes {
     ).toString();
   }
 
+  static String bookingRefund(String bookingId) =>
+      '/bookings/$bookingId/refund';
+
   static const traveler = '/traveler';
   static const tourRecommendations = '/traveler/tours/recommendations';
   static const travelerSettings = '/traveler/settings';
+  static const inAppInbox = '/traveler/notifications';
   static const travelerProfile = '/traveler/profile';
   static const travelerPreferences = '/traveler/preferences';
   static const travelerChangePassword = '/traveler/change-password';
@@ -51,6 +56,8 @@ abstract final class AppRoutes {
   static const tripAlertsPattern = '/traveler/trips/:itineraryId/alerts';
   static const offlinePackagePattern = '/traveler/trips/:itineraryId/offline';
   static const tripHistory = '/traveler/trips';
+  static const eTicketPattern = '/traveler/tickets/:ticketId';
+  static const bookingETicketPattern = '/traveler/bookings/:bookingId/ticket';
   static const tripReviewPattern = '/traveler/trips/:tripId/review';
   static const canonicalTripReviewPattern = '/traveler/reviews/:kind/:id';
   static const operator = '/operator';
@@ -60,6 +67,9 @@ abstract final class AppRoutes {
   static const operatorChangePassword = '/operator/change-password';
   static const createTourPackage = '/operator/tours/create';
   static const operatorTours = '/operator/tours';
+  static const operatorBooking = '/operator/bookings/:bookingId';
+  static String operatorBookingPath(String bookingId, {bool isDemo = false}) =>
+      '/operator/bookings/$bookingId${isDemo ? '?demo=true' : ''}';
   static const editTourPackage = '/operator/tours/:tourId/edit';
   static String editTourPackagePath(int tourId) =>
       '/operator/tours/$tourId/edit';
@@ -72,6 +82,13 @@ abstract final class AppRoutes {
       '/traveler/trips/$itineraryId/alerts';
   static String offlinePackage(int itineraryId) =>
       '/traveler/trips/$itineraryId/offline';
+
+  /// UC-29: the e-ticket linked from Trip History (`actions.ticketId`).
+  static String eTicket(int ticketId) => '/traveler/tickets/$ticketId';
+
+  /// UC-29: the e-ticket of a booking, opened after a successful payment.
+  static String bookingETicket(int bookingId) =>
+      '/traveler/bookings/$bookingId/ticket';
   static String tripHistoryPath({bool isDemo = false}) =>
       isDemo ? '/traveler/trips?demo=true' : '/traveler/trips';
   static String tripReview(String tripId, {bool isDemo = false}) => isDemo
@@ -108,9 +125,11 @@ abstract final class AppRouteNames {
   static const tourDetail = 'tour-detail';
   static const bookTour = 'book-tour';
   static const payment = 'payment';
+  static const bookingRefund = 'booking-refund';
   static const traveler = 'traveler';
   static const tourRecommendations = 'tour-recommendations';
   static const travelerSettings = 'traveler-settings';
+  static const inAppInbox = 'in-app-inbox';
   static const travelerProfile = 'traveler-profile';
   static const travelerPreferences = 'traveler-preferences';
   static const travelerChangePassword = 'traveler-change-password';
@@ -127,6 +146,8 @@ abstract final class AppRouteNames {
   static const tripAlerts = 'trip-alerts';
   static const offlinePackage = 'offline-package';
   static const tripHistory = 'trip-history';
+  static const eTicket = 'e-ticket';
+  static const bookingETicket = 'booking-e-ticket';
   static const tripReview = 'trip-review';
   static const operator = 'operator';
   static const operatorApplication = 'operator-application';
@@ -135,5 +156,6 @@ abstract final class AppRouteNames {
   static const operatorChangePassword = 'operator-change-password';
   static const createTourPackage = 'create-tour-package';
   static const operatorTours = 'operator-tours';
+  static const operatorBooking = 'operator-booking';
   static const editTourPackage = 'edit-tour-package';
 }

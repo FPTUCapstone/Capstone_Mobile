@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/leave_travel_group_result.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_member.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/leave_travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/helpers/session_identity_helper.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/leave_travel_group_dialog.dart';
@@ -19,6 +22,7 @@ final class TravelGroupDetailsPage extends StatefulWidget {
     this.currentUserId,
     this.members,
     this.repository,
+    this.leaveRepository,
     this.storage,
   });
 
@@ -28,6 +32,7 @@ final class TravelGroupDetailsPage extends StatefulWidget {
   final int? currentUserId;
   final List<TravelGroupMember>? members;
   final TravelGroupRepository? repository;
+  final LeaveTravelGroupRepository? leaveRepository;
   final SecureStorageService? storage;
 
   @override
@@ -36,30 +41,140 @@ final class TravelGroupDetailsPage extends StatefulWidget {
 
 final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
   int? _resolvedUserId;
+  bool? _authoritativeIsHost;
+  TravelGroup? _resolvedGroup;
+  bool _membershipCheckFailed = false;
 
   @override
   void initState() {
     super.initState();
     _resolvedUserId = widget.currentUserId;
+    _resolvedGroup = widget.repository == null ? widget.group : null;
     if (_resolvedUserId == null) {
       _resolveUserId();
+    } else {
+      _refreshGroupMembership();
     }
   }
 
   Future<void> _resolveUserId() async {
     final userId = await SessionIdentityHelper.getCurrentUserId(widget.storage);
     if (!mounted) return;
-    if (userId != null && userId != _resolvedUserId) {
+    if (userId == null) {
+      setState(() => _membershipCheckFailed = true);
+      return;
+    }
+    if (userId != _resolvedUserId) {
       setState(() {
         _resolvedUserId = userId;
       });
+      await _refreshGroupMembership();
     }
+  }
+
+  Future<void> _refreshGroupMembership() async {
+    final repository = widget.repository;
+    final userId = _resolvedUserId;
+    if (repository == null || userId == null) return;
+    setState(() => _membershipCheckFailed = false);
+    try {
+      final details = await repository.getTravelGroupMembers(
+        groupId: widget.groupId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _authoritativeIsHost = details.members.any(
+          (member) => member.memberId == userId && member.isHost,
+        );
+        _resolvedGroup = TravelGroup(
+          id: details.groupId,
+          name: details.groupName,
+          itineraryId: details.itineraryId,
+          inviteCode: widget.group?.inviteCode,
+        );
+      });
+    } on Failure catch (failure) {
+      if (!mounted) return;
+      if (failure is PermissionFailure ||
+          failure is NotFoundFailure ||
+          failure is ConflictFailure) {
+        context.go(AppRoutes.traveler);
+        return;
+      }
+      setState(() => _membershipCheckFailed = true);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _membershipCheckFailed = true);
+    }
+  }
+
+  bool get _isHost =>
+      widget.repository == null ? widget.isHost : _authoritativeIsHost == true;
+
+  Future<void> _openLeaveDialog() async {
+    var accessLost = false;
+    final result = await showDialog<LeaveTravelGroupResult>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => LeaveTravelGroupDialog(
+        groupId: widget.groupId,
+        groupName: _resolvedGroup?.name ?? 'Travel Group #${widget.groupId}',
+        isHost: _isHost,
+        currentUserId: _resolvedUserId,
+        members: widget.members,
+        repository: widget.repository,
+        leaveRepository: widget.leaveRepository,
+        onAccessLost: () => accessLost = true,
+      ),
+    );
+    if (!mounted) return;
+    if (accessLost) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You no longer have access to this group.'),
+        ),
+      );
+      context.go(AppRoutes.traveler);
+      return;
+    }
+    if (result == null) return;
+    final message = result.groupClosed
+        ? 'You left and the group is now closed.'
+        : result.newHostUserId != null
+        ? 'You left the group. Host privileges were transferred.'
+        : 'You left the travel group.';
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+    // Replace the route stack so group-only pages cannot be reopened by Back.
+    context.go(AppRoutes.traveler);
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentGroup = widget.group?.id == widget.groupId
-        ? widget.group
+    if (widget.repository != null && _authoritativeIsHost == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Travel Group')),
+        body: Center(
+          child: _membershipCheckFailed
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Could not confirm group membership.'),
+                    TextButton(
+                      onPressed: _resolvedUserId == null
+                          ? _resolveUserId
+                          : _refreshGroupMembership,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                )
+              : const CircularProgressIndicator(),
+        ),
+      );
+    }
+    final currentGroup = _resolvedGroup?.id == widget.groupId
+        ? _resolvedGroup
         : null;
 
     return Scaffold(
@@ -74,16 +189,14 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
           const SizedBox(height: 16),
           if (currentGroup != null)
             Text(
-              widget.isHost
-                  ? 'You are the Group Host.'
-                  : 'You are a Group Member.',
+              _isHost ? 'You are the Group Host.' : 'You are a Group Member.',
             ),
           const SizedBox(height: 24),
           FilledButton.icon(
             onPressed: () => context.pushNamed(
               AppRouteNames.travelGroupMembers,
               pathParameters: {'groupId': widget.groupId.toString()},
-              extra: widget.isHost,
+              extra: _isHost,
             ),
             icon: const Icon(Icons.group_outlined),
             label: const Text('View members'),
@@ -99,7 +212,7 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
             icon: const Icon(Icons.share_location_outlined),
             label: const Text('Location Sharing'),
           ),
-          if (currentGroup != null && widget.isHost) ...[
+          if (currentGroup != null && _isHost) ...[
             if (currentGroup.inviteCode?.isNotEmpty ?? false) ...[
               const SizedBox(height: 24),
               SelectableText('Invite code: ${currentGroup.inviteCode}'),
@@ -123,18 +236,7 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
               side: BorderSide(color: Theme.of(context).colorScheme.error),
               minimumSize: const Size(48, 48),
             ),
-            onPressed: () => showDialog<bool>(
-              context: context,
-              builder: (_) => LeaveTravelGroupDialog(
-                groupId: widget.groupId,
-                groupName:
-                    currentGroup?.name ?? 'Travel Group #${widget.groupId}',
-                isHost: widget.isHost,
-                currentUserId: _resolvedUserId,
-                members: widget.members,
-                repository: widget.repository,
-              ),
-            ),
+            onPressed: _openLeaveDialog,
             icon: const Icon(Icons.exit_to_app_outlined),
             label: const Text('Leave Group'),
           ),

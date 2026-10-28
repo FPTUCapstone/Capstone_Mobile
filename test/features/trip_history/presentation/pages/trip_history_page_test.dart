@@ -3,286 +3,182 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
-import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
-import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_history_repository_impl.dart';
-import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_review_repository_impl.dart';
+import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/core/error/failures.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/repositories/demo_trip_records_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enums.dart';
-import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
-import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_history_repository.dart';
-import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
-import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_record.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_record_detail.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_records_repository.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/usecases/trip_records_use_case.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_record_detail_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_records_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_history_page.dart';
-import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_review_page.dart';
-import 'package:trip_mate_mobile/features/trip_history/presentation/widgets/refund_status_dialog.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/widgets/trip_record_detail_sheet.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 
-class _SpyTripHistoryRepository implements TripHistoryRepository {
-  _SpyTripHistoryRepository(this._delegate);
-
-  final TripHistoryRepository _delegate;
-  int getTripsCallCount = 0;
-  TripStatus? lastQueriedStatus;
-  TripType? lastQueriedType;
+/// The demo repository, watched, with a hook to replace one answer.
+final class _SpyRepository implements TripRecordsRepository {
+  final _demo = const DemoTripRecordsRepository();
+  final List<TripRecordsQuery> queries = [];
+  Future<TripRecordPage> Function(TripRecordsQuery query)? onPage;
 
   @override
-  Future<TripHistoryPageResult> getTrips({
-    int? travelerId,
-    TripStatus? status,
-    TripType? type,
-    DateTime? startDate,
-    DateTime? endDate,
-    int page = 1,
-    int pageSize = 20,
-  }) {
-    getTripsCallCount++;
-    lastQueriedStatus = status;
-    lastQueriedType = type;
-    return _delegate.getTrips(
-      travelerId: travelerId,
-      status: status,
-      type: type,
-      startDate: startDate,
-      endDate: endDate,
-      page: page,
-      pageSize: pageSize,
-    );
+  Future<TripRecordPage> getPage(TripRecordsQuery query) {
+    queries.add(query);
+    return (onPage ?? _demo.getPage)(query);
   }
 
   @override
-  Future<TripHistoryItem?> getTripById({
-    int? travelerId,
-    required String tripId,
-  }) {
-    return _delegate.getTripById(travelerId: travelerId, tripId: tripId);
-  }
+  Future<TripRecordDetail> getDetail(TripRecordKind kind, int id) =>
+      _demo.getDetail(kind, id);
 }
 
 void main() {
-  late DateTime fixedNow;
-  late DemoTripHistoryStore demoStore;
-  late TripHistoryRepositoryImpl repository;
-  late TripHistoryCubit cubit;
+  late _SpyRepository repository;
+  late TripRecordsCubit cubit;
+  late List<String> visited;
 
   setUp(() {
-    fixedNow = DateTime(2026, 10, 8, 12, 0, 0);
-    demoStore = DemoTripHistoryStore(now: fixedNow);
-    repository = TripHistoryRepositoryImpl(
-      demoStore: demoStore,
-      isDemoMode: true,
-    );
-    cubit = TripHistoryCubit(
-      repository: repository,
-      isDemoMode: true,
-      demoTravelerId: DemoTripHistoryStore.demoTravelerId,
-    );
+    repository = _SpyRepository();
+    cubit = TripRecordsCubit(useCase: TripRecordsUseCase(repository));
+    visited = [];
+    if (serviceLocator.isRegistered<TripRecordDetailCubit>()) {
+      serviceLocator.unregister<TripRecordDetailCubit>();
+    }
+    serviceLocator
+        .registerFactoryParam<TripRecordDetailCubit, TripRecordRef, bool>(
+          (ref, _) => TripRecordDetailCubit(
+            useCase: TripRecordsUseCase(repository),
+            reference: ref,
+          ),
+        );
   });
 
   tearDown(() async {
     await cubit.close();
+    if (serviceLocator.isRegistered<TripRecordDetailCubit>()) {
+      serviceLocator.unregister<TripRecordDetailCubit>();
+    }
   });
 
-  Widget buildTestWidget({bool isDemoMode = true}) {
-    return MaterialApp(
-      home: BlocProvider<TripHistoryCubit>.value(
-        value: cubit..loadInitial(),
-        child: TripHistoryPage(isDemoMode: isDemoMode, referenceTime: fixedNow),
-      ),
-    );
+  void useSize(WidgetTester tester, Size size) {
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
   }
 
-  group('TripHistoryPage (Screen #73) Widget Tests', () {
-    testWidgets(
-      'renders title, tabs, filters, and upcoming records by default',
-      (tester) async {
-        await tester.pumpWidget(buildTestWidget());
-        await tester.pumpAndSettle();
-
-        // Title & Tabs
-        expect(
-          find.text(TripHistoryStringsEn.tripHistoryTitle),
-          findsOneWidget,
-        );
-        expect(find.text(TripHistoryStringsEn.tabUpcoming), findsOneWidget);
-        expect(find.text(TripHistoryStringsEn.tabCompleted), findsOneWidget);
-        expect(find.text(TripHistoryStringsEn.tabCancelled), findsOneWidget);
-
-        // Filter chips
-        expect(find.text(TripHistoryStringsEn.filterAll), findsOneWidget);
-        expect(find.text(TripHistoryStringsEn.filterTour), findsOneWidget);
-        expect(
-          find.text(TripHistoryStringsEn.filterCommercialService),
-          findsOneWidget,
-        );
-        expect(find.text(TripHistoryStringsEn.filterItinerary), findsOneWidget);
-
-        // Upcoming bookings
-        expect(find.text('BK-TOUR-001'), findsOneWidget);
-        expect(find.text('BK-SRV-002'), findsOneWidget);
-        expect(
-          find.text(TripHistoryStringsEn.actionViewEticket),
-          findsNWidgets(2),
-        );
-      },
+  /// The page inside a router that also knows the canonical review route, so
+  /// the destination of Write/View review can be observed.
+  Future<void> pumpPage(WidgetTester tester, {bool isDemo = true}) async {
+    // Once, outside the route builder: a rebuild of the route must not reload.
+    await cubit.loadInitial();
+    final router = GoRouter(
+      initialLocation: AppRoutes.tripHistory,
+      routes: [
+        GoRoute(
+          path: AppRoutes.tripHistory,
+          builder: (_, _) => BlocProvider<TripRecordsCubit>.value(
+            value: cubit,
+            child: TripHistoryPage(isDemoMode: isDemo),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.eTicketPattern,
+          builder: (_, state) {
+            visited.add(state.uri.path);
+            return const Scaffold(body: Text('E-ticket stub'));
+          },
+        ),
+        GoRoute(
+          path: AppRoutes.bookingRefundPattern,
+          builder: (_, state) {
+            visited.add(state.uri.path);
+            return const Scaffold(body: Text('Refund progress stub'));
+          },
+        ),
+        GoRoute(
+          path: AppRoutes.canonicalTripReviewPattern,
+          builder: (context, state) {
+            visited.add(state.uri.path);
+            return Scaffold(
+              body: Center(
+                child: FilledButton(
+                  onPressed: () => context.pop(true),
+                  child: const Text('Submit stub review'),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
     );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpAndSettle();
+  }
 
-    testWidgets(
-      'switching to Completed tab shows completed cards and review actions',
-      (tester) async {
-        tester.view.physicalSize = const Size(400, 2400);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
+  Future<void> openTab(WidgetTester tester, String label) async {
+    await tester.tap(find.text(label));
+    await tester.pumpAndSettle();
+  }
 
-        await tester.pumpWidget(buildTestWidget());
-        await tester.pumpAndSettle();
+  Finder card(String text) =>
+      find.ancestor(of: find.text(text), matching: find.byType(Card));
 
-        // Tap Completed tab
-        await tester.tap(find.text(TripHistoryStringsEn.tabCompleted));
-        await tester.pumpAndSettle();
+  Finder inCard(String cardText, String text) =>
+      find.descendant(of: card(cardText), matching: find.text(text));
 
-        expect(
-          find.text('BK-TOUR-003'),
-          findsOneWidget,
-        ); // unreviewed -> Write Review
-        expect(
-          find.text(TripHistoryStringsEn.actionWriteReview),
-          findsOneWidget,
-        );
-
-        expect(
-          find.text('BK-TOUR-004'),
-          findsOneWidget,
-        ); // reviewed < 7d -> Edit Review
-        expect(
-          find.text(TripHistoryStringsEn.actionEditReview),
-          findsOneWidget,
-        );
-
-        expect(
-          find.text('BK-SRV-005'),
-          findsOneWidget,
-        ); // reviewed > 7d -> View Review
-        expect(
-          find.text(TripHistoryStringsEn.actionViewReview),
-          findsOneWidget,
-        );
-
-        expect(find.text('ITIN-2026-006'), findsOneWidget); // Itinerary
-      },
-    );
-
-    testWidgets('tapping View E-ticket displays notice', (tester) async {
-      await tester.pumpWidget(buildTestWidget());
-      await tester.pumpAndSettle();
-
-      final eticketButton = find
-          .text(TripHistoryStringsEn.actionViewEticket)
-          .first;
-      await tester.tap(eticketButton);
-      await tester.pumpAndSettle();
-
-      expect(
-        find.text(TripHistoryStringsEn.noticeEticketPending),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('tapping View Details opens booking details dialog', (
+  group('layout', () {
+    testWidgets('shows the title, three tabs and only All / Tour / Itinerary', (
       tester,
     ) async {
-      await tester.pumpWidget(buildTestWidget());
-      await tester.pumpAndSettle();
+      await pumpPage(tester);
 
-      final detailsBtn = find
-          .text(TripHistoryStringsEn.actionViewDetails)
-          .first;
-      await tester.tap(detailsBtn);
-      await tester.pumpAndSettle();
-
+      expect(find.text(TripHistoryStringsEn.tripHistoryTitle), findsOneWidget);
+      expect(find.text(TripHistoryStringsEn.tabUpcoming), findsOneWidget);
+      expect(find.text(TripHistoryStringsEn.tabCompleted), findsOneWidget);
+      expect(find.text(TripHistoryStringsEn.tabCancelled), findsOneWidget);
+      expect(find.text(TripHistoryStringsEn.filterAll), findsOneWidget);
+      expect(find.text(TripHistoryStringsEn.filterTour), findsWidgets);
+      expect(find.text(TripHistoryStringsEn.filterItinerary), findsWidgets);
       expect(
-        find.text(TripHistoryStringsEn.detailsDialogTitle),
-        findsOneWidget,
+        find.text(TripHistoryStringsEn.filterCommercialService),
+        findsNothing,
       );
-      expect(find.text(TripHistoryStringsEn.actionClose), findsOneWidget);
-
-      await tester.tap(find.text(TripHistoryStringsEn.actionClose));
-      await tester.pumpAndSettle();
-      expect(find.text(TripHistoryStringsEn.detailsDialogTitle), findsNothing);
     });
 
-    testWidgets(
-      'switching to Cancelled tab displays refund status buttons and dialog',
-      (tester) async {
-        tester.view.physicalSize = const Size(400, 1400);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets('Upcoming lists the booking and the itinerary of that tab', (
+      tester,
+    ) async {
+      await pumpPage(tester);
 
-        await tester.pumpWidget(buildTestWidget());
-        await tester.pumpAndSettle();
+      expect(repository.queries.single.tab, TripStatus.upcoming);
+      expect(find.text('Son Tra Peninsula Tour'), findsOneWidget);
+      expect(find.text('TM-009003'), findsOneWidget);
+      expect(find.text('Hoi An weekend plan'), findsOneWidget);
+      expect(
+        inCard(
+          'Son Tra Peninsula Tour',
+          TripHistoryStringsEn.actionViewEticket,
+        ),
+        findsOneWidget,
+      );
+      expect(
+        inCard('Hoi An weekend plan', TripHistoryStringsEn.actionViewEticket),
+        findsNothing,
+      );
+    });
 
-        // Tap Cancelled tab
-        await tester.tap(find.text(TripHistoryStringsEn.tabCancelled));
-        await tester.pumpAndSettle();
-
-        expect(find.text('BK-TOUR-007'), findsOneWidget);
-        expect(find.text('BK-SRV-008'), findsOneWidget);
-        expect(find.text('BK-TOUR-009'), findsOneWidget);
-
-        final refundBtn = find
-            .text(TripHistoryStringsEn.actionViewRefundStatus)
-            .first;
-        await tester.tap(refundBtn);
-        await tester.pumpAndSettle();
-
-        expect(find.byType(RefundStatusDialog), findsOneWidget);
-        expect(
-          find.text(TripHistoryStringsEn.refundDialogTitle),
-          findsOneWidget,
-        );
-        expect(
-          find.text(
-            TripHistoryStringsEn.refundStateNonRefundable.toUpperCase(),
-          ),
-          findsOneWidget,
-        );
-
-        await tester.tap(find.text(TripHistoryStringsEn.actionClose));
-        await tester.pumpAndSettle();
-        expect(find.byType(RefundStatusDialog), findsNothing);
-      },
-    );
-
-    testWidgets(
-      'empty state renders domain message when filter produces zero records',
-      (tester) async {
-        await tester.pumpWidget(buildTestWidget());
-        await tester.pumpAndSettle();
-
-        // In upcoming tab, filter by Itinerary (there are no upcoming itineraries)
-        await tester.tap(find.text(TripHistoryStringsEn.filterItinerary));
-        await tester.pumpAndSettle();
-
-        expect(
-          find.text(TripHistoryStringsEn.emptyListMessage),
-          findsOneWidget,
-        );
-      },
-    );
-
-    testWidgets('responsive layout on different device widths', (tester) async {
-      final sizes = [
-        const Size(360, 640),
-        const Size(390, 844),
-        const Size(412, 915),
-      ];
-
-      for (final size in sizes) {
-        tester.view.physicalSize = size;
-        tester.view.devicePixelRatio = 1.0;
-
-        await tester.pumpWidget(buildTestWidget());
-        await tester.pumpAndSettle();
+    testWidgets('fits phone widths without overflow', (tester) async {
+      for (final size in const [
+        Size(320, 640),
+        Size(360, 640),
+        Size(412, 915),
+      ]) {
+        useSize(tester, size);
+        await pumpPage(tester);
 
         expect(
           find.text(TripHistoryStringsEn.tripHistoryTitle),
@@ -291,183 +187,397 @@ void main() {
         expect(tester.takeException(), isNull);
       }
     });
+  });
 
+  group('Completed tab', () {
+    testWidgets('shows the summary the backend sent', (tester) async {
+      useSize(tester, const Size(400, 2400));
+      await pumpPage(tester);
+
+      await openTab(tester, TripHistoryStringsEn.tabCompleted);
+
+      final summary = (await const DemoTripRecordsRepository().getPage(
+        const TripRecordsQuery(tab: TripStatus.completed),
+      )).summary!;
+      expect(
+        find.textContaining(
+          TripHistoryStringsEn.summaryCompletedTrips(
+            summary.totalCompletedTrips,
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining(
+          TripHistoryStringsEn.summaryVisitedPois(summary.totalVisitedPois),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Write review only where canReview, View review only where a '
+        'review exists, and never Edit review', (tester) async {
+      useSize(tester, const Size(400, 2400));
+      await pumpPage(tester);
+
+      await openTab(tester, TripHistoryStringsEn.tabCompleted);
+
+      expect(
+        inCard('Hoi An Lantern Tour', TripHistoryStringsEn.actionWriteReview),
+        findsOneWidget,
+      );
+      expect(
+        inCard('Hoi An Lantern Tour', TripHistoryStringsEn.actionViewReview),
+        findsNothing,
+      );
+      expect(
+        inCard('Ba Na Hills Day Tour', TripHistoryStringsEn.actionViewReview),
+        findsOneWidget,
+      );
+      expect(
+        inCard('Ba Na Hills Day Tour', TripHistoryStringsEn.actionWriteReview),
+        findsNothing,
+      );
+      expect(find.text(TripHistoryStringsEn.actionEditReview), findsNothing);
+      expect(
+        inCard('Da Nang 2 days', TripHistoryStringsEn.actionWriteReview),
+        findsNothing,
+      );
+    });
+
+    testWidgets('an itinerary shows its stops and how many were visited', (
+      tester,
+    ) async {
+      useSize(tester, const Size(400, 2400));
+      await pumpPage(tester);
+
+      await openTab(tester, TripHistoryStringsEn.tabCompleted);
+
+      final detail = await const DemoTripRecordsRepository().getDetail(
+        TripRecordKind.itinerary,
+        5001,
+      );
+      final record = detail.record as ItineraryTripRecord;
+      expect(
+        inCard(
+          'Da Nang 2 days',
+          TripHistoryStringsEn.formatStopCount(record.stopCount),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        inCard(
+          'Da Nang 2 days',
+          TripHistoryStringsEn.formatVisitedOf(
+            record.visitedCount!,
+            record.stopCount,
+          ),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Upcoming itineraries do not claim any visited stops', (
+      tester,
+    ) async {
+      await pumpPage(tester);
+
+      expect(find.textContaining('Visited'), findsNothing);
+    });
+  });
+
+  group('review routes', () {
+    testWidgets('Write review opens the canonical review of the booking and '
+        'a saved review refreshes the list', (tester) async {
+      useSize(tester, const Size(400, 2400));
+      await pumpPage(tester);
+      await openTab(tester, TripHistoryStringsEn.tabCompleted);
+      final before = repository.queries.length;
+
+      await tester.tap(
+        inCard('Hoi An Lantern Tour', TripHistoryStringsEn.actionWriteReview),
+      );
+      await tester.pumpAndSettle();
+
+      expect(visited, ['/traveler/reviews/commerceBooking/9001']);
+
+      await tester.tap(find.text('Submit stub review'));
+      await tester.pumpAndSettle();
+
+      expect(repository.queries.length, before + 1);
+      expect(repository.queries.last.tab, TripStatus.completed);
+      expect(find.text(TripHistoryStringsEn.tripHistoryTitle), findsOneWidget);
+    });
+
+    testWidgets('View review opens the canonical review and a plain back does '
+        'not reload', (tester) async {
+      useSize(tester, const Size(400, 2400));
+      await pumpPage(tester);
+      await openTab(tester, TripHistoryStringsEn.tabCompleted);
+      final before = repository.queries.length;
+
+      await tester.tap(
+        inCard('Ba Na Hills Day Tour', TripHistoryStringsEn.actionViewReview),
+      );
+      await tester.pumpAndSettle();
+      expect(visited, ['/traveler/reviews/commerceBooking/9002']);
+
+      final navigator = tester.state<NavigatorState>(
+        find.byType(Navigator).first,
+      );
+      navigator.pop();
+      await tester.pumpAndSettle();
+
+      expect(repository.queries.length, before);
+    });
+  });
+
+  group('actions', () {
     testWidgets(
-      'production mode: displays PENDING_BE_INTEGRATION banner and hides demo fixtures and retry button',
+      'E-ticket opens the ticket of actions.ticketId, never the booking',
       (tester) async {
-        final prodRepo = TripHistoryRepositoryImpl(
-          demoStore: demoStore,
-          isDemoMode: false,
-        );
-        final prodCubit = TripHistoryCubit(
-          repository: prodRepo,
-          isDemoMode: false,
-        );
-        addTearDown(prodCubit.close);
+        await pumpPage(tester, isDemo: false);
 
-        await prodCubit.loadInitial();
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: BlocProvider<TripHistoryCubit>.value(
-              value: prodCubit,
-              child: const TripHistoryPage(isDemoMode: false),
-            ),
+        await tester.tap(
+          inCard(
+            'Son Tra Peninsula Tour',
+            TripHistoryStringsEn.actionViewEticket,
           ),
         );
         await tester.pumpAndSettle();
 
-        expect(
-          find.text(TripHistoryStringsEn.productionIntegrationPending),
-          findsOneWidget,
-        );
-        // Does not show fake demo fixtures
-        expect(find.text('BK-TOUR-001'), findsNothing);
-        expect(find.text('BK-SRV-002'), findsNothing);
-        // Does not show retry button
-        expect(find.text(TripHistoryStringsEn.actionRetry), findsNothing);
+        expect(visited, [AppRoutes.eTicket(7003)]);
       },
     );
 
-    testWidgets(
-      'route-level regression: Write Review -> submit Demo review -> pops true -> refreshes Completed tab via new repository query',
-      (tester) async {
-        tester.view.physicalSize = const Size(400, 2400);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets('E-ticket of a demo record never reaches the ticket API', (
+      tester,
+    ) async {
+      await pumpPage(tester);
 
-        final spyRepo = _SpyTripHistoryRepository(repository);
-        final testCubit = TripHistoryCubit(
-          repository: spyRepo,
-          isDemoMode: true,
-          demoTravelerId: DemoTripHistoryStore.demoTravelerId,
+      await tester.tap(
+        inCard(
+          'Son Tra Peninsula Tour',
+          TripHistoryStringsEn.actionViewEticket,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(TripHistoryStringsEn.noticeEticketDemo), findsOneWidget);
+      expect(visited, isEmpty);
+    });
+
+    testWidgets('View details opens the detail sheet for the record', (
+      tester,
+    ) async {
+      await pumpPage(tester);
+
+      await tester.tap(
+        inCard('Hoi An weekend plan', TripHistoryStringsEn.actionViewDetails),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TripRecordDetailSheet), findsOneWidget);
+      expect(find.text(TripHistoryStringsEn.stopsSectionTitle), findsWidgets);
+    });
+
+    testWidgets('View refund appears only where canViewRefund and opens the '
+        'sheet on the refund', (tester) async {
+      useSize(tester, const Size(400, 1600));
+      await pumpPage(tester);
+      await openTab(tester, TripHistoryStringsEn.tabCancelled);
+
+      expect(
+        inCard(
+          'Marble Mountains Tour',
+          TripHistoryStringsEn.actionViewRefundStatus,
+        ),
+        findsNothing,
+      );
+      await tester.tap(
+        inCard(
+          'My Son Sanctuary Tour',
+          TripHistoryStringsEn.actionViewRefundStatus,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TripRecordDetailSheet), findsOneWidget);
+      expect(
+        find.byKey(const Key('trip-detail-refund-highlighted')),
+        findsOneWidget,
+      );
+    });
+  });
+
+  group('refund tracking', () {
+    testWidgets('outside demo mode View refund opens the live refund progress '
+        'of the booking', (tester) async {
+      useSize(tester, const Size(400, 1600));
+      await pumpPage(tester, isDemo: false);
+      await openTab(tester, TripHistoryStringsEn.tabCancelled);
+
+      await tester.tap(
+        inCard(
+          'My Son Sanctuary Tour',
+          TripHistoryStringsEn.actionViewRefundStatus,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(visited, ['/bookings/9004/refund']);
+      expect(find.byType(TripRecordDetailSheet), findsNothing);
+    });
+
+    testWidgets('in demo mode a made-up id never reaches the refund route', (
+      tester,
+    ) async {
+      useSize(tester, const Size(400, 1600));
+      await pumpPage(tester);
+      await openTab(tester, TripHistoryStringsEn.tabCancelled);
+
+      await tester.tap(
+        inCard(
+          'My Son Sanctuary Tour',
+          TripHistoryStringsEn.actionViewRefundStatus,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(visited, isEmpty);
+      expect(find.byType(TripRecordDetailSheet), findsOneWidget);
+    });
+  });
+
+  group('filters and tabs', () {
+    testWidgets('choosing Itinerary asks the backend for that trip type', (
+      tester,
+    ) async {
+      await pumpPage(tester);
+
+      await tester.tap(
+        find.widgetWithText(ChoiceChip, TripHistoryStringsEn.filterItinerary),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        repository.queries.last.tripType,
+        TripRecordTypeFilter.selfPlannedItinerary,
+      );
+      expect(find.text('Son Tra Peninsula Tour'), findsNothing);
+      expect(find.text('Hoi An weekend plan'), findsOneWidget);
+    });
+
+    testWidgets('Reset clears the type in one request', (tester) async {
+      await pumpPage(tester);
+      await tester.tap(
+        find.widgetWithText(ChoiceChip, TripHistoryStringsEn.filterTour),
+      );
+      await tester.pumpAndSettle();
+      final before = repository.queries.length;
+
+      await tester.tap(find.text(TripHistoryStringsEn.filterReset));
+      await tester.pumpAndSettle();
+
+      expect(repository.queries.length, before + 1);
+      expect(repository.queries.last.tripType, TripRecordTypeFilter.all);
+      expect(find.text(TripHistoryStringsEn.filterReset), findsNothing);
+    });
+
+    testWidgets('a reversed date range shows MSG29 and keeps the list', (
+      tester,
+    ) async {
+      await pumpPage(tester);
+      final before = repository.queries.length;
+
+      await cubit.setDateRange(DateTime(2026, 10, 9), DateTime(2026, 10, 1));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(TripHistoryStringsEn.validationDateRangeInvalid),
+        findsOneWidget,
+      );
+      expect(repository.queries.length, before);
+      expect(find.text('Son Tra Peninsula Tour'), findsOneWidget);
+    });
+
+    testWidgets('switching tabs and back reloads that tab', (tester) async {
+      await pumpPage(tester);
+
+      await openTab(tester, TripHistoryStringsEn.tabCancelled);
+      expect(repository.queries.last.tab, TripStatus.cancelled);
+      expect(find.text('My Son Sanctuary Tour'), findsOneWidget);
+
+      await openTab(tester, TripHistoryStringsEn.tabUpcoming);
+      expect(repository.queries.last.tab, TripStatus.upcoming);
+      expect(find.text('Son Tra Peninsula Tour'), findsOneWidget);
+    });
+  });
+
+  group('states', () {
+    testWidgets('an empty tab shows the empty message', (tester) async {
+      repository.onPage = (q) async => TripRecordPage(
+        items: const [],
+        page: q.page,
+        pageSize: q.pageSize,
+        totalCount: 0,
+      );
+      await pumpPage(tester);
+
+      expect(find.text(TripHistoryStringsEn.emptyListMessage), findsOneWidget);
+    });
+
+    testWidgets('a failure shows the message and Retry, never a pending banner '
+        'or fixtures', (tester) async {
+      repository.onPage = (_) async => throw const NetworkFailure();
+      await pumpPage(tester);
+
+      expect(
+        find.text(TripHistoryStringsEn.errorMessageGeneric),
+        findsOneWidget,
+      );
+      expect(
+        find.text(TripHistoryStringsEn.productionIntegrationPending),
+        findsNothing,
+      );
+      expect(find.text('Son Tra Peninsula Tour'), findsNothing);
+
+      repository.onPage = null;
+      await tester.tap(find.text(TripHistoryStringsEn.actionRetry));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Son Tra Peninsula Tour'), findsOneWidget);
+      expect(find.text(TripHistoryStringsEn.actionRetry), findsNothing);
+    });
+
+    testWidgets('paging shows the page indicator and asks for the next page', (
+      tester,
+    ) async {
+      final demo = const DemoTripRecordsRepository();
+      repository.onPage = (q) async {
+        final one = await demo.getPage(TripRecordsQuery(tab: q.tab));
+        return TripRecordPage(
+          items: one.items,
+          page: q.page,
+          pageSize: q.pageSize,
+          totalCount: 100,
         );
-        addTearDown(testCubit.close);
+      };
+      await pumpPage(tester);
 
-        // Initialize once outside the route builder
-        await testCubit.loadInitial();
-        expect(spyRepo.getTripsCallCount, equals(1));
-        expect(spyRepo.lastQueriedStatus, equals(TripStatus.upcoming));
+      expect(
+        find.text(TripHistoryStringsEn.formatPagination(1, 5)),
+        findsOneWidget,
+      );
 
-        final reviewRepo = TripReviewRepositoryImpl(
-          demoStore: demoStore,
-          isDemoMode: true,
-        );
-        final reviewCubit = TripReviewCubit(
-          repository: reviewRepo,
-          historyRepository: spyRepo,
-          isDemoMode: true,
-        );
-        addTearDown(reviewCubit.close);
+      await tester.tap(find.text(TripHistoryStringsEn.paginationNext));
+      await tester.pumpAndSettle();
 
-        final router = GoRouter(
-          initialLocation: AppRoutes.tripHistoryPath(isDemo: true),
-          routes: [
-            GoRoute(
-              path: AppRoutes.tripHistory,
-              builder: (_, state) {
-                final isDemo = state.uri.queryParameters['demo'] == 'true';
-                return BlocProvider<TripHistoryCubit>.value(
-                  value: testCubit,
-                  child: TripHistoryPage(
-                    isDemoMode: isDemo,
-                    referenceTime: fixedNow,
-                  ),
-                );
-              },
-            ),
-            GoRoute(
-              path: AppRoutes.tripReviewPattern,
-              builder: (_, state) {
-                final isDemo = state.uri.queryParameters['demo'] == 'true';
-                final trip = state.extra as TripHistoryItem;
-                return BlocProvider<TripReviewCubit>.value(
-                  value: reviewCubit,
-                  child: TripReviewPage(
-                    trip: trip,
-                    isDemoMode: isDemo,
-                    demoTravelerId: DemoTripHistoryStore.demoTravelerId,
-                    referenceTime: fixedNow,
-                  ),
-                );
-              },
-            ),
-          ],
-        );
-
-        await tester.pumpWidget(MaterialApp.router(routerConfig: router));
-        await tester.pumpAndSettle();
-
-        // Building the route did NOT trigger another loadInitial()
-        expect(spyRepo.getTripsCallCount, equals(1));
-
-        // 1. Switch to Completed tab where unreviewed BK-TOUR-003 exists
-        await tester.tap(find.text(TripHistoryStringsEn.tabCompleted));
-        await tester.pumpAndSettle();
-
-        expect(spyRepo.getTripsCallCount, equals(2));
-        expect(spyRepo.lastQueriedStatus, equals(TripStatus.completed));
-
-        expect(find.text('BK-TOUR-003'), findsOneWidget);
-        final writeReviewBtn = find.text(
-          TripHistoryStringsEn.actionWriteReview,
-        );
-        expect(writeReviewBtn, findsOneWidget);
-        expect(
-          find.text(TripHistoryStringsEn.actionEditReview),
-          findsOneWidget,
-        );
-
-        // 2. Tap Write Review to push Screen #74
-        await tester.ensureVisible(writeReviewBtn);
-        await tester.tap(writeReviewBtn);
-        await tester.pumpAndSettle();
-
-        expect(find.byType(TripReviewPage), findsOneWidget);
-        expect(find.text(TripHistoryStringsEn.tripReviewTitle), findsOneWidget);
-
-        // 3. Fill in rating and required fields
-        final stars = find.byIcon(Icons.star_outline_rounded);
-        await tester.tap(stars.last); // 5 stars
-        await tester.pumpAndSettle();
-
-        await tester.enterText(
-          find.widgetWithText(TextField, TripHistoryStringsEn.reviewTitleHint),
-          'Unforgettable Journey',
-        );
-        await tester.enterText(
-          find.widgetWithText(
-            TextField,
-            TripHistoryStringsEn.reviewContentHint,
-          ),
-          'The tour was exceptionally well-organized and inspiring.',
-        );
-        await tester.pumpAndSettle();
-
-        // 4. Submit review
-        final submitBtn = find.text(TripHistoryStringsEn.actionSubmitReview);
-        await tester.ensureVisible(submitBtn);
-        await tester.tap(submitBtn);
-        await tester.pumpAndSettle();
-
-        // 5. Verify regression requirements:
-        // - Review success pops true (TripReviewPage is dismissed)
-        expect(find.byType(TripReviewPage), findsNothing);
-        // - TripHistoryPage reacts to true (remains mounted)
-        expect(find.byType(TripHistoryPage), findsOneWidget);
-        // - Completed tab is active and a NEW repository query (call #3) was executed
-        expect(testCubit.state.selectedTab, equals(TripStatus.completed));
-        expect(spyRepo.getTripsCallCount, equals(3));
-        expect(spyRepo.lastQueriedStatus, equals(TripStatus.completed));
-        // - Newly submitted review is reflected: BK-TOUR-003 changes from "Write Review" to "Edit Review"
-        expect(find.text('BK-TOUR-003'), findsOneWidget);
-        expect(find.text(TripHistoryStringsEn.actionWriteReview), findsNothing);
-        expect(
-          find.text(TripHistoryStringsEn.actionEditReview),
-          findsNWidgets(2),
-        );
-      },
-    );
+      expect(repository.queries.last.page, 2);
+      expect(
+        find.text(TripHistoryStringsEn.formatPagination(2, 5)),
+        findsOneWidget,
+      );
+    });
   });
 }

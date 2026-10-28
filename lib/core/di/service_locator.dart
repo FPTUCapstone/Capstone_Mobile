@@ -1,6 +1,7 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -10,6 +11,10 @@ import 'package:trip_mate_mobile/core/location/device_location_service.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/core/network/network_info.dart';
 import 'package:trip_mate_mobile/core/network/session_coordinator.dart';
+import 'package:trip_mate_mobile/core/push/dio_push_device_repository.dart';
+import 'package:trip_mate_mobile/core/push/push_device_coordinator.dart';
+import 'package:trip_mate_mobile/core/push/push_device_repository.dart';
+import 'package:trip_mate_mobile/core/push/trip_push_messaging.dart';
 import 'package:trip_mate_mobile/core/storage/preferences_service.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/auth/change_password/data/datasources/change_password_remote_data_source.dart';
@@ -47,10 +52,26 @@ import 'package:trip_mate_mobile/features/booking/domain/usecases/create_booking
 import 'package:trip_mate_mobile/features/booking/domain/usecases/get_booking_contact_use_case.dart';
 import 'package:trip_mate_mobile/features/booking/domain/usecases/quote_booking_use_case.dart';
 import 'package:trip_mate_mobile/features/booking/presentation/cubit/book_tour_cubit.dart';
+import 'package:trip_mate_mobile/features/booking_refund/data/datasources/booking_refund_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/booking_refund/data/repositories/booking_refund_repository_impl.dart';
+import 'package:trip_mate_mobile/features/booking_refund/domain/repositories/booking_refund_repository.dart';
+import 'package:trip_mate_mobile/features/booking_refund/domain/usecases/get_booking_refund_progress_use_case.dart';
+import 'package:trip_mate_mobile/features/booking_refund/presentation/cubit/booking_refund_progress_cubit.dart';
 import 'package:trip_mate_mobile/features/coupon/data/datasources/coupon_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/coupon/data/repositories/coupon_repository_impl.dart';
 import 'package:trip_mate_mobile/features/coupon/domain/repositories/coupon_repository.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/cubit/create_coupon_cubit.dart';
+import 'package:trip_mate_mobile/features/e_ticket/data/repositories/e_ticket_repository_impl.dart';
+import 'package:trip_mate_mobile/features/e_ticket/domain/repositories/e_ticket_repository.dart';
+import 'package:trip_mate_mobile/features/e_ticket/domain/usecases/get_e_ticket_use_case.dart';
+import 'package:trip_mate_mobile/features/e_ticket/domain/usecases/refresh_e_ticket_qr_use_case.dart';
+import 'package:trip_mate_mobile/features/e_ticket/presentation/cubit/e_ticket_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/data/repositories/demo_operator_bookings_repository.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/data/repositories/operator_bookings_repository_impl.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/domain/repositories/operator_bookings_repository.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/domain/usecases/operator_bookings_use_cases.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/operator_booking_detail_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/operator_bookings_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/data/datasources/operator_tour_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/operator_tours/data/repositories/operator_tour_repository_impl.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/repositories/operator_tour_repository.dart';
@@ -98,6 +119,7 @@ import 'package:trip_mate_mobile/features/tour_search/domain/usecases/search_tou
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/data/datasources/travel_preferences_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/external_review_repository_impl.dart';
+import 'package:trip_mate_mobile/features/traveler/data/repositories/in_app_notification_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/itinerary_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/mapbox_directions_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/mapbox_search_box_repository_impl.dart';
@@ -108,30 +130,42 @@ import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_pref
 import 'package:trip_mate_mobile/features/traveler/data/services/geolocator_navigation_location_tracker.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/address_search_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/external_review_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/in_app_notification_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_list_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_suggestion_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/leave_travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigation_session_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/route_directions_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_preferences_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/trip_alert_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/navigation_location_tracker.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/services/weather_advisory_session_store.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/address_search_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/in_app_inbox_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/canonical_trip_review_repository_impl.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/repositories/demo_trip_records_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_history_repository_impl.dart';
+import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_records_repository_impl.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/trip_review_repository_impl.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/reviewable_record_ref.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_record.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/canonical_trip_review_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_history_repository.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_records_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/trip_review_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/usecases/canonical_trip_review_use_case.dart';
+import 'package:trip_mate_mobile/features/trip_history/domain/usecases/trip_records_use_case.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/canonical_trip_review_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_history_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_record_detail_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_records_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_review_cubit.dart';
 
 final GetIt serviceLocator = GetIt.instance;
@@ -180,6 +214,9 @@ Future<void> configureDependencies({AppConfig? config}) async {
         secureStorage: serviceLocator(),
         coordinator: serviceLocator(),
       ),
+    )
+    ..registerLazySingleton<PushDeviceRepository>(
+      () => DioPushDeviceRepository(serviceLocator()),
     )
     ..registerLazySingleton<PoiRemoteDataSource>(
       () => DioPoiRemoteDataSource(serviceLocator()),
@@ -289,6 +326,39 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerFactory<OperatorToursCubit>(
       () => OperatorToursCubit(listTours: serviceLocator()),
     )
+    // UC-40: the live repository is the default; the demo one is served only for an explicit demo flag.
+    ..registerFactoryParam<OperatorBookingsRepository, bool, void>(
+      (isDemoMode, _) => isDemoMode
+          ? const DemoOperatorBookingsRepository()
+          : OperatorBookingsRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactoryParam<ListOperatorBookingsUseCase, bool, void>(
+      (isDemoMode, _) => ListOperatorBookingsUseCase(
+        serviceLocator<OperatorBookingsRepository>(param1: isDemoMode),
+      ),
+    )
+    ..registerFactoryParam<GetOperatorBookingUseCase, bool, void>(
+      (isDemoMode, _) => GetOperatorBookingUseCase(
+        serviceLocator<OperatorBookingsRepository>(param1: isDemoMode),
+      ),
+    )
+    ..registerFactoryParam<LoadOperatorBookingTourOptionsUseCase, bool, void>(
+      (isDemoMode, _) => LoadOperatorBookingTourOptionsUseCase(
+        serviceLocator<OperatorBookingsRepository>(param1: isDemoMode),
+      ),
+    )
+    ..registerFactoryParam<OperatorBookingsCubit, bool, void>(
+      (isDemoMode, _) => OperatorBookingsCubit(
+        listBookings: serviceLocator(param1: isDemoMode),
+        loadTourOptions: serviceLocator(param1: isDemoMode),
+      ),
+    )
+    ..registerFactoryParam<OperatorBookingDetailCubit, String, bool>(
+      (bookingId, isDemoMode) => OperatorBookingDetailCubit(
+        getBooking: serviceLocator(param1: isDemoMode),
+        bookingId: bookingId,
+      ),
+    )
     ..registerFactory<CreateTourPackageCubit>(
       () => CreateTourPackageCubit(
         createTour: serviceLocator(),
@@ -349,6 +419,18 @@ Future<void> configureDependencies({AppConfig? config}) async {
         completeMockPayment: serviceLocator(),
         cancelPayment: serviceLocator(),
       ),
+    )
+    ..registerLazySingleton<BookingRefundRemoteDataSource>(
+      () => DioBookingRefundRemoteDataSource(serviceLocator()),
+    )
+    ..registerLazySingleton<BookingRefundRepository>(
+      () => BookingRefundRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<GetBookingRefundProgressUseCase>(
+      () => GetBookingRefundProgressUseCase(serviceLocator()),
+    )
+    ..registerFactory<BookingRefundProgressCubit>(
+      () => BookingRefundProgressCubit(getProgress: serviceLocator()),
     )
     ..registerLazySingleton<AuthRemoteDataSource>(
       () => AuthRemoteDataSourceImpl(serviceLocator()),
@@ -412,9 +494,19 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerFactory<TravelPreferencesCubit>(
       () => TravelPreferencesCubit(serviceLocator()),
     )
-    ..registerLazySingleton<TravelGroupRepository>(
+    ..registerLazySingleton<TravelGroupRepositoryImpl>(
       () => TravelGroupRepositoryImpl(dioClient: serviceLocator()),
     )
+    ..registerLazySingleton<TravelGroupRepository>(
+      () => serviceLocator<TravelGroupRepositoryImpl>(),
+    )
+    ..registerLazySingleton<LeaveTravelGroupRepository>(
+      () => serviceLocator<TravelGroupRepositoryImpl>(),
+    )
+    ..registerLazySingleton<InAppNotificationRepository>(
+      () => InAppNotificationRepositoryImpl(dioClient: serviceLocator()),
+    )
+    ..registerFactory<InAppInboxCubit>(() => InAppInboxCubit(serviceLocator()))
     ..registerLazySingleton<CouponRemoteDataSource>(
       () => DioCouponRemoteDataSource(serviceLocator()),
     )
@@ -445,6 +537,9 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerLazySingleton<NavigationSessionRepository>(
       () => NavigationSessionRepositoryImpl(dioClient: serviceLocator()),
     )
+    ..registerLazySingleton<TripAlertRepository>(
+      () => NavigationSessionRepositoryImpl(dioClient: serviceLocator()),
+    )
     ..registerLazySingleton<RouteDirectionsRepository>(() {
       final token = serviceLocator<AppConfig>().mapboxAccessToken;
       return token == null
@@ -463,6 +558,9 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerLazySingleton<NavigationLocationTracker>(
       GeolocatorNavigationLocationTracker.new,
     )
+    ..registerLazySingleton<WeatherAdvisorySessionStore>(
+      WeatherAdvisorySessionStore.new,
+    )
     ..registerFactory<TravelGroupMembersCubit>(
       () => TravelGroupMembersCubit(repository: serviceLocator()),
     )
@@ -471,6 +569,9 @@ Future<void> configureDependencies({AppConfig? config}) async {
         serviceLocator(),
         serviceLocator(),
         serviceLocator(),
+        serviceLocator.isRegistered<PushDeviceLifecycle>()
+            ? serviceLocator<PushDeviceLifecycle>()
+            : null,
       ),
     )
     ..registerFactory<RegisterCubit>(
@@ -498,6 +599,42 @@ Future<void> configureDependencies({AppConfig? config}) async {
         isDemoMode: isDemoMode,
       ),
     )
+    // UC-29 e-ticket
+    ..registerLazySingleton<ETicketRepository>(
+      () => ETicketRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<GetETicketUseCase>(
+      () => GetETicketUseCase(serviceLocator()),
+    )
+    ..registerFactory<RefreshETicketQrUseCase>(
+      () => RefreshETicketQrUseCase(serviceLocator()),
+    )
+    ..registerFactoryParam<ETicketCubit, ETicketKey, void>(
+      (key, _) => ETicketCubit(
+        key: key,
+        getTicket: serviceLocator(),
+        refreshQr: serviceLocator(),
+        networkInfo: serviceLocator(),
+      ),
+    )
+    ..registerFactoryParam<TripRecordsRepository, bool, void>(
+      (isDemoMode, _) => isDemoMode
+          ? const DemoTripRecordsRepository()
+          : TripRecordsRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactoryParam<TripRecordsUseCase, bool, void>(
+      (isDemoMode, _) => TripRecordsUseCase(serviceLocator(param1: isDemoMode)),
+    )
+    ..registerFactoryParam<TripRecordsCubit, bool, void>(
+      (isDemoMode, _) =>
+          TripRecordsCubit(useCase: serviceLocator(param1: isDemoMode)),
+    )
+    ..registerFactoryParam<TripRecordDetailCubit, TripRecordRef, bool>(
+      (reference, isDemoMode) => TripRecordDetailCubit(
+        useCase: serviceLocator(param1: isDemoMode),
+        reference: reference,
+      ),
+    )
     ..registerFactoryParam<TripReviewRepository, bool, void>(
       (isDemoMode, _) => TripReviewRepositoryImpl(
         demoStore: isDemoMode ? serviceLocator<DemoTripHistoryStore>() : null,
@@ -518,4 +655,21 @@ Future<void> configureDependencies({AppConfig? config}) async {
         isDemoMode: isDemoMode,
       ),
     );
+
+  if (Firebase.apps.isNotEmpty) {
+    serviceLocator
+      ..registerLazySingleton<TripPushMessaging>(
+        () => FirebaseTripPushMessaging(FirebaseMessaging.instance),
+      )
+      ..registerLazySingleton<PushDeviceCoordinator>(
+        () => PushDeviceCoordinator(
+          repository: serviceLocator(),
+          storage: serviceLocator(),
+          messaging: serviceLocator(),
+        ),
+      )
+      ..registerLazySingleton<PushDeviceLifecycle>(
+        () => serviceLocator<PushDeviceCoordinator>(),
+      );
+  }
 }

@@ -64,8 +64,8 @@ abstract final class TripHistoryStringsEn {
   static const String actionRetry = 'Retry';
 
   // Action Notices & Tooltips
-  static const String noticeEticketPending =
-      'E-ticket service is currently being integrated. Please check back soon.';
+  static const String noticeEticketDemo =
+      'E-tickets are available for real bookings only, not in demo mode.';
   static const String noticeReviewNotCompleted =
       'Reviews can only be submitted for completed trips.';
   static const String noticeReviewAlreadyExists =
@@ -82,11 +82,6 @@ abstract final class TripHistoryStringsEn {
   static const String refundStateRefunded = 'Refunded';
   static const String refundStateProcessing = 'Processing';
   static const String refundStateNonRefundable = 'Non-refundable';
-
-  // Details Dialog
-  static const String detailsDialogTitle = 'Booking Details';
-  static const String detailsProvider = 'Provider';
-  static const String detailsLocation = 'Location';
 
   // Pagination
   static const String paginationPrevious = 'Previous';
@@ -157,4 +152,64 @@ abstract final class TripHistoryStringsEn {
   static const String a11yTripCard =
       'Trip {name}, {status}, departure on {date}';
   static const String a11yFilterTab = '{tab} trips tab';
+
+  // --- TM-78 trip detail (UC-32) ---
+  static const String detailLoading = 'Loading trip details…';
+  static const String tourSectionTitle = 'Tour';
+  static const String labelDestination = 'Destination';
+  static const String scheduleSectionTitle = 'Schedule';
+  static const String labelStarts = 'Starts';
+  static const String labelEnds = 'Ends';
+  static const String labelMeetingPoint = 'Meeting point';
+  static const String participantsSectionTitle = 'Participants';
+  static String formatAdults(int count) =>
+      '$count ${count == 1 ? 'adult' : 'adults'}';
+  static String formatChildren(int count) =>
+      '$count ${count == 1 ? 'child' : 'children'}';
+  static String formatInfants(int count) =>
+      '$count ${count == 1 ? 'infant' : 'infants'}';
+  static const String cancellationSectionTitle = 'Cancellation';
+  static const String labelCancelledOn = 'Cancelled on';
+  static const String labelCancelReason = 'Reason';
+  static const String refundSectionTitle = 'Refund';
+  static const String labelRefundAmount = 'Refund amount';
+  static const String labelRefundChannel = 'Refund channel';
+  static const String channelUnavailable = 'Not available';
+  static String refundStatusLabel(String status) => switch (status) {
+    'Pending' => 'Pending',
+    'Processing' || 'RetryPending' => 'Processing',
+    'ManualReview' => 'Under review',
+    'Processed' => 'Refunded',
+    'Failed' => 'Failed',
+    'Rejected' => 'Rejected',
+    _ => status,
+  };
+  static const String stopsSectionTitle = 'Stops';
+  static const String stopVisited = 'Visited';
+  static const String stopSkipped = 'Skipped';
+  static const String stopNotVisited = 'Not visited';
+  static String formatReachedAt(String dateTime) => 'Reached $dateTime';
+  static String formatSkippedAt(String dateTime) => 'Skipped $dateTime';
+  static String formatPlannedWindow(String from, String to) =>
+      'Planned $from–$to';
+  static String formatVisitedOf(int visited, int total) =>
+      'Visited $visited of $total';
+  static const String sessionSectionTitle = 'Trip session';
+  static const String labelSessionStarted = 'Started';
+  static const String labelSessionEnded = 'Ended';
+  static const String labelSessionReason = 'How it ended';
+  static String completionReasonLabel(String reason) => switch (reason) {
+    'RouteFinished' => 'Route completed',
+    'TravelerStopped' => 'Stopped by you',
+    'Expired' => 'Ended automatically when the trip time ran out',
+    _ => reason,
+  };
+  static const String tripRecordUnavailable =
+      'This trip is no longer available.';
+  static String summaryCompletedTrips(int count) =>
+      '$count completed ${count == 1 ? 'trip' : 'trips'}';
+  static String summaryVisitedPois(int count) =>
+      '$count ${count == 1 ? 'place' : 'places'} visited';
+  static String formatStopCount(int count) =>
+      '$count ${count == 1 ? 'stop' : 'stops'}';
 }

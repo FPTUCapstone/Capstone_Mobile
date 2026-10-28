@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_theme.dart';
 import 'package:trip_mate_mobile/core/constants/app_constants.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
@@ -75,6 +77,35 @@ void main() {
   });
 
   tearDown(serviceLocator.reset);
+
+  testWidgets('notification icon opens the traveler inbox route', (
+    tester,
+  ) async {
+    final cubit = await _authenticatedCubit();
+    addTearDown(cubit.close);
+    final router = GoRouter(
+      initialLocation: AppRoutes.traveler,
+      routes: [
+        GoRoute(
+          path: AppRoutes.traveler,
+          builder: (_, _) => BlocProvider<AuthSessionCubit>.value(
+            value: cubit,
+            child: const TravelerShellPage(),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.inAppInbox,
+          name: AppRouteNames.inAppInbox,
+          builder: (_, _) => const Scaffold(body: Text('Inbox destination')),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.tap(find.byTooltip('Thông báo'));
+    await tester.pumpAndSettle();
+    expect(find.text('Inbox destination'), findsOneWidget);
+  });
 
   testWidgets('trips tab lists the traveler itineraries on each visit', (
     tester,

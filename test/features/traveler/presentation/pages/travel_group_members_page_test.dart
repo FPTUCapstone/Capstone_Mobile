@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/constants/app_constants.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/group_invitation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/group_member_removal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_member.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
@@ -422,61 +423,116 @@ void main() {
     },
   );
 
-  testWidgets(
-    'P1 Scaffold: Opening Remove dialog from members page shows disabled confirm button',
-    (tester) async {
-      final cubit = TravelGroupMembersCubit(
-        repository: _NeverCalledRepository(),
-      );
-      cubit.emitForTest(
-        TravelGroupMembersSuccess(
-          TravelGroupMembers(
-            groupId: 42,
-            groupName: 'Da Nang Weekend',
-            itineraryId: 10,
-            members: [
-              TravelGroupMember(
-                memberId: 101,
-                displayName: 'Alice Host',
-                isHost: true,
-                joinedAtUtc: DateTime.utc(2026, 9, 21, 9),
-                locationSharingEnabled: false,
-              ),
-              TravelGroupMember(
-                memberId: 102,
-                displayName: 'Bob Member',
-                isHost: false,
-                joinedAtUtc: DateTime.utc(2026, 9, 21, 10),
-                locationSharingEnabled: false,
-              ),
-            ],
-          ),
-        ),
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: BlocProvider.value(
-            value: cubit,
-            child: const TravelGroupMembersPage(
-              groupId: 42,
+  testWidgets('Opening Remove dialog from members page enables confirmation', (
+    tester,
+  ) async {
+    final cubit = TravelGroupMembersCubit(repository: _NeverCalledRepository());
+    cubit.emitForTest(
+      TravelGroupMembersSuccess(
+        TravelGroupMembers(
+          groupId: 42,
+          groupName: 'Da Nang Weekend',
+          itineraryId: 10,
+          members: [
+            TravelGroupMember(
+              memberId: 101,
+              displayName: 'Alice Host',
               isHost: true,
-              currentUserId: 101,
+              joinedAtUtc: DateTime.utc(2026, 9, 21, 9),
+              locationSharingEnabled: false,
             ),
+            TravelGroupMember(
+              memberId: 102,
+              displayName: 'Bob Member',
+              isHost: false,
+              joinedAtUtc: DateTime.utc(2026, 9, 21, 10),
+              locationSharingEnabled: false,
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider.value(
+          value: cubit,
+          child: const TravelGroupMembersPage(
+            groupId: 42,
+            isHost: true,
+            currentUserId: 101,
           ),
         ),
-      );
+      ),
+    );
 
-      await tester.tap(find.byKey(const Key('remove_member_button_102')));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('remove_member_button_102')));
+    await tester.pumpAndSettle();
 
-      expect(find.byType(RemoveGroupMemberDialog), findsOneWidget);
-      final confirmBtn = tester.widget<FilledButton>(
-        find.byKey(const Key('remove_member_confirm_button')),
-      );
-      expect(confirmBtn.onPressed, isNull);
-    },
-  );
+    expect(find.byType(RemoveGroupMemberDialog), findsOneWidget);
+    final confirmBtn = tester.widget<FilledButton>(
+      find.byKey(const Key('remove_member_confirm_button')),
+    );
+    expect(confirmBtn.onPressed, isNotNull);
+  });
+
+  testWidgets('confirmed removal refreshes list before showing MSG60', (
+    tester,
+  ) async {
+    final host = TravelGroupMember(
+      memberId: 101,
+      displayName: 'Alice Host',
+      isHost: true,
+      joinedAtUtc: DateTime.utc(2026, 9, 21, 9),
+      locationSharingEnabled: false,
+    );
+    final active = TravelGroupMembers(
+      groupId: 42,
+      groupName: 'Da Nang Weekend',
+      itineraryId: 10,
+      members: [
+        host,
+        TravelGroupMember(
+          memberId: 102,
+          displayName: 'Bob Member',
+          isHost: false,
+          joinedAtUtc: DateTime.utc(2026, 9, 21, 10),
+          locationSharingEnabled: false,
+        ),
+      ],
+    );
+    final repository = _SuccessfulRemovalRepository(
+      TravelGroupMembers(
+        groupId: 42,
+        groupName: 'Da Nang Weekend',
+        itineraryId: 10,
+        members: [host],
+      ),
+    );
+    final cubit = TravelGroupMembersCubit(repository: repository);
+    addTearDown(cubit.close);
+    cubit.emitForTest(TravelGroupMembersSuccess(active));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider.value(
+          value: cubit,
+          child: const TravelGroupMembersPage(groupId: 42, currentUserId: 101),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const Key('remove_member_button_102')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('remove_member_confirm_button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.deleteCalls, 1);
+    expect(
+      find.text('Bob Member has been removed from the group.'),
+      findsOneWidget,
+    );
+    expect(find.text('Bob Member'), findsNothing);
+  });
 }
 
 String _base64UrlEncodeJson(Map<String, dynamic> data) =>
@@ -504,7 +560,14 @@ final class _FakeStorage implements SecureStorageService {
   }
 }
 
-final class _NeverCalledRepository implements TravelGroupRepository {
+class _NeverCalledRepository implements TravelGroupRepository {
+  @override
+  Future<GroupMemberRemoval> removeGroupMember({
+    required int groupId,
+    required int memberUserId,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
+
   @override
   Future<TravelGroupMembers> getTravelGroupMembers({required int groupId}) =>
       throw UnimplementedError();
@@ -533,6 +596,33 @@ final class _NeverCalledRepository implements TravelGroupRepository {
     required String invitationCode,
     required String idempotencyKey,
   }) => throw UnimplementedError();
+}
+
+final class _SuccessfulRemovalRepository extends _NeverCalledRepository {
+  _SuccessfulRemovalRepository(this.refreshed);
+
+  final TravelGroupMembers refreshed;
+  int deleteCalls = 0;
+
+  @override
+  Future<GroupMemberRemoval> removeGroupMember({
+    required int groupId,
+    required int memberUserId,
+    required String idempotencyKey,
+  }) async {
+    deleteCalls++;
+    return GroupMemberRemoval(
+      groupId: groupId,
+      memberUserId: memberUserId,
+      memberName: 'Bob Member',
+      removedAtUtc: DateTime.utc(2026, 10, 27),
+    );
+  }
+
+  @override
+  Future<TravelGroupMembers> getTravelGroupMembers({
+    required int groupId,
+  }) async => refreshed;
 }
 
 extension on TravelGroupMembersCubit {

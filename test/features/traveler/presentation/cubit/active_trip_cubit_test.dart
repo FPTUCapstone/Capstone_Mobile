@@ -9,8 +9,10 @@ import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_ro
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_session.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/reroute_proposal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/weather_advisory.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigation_session_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/route_directions_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/trip_alert_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/navigation_location_tracker.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_state.dart';
@@ -34,6 +36,7 @@ void main() {
     RouteDirectionsRepository? directions,
     NavigationLocationTracker? locationTracker,
     NetworkInfo? networkInfo,
+    TripAlertRepository? alertRepository,
   }) => ActiveTripCubit(
     itineraryId: 101,
     itineraryTitle: 'Đà Nẵng City Explorer',
@@ -43,6 +46,7 @@ void main() {
     clock: () => now,
     idempotencyKey: 'start-key',
     networkInfo: networkInfo,
+    alertRepository: alertRepository,
   );
 
   NavigationPosition at(NavigationSessionItem item, {double offset = 0}) =>
@@ -599,7 +603,11 @@ void main() {
       'three far fixes mark off-route and request a new route after the cooldown',
       () async {
         final directions = FakeDirections();
-        final cubit = createCubit(directions: directions);
+        final alerts = FakeAlertRepository()..networkFailuresRemaining = 1;
+        final cubit = createCubit(
+          directions: directions,
+          alertRepository: alerts,
+        );
         await cubit.start();
         final target = cubit.state.targetItem!;
         cubit.updatePosition(at(target, offset: -0.009));
@@ -616,11 +624,14 @@ void main() {
         for (var i = 0; i < 3; i++) {
           cubit.updatePosition(far);
         }
+        await pumpEventQueue();
         expect(
           cubit.state.status,
           ActiveTripStatus.navigationOffRouteDeviation,
         );
         expect(directions.requests, 1);
+        expect(alerts.deviations, [target.itemId, target.itemId]);
+        expect(alerts.deviationEventIds.toSet(), hasLength(1));
 
         now = now.add(ActiveTripCubit.routeRequestCooldown);
         cubit.updatePosition(far);
@@ -822,6 +833,122 @@ void main() {
       await cubit.close();
     });
   });
+
+  group('UC-14 server alerts', () {
+    test('loads persisted alerts and advisories after session start', () async {
+      final alerts = FakeAlertRepository();
+      final cubit = createCubit(alertRepository: alerts);
+
+      await cubit.start();
+      await pumpEventQueue();
+
+      expect(alerts.listCalls, [9001]);
+      expect(cubit.state.alerts.single.id, '42');
+      expect(cubit.state.activeBannerAlert?.id, '42');
+      expect(cubit.state.activeWeatherAdvisory?.advisoryKey, 'rain:1001');
+      expect(cubit.state.alertRefreshStatus, AlertRefreshStatus.success);
+      await cubit.close();
+    });
+
+    test('acknowledges an alert and keeps read as terminal locally', () async {
+      final alerts = FakeAlertRepository();
+      final cubit = createCubit(alertRepository: alerts);
+      await cubit.start();
+      await pumpEventQueue();
+
+      await cubit.acknowledgeAlert(alerts.persisted.single);
+
+      expect(alerts.acknowledged, [42]);
+      expect(cubit.state.alerts.single.isRead, isTrue);
+      await cubit.close();
+    });
+
+    test('a slower refresh cannot overwrite a newer alert response', () async {
+      final alerts = FakeAlertRepository();
+      final cubit = createCubit(alertRepository: alerts);
+      await cubit.start();
+      await pumpEventQueue();
+      final older = Completer<List<TripAlert>>();
+      final newer = Completer<List<TripAlert>>();
+      alerts.queuedAlertResponses.addAll([older, newer]);
+
+      final firstRefresh = cubit.refreshAlerts();
+      final secondRefresh = cubit.refreshAlerts();
+      newer.complete([alerts.persisted.single.copyWith(isRead: true)]);
+      await secondRefresh;
+      older.complete([alerts.persisted.single.copyWith(isRead: false)]);
+      await firstRefresh;
+
+      expect(cubit.state.alerts.single.isRead, isTrue);
+      await cubit.close();
+    });
+  });
+}
+
+final class FakeAlertRepository implements TripAlertRepository {
+  final persisted = <TripAlert>[
+    TripAlert(
+      id: '42',
+      title: 'Route deviation',
+      description: 'You appear to be away from the planned route.',
+      severity: AlertSeverity.warning,
+      type: TripAlertType.deviation,
+      affectedStopName: 'Museum',
+      timestamp: DateTime.utc(2026, 10, 20, 2),
+      affectedItemId: 1001,
+    ),
+  ];
+  final List<int> listCalls = [];
+  final List<int> acknowledged = [];
+  final List<int> deviations = [];
+  final List<String> deviationEventIds = [];
+  final List<Completer<List<TripAlert>>> queuedAlertResponses = [];
+  int networkFailuresRemaining = 0;
+
+  @override
+  Future<List<TripAlert>> listAlerts(int sessionId) async {
+    listCalls.add(sessionId);
+    if (queuedAlertResponses.isNotEmpty) {
+      return queuedAlertResponses.removeAt(0).future;
+    }
+    return List.of(persisted);
+  }
+
+  @override
+  Future<List<WeatherAdvisory>> listWeatherAdvisories(int sessionId) async => [
+    WeatherAdvisory(
+      advisoryKey: 'rain:1001',
+      messageCode: 'trip_alert.weather_advisory',
+      itemId: 1001,
+      poiId: 1,
+      poiName: 'Museum',
+      plannedArrivalUtc: DateTime.utc(2026, 10, 20, 2),
+      forecastAtUtc: DateTime.utc(2026, 10, 20, 2),
+      rainMmPerHour: 4.5,
+    ),
+  ];
+
+  @override
+  Future<void> acknowledgeAlert({
+    required int sessionId,
+    required int incidentId,
+  }) async => acknowledged.add(incidentId);
+
+  @override
+  Future<TripAlert> reportDeviation({
+    required int sessionId,
+    required String eventId,
+    required DateTime observedAtUtc,
+    required int targetItemId,
+  }) async {
+    deviations.add(targetItemId);
+    deviationEventIds.add(eventId);
+    if (networkFailuresRemaining > 0) {
+      networkFailuresRemaining--;
+      throw const NetworkFailure();
+    }
+    return persisted.single;
+  }
 }
 
 /// Delegates to the in-memory demo repository and records calls; failures can
