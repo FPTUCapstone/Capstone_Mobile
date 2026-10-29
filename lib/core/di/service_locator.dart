@@ -72,6 +72,11 @@ import 'package:trip_mate_mobile/features/operator_bookings/domain/repositories/
 import 'package:trip_mate_mobile/features/operator_bookings/domain/usecases/operator_bookings_use_cases.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/operator_booking_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/operator_bookings_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_check_in/data/repositories/demo_operator_check_in_repository.dart';
+import 'package:trip_mate_mobile/features/operator_check_in/data/repositories/operator_check_in_repository_impl.dart';
+import 'package:trip_mate_mobile/features/operator_check_in/domain/repositories/operator_check_in_repository.dart';
+import 'package:trip_mate_mobile/features/operator_check_in/domain/usecases/operator_check_in_use_cases.dart';
+import 'package:trip_mate_mobile/features/operator_check_in/presentation/cubit/operator_check_in_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/data/datasources/operator_tour_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/operator_tours/data/repositories/operator_tour_repository_impl.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/repositories/operator_tour_repository.dart';
@@ -338,6 +343,34 @@ Future<void> configureDependencies({AppConfig? config}) async {
       (bookingId, isDemoMode) => OperatorBookingDetailCubit(
         getBooking: serviceLocator(param1: isDemoMode),
         bookingId: bookingId,
+      ),
+    )
+    // TM-89 / UC-43: Operator Check-In
+    ..registerFactoryParam<OperatorCheckInRepository, bool, void>(
+      (isDemoMode, _) => isDemoMode
+          ? const DemoOperatorCheckInRepository()
+          : OperatorCheckInRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactoryParam<GetOperatorTodayDeparturesUseCase, bool, void>(
+      (isDemoMode, _) => GetOperatorTodayDeparturesUseCase(
+        serviceLocator<OperatorCheckInRepository>(param1: isDemoMode),
+      ),
+    )
+    ..registerFactoryParam<GetDepartureProgressUseCase, bool, void>(
+      (isDemoMode, _) => GetDepartureProgressUseCase(
+        serviceLocator<OperatorCheckInRepository>(param1: isDemoMode),
+      ),
+    )
+    ..registerFactoryParam<ScanCheckInUseCase, bool, void>(
+      (isDemoMode, _) => ScanCheckInUseCase(
+        serviceLocator<OperatorCheckInRepository>(param1: isDemoMode),
+      ),
+    )
+    ..registerFactoryParam<OperatorCheckInCubit, bool, void>(
+      (isDemoMode, _) => OperatorCheckInCubit(
+        getTodayDepartures: serviceLocator(param1: isDemoMode),
+        getDepartureProgress: serviceLocator(param1: isDemoMode),
+        scanCheckIn: serviceLocator(param1: isDemoMode),
       ),
     )
     ..registerFactory<CreateTourPackageCubit>(
