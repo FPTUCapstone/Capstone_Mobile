@@ -12,6 +12,8 @@ enum AlertSeverity { info, warning, critical }
 /// once real-time alert contracts are finalized.
 enum TripAlertType { weather, delay, closure, deviation }
 
+enum WeatherBasis { forecastAtPlannedTime, currentAtDestination, officialEvent }
+
 final class TripAlert extends Equatable {
   const TripAlert({
     required this.id,
@@ -27,6 +29,10 @@ final class TripAlert extends Equatable {
     this.resolvedAt,
     this.isRead = false,
     this.reroutingProposalId,
+    this.weatherBasis,
+    this.weatherAtUtc,
+    this.rainIntensityMmPerHour,
+    this.canSkipAffectedStop = false,
     bool rerouteProposalAvailable = false,
   }) : _legacyRerouteProposalAvailable = rerouteProposalAvailable;
 
@@ -43,6 +49,10 @@ final class TripAlert extends Equatable {
   final DateTime? resolvedAt;
   final bool isRead;
   final int? reroutingProposalId;
+  final WeatherBasis? weatherBasis;
+  final DateTime? weatherAtUtc;
+  final double? rainIntensityMmPerHour;
+  final bool canSkipAffectedStop;
   final bool _legacyRerouteProposalAvailable;
 
   bool get isResolved => resolvedAt != null;
@@ -64,6 +74,10 @@ final class TripAlert extends Equatable {
     DateTime? resolvedAt,
     bool? isRead,
     int? reroutingProposalId,
+    WeatherBasis? weatherBasis,
+    DateTime? weatherAtUtc,
+    double? rainIntensityMmPerHour,
+    bool? canSkipAffectedStop,
   }) {
     return TripAlert(
       id: id ?? this.id,
@@ -82,6 +96,11 @@ final class TripAlert extends Equatable {
       resolvedAt: resolvedAt ?? this.resolvedAt,
       isRead: isRead ?? this.isRead,
       reroutingProposalId: reroutingProposalId ?? this.reroutingProposalId,
+      weatherBasis: weatherBasis ?? this.weatherBasis,
+      weatherAtUtc: weatherAtUtc ?? this.weatherAtUtc,
+      rainIntensityMmPerHour:
+          rainIntensityMmPerHour ?? this.rainIntensityMmPerHour,
+      canSkipAffectedStop: canSkipAffectedStop ?? this.canSkipAffectedStop,
     );
   }
 
@@ -101,5 +120,9 @@ final class TripAlert extends Equatable {
     resolvedAt,
     isRead,
     reroutingProposalId,
+    weatherBasis,
+    weatherAtUtc,
+    rainIntensityMmPerHour,
+    canSkipAffectedStop,
   ];
 }

@@ -29,7 +29,7 @@ abstract final class WeatherAdvisoryModel {
       poiName: _requiredString(json, 'poiName'),
       plannedArrivalUtc: date('plannedArrivalUtc'),
       forecastAtUtc: date('forecastAtUtc'),
-      rainMmPerHour: (json['rainMmPerHour'] as num).toDouble(),
+      rainMmPerHour: _rainIntensity(json['rainIntensityMmPerHour']),
       condition: json['condition'] as String?,
     );
   }
@@ -38,5 +38,10 @@ abstract final class WeatherAdvisoryModel {
     final value = json[key];
     if (value is String && value.trim().isNotEmpty) return value;
     throw FormatException('Missing $key.');
+  }
+
+  static double _rainIntensity(Object? value) {
+    if (value is num && value.isFinite && value >= 0) return value.toDouble();
+    throw const FormatException('Invalid rainIntensityMmPerHour.');
   }
 }
