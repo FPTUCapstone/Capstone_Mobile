@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/widgets/qr_scanner_dialog.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
@@ -540,52 +539,8 @@ class OperatorDashboardView extends StatelessWidget {
     );
   }
 
-  void _openQrScanner(BuildContext context) async {
-    final scannedCode = await showDialog<String>(
-      context: context,
-      builder: (ctx) =>
-          QrScannerDialog(onScanned: (code) => Navigator.pop(ctx, code)),
-    );
-
-    if (scannedCode != null && context.mounted) {
-      await showDialog<void>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Row(
-            children: [
-              Icon(
-                isDemoMode ? Icons.check_circle : Icons.info_outline,
-                color: isDemoMode ? AppColors.success : AppColors.secondary,
-              ),
-              const SizedBox(width: 8),
-              Text(isDemoMode ? 'Check-in thành công (Demo)' : 'Đã quét mã vé'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Mã vé: $scannedCode',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                isDemoMode
-                    ? 'Hành khách: Đã xác thực hợp lệ (Dữ liệu mẫu).'
-                    : 'Tính năng kết nối API xác thực vé đối tác đang chờ triển khai (PENDING_BE_INTEGRATION).',
-              ),
-            ],
-          ),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Đóng'),
-            ),
-          ],
-        ),
-      );
-    }
+  void _openQrScanner(BuildContext context) {
+    context.push(AppRoutes.operatorCheckInPath(isDemo: isDemoMode));
   }
 }
 

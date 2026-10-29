@@ -68,6 +68,16 @@ abstract final class AppRoutes {
   static const createTourPackage = '/operator/tours/create';
   static const operatorTours = '/operator/tours';
   static const operatorBooking = '/operator/bookings/:bookingId';
+  static const operatorCheckIn = '/operator/check-in';
+  static String operatorCheckInPath({int? scheduleId, bool isDemo = false}) {
+    final params = <String, String>{};
+    if (scheduleId != null) params['scheduleId'] = scheduleId.toString();
+    if (isDemo) params['demo'] = 'true';
+    return Uri(
+      path: operatorCheckIn,
+      queryParameters: params.isEmpty ? null : params,
+    ).toString();
+  }
   static String operatorBookingPath(String bookingId, {bool isDemo = false}) =>
       '/operator/bookings/$bookingId${isDemo ? '?demo=true' : ''}';
   static const editTourPackage = '/operator/tours/:tourId/edit';
@@ -157,5 +167,6 @@ abstract final class AppRouteNames {
   static const createTourPackage = 'create-tour-package';
   static const operatorTours = 'operator-tours';
   static const operatorBooking = 'operator-booking';
+  static const operatorCheckIn = 'operator-check-in';
   static const editTourPackage = 'edit-tour-package';
 }

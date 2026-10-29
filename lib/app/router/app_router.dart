@@ -39,6 +39,8 @@ import 'package:trip_mate_mobile/features/guest/presentation/pages/guest_landing
 import 'package:trip_mate_mobile/features/operator_bookings/domain/entities/operator_booking.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/operator_booking_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/presentation/pages/operator_booking_detail_page.dart';
+import 'package:trip_mate_mobile/features/operator_check_in/presentation/cubit/operator_check_in_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_check_in/presentation/pages/operator_check_in_page.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/operator_tours_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/create_tour_package_page.dart';
@@ -662,6 +664,20 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
               ? state.extra as OperatorBookingListItem
               : null,
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.operatorCheckIn,
+        name: AppRouteNames.operatorCheckIn,
+        builder: (_, state) {
+          final isDemo = state.uri.queryParameters['demo'] == 'true';
+          final scheduleIdStr = state.uri.queryParameters['scheduleId'];
+          final scheduleId =
+              scheduleIdStr != null ? int.tryParse(scheduleIdStr) : null;
+          return BlocProvider<OperatorCheckInCubit>(
+            create: (_) => serviceLocator<OperatorCheckInCubit>(param1: isDemo),
+            child: OperatorCheckInPage(initialScheduleId: scheduleId),
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.editTourPackage,
