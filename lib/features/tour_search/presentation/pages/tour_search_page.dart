@@ -5,7 +5,9 @@ import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_state.dart';
+import 'package:trip_mate_mobile/features/tour_search/presentation/resources/tour_search_en.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/theme/tour_search_palette.dart';
+import 'package:trip_mate_mobile/features/tour_search/presentation/widgets/dev_tour_search_controls.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/widgets/tour_list_card.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/widgets/tour_search_filter_sheet.dart';
 
@@ -26,9 +28,16 @@ class TourSearchPage extends StatelessWidget {
               children: [
                 _TourSearchHeader(
                   isTraveler: isTraveler,
+                  useEnglish: cubit.devSearchEnabled,
                   onFilterTap: () => _openFilterSheet(context, state, cubit),
                 ),
-                _ActiveFilters(state: state, cubit: cubit),
+                _ActiveFilters(
+                  state: state,
+                  cubit: cubit,
+                  useEnglish: cubit.devSearchEnabled,
+                ),
+                if (cubit.devSearchEnabled)
+                  DevTourSearchControls(state: state, cubit: cubit),
                 if (state.validationFailure case final failure?)
                   _InlineNotice(
                     message:
@@ -42,6 +51,10 @@ class TourSearchPage extends StatelessWidget {
                   _InlineNotice(
                     message: state.failure!.message,
                     icon: Icons.cloud_off_outlined,
+                    actionLabel: cubit.devSearchEnabled ? 'Retry search' : null,
+                    onAction: cubit.devSearchEnabled
+                        ? cubit.retryFailedQuery
+                        : null,
                   ),
                 Expanded(
                   child: _TourListBody(state: state, cubit: cubit),
@@ -59,6 +72,15 @@ class TourSearchPage extends StatelessWidget {
     TourSearchState state,
     TourSearchCubit cubit,
   ) {
+    if (cubit.devSearchEnabled) {
+      cubit.loadCategories();
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => DevTourSearchFilterSheet(cubit: cubit),
+      );
+      return;
+    }
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -92,10 +114,12 @@ class _TourSearchHeader extends StatelessWidget {
   const _TourSearchHeader({
     required this.isTraveler,
     required this.onFilterTap,
+    required this.useEnglish,
   });
 
   final bool isTraveler;
   final VoidCallback onFilterTap;
+  final bool useEnglish;
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +160,7 @@ class _TourSearchHeader extends StatelessWidget {
                             ),
                       ),
                       Text(
-                        'Tìm kiếm Tour',
+                        useEnglish ? TourSearchEn.title : 'Tìm kiếm Tour',
                         style: Theme.of(
                           context,
                         ).textTheme.bodySmall?.copyWith(color: Colors.white70),
@@ -169,7 +193,9 @@ class _TourSearchHeader extends StatelessWidget {
                     child: FilledButton.icon(
                       onPressed: () => context.go(AppRoutes.login),
                       icon: const Icon(Icons.login, size: 18),
-                      label: const Text('Đăng nhập'),
+                      label: Text(
+                        useEnglish ? TourSearchEn.signIn : 'Đăng nhập',
+                      ),
                       style: FilledButton.styleFrom(
                         minimumSize: Size.zero,
                         padding: const EdgeInsets.symmetric(
@@ -193,7 +219,7 @@ class _TourSearchHeader extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: onFilterTap,
                 icon: const Icon(Icons.tune, size: 20),
-                label: const Text('Lọc tour'),
+                label: Text(useEnglish ? TourSearchEn.filters : 'Lọc tour'),
                 style: FilledButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: TourSearchPalette.navy,
@@ -215,10 +241,15 @@ class _TourSearchHeader extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ActiveFilters extends StatelessWidget {
-  const _ActiveFilters({required this.state, required this.cubit});
+  const _ActiveFilters({
+    required this.state,
+    required this.cubit,
+    required this.useEnglish,
+  });
 
   final TourSearchState state;
   final TourSearchCubit cubit;
+  final bool useEnglish;
 
   @override
   Widget build(BuildContext context) {
@@ -294,7 +325,7 @@ class _ActiveFilters extends StatelessWidget {
                 minimumSize: Size.zero,
               ),
               child: Text(
-                'Xóa lọc',
+                useEnglish ? TourSearchEn.clearFilters : 'Xóa lọc',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: TourSearchPalette.soldOut,
                 ),
@@ -381,73 +412,112 @@ class _TourListBody extends StatelessWidget {
     if (state.status == TourSearchStatus.failure && state.items.isEmpty) {
       return _CenteredState(
         icon: Icons.cloud_off_outlined,
-        title: 'Chưa thể tải danh sách tour',
-        message: state.failure?.message ?? 'Vui lòng thử lại.',
-        actionLabel: 'Thử lại',
+        title: cubit.devSearchEnabled
+            ? 'Tours could not be loaded'
+            : 'Chưa thể tải danh sách tour',
+        message:
+            state.failure?.message ??
+            (cubit.devSearchEnabled ? 'Please retry.' : 'Vui lòng thử lại.'),
+        actionLabel: cubit.devSearchEnabled
+            ? TourSearchEn.retrySearch
+            : 'Thử lại',
         onAction: cubit.loadInitial,
       );
     }
     if (state.status == TourSearchStatus.success && state.items.isEmpty) {
       return _CenteredState(
         icon: Icons.travel_explore,
-        title: 'Không tìm thấy tour phù hợp',
-        message: 'Hãy thử điều chỉnh bộ lọc.',
-        actionLabel: 'Đặt lại bộ lọc',
+        title: cubit.devSearchEnabled
+            ? 'No matching tours'
+            : 'Không tìm thấy tour phù hợp',
+        message: cubit.devSearchEnabled
+            ? 'Try adjusting the filters.'
+            : 'Hãy thử điều chỉnh bộ lọc.',
+        actionLabel: cubit.devSearchEnabled
+            ? TourSearchEn.clearFilters
+            : 'Đặt lại bộ lọc',
         onAction: cubit.resetFilters,
       );
     }
-    return NotificationListener<ScrollNotification>(
-      onNotification: (notification) {
-        if (notification.metrics.maxScrollExtent > 0 &&
-            notification.metrics.pixels >=
-                notification.metrics.maxScrollExtent * 0.85) {
-          cubit.loadNextPage();
-        }
-        return false;
-      },
-      child: RefreshIndicator(
-        onRefresh: cubit.refresh,
-        color: TourSearchPalette.teal,
-        child: ListView.separated(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.xs,
-            AppSpacing.md,
-            AppSpacing.lg,
-          ),
-          itemCount: state.items.length + 2,
-          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-          itemBuilder: (context, index) {
-            if (index == 0) {
-              return Padding(
-                padding: const EdgeInsets.only(
-                  top: AppSpacing.xs,
-                  bottom: AppSpacing.xxs,
-                ),
-                child: Text(
-                  'Tìm thấy ${state.totalCount} tour',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: TourSearchPalette.navy,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              );
-            }
-            if (index > state.items.length) {
-              return state.isLoadingMore
-                  ? const _LoadingMore()
-                  : const SizedBox.shrink();
-            }
-            final tour = state.items[index - 1];
-            return TourListCard(
-              tour: tour,
-              onTap: () =>
-                  context.push(AppRoutes.tourDetail(tour.tourId), extra: tour),
-            );
-          },
+    return RefreshIndicator(
+      onRefresh: cubit.refresh,
+      color: TourSearchPalette.teal,
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.xs,
+          AppSpacing.md,
+          AppSpacing.lg,
         ),
+        itemCount: state.items.length + 2,
+        separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return Padding(
+              padding: const EdgeInsets.only(
+                top: AppSpacing.xs,
+                bottom: AppSpacing.xxs,
+              ),
+              child: Text(
+                cubit.devSearchEnabled
+                    ? '${state.totalCount} tours found'
+                    : 'Tìm thấy ${state.totalCount} tour',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: TourSearchPalette.navy,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            );
+          }
+          if (index > state.items.length) {
+            return cubit.devSearchEnabled
+                ? _PageNavigation(state: state, cubit: cubit)
+                : state.isLoadingMore
+                ? const _LoadingMore()
+                : const SizedBox.shrink();
+          }
+          final tour = state.items[index - 1];
+          return TourListCard(
+            tour: tour,
+            useEnglish: cubit.devSearchEnabled,
+            onTap: () =>
+                context.push(AppRoutes.tourDetail(tour.tourId), extra: tour),
+          );
+        },
       ),
+    );
+  }
+}
+
+class _PageNavigation extends StatelessWidget {
+  const _PageNavigation({required this.state, required this.cubit});
+
+  final TourSearchState state;
+  final TourSearchCubit cubit;
+
+  @override
+  Widget build(BuildContext context) {
+    if (state.totalPages <= 1) return const SizedBox.shrink();
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          tooltip: TourSearchEn.previousPage,
+          onPressed: state.page > 1
+              ? () => cubit.goToPage(state.page - 1)
+              : null,
+          icon: const Icon(Icons.chevron_left),
+        ),
+        Text(TourSearchEn.pageOf(state.page, state.totalPages)),
+        IconButton(
+          tooltip: TourSearchEn.nextPage,
+          onPressed: state.page < state.totalPages
+              ? () => cubit.goToPage(state.page + 1)
+              : null,
+          icon: const Icon(Icons.chevron_right),
+        ),
+      ],
     );
   }
 }
@@ -457,10 +527,17 @@ class _TourListBody extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _InlineNotice extends StatelessWidget {
-  const _InlineNotice({required this.message, required this.icon});
+  const _InlineNotice({
+    required this.message,
+    required this.icon,
+    this.actionLabel,
+    this.onAction,
+  });
 
   final String message;
   final IconData icon;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -478,6 +555,9 @@ class _InlineNotice extends StatelessWidget {
           dense: true,
           leading: Icon(icon, color: TourSearchPalette.teal),
           title: Text(message),
+          trailing: actionLabel == null
+              ? null
+              : TextButton(onPressed: onAction, child: Text(actionLabel!)),
         ),
       ),
     );

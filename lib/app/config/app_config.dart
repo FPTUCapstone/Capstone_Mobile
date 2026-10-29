@@ -6,6 +6,8 @@ final class AppConfig {
     required this.environment,
     required this.apiBaseUrl,
     this.poiCategoryPreview = false,
+    this.devSearchV2 = false,
+    this.devSearchKey,
     String? webVerificationOrigin,
     String? mapboxAccessToken,
   }) : webVerificationOrigin = webVerificationOrigin == null
@@ -25,6 +27,8 @@ final class AppConfig {
       'WEB_VERIFICATION_ORIGIN',
     );
     const poiCategoryPreview = bool.fromEnvironment('POI_CATEGORY_PREVIEW');
+    const devSearchV2 = bool.fromEnvironment('TM70_DEV_SEARCH_V2');
+    const devSearchKey = String.fromEnvironment('TM70_DEV_SEARCH_KEY');
     const mapboxAccessTokenValue = String.fromEnvironment(
       'MAPBOX_ACCESS_TOKEN',
     );
@@ -39,6 +43,8 @@ final class AppConfig {
           ? null
           : webVerificationOriginValue,
       poiCategoryPreview: poiCategoryPreview,
+      devSearchV2: devSearchV2,
+      devSearchKey: devSearchKey,
       mapboxAccessToken: mapboxAccessTokenValue.isEmpty
           ? null
           : mapboxAccessTokenValue,
@@ -49,6 +55,14 @@ final class AppConfig {
   final Uri apiBaseUrl;
   final Uri? webVerificationOrigin;
   final bool poiCategoryPreview;
+  final bool devSearchV2;
+
+  /// Ephemeral lab credential. Never persist or log it; never ship a dev build.
+  final String? devSearchKey;
+  bool get devSearchEnabled =>
+      devSearchV2 &&
+      environment != Environment.production &&
+      (devSearchKey?.trim().isNotEmpty ?? false);
 
   /// Public Mapbox token (`pk.`); null disables the map and turn-by-turn
   /// guidance (UC-13 then falls back to an illustration and straight-line
