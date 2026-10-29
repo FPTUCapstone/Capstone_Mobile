@@ -234,29 +234,6 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
                       );
                     },
                   ),
-                  const SizedBox(height: 6),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 4),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.sync_rounded,
-                          size: 14,
-                          color: AppColors.muted,
-                        ),
-                        SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Scans are queued and synchronised when connectivity returns.',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.muted,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                   if (state.recentScans.isNotEmpty) ...[
                     const SizedBox(height: AppSpacing.sm),
                     CheckInRecentScansCard(scans: state.recentScans),
