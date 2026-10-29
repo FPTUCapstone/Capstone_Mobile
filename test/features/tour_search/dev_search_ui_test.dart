@@ -119,11 +119,11 @@ void main() {
         ),
       );
       for (final entry in {
-        'Điểm đến': 'Đà Nẵng',
-        'Giá tối thiểu': '100',
-        'Giá tối đa': '500',
-        'Số ngày': '3',
-        'Đánh giá tối thiểu (1–5)': '4.5',
+        'Destination': 'Đà Nẵng',
+        'Minimum price': '100',
+        'Maximum price': '500',
+        'Duration (days)': '3',
+        'Minimum rating (1–5)': '4.5',
       }.entries) {
         await tester.ensureVisible(find.widgetWithText(TextField, entry.key));
         await tester.enterText(
@@ -131,13 +131,13 @@ void main() {
           entry.value,
         );
       }
-      await tester.ensureVisible(find.text('Danh mục'));
+      await tester.ensureVisible(find.text('Category'));
       await tester.tap(find.byType(DropdownButtonFormField<String>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Tên từ server').last);
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Áp dụng bộ lọc'));
-      await tester.tap(find.text('Áp dụng bộ lọc'));
+      await tester.ensureVisible(find.text('Apply filters'));
+      await tester.tap(find.text('Apply filters'));
       await tester.pumpAndSettle();
       final query = repository.queries.last;
       expect(query.keyword, 'biển');
@@ -172,8 +172,8 @@ void main() {
       await tester.testTextInput.receiveAction(TextInputAction.search);
       await tester.pumpAndSettle();
       expect(repository.queries.last.keyword, 'biển yên tĩnh');
-      expect(find.text('Ngữ nghĩa'), findsOneWidget);
-      await tester.tap(find.text('Ngữ nghĩa'));
+      expect(find.text('Semantic'), findsOneWidget);
+      await tester.tap(find.text('Semantic'));
       await tester.pumpAndSettle();
       expect(repository.queries.last.mode, 'semantic');
       await cubit.resetFilters();
@@ -184,7 +184,7 @@ void main() {
           matching: find.byType(EditableText),
         ),
       );
-      expect(input.controller.text, isEmpty);
+      expect(input.controller.text, 'biển yên tĩnh');
     },
   );
   test('newer search supersedes stale response', () async {
@@ -211,6 +211,50 @@ void main() {
     await older;
     expect(cubit.state.query.keyword, 'new');
     expect(cubit.state.totalCount, 0);
+  });
+
+  testWidgets('shows explicit one-based pagination for V2 results', (
+    tester,
+  ) async {
+    final repository = _Repository();
+    repository.pending = Future.value(
+      const PagedTourResult(
+        page: 1,
+        pageSize: 20,
+        totalCount: 41,
+        totalPages: 3,
+        items: [
+          TourSummary(
+            tourId: 'P1',
+            title: 'Paged tour',
+            destinations: [],
+            operatorName: 'Operator',
+            durationDays: 2,
+            basePrice: 1,
+            currency: 'VND',
+            representativeScheduleId: null,
+            departureAtUtc: null,
+            availabilityStatus: AvailabilityStatus.available,
+            remainingSlots: 1,
+          ),
+        ],
+      ),
+    );
+    final cubit = TourSearchCubit(
+      searchTours: SearchToursUseCase(repository),
+      devSearchEnabled: true,
+    );
+    addTearDown(cubit.close);
+    await cubit.applyV2Query(const TourSearchQuery(keyword: 'sea'));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider.value(value: cubit, child: const TourSearchPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Page 1 of 3'), findsOneWidget);
+    expect(find.byTooltip('Previous page'), findsOneWidget);
+    expect(find.byTooltip('Next page'), findsOneWidget);
   });
 }
 

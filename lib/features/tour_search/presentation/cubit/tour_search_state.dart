@@ -11,6 +11,8 @@ final class TourSearchState extends Equatable {
     this.status = TourSearchStatus.initial,
     this.items = const [],
     this.query = const TourSearchQuery(),
+    this.pendingQuery,
+    this.failedQuery,
     this.page = 0,
     this.totalCount = 0,
     this.totalPages = 0,
@@ -28,6 +30,8 @@ final class TourSearchState extends Equatable {
   final TourSearchStatus status;
   final List<TourSummary> items;
   final TourSearchQuery query;
+  final TourSearchQuery? pendingQuery;
+  final TourSearchQuery? failedQuery;
   final int page;
   final int totalCount;
   final int totalPages;
@@ -45,6 +49,8 @@ final class TourSearchState extends Equatable {
     TourSearchStatus? status,
     List<TourSummary>? items,
     TourSearchQuery? query,
+    Object? pendingQuery = _unset,
+    Object? failedQuery = _unset,
     int? page,
     int? totalCount,
     int? totalPages,
@@ -60,6 +66,12 @@ final class TourSearchState extends Equatable {
       status: status ?? this.status,
       items: items ?? this.items,
       query: query ?? this.query,
+      pendingQuery: identical(pendingQuery, _unset)
+          ? this.pendingQuery
+          : pendingQuery as TourSearchQuery?,
+      failedQuery: identical(failedQuery, _unset)
+          ? this.failedQuery
+          : failedQuery as TourSearchQuery?,
       page: page ?? this.page,
       totalCount: totalCount ?? this.totalCount,
       totalPages: totalPages ?? this.totalPages,
@@ -82,6 +94,8 @@ final class TourSearchState extends Equatable {
     status,
     items,
     query,
+    pendingQuery,
+    failedQuery,
     page,
     totalCount,
     totalPages,

@@ -81,6 +81,70 @@ void main() {
     );
 
     blocTest<TourSearchCubit, TourSearchState>(
+      'dev clear filters preserves keyword and mode and restores default sort',
+      build: () => TourSearchCubit(
+        searchTours: SearchToursUseCase(_PagingTourRepository()),
+        devSearchEnabled: true,
+      ),
+      act: (cubit) async {
+        await cubit.applyV2Query(
+          const TourSearchQuery(
+            keyword: ' quiet sea ',
+            mode: 'semantic',
+            destination: 'Hoi An',
+            category: 'SEA',
+            sort: 'priceDesc',
+            page: 3,
+          ),
+        );
+        await cubit.resetFilters();
+      },
+      verify: (cubit) {
+        expect(
+          cubit.state.query,
+          const TourSearchQuery(
+            keyword: 'quiet sea',
+            mode: 'semantic',
+            sort: 'relevance',
+          ),
+        );
+      },
+    );
+
+    test('failed query is retained separately and retry targets it', () async {
+      final repository = _ConditionalErrorTourRepository();
+      final cubit = TourSearchCubit(
+        searchTours: SearchToursUseCase(repository),
+        devSearchEnabled: true,
+      );
+      addTearDown(cubit.close);
+      await cubit.applyV2Query(const TourSearchQuery(keyword: 'working'));
+      await cubit.applyV2Query(
+        const TourSearchQuery(destination: 'invalid', keyword: 'failed'),
+      );
+      expect(cubit.state.query.keyword, 'working');
+      expect(cubit.state.failedQuery?.keyword, 'failed');
+      await cubit.retryFailedQuery();
+      expect(cubit.state.failedQuery?.keyword, 'failed');
+    });
+
+    blocTest<TourSearchCubit, TourSearchState>(
+      'goToPage requests an explicit one-based page using displayed criteria',
+      build: () => TourSearchCubit(
+        searchTours: SearchToursUseCase(_PagingTourRepository()),
+        devSearchEnabled: true,
+      ),
+      act: (cubit) async {
+        await cubit.applyV2Query(const TourSearchQuery(keyword: 'sea'));
+        await cubit.goToPage(2);
+      },
+      verify: (cubit) {
+        expect(cubit.state.page, 2);
+        expect(cubit.state.query.keyword, 'sea');
+      },
+    );
+
+    blocTest<TourSearchCubit, TourSearchState>(
       'refresh re-queries with current query filters at page 1',
       build: () => TourSearchCubit(
         searchTours: SearchToursUseCase(_PagingTourRepository()),

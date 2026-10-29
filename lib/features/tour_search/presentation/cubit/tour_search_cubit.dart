@@ -69,7 +69,27 @@ final class TourSearchCubit extends Cubit<TourSearchState> {
     );
   }
 
-  Future<void> resetFilters() => _replace(const TourSearchQuery());
+  Future<void> resetFilters() {
+    if (!devSearchEnabled) return _replace(const TourSearchQuery());
+    final keyword = state.query.keyword?.trim();
+    return _replace(
+      TourSearchQuery(
+        keyword: keyword,
+        mode: state.query.mode,
+        sort: keyword?.isNotEmpty == true ? 'relevance' : 'departureDate',
+      ),
+    );
+  }
+
+  Future<void> retryFailedQuery() =>
+      _replace(state.failedQuery ?? state.query.copyWith(page: 1));
+
+  Future<void> goToPage(int page) {
+    if (page < 1 || page > state.totalPages || page == state.page) {
+      return Future.value();
+    }
+    return _replace(state.query.copyWith(page: page));
+  }
 
   Future<void> loadNextPage() async {
     if (state.isLoadingMore || !state.canLoadMore) return;
@@ -114,7 +134,9 @@ final class TourSearchCubit extends Cubit<TourSearchState> {
     emit(
       state.copyWith(
         status: hasData ? TourSearchStatus.success : TourSearchStatus.loading,
-        query: query,
+        query: hasData ? previousQuery : query,
+        pendingQuery: query,
+        failedQuery: null,
         isLoadingMore: false,
         isRefreshing: true,
         failure: null,
@@ -130,6 +152,8 @@ final class TourSearchCubit extends Cubit<TourSearchState> {
           status: TourSearchStatus.success,
           items: result.items,
           query: query.copyWith(page: result.page),
+          pendingQuery: null,
+          failedQuery: null,
           page: result.page,
           totalCount: result.totalCount,
           totalPages: result.totalPages,
@@ -146,6 +170,8 @@ final class TourSearchCubit extends Cubit<TourSearchState> {
           validationFailure: failure,
           isRefreshing: false,
           query: hasData ? previousQuery : query,
+          pendingQuery: null,
+          failedQuery: query,
         ),
       );
     } on Failure catch (failure) {
@@ -156,6 +182,8 @@ final class TourSearchCubit extends Cubit<TourSearchState> {
           failure: failure,
           isRefreshing: false,
           query: hasData ? previousQuery : query,
+          pendingQuery: null,
+          failedQuery: query,
         ),
       );
     }

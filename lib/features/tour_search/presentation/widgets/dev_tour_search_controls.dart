@@ -5,6 +5,7 @@ import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_search_query.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_state.dart';
+import 'package:trip_mate_mobile/features/tour_search/presentation/resources/tour_search_en.dart';
 
 class DevTourSearchControls extends StatefulWidget {
   const DevTourSearchControls({
@@ -47,7 +48,7 @@ class _DevTourSearchControlsState extends State<DevTourSearchControls> {
           maxLength: 300,
           textInputAction: TextInputAction.search,
           decoration: const InputDecoration(
-            labelText: 'Tìm tour bằng mô tả',
+            labelText: TourSearchEn.keyword,
             counterText: '',
             prefixIcon: Icon(Icons.search),
           ),
@@ -58,9 +59,9 @@ class _DevTourSearchControlsState extends State<DevTourSearchControls> {
           spacing: AppSpacing.xs,
           children: [
             for (final mode in const {
-              'lexical': 'Từ khóa',
-              'semantic': 'Ngữ nghĩa',
-              'hybrid': 'Kết hợp',
+              'lexical': TourSearchEn.lexical,
+              'semantic': TourSearchEn.semantic,
+              'hybrid': TourSearchEn.hybrid,
             }.entries)
               ChoiceChip(
                 label: Text(mode.value),
@@ -73,14 +74,14 @@ class _DevTourSearchControlsState extends State<DevTourSearchControls> {
         DropdownButtonFormField<String>(
           key: ValueKey(state.query.sort),
           initialValue: state.query.sort,
-          decoration: const InputDecoration(labelText: 'Sắp xếp'),
+          decoration: const InputDecoration(labelText: TourSearchEn.sort),
           items: [
             for (final sort in const {
-              'relevance': 'Độ phù hợp',
-              'priceAsc': 'Giá tăng dần',
-              'priceDesc': 'Giá giảm dần',
-              'rating': 'Đánh giá',
-              'departureDate': 'Ngày khởi hành',
+              'relevance': TourSearchEn.relevance,
+              'priceAsc': TourSearchEn.priceAscending,
+              'priceDesc': TourSearchEn.priceDescending,
+              'rating': TourSearchEn.rating,
+              'departureDate': TourSearchEn.departureDate,
             }.entries)
               DropdownMenuItem(value: sort.key, child: Text(sort.value)),
           ],
@@ -141,33 +142,43 @@ class _DevTourSearchFilterSheetState extends State<DevTourSearchFilterSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Bộ lọc tìm kiếm',
+              TourSearchEn.filters,
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            _field(_destination, 'Điểm đến'),
-            _date('Từ ngày', _start, (value) => setState(() => _start = value)),
-            _date('Đến ngày', _end, (value) => setState(() => _end = value)),
-            _field(_min, 'Giá tối thiểu', number: true),
-            _field(_max, 'Giá tối đa', number: true),
-            _field(_duration, 'Số ngày', number: true),
-            _field(_rating, 'Đánh giá tối thiểu (1–5)', number: true),
+            _field(_destination, TourSearchEn.destination),
+            _date(
+              TourSearchEn.startDate,
+              _start,
+              (value) => setState(() => _start = value),
+            ),
+            _date(
+              TourSearchEn.endDate,
+              _end,
+              (value) => setState(() => _end = value),
+            ),
+            _field(_min, TourSearchEn.minimumPrice, number: true),
+            _field(_max, TourSearchEn.maximumPrice, number: true),
+            _field(_duration, TourSearchEn.duration, number: true),
+            _field(_rating, TourSearchEn.minimumRating, number: true),
             if (state.categoriesLoading) const LinearProgressIndicator(),
             if (state.categoriesFailure != null)
               TextButton.icon(
                 onPressed: widget.cubit.loadCategories,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Không tải được danh mục. Thử lại'),
+                label: const Text(TourSearchEn.retryCategories),
               ),
             DropdownButtonFormField<String>(
               initialValue:
                   state.categories.any((item) => item.code == _category)
                   ? _category
                   : null,
-              decoration: const InputDecoration(labelText: 'Danh mục'),
+              decoration: const InputDecoration(
+                labelText: TourSearchEn.category,
+              ),
               items: [
                 const DropdownMenuItem<String>(
                   value: '',
-                  child: Text('Tất cả'),
+                  child: Text(TourSearchEn.allCategories),
                 ),
                 for (final category in state.categories)
                   DropdownMenuItem(
@@ -186,14 +197,14 @@ class _DevTourSearchFilterSheetState extends State<DevTourSearchFilterSheet> {
             const SizedBox(height: AppSpacing.md),
             FilledButton(
               onPressed: _apply,
-              child: const Text('Áp dụng bộ lọc'),
+              child: const Text(TourSearchEn.applyFilters),
             ),
             TextButton(
               onPressed: () {
                 widget.cubit.resetFilters();
                 Navigator.pop(context);
               },
-              child: const Text('Đặt lại'),
+              child: const Text(TourSearchEn.clearFilters),
             ),
           ],
         ),
@@ -223,7 +234,7 @@ class _DevTourSearchFilterSheetState extends State<DevTourSearchFilterSheet> {
         child: TextButton.icon(
           icon: const Icon(Icons.calendar_today_outlined),
           label: Text(
-            '$label: ${value == null ? 'Chọn ngày' : '${value.day}/${value.month}/${value.year}'}',
+            '$label: ${value == null ? TourSearchEn.chooseDate : '${value.day}/${value.month}/${value.year}'}',
           ),
           onPressed: () async {
             final today = DateTime.now();
@@ -239,7 +250,7 @@ class _DevTourSearchFilterSheetState extends State<DevTourSearchFilterSheet> {
       ),
       if (value != null)
         IconButton(
-          tooltip: 'Xóa $label',
+          tooltip: '${TourSearchEn.clear} $label',
           onPressed: () => changed(null),
           icon: const Icon(Icons.close),
         ),
@@ -270,7 +281,7 @@ class _DevTourSearchFilterSheetState extends State<DevTourSearchFilterSheet> {
     } on ValidationFailure catch (failure) {
       setState(() => _error = failure.message);
     } on FormatException {
-      setState(() => _error = 'Vui lòng nhập giá trị số hợp lệ.');
+      setState(() => _error = TourSearchEn.invalidNumber);
     }
   }
 }
