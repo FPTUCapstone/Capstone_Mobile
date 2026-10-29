@@ -1,19 +1,21 @@
-# UC-14 Receive Real-Time Alerts — Mobile Specification
+# UC-14 Receive Real-Time Alerts — Tomorrow.io Mobile Revision
 
 ## Status and source
 
-Repository-level specification approved by the user on 2026-10-22, derived from the cross-repository specification:
-[`../../.scratch/uc14-real-time-alerts/spec.md`](../../.scratch/uc14-real-time-alerts/spec.md).
-
-This document defines only the approved Flutter Mobile contract. The companion Backend contract is
-[`../../Capstone_BE/specs/UC-14-receive-real-time-alerts-spec.md`](../../Capstone_BE/specs/UC-14-receive-real-time-alerts-spec.md).
+**Approved by user on 2026-10-28 for implementation.** The previous Mobile contract is
+preserved at [`../../Capstone_Mobile/specs/UC-14-receive-real-time-alerts-mobile-spec.md`](../../Capstone_Mobile/specs/UC-14-receive-real-time-alerts-mobile-spec.md).
+Companion Backend specification lives in the `Capstone_BE_UC14` worktree; the
+[Mobile implementation plan](../plans/UC-14-receive-real-time-alerts-mobile-plan.md)
+tracks this revision.
+Implementation is authorized. No commit or push is authorized.
+Weather provider: Tomorrow.io (Backend only). Notification policy: `UC14-2026-10-28-v1`.
 
 ## Purpose and boundary
 
 During an active UC-13 trip, Mobile presents TripMate alerts in the navigation UI and alert history,
 receives FCM notifications, registers the current device and reports route-deviation transitions.
 
-Mobile does not call OpenWeather, decide whether a delay/POI/weather incident exists, upload GPS to
+Mobile does not call Tomorrow.io, decide whether a delay/POI/weather incident exists, upload GPS to
 Backend, or change the itinerary. UC-15 owns review and application of a reroute proposal.
 
 ## Current code to replace or extend
@@ -35,8 +37,13 @@ data with repository/use-case data and map Backend message codes into localized 
 ### Active navigation
 
 - Show the newest unread persisted alert as a banner over the active-trip screen.
-- Show a moderate-rain advisory banner for an affected Outdoor stop, once per `advisoryKey` during
-  the current app session.
+- Show a moderate-rain advisory banner for an affected Outdoor stop. If Backend promotes it to a
+  persisted `Info` preparation alert within one hour of the visit, render the persisted alert and
+  suppress the matching transient advisory banner. Never display both copies.
+- For heavy rain at an Outdoor stop, clearly advise postponing/skipping that visit. If that stop is
+  still `Pending`, expose the existing UC-13 Skip action with Traveler confirmation; never skip it
+  automatically. Show the UC-15 adjustment action only when Backend supplies a valid
+  `reroutingProposalId`; do not present a fake alternative.
 - Closing a banner hides it locally and does not mark the server alert as read.
 - Tapping a persisted alert opens its detail, then acknowledges it through Backend.
 - If `reroutingProposalId` is present, show “Xem đề xuất điều chỉnh” and navigate to UC-15. Never
@@ -62,9 +69,19 @@ GET /api/v1/navigation-sessions/{sessionId}/alerts
 ```
 
 Map `incidentId`, `type`, `severity`, `messageCode`, `description?`, structured affected-item/reason
-fields, `detectedAtUtc`, `resolvedAtUtc?`, `isRead` and `reroutingProposalId?`. Known types are
-`SevereWeather`, `ScheduleDelay`, `RouteDeviation` and `POIClosure`. The first release receives
-`Warning` for persisted incidents.
+fields, `detectedAtUtc`, `resolvedAtUtc?`, `isRead` and `reroutingProposalId?`. Weather alerts also
+carry `weatherBasis = ForecastAtPlannedTime | CurrentAtDestination | OfficialEvent` and the provider's weather time.
+Use Backend `canSkipAffectedStop` together with a locally `Pending` affected item to show the
+confirmed Skip shortcut. Rain intensity alone cannot prove a POI is Outdoor because thunderstorm
+and extreme-rain warnings may affect Indoor POIs too.
+Use `weatherCondition` to distinguish moderate/heavy/extreme rain from thunderstorm in display copy;
+unknown legacy weather conditions use neutral wording.
+Render “dự báo khi bạn đến” only for the first, “hiện tại tại điểm đến” for the second and source
+authority wording for an official event; do not conflate these forms of evidence, and
+never claim Backend knows the Traveler's actual arrival time from GPS. Known types are
+`WeatherAdvisory`, `SevereWeather`, `ScheduleDelay`, `RouteDeviation` and `POIClosure`. Persisted
+`WeatherAdvisory` has `Info` severity; the other persisted incident types use `Warning` in this
+release. A moderate-rain preparation push is informational, not an emergency or tour cancellation.
 
 Transient moderate-rain advisories come from:
 
@@ -73,8 +90,10 @@ GET /api/v1/navigation-sessions/{sessionId}/weather-advisories
 ```
 
 Map `advisoryKey`, `severity = Info`, `messageCode = trip_alert.weather_advisory`,
-`affectedItemId`, `forecastAtUtc` and `rainIntensityMmPerHour`. These are session-only UI data: do
-not add them to alert history and do not acknowledge them.
+`affectedItemId`, `forecastAtUtc` and `rainIntensityMmPerHour`. These transient entries are
+session-only UI data: do not add them to alert history and do not acknowledge them. The matching
+persisted `WeatherAdvisory`, when present, comes from the Alerts endpoint, appears in history and
+supports the normal acknowledgement route.
 
 Mark a persisted alert read with:
 
@@ -158,11 +177,16 @@ retried by the user or next refresh.
 
 ## Acceptance criteria
 
-- Active-trip banner, alert sheet/page and details render all four types from Backend DTOs, newest
+- Active-trip banner, alert sheet/page and details render all five types from Backend DTOs, newest
   first, with localized text and affected stop information.
 - Banner dismissal is local; detail open acknowledges; resolved history remains readable.
-- Moderate rain is shown once per advisory key only on the active trip and never appears in alert
-  history.
+- Moderate rain one to three hours before an Outdoor visit appears only as a transient advisory;
+  within one hour Backend may persist one `Info` preparation alert, which appears in history and
+  replaces its transient banner. Duplicate FCM/advisory payloads do not stack banners.
+- Heavy rain copy advises postponing/skipping the affected Outdoor visit; the existing Skip action
+  requires a still-Pending item and confirmation, and a UC-15 proposal appears only when supplied
+  by Backend. Weather text uses the affected POI/time and forecast/current basis, not a city-wide
+  claim, and never says a booked tour was cancelled by UC-14.
 - Resume/reconnect refresh recovers missed push alerts.
 - Foreground, background and deep-link paths converge on one server-loaded incident and deduplicate
   repeated push payloads.

@@ -919,11 +919,21 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
           !alert.isDismissedFromBanner,
       orElse: () => null,
     );
+    final persistedRainItemIds = merged
+        .where(
+          (alert) =>
+              alert.messageCode == 'trip_alert.weather_advisory' &&
+              !alert.isResolved &&
+              alert.affectedItemId != null,
+        )
+        .map((alert) => alert.affectedItemId)
+        .toSet();
     final advisory = loadedAdvisories == null
         ? state.activeWeatherAdvisory
         : loadedAdvisories!.cast<WeatherAdvisory?>().firstWhere(
             (item) =>
                 item != null &&
+                !persistedRainItemIds.contains(item.itemId) &&
                 !_weatherAdvisoryStore.isDismissed(item.advisoryKey),
             orElse: () => null,
           );
@@ -933,7 +943,8 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
         activeBannerAlert: banner,
         clearBannerAlert: banner == null,
         activeWeatherAdvisory: advisory,
-        clearWeatherAdvisory: loadedAdvisories != null && advisory == null,
+        clearWeatherAdvisory:
+            advisory == null || persistedRainItemIds.contains(advisory.itemId),
         alertRefreshStatus: alertFailed || advisoryFailed
             ? AlertRefreshStatus.failure
             : AlertRefreshStatus.success,

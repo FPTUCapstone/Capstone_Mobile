@@ -1,99 +1,23 @@
-# UC-14 Receive Real-Time Alerts — Mobile Implementation Plan
+# UC-14 Tomorrow.io revision — review and implementation plan
 
-## Status
+**Status:** Approved by user on 2026-10-28 for implementation. Backend contract is in `Capstone_BE_UC14/specs/UC-14-receive-real-time-alerts-spec.md`; Mobile contract is in `specs/UC-14-receive-real-time-alerts-mobile-spec.md`. No commit, push, PR, merge or deployment is authorized.
 
-Approved by the user on 2026-10-22. It implements
-[`../specs/UC-14-receive-real-time-alerts-mobile-spec.md`](../specs/UC-14-receive-real-time-alerts-mobile-spec.md),
-which is derived from the approved cross-repository contract.
+## Scope
 
-Repository: `Capstone_Mobile`. Start after Backend OpenAPI for list, acknowledgement, advisories,
-deviation and device registration is stable. Do not commit, push, open a PR or deploy without an
-explicit request.
+Change only UC-14's **weather provider and weather alert behavior**. Preserve the approved schedule-delay, POI-closure, route-deviation, device registration, acknowledgement, ownership and FCM retry contracts. UC-14 must never cancel a commercial Tour or Booking; UC-70 remains a separate decision.
 
-## Dependency order
+## Steps after approval
 
-`M0 → M1 → M2 → M3 → M4 → M5`. M1–M3 can be integrated against fixture DTOs while Backend is under
-development; replace fixtures only after the OpenAPI contract is accepted.
+- [ ] **0. Reconcile approved documents.** Update the colocated Backend/Mobile UC-14 specs and plans, and the cross-repository UC-14 source spec, to remove OpenWeather-specific weather rules and add the approved Tomorrow.io rules. Record the provider and notification-policy version. Do not silently rewrite UC-70.
+- [ ] **1. Baseline and provider verification.** Preserve unrelated dirty work in the original repositories; work in isolated UC-14 branches/worktrees. Record BE/Mobile build/test baselines. Verify the key's forecast fields/units/horizon at representative Vietnam POIs and its commercial quota without logging credentials. Verify a real or provider-sanctioned Vietnam official-event payload, stable event identity, issuer, area/time and delivery path before enabling official-event alerts. The current zero-event response does not satisfy this gate.
+- [ ] **2. Schema, POI readiness and contract.** Extend the explicit idempotent UC-14 SQL migration's `trip.Incidents` check constraint for `WeatherAdvisory` while preserving existing values/rows. Persist nullable weather basis, provider time and structured rain intensity for weather alerts; keep non-weather legacy writers valid. Audit `IndoorOutdoor` for active POIs; add a reviewed marker and require explicit classification for future POIs if current data cannot prove review. Expose an operational readiness report/count of unreviewed active POIs; do not treat the catalog's default Outdoor value as verified. Use the planned Incident/Notification/AlertDeliveryWork pattern for persisted `Info` preparation pushes; keep transient advisories in the existing endpoint. Test migration rerun, legacy writers, unreviewed POI behavior, owner isolation and no duplicate transient/persisted alert.
+- [ ] **3. Tomorrow.io forecast adapter.** Create the UC-14 Application weather port and one Backend client, reading `rainIntensity`, `weatherCode`, forecast/realtime time and coordinates in metric units. Use hourly forecast for a future planned POI visit; if the next Pending stop's planned arrival is past, use realtime at that POI only when its timestamp is at most 10 minutes old and label it as current destination conditions. Cache by coordinates/time bucket for at most one 10-minute scan, isolate API errors, and treat missing/stale data as unknown. No Mobile call to Tomorrow.io. Test with deterministic fake responses; keep live calls outside the normal test suite.
+- [ ] **4. Weather detector and delivery.** Implement `2.5/10/50` mm/hour boundaries, reviewed Outdoor checks, one-hour moderate preparation and three-hour severe-warning windows. Limit moderate pushes to one per session per three hours. Use distinct band source keys so escalation from moderate to heavy and heavy to at least 50 mm/hour produces one new warning, while repeated scans in the same band do not spam. For an overdue next Pending stop, never push based on its old forecast hour; only fresh realtime heavy rain/thunderstorm can warn as current destination conditions. Official event warnings remain behind their separate source gate. Test provider outage, passed/skipped stops, overdue planned time, exact planned hour, escalation, cooldown and FCM replay.
+- [ ] **5. Mobile presentation.** Render persisted `Info` WeatherAdvisory in alert history and suppress the matching transient banner; render `Warning` weather alerts with affected POI/time and distinguish forecast from current destination conditions. For Outdoor heavy rain, offer the existing UC-13 Skip action only for a valid Pending stop and after Traveler confirmation; show UC-15 only when Backend supplies a valid proposal. Keep schedule-delay, POI-closure, route-deviation, permission-denied and reconnect behavior intact. Test duplicate FCM, local banner dismissal, acknowledgement and history recovery.
+- [ ] **6. Review and verification.** Run focused BE and Mobile tests, BE build/full tests, Mobile analyzer/tests and SQL Server migration tests. Exercise one controlled forecast → transient advisory → persisted preparation push → heavy-rain escalation → resolution flow. Verify no UC-14 path mutates TourSchedule, Booking, Refund or UC-70 state. Review the diff against both revised specs and repo rules; report gated official-event coverage separately.
 
-## Tasks
+## Evidence and limits
 
-### M0 — Baseline and production seam
-
-Inspect and baseline:
-
-- `lib/features/traveler/domain/entities/trip_alert.dart`
-- `lib/features/traveler/presentation/cubit/active_trip_cubit.dart`
-- `lib/features/traveler/presentation/cubit/active_trip_state.dart`
-- alert banner/sheet/page and demo fixtures
-- `lib/features/traveler/data/repositories/navigation_session_repository_impl.dart`
-- `lib/core/di/service_locator.dart`, router and authentication logout flow
-
-Record the current off-route transition seam and verify demo alerts do not leak into production.
-Run `flutter analyze` and `flutter test` for a clean baseline.
-
-### M1 — Alert and advisory data layer
-
-Add focused DTOs/data source/repository/use cases under `lib/features/traveler/` for list,
-acknowledgement, current advisories and deviation submission. Extend `TripAlert` with server identity,
-message code, read/resolved state and optional proposal ID. Keep advisory as a separate domain type so
-it cannot enter persisted history accidentally.
-
-Add mapping tests for every type, nullable description/proposal/resolution, UTC parsing, unknown enum
-failure/fallback policy and Backend error mapping. Use OpenAPI fixture JSON.
-
-### M2 — Production alert state and UI
-
-Connect `ActiveTripCubit` to alert/advisory use cases and replace production demo fallback. Update:
-
-- `active_trip_page.dart`
-- `trip_alert_banner.dart`
-- `trip_alerts_sheet.dart`
-- `trip_alerts_page.dart`
-- `app_router.dart` as needed for alert detail/deep links
-
-Implement newest unread banner, local dismissal, server acknowledgement on detail open, resolved
-history, empty/loading/error states, once-per-session advisory keys and conditional UC-15 action.
-Add Cubit/widget tests for the state transitions rather than snapshots of static markup.
-
-### M3 — Refresh and deviation integration
-
-Refresh alerts/advisories when the active session loads, app resumes and connectivity returns. Wire
-the existing UC-13 on-route → off-route transition to one deviation submission with UUID and UTC
-timestamp. Reuse the UUID only for transport replay; on `429`, stop automatic retry and respect the
-response for user feedback/telemetry. Test duplicate incidents, reconnect and no-coordinate payloads.
-
-### M4 — Firebase Messaging and device lifecycle
-
-Add `firebase_messaging` to `pubspec.yaml` and configure platform files using the existing Firebase
-project. Add a messaging service/data source, installation-ID storage through the current secure
-storage service, and Backend register/remove calls. Register dependencies in
-`lib/core/di/service_locator.dart` and connect login/logout/token-refresh lifecycle.
-
-Implement foreground refresh/banner, background notification tap and cold-start deep link. Treat push
-payload as a hint, then load server state. Test service logic with fakes; verify operating-system
-delivery on a real Android device. Never log tokens.
-
-### M5 — Verification and review
-
-Run:
-
-```powershell
-flutter pub get
-dart format --set-exit-if-changed .
-flutter analyze
-flutter test
-flutter build apk --debug
-```
-
-Complete a cross-module check with Backend fixtures for all four incident types, moderate-rain
-advisory, read/resolved history, duplicate push, permission denial, token rotation/logout, missed-push
-recovery, deviation replay and `429`. Review the diff against both repository specs.
-
-## Delivery slices
-
-1. Server-backed list, detail and acknowledgement.
-2. Active banner and transient weather advisory.
-3. Deviation submission from the existing UC-13 detector.
-4. Device registration and Firebase Messaging.
-
-The first slice remains useful without FCM because the server Alerts list is the recovery path.
+- On 2026-10-28, the configured Tomorrow.io key returned HTTP 200 for realtime and hourly forecast at a Da Nang point. The hourly result contained 120 entries and the fields needed for this proposed rain contract. Flood/thunderstorm Events queries returned zero active events; official-event coverage, stable identity and webhook delivery for Vietnam are unverified.
+- The original BE source tree has an approved UC-14 spec and plan but no OpenWeather/One Call weather client or UC-14 detector implementation to migrate. The source change is a spec revision, not a code migration.
+- The 2.5/10/50 mm/hour rain bands follow the published [WMO intensity table](https://www.weather.gov/media/epz/mesonet/CWOP-WMO8.pdf). The one-hour/three-hour push windows and three-hour preparation-message limit are proposed TripMate UX policy.

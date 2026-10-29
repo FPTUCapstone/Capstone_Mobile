@@ -329,26 +329,13 @@ class _ActiveTripPageState extends State<ActiveTripPage>
     final cubit = context.read<ActiveTripCubit>();
     await cubit.acknowledgeAlert(alert);
     if (!context.mounted) return;
-    final currentAlert = cubit.state.alerts.firstWhere(
-      (item) => item.id == alert.id,
-      orElse: () => alert,
-    );
-    final alerts = [
-      currentAlert,
-      ...cubit.state.alerts.where((item) => item.id != alert.id),
-    ];
     await TripAlertsSheet.show(
       context,
-      alerts: alerts,
-      onReviewReroute: cubit.state.activeRerouteProposal == null
-          ? null
-          : cubit.openRerouteProposal,
+      cubit: cubit,
+      firstAlertId: alert.id,
       onOpenAlert: (item) => unawaited(cubit.acknowledgeAlert(item)),
       onConfirmArrival: (item) =>
           unawaited(_confirmAlertArrival(context, item)),
-      isLoading: cubit.state.alertRefreshStatus == AlertRefreshStatus.loading,
-      errorMessage: cubit.state.alertRefreshError,
-      onRetry: cubit.refreshAlerts,
     );
   }
 
@@ -436,21 +423,12 @@ class _ActiveTripPageState extends State<ActiveTripPage>
                             if (!context.mounted) return;
                             await TripAlertsSheet.show(
                               context,
-                              alerts: cubit.state.alerts,
-                              onReviewReroute:
-                                  cubit.state.activeRerouteProposal == null
-                                  ? null
-                                  : cubit.openRerouteProposal,
+                              cubit: cubit,
                               onOpenAlert: (item) =>
                                   unawaited(cubit.acknowledgeAlert(item)),
                               onConfirmArrival: (item) => unawaited(
                                 _confirmAlertArrival(context, item),
                               ),
-                              isLoading:
-                                  cubit.state.alertRefreshStatus ==
-                                  AlertRefreshStatus.loading,
-                              errorMessage: cubit.state.alertRefreshError,
-                              onRetry: cubit.refreshAlerts,
                             );
                           },
                           onReviewReroute:
@@ -465,6 +443,22 @@ class _ActiveTripPageState extends State<ActiveTripPage>
                                   TripAlertType.delay
                               ? () => unawaited(
                                   _confirmAlertArrival(
+                                    context,
+                                    state.activeBannerAlert!,
+                                  ),
+                                )
+                              : null,
+                          onSkipAffectedStop:
+                              state.items.any(
+                                (item) =>
+                                    item.itemId ==
+                                        state
+                                            .activeBannerAlert!
+                                            .affectedItemId &&
+                                    item.status == NavigationItemStatus.pending,
+                              )
+                              ? () => unawaited(
+                                  _confirmAlertSkip(
                                     context,
                                     state.activeBannerAlert!,
                                   ),
@@ -505,21 +499,12 @@ class _ActiveTripPageState extends State<ActiveTripPage>
                               count: state.alerts.length,
                               onPressed: () => TripAlertsSheet.show(
                                 context,
-                                alerts: state.alerts,
-                                onReviewReroute:
-                                    state.activeRerouteProposal == null
-                                    ? null
-                                    : cubit.openRerouteProposal,
+                                cubit: cubit,
                                 onOpenAlert: (item) =>
                                     unawaited(cubit.acknowledgeAlert(item)),
                                 onConfirmArrival: (item) => unawaited(
                                   _confirmAlertArrival(context, item),
                                 ),
-                                isLoading:
-                                    state.alertRefreshStatus ==
-                                    AlertRefreshStatus.loading,
-                                errorMessage: state.alertRefreshError,
-                                onRetry: cubit.refreshAlerts,
                               ),
                             ),
                           ],
@@ -687,6 +672,21 @@ class _ActiveTripPageState extends State<ActiveTripPage>
       isDestructive: item.isMandatory,
     );
     if (confirmed) await cubit.skipItem(item.itemId);
+  }
+
+  Future<void> _confirmAlertSkip(BuildContext context, TripAlert alert) async {
+    final item = context
+        .read<ActiveTripCubit>()
+        .state
+        .items
+        .cast<NavigationSessionItem?>()
+        .firstWhere(
+          (candidate) =>
+              candidate?.itemId == alert.affectedItemId &&
+              candidate?.status == NavigationItemStatus.pending,
+          orElse: () => null,
+        );
+    if (item != null) await _confirmSkip(context, item);
   }
 
   Future<void> _confirmFinish(

@@ -8,6 +8,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_gen
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_stop.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_route.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/reroute_proposal.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/navigation_location_tracker.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_cubit.dart';
@@ -17,6 +18,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/pages/active_tri
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/navigation_map_canvas.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/reroute_proposal_sheet.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_alert_banner.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_alerts_sheet.dart';
 
 import '../cubit/active_trip_cubit_test.dart';
 
@@ -507,6 +509,48 @@ void main() {
   });
 
   group('ActiveTripPage UC-14/UC-15 demo', () {
+    testWidgets('an open alerts sheet shows alerts received afterwards', (
+      tester,
+    ) async {
+      useWideSurface(tester);
+      final cubit = ActiveTripCubit(
+        itineraryId: 101,
+        sessionRepository: DemoNavigationSessionRepository(),
+        initialAlerts: ActiveTripDemoFixtures.createSampleAlerts(),
+        isDemoMode: true,
+      );
+      await cubit.start();
+
+      await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Trip alerts log'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Live weather update'), findsNothing);
+      cubit.addAlert(
+        TripAlert(
+          id: 'live-alert',
+          title: 'Live weather update',
+          description: 'Heavy rain is approaching the next stop.',
+          severity: AlertSeverity.warning,
+          type: TripAlertType.weather,
+          affectedStopName: 'Next stop',
+          timestamp: DateTime(2026, 10, 29),
+        ),
+      );
+      expect(cubit.state.alerts.first.id, 'live-alert');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byType(TripAlertsSheet),
+          matching: find.text('Live weather update'),
+        ),
+        findsOneWidget,
+      );
+      await cubit.close();
+    });
+
     testWidgets('renders the alert banner for an undismissed alert', (
       tester,
     ) async {
