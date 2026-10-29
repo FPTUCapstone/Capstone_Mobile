@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_state.dart';
 
 class TripAlertsSheet extends StatelessWidget {
   const TripAlertsSheet({
@@ -25,26 +28,36 @@ class TripAlertsSheet extends StatelessWidget {
 
   static Future<void> show(
     BuildContext context, {
-    required List<TripAlert> alerts,
-    VoidCallback? onReviewReroute,
+    required ActiveTripCubit cubit,
+    String? firstAlertId,
     ValueChanged<TripAlert>? onOpenAlert,
     ValueChanged<TripAlert>? onConfirmArrival,
-    bool isLoading = false,
-    String? errorMessage,
-    VoidCallback? onRetry,
   }) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => TripAlertsSheet(
-        alerts: alerts,
-        onReviewReroute: onReviewReroute,
-        onOpenAlert: onOpenAlert,
-        onConfirmArrival: onConfirmArrival,
-        isLoading: isLoading,
-        errorMessage: errorMessage,
-        onRetry: onRetry,
+      builder: (_) => BlocBuilder<ActiveTripCubit, ActiveTripState>(
+        bloc: cubit,
+        builder: (_, state) {
+          final alerts = firstAlertId == null
+              ? state.alerts
+              : [
+                  ...state.alerts.where((alert) => alert.id == firstAlertId),
+                  ...state.alerts.where((alert) => alert.id != firstAlertId),
+                ];
+          return TripAlertsSheet(
+            alerts: alerts,
+            onReviewReroute: state.activeRerouteProposal == null
+                ? null
+                : cubit.openRerouteProposal,
+            onOpenAlert: onOpenAlert,
+            onConfirmArrival: onConfirmArrival,
+            isLoading: state.alertRefreshStatus == AlertRefreshStatus.loading,
+            errorMessage: state.alertRefreshError,
+            onRetry: cubit.refreshAlerts,
+          );
+        },
       ),
     );
   }

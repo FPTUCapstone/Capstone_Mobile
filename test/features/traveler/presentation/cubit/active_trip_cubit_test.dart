@@ -850,6 +850,35 @@ void main() {
       await cubit.close();
     });
 
+    test(
+      'persisted rain preparation replaces the transient banner for its stop',
+      () async {
+        final alerts = FakeAlertRepository();
+        alerts.persisted.add(
+          TripAlert(
+            id: '51',
+            title: 'Rain preparation',
+            description: 'Forecast rain at Museum.',
+            severity: AlertSeverity.info,
+            type: TripAlertType.weather,
+            affectedStopName: 'Museum',
+            timestamp: DateTime.utc(2026, 10, 20, 3),
+            affectedItemId: 1001,
+            messageCode: 'trip_alert.weather_advisory',
+          ),
+        );
+        final cubit = createCubit(alertRepository: alerts);
+
+        await cubit.start();
+        await pumpEventQueue();
+
+        expect(cubit.state.activeBannerAlert?.id, '51');
+        expect(cubit.state.activeWeatherAdvisory, isNull);
+        expect(cubit.state.alerts, hasLength(2));
+        await cubit.close();
+      },
+    );
+
     test('acknowledges an alert and keeps read as terminal locally', () async {
       final alerts = FakeAlertRepository();
       final cubit = createCubit(alertRepository: alerts);
