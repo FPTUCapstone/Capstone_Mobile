@@ -101,7 +101,16 @@ import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_r
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 import 'package:trip_mate_mobile/shared/widgets/error_view.dart';
 
-GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
+/// Demo mode for operator check-in is strictly debug-only per the project routing convention.
+/// Release builds ignore any `demo=true` query parameter and strictly route to the live Backend.
+@visibleForTesting
+bool resolveOperatorCheckInDemo(Uri uri, {bool isDebug = kDebugMode}) =>
+    isDebug && uri.queryParameters['demo'] == 'true';
+
+GoRouter createAppRouter(
+  AuthSessionCubit sessionCubit, {
+  bool isDebug = kDebugMode,
+}) {
   return GoRouter(
     initialLocation: AppRoutes.splash,
     redirect: (_, state) => RouteGuards.redirect(sessionCubit.state, state),
@@ -669,7 +678,10 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         path: AppRoutes.operatorCheckIn,
         name: AppRouteNames.operatorCheckIn,
         builder: (_, state) {
-          final isDemo = state.uri.queryParameters['demo'] == 'true';
+          final isDemo = resolveOperatorCheckInDemo(
+            state.uri,
+            isDebug: isDebug,
+          );
           final scheduleIdStr = state.uri.queryParameters['scheduleId'];
           final scheduleId = scheduleIdStr != null
               ? int.tryParse(scheduleIdStr)
