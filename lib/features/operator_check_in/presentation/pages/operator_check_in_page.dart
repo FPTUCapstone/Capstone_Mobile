@@ -26,7 +26,8 @@ class OperatorCheckInPage extends StatefulWidget {
   final Widget Function(
     BuildContext context, {
     required ValueChanged<String> onDetect,
-  })? scannerBuilder;
+  })?
+  scannerBuilder;
 
   @override
   State<OperatorCheckInPage> createState() => _OperatorCheckInPageState();
@@ -40,8 +41,8 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
       if (mounted) {
         unawaited(
           context.read<OperatorCheckInCubit>().loadInitial(
-                preselectedScheduleId: widget.initialScheduleId,
-              ),
+            preselectedScheduleId: widget.initialScheduleId,
+          ),
         );
       }
     });
@@ -80,9 +81,9 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
                   ? state.selectedDeparture?.scheduleId
                   : widget.initialScheduleId;
               unawaited(
-                context
-                    .read<OperatorCheckInCubit>()
-                    .loadInitial(preselectedScheduleId: selectedId),
+                context.read<OperatorCheckInCubit>().loadInitial(
+                  preselectedScheduleId: selectedId,
+                ),
               );
             },
           ),
@@ -92,9 +93,7 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
         listener: (context, state) {},
         builder: (context, state) {
           if (state is OperatorCheckInLoading) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (state is OperatorCheckInError) {
@@ -125,8 +124,8 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
                       onPressed: () {
                         unawaited(
                           context.read<OperatorCheckInCubit>().loadInitial(
-                                preselectedScheduleId: widget.initialScheduleId,
-                              ),
+                            preselectedScheduleId: widget.initialScheduleId,
+                          ),
                         );
                       },
                     ),
@@ -161,10 +160,7 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
                       const SizedBox(height: AppSpacing.xs),
                       const Text(
                         'Check back when a tour departure is active.',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.muted,
-                        ),
+                        style: TextStyle(fontSize: 13, color: AppColors.muted),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: AppSpacing.md),
@@ -174,9 +170,8 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
                         onPressed: () {
                           unawaited(
                             context.read<OperatorCheckInCubit>().loadInitial(
-                                  preselectedScheduleId:
-                                      widget.initialScheduleId,
-                                ),
+                              preselectedScheduleId: widget.initialScheduleId,
+                            ),
                           );
                         },
                       ),
@@ -186,7 +181,8 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
               );
             }
 
-            final progress = state.progress ??
+            final progress =
+                state.progress ??
                 (state.selectedDeparture != null
                     ? DepartureProgress(
                         scheduleId: state.selectedDeparture!.scheduleId,
@@ -216,7 +212,8 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
                     CheckInDepartureHeader(progress: progress),
                     const SizedBox(height: AppSpacing.sm),
                   ],
-                  if (state.lastResult != null || state.lastFailure != null) ...[
+                  if (state.lastResult != null ||
+                      state.lastFailure != null) ...[
                     CheckInResultBanner(
                       result: state.lastResult,
                       failure: state.lastFailure,
@@ -228,9 +225,9 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
                     isPaused: state.isSubmittingScan,
                     onScanned: (raw) {
                       unawaited(
-                        context
-                            .read<OperatorCheckInCubit>()
-                            .submitScan(qrContent: raw),
+                        context.read<OperatorCheckInCubit>().submitScan(
+                          qrContent: raw,
+                        ),
                       );
                     },
                   ),
@@ -238,7 +235,9 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
                     const SizedBox(height: AppSpacing.sm),
                     CheckInRecentScansCard(scans: state.recentScans),
                   ],
-                  const SizedBox(height: 80), // Space for floating bottom actions
+                  const SizedBox(
+                    height: 80,
+                  ), // Space for floating bottom actions
                 ],
               ),
             );
@@ -260,9 +259,7 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
             ),
             decoration: BoxDecoration(
               color: Colors.white,
-              border: const Border(
-                top: BorderSide(color: AppColors.line),
-              ),
+              border: const Border(top: BorderSide(color: AppColors.line)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.04),
@@ -285,7 +282,9 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
                       ),
                       minimumHeight: 46,
                       onPressed: () {
-                        context.read<OperatorCheckInCubit>().clearActiveBanner();
+                        context
+                            .read<OperatorCheckInCubit>()
+                            .clearActiveBanner();
                       },
                     ),
                   ),
@@ -319,7 +318,10 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
     OperatorCheckInLoaded state,
   ) {
     return AppCard(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: 4,
+      ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<int>(
           value: state.selectedDeparture?.scheduleId,
@@ -346,9 +348,9 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
           onChanged: (scheduleId) {
             if (scheduleId != null) {
               unawaited(
-                context
-                    .read<OperatorCheckInCubit>()
-                    .selectDeparture(scheduleId),
+                context.read<OperatorCheckInCubit>().selectDeparture(
+                  scheduleId,
+                ),
               );
             }
           },

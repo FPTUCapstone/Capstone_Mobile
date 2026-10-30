@@ -5,10 +5,7 @@ import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
 
 class CheckInManualCodeDialog extends StatefulWidget {
-  const CheckInManualCodeDialog({
-    required this.onSubmit,
-    super.key,
-  });
+  const CheckInManualCodeDialog({required this.onSubmit, super.key});
 
   final ValueChanged<String> onSubmit;
 
@@ -22,7 +19,8 @@ class CheckInManualCodeDialog extends StatefulWidget {
   }
 
   @override
-  State<CheckInManualCodeDialog> createState() => _CheckInManualCodeDialogState();
+  State<CheckInManualCodeDialog> createState() =>
+      _CheckInManualCodeDialogState();
 }
 
 class _CheckInManualCodeDialogState extends State<CheckInManualCodeDialog> {
@@ -84,11 +82,7 @@ class _CheckInManualCodeDialogState extends State<CheckInManualCodeDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
-        AppButton(
-          label: 'Check In',
-          onPressed: _submit,
-          minimumHeight: 40,
-        ),
+        AppButton(label: 'Check In', onPressed: _submit, minimumHeight: 40),
       ],
     );
   }

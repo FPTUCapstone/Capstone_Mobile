@@ -671,8 +671,9 @@ GoRouter createAppRouter(AuthSessionCubit sessionCubit) {
         builder: (_, state) {
           final isDemo = state.uri.queryParameters['demo'] == 'true';
           final scheduleIdStr = state.uri.queryParameters['scheduleId'];
-          final scheduleId =
-              scheduleIdStr != null ? int.tryParse(scheduleIdStr) : null;
+          final scheduleId = scheduleIdStr != null
+              ? int.tryParse(scheduleIdStr)
+              : null;
           return BlocProvider<OperatorCheckInCubit>(
             create: (_) => serviceLocator<OperatorCheckInCubit>(param1: isDemo),
             child: OperatorCheckInPage(initialScheduleId: scheduleId),

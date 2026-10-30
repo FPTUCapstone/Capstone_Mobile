@@ -30,12 +30,11 @@ final class ScanCheckInUseCase {
     String? bookingCode,
     double? latitude,
     double? longitude,
-  }) =>
-      _repository.scanCheckIn(
-        scheduleId: scheduleId,
-        qrContent: qrContent,
-        bookingCode: bookingCode,
-        latitude: latitude,
-        longitude: longitude,
-      );
+  }) => _repository.scanCheckIn(
+    scheduleId: scheduleId,
+    qrContent: qrContent,
+    bookingCode: bookingCode,
+    latitude: latitude,
+    longitude: longitude,
+  );
 }

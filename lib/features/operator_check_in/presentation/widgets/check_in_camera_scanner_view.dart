@@ -15,10 +15,12 @@ class CheckInCameraScannerView extends StatefulWidget {
   final Widget Function(
     BuildContext context, {
     required ValueChanged<String> onDetect,
-  })? scannerBuilder;
+  })?
+  scannerBuilder;
 
   @override
-  State<CheckInCameraScannerView> createState() => _CheckInCameraScannerViewState();
+  State<CheckInCameraScannerView> createState() =>
+      _CheckInCameraScannerViewState();
 }
 
 class _CheckInCameraScannerViewState extends State<CheckInCameraScannerView> {
@@ -46,7 +48,8 @@ class _CheckInCameraScannerViewState extends State<CheckInCameraScannerView> {
     // Scan debouncing: ignore scans within 1.5 seconds of each other
     final now = DateTime.now();
     if (_lastScannedTime != null &&
-        now.difference(_lastScannedTime!) < const Duration(milliseconds: 1500)) {
+        now.difference(_lastScannedTime!) <
+            const Duration(milliseconds: 1500)) {
       return;
     }
 
@@ -107,7 +110,10 @@ class _CheckInCameraScannerViewState extends State<CheckInCameraScannerView> {
                   height: 130,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFF0E9F6E), width: 2.5),
+                    border: Border.all(
+                      color: const Color(0xFF0E9F6E),
+                      width: 2.5,
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.35),

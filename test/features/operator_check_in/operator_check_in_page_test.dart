@@ -16,8 +16,9 @@ final class _FakeCheckInRepository implements OperatorCheckInRepository {
   String? lastScannedBookingCode;
 
   @override
-  Future<List<OperatorDepartureSummary>> getTodayDepartures(
-      {DateTime? targetDate}) async {
+  Future<List<OperatorDepartureSummary>> getTodayDepartures({
+    DateTime? targetDate,
+  }) async {
     return departures;
   }
 
@@ -81,7 +82,7 @@ void main() {
     _FakeCheckInRepository? repo,
     int? initialScheduleId,
     Widget Function(BuildContext, {required ValueChanged<String> onDetect})?
-        scannerBuilder,
+    scannerBuilder,
   }) {
     final effectiveRepo = repo ?? repository;
     return MaterialApp(
@@ -114,8 +115,9 @@ void main() {
     );
   });
 
-  testWidgets('renders departure card, boarding badge and action buttons',
-      (tester) async {
+  testWidgets('renders departure card, boarding badge and action buttons', (
+    tester,
+  ) async {
     repository.departures = [
       OperatorDepartureSummary(
         scheduleId: 101,
@@ -189,8 +191,9 @@ void main() {
     expect(repository.lastScannedQr, 'VALID_QR_CODE_123');
   });
 
-  testWidgets('already used scan displays warning banner with timestamp',
-      (tester) async {
+  testWidgets('already used scan displays warning banner with timestamp', (
+    tester,
+  ) async {
     repository.departures = [
       OperatorDepartureSummary(
         scheduleId: 101,
@@ -235,8 +238,9 @@ void main() {
     expect(find.textContaining('previously checked in at'), findsOneWidget);
   });
 
-  testWidgets('manual code entry dialog opens and submits booking code',
-      (tester) async {
+  testWidgets('manual code entry dialog opens and submits booking code', (
+    tester,
+  ) async {
     repository.departures = [
       OperatorDepartureSummary(
         scheduleId: 101,

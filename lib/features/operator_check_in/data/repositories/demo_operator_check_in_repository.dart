@@ -6,7 +6,9 @@ final class DemoOperatorCheckInRepository implements OperatorCheckInRepository {
   const DemoOperatorCheckInRepository();
 
   @override
-  Future<List<OperatorDepartureSummary>> getTodayDepartures({DateTime? targetDate}) async {
+  Future<List<OperatorDepartureSummary>> getTodayDepartures({
+    DateTime? targetDate,
+  }) async {
     await Future<void>.delayed(const Duration(milliseconds: 10));
     return DemoOperatorCheckInData.sampleDepartures;
   }
@@ -33,14 +35,17 @@ final class DemoOperatorCheckInRepository implements OperatorCheckInRepository {
       throw CheckInFailure(
         kind: CheckInFailureKind.alreadyUsed,
         message: 'This ticket was already checked in.',
-        checkedInAt: DateTime.now().toUtc().subtract(const Duration(minutes: 15)),
+        checkedInAt: DateTime.now().toUtc().subtract(
+          const Duration(minutes: 15),
+        ),
         ticketCode: 'TK-0000000001',
         bookingCode: 'BK-20261030-001',
         passengerName: 'Nguyen Minh Phuc',
       );
     }
 
-    if (combined.contains('wrong-schedule') || combined.contains('wrong-sched')) {
+    if (combined.contains('wrong-schedule') ||
+        combined.contains('wrong-sched')) {
       throw const CheckInFailure(
         kind: CheckInFailureKind.wrongSchedule,
         message: 'Ticket belongs to a different departure.',

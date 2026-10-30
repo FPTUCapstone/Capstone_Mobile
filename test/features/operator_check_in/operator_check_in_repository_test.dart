@@ -18,7 +18,7 @@ void main() {
           'checkedInParticipants': 18,
           'totalEligibleParticipants': 31,
           'waitingParticipants': 13,
-        }
+        },
       ];
 
       final list = OperatorCheckInJson.departureSummaryList(json);
@@ -108,10 +108,7 @@ void main() {
 
     test('scanCheckIn throws alreadyUsed for already used code', () async {
       expect(
-        () => repo.scanCheckIn(
-          scheduleId: 101,
-          bookingCode: 'USED-001',
-        ),
+        () => repo.scanCheckIn(scheduleId: 101, bookingCode: 'USED-001'),
         throwsA(
           isA<CheckInFailure>().having(
             (f) => f.kind,
@@ -124,10 +121,7 @@ void main() {
 
     test('scanCheckIn throws wrongSchedule for wrong schedule code', () async {
       expect(
-        () => repo.scanCheckIn(
-          scheduleId: 101,
-          bookingCode: 'WRONG-SCHED',
-        ),
+        () => repo.scanCheckIn(scheduleId: 101, bookingCode: 'WRONG-SCHED'),
         throwsA(
           isA<CheckInFailure>().having(
             (f) => f.kind,

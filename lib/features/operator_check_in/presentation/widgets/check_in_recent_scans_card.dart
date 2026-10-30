@@ -5,10 +5,7 @@ import 'package:trip_mate_mobile/features/operator_check_in/domain/entities/oper
 import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
 
 class CheckInRecentScansCard extends StatelessWidget {
-  const CheckInRecentScansCard({
-    required this.scans,
-    super.key,
-  });
+  const CheckInRecentScansCard({required this.scans, super.key});
 
   final List<CheckInScanItem> scans;
 
@@ -38,28 +35,37 @@ class CheckInRecentScansCard extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: scans.take(5).length,
-            separatorBuilder: (_, _) => const Divider(height: 1, color: AppColors.line),
+            separatorBuilder: (_, _) =>
+                const Divider(height: 1, color: AppColors.line),
             itemBuilder: (context, index) {
               final item = scans[index];
               final isValid = item.status == CheckInScanStatus.valid;
-              final timeStr = '${item.timestamp.hour.toString().padLeft(2, '0')}:'
+              final timeStr =
+                  '${item.timestamp.hour.toString().padLeft(2, '0')}:'
                   '${item.timestamp.minute.toString().padLeft(2, '0')}';
 
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 4,
+                ),
                 child: Row(
                   children: [
                     Container(
                       width: 28,
                       height: 28,
                       decoration: BoxDecoration(
-                        color: isValid ? const Color(0xFFE8F5F2) : const Color(0xFFFFF0EE),
+                        color: isValid
+                            ? const Color(0xFFE8F5F2)
+                            : const Color(0xFFFFF0EE),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         isValid ? Icons.check : Icons.close,
                         size: 16,
-                        color: isValid ? const Color(0xFF0E9F6E) : const Color(0xFFDC2626),
+                        color: isValid
+                            ? const Color(0xFF0E9F6E)
+                            : const Color(0xFFDC2626),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -93,9 +99,14 @@ class CheckInRecentScansCard extends StatelessWidget {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
-                        color: isValid ? const Color(0xFFE8F5F2) : const Color(0xFFFFF0EE),
+                        color: isValid
+                            ? const Color(0xFFE8F5F2)
+                            : const Color(0xFFFFF0EE),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -103,7 +114,9 @@ class CheckInRecentScansCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: isValid ? const Color(0xFF0E9F6E) : const Color(0xFFDC2626),
+                          color: isValid
+                              ? const Color(0xFF0E9F6E)
+                              : const Color(0xFFDC2626),
                         ),
                       ),
                     ),
