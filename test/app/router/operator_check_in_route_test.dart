@@ -101,64 +101,59 @@ void main() {
   }
 
   group('TM-89 Phase 6D: Operator Check-In Demo Mode Release Safety', () {
-    test(
-      'Regression test: distinguishes original buggy logic from corrected debug-only logic',
-      () {
-        final uriWithDemo = Uri.parse('/operator/check-in?demo=true');
-        final uriWithoutDemo = Uri.parse('/operator/check-in');
-        final uriWithDemoFalse = Uri.parse('/operator/check-in?demo=false');
+    test('Regression: original buggy logic vs corrected logic', () {
+      final uriWithDemo = Uri.parse('/operator/check-in?demo=true');
+      final uriWithoutDemo = Uri.parse('/operator/check-in');
+      final uriWithDemoFalse = Uri.parse('/operator/check-in?demo=false');
 
-        // Original buggy implementation:
-        // final isDemo = state.uri.queryParameters['demo'] == 'true';
-        bool originalBuggyLogic(Uri uri) =>
-            uri.queryParameters['demo'] == 'true';
+      // Original buggy implementation:
+      // final isDemo = state.uri.queryParameters['demo'] == 'true';
+      bool originalBuggyLogic(Uri uri) => uri.queryParameters['demo'] == 'true';
 
-        // In a release build (isDebug == false):
-        // The original logic INCORRECTLY evaluated to true for ?demo=true,
-        // which exposed demo mock fixtures in a production release.
-        expect(
-          originalBuggyLogic(uriWithDemo),
-          isTrue,
-          reason:
-              'Original bug: ?demo=true activated demo fixtures regardless of build mode',
-        );
+      // In a release build (isDebug == false):
+      // The original logic INCORRECTLY evaluated to true for ?demo=true,
+      // which exposed demo mock fixtures in a production release.
+      expect(
+        originalBuggyLogic(uriWithDemo),
+        isTrue,
+        reason:
+            'Original bug: ?demo=true activated demo fixtures regardless of build mode',
+      );
 
-        // The corrected logic strictly requires isDebug (kDebugMode):
-        expect(
-          resolveOperatorCheckInDemo(uriWithDemo, isDebug: false),
-          isFalse,
-          reason:
-              'Corrected logic: Release build (?demo=true, isDebug: false) must NEVER enter demo mode',
-        );
+      // The corrected logic strictly requires isDebug (kDebugMode):
+      expect(
+        resolveOperatorCheckInDemo(uriWithDemo, isDebug: false),
+        isFalse,
+        reason:
+            'Corrected logic: Release build (?demo=true, isDebug: false) must NEVER enter demo mode',
+      );
 
-        expect(
-          resolveOperatorCheckInDemo(uriWithoutDemo, isDebug: false),
-          isFalse,
-          reason:
-              'Release build without demo query param routes to live Backend',
-        );
+      expect(
+        resolveOperatorCheckInDemo(uriWithoutDemo, isDebug: false),
+        isFalse,
+        reason: 'Release build without demo query param routes to live Backend',
+      );
 
-        expect(
-          resolveOperatorCheckInDemo(uriWithDemoFalse, isDebug: false),
-          isFalse,
-          reason: 'Release build with demo=false routes to live Backend',
-        );
+      expect(
+        resolveOperatorCheckInDemo(uriWithDemoFalse, isDebug: false),
+        isFalse,
+        reason: 'Release build with demo=false routes to live Backend',
+      );
 
-        // In a debug build (isDebug == true):
-        expect(
-          resolveOperatorCheckInDemo(uriWithDemo, isDebug: true),
-          isTrue,
-          reason: 'Debug build with demo=true permits demo mode for staging/QA',
-        );
+      // In a debug build (isDebug == true):
+      expect(
+        resolveOperatorCheckInDemo(uriWithDemo, isDebug: true),
+        isTrue,
+        reason: 'Debug build with demo=true permits demo mode for staging/QA',
+      );
 
-        expect(
-          resolveOperatorCheckInDemo(uriWithoutDemo, isDebug: true),
-          isFalse,
-          reason:
-              'Debug build without demo query param routes to live Backend by default',
-        );
-      },
-    );
+      expect(
+        resolveOperatorCheckInDemo(uriWithoutDemo, isDebug: true),
+        isFalse,
+        reason:
+            'Debug build without demo query param routes to live Backend by default',
+      );
+    });
 
     test('DI resolution: demo flag strictly controls repository instance', () {
       final demoRepo = serviceLocator<OperatorCheckInRepository>(param1: true);
@@ -169,87 +164,76 @@ void main() {
       expect(liveRepo, isNot(isA<DemoOperatorCheckInRepository>()));
     });
 
-    test(
-      'Release + Backend unavailable → Error, never fabricated success',
-      () async {
-        // Live Cubit configured with unreachable test host
-        final liveCubit = serviceLocator<OperatorCheckInCubit>(param1: false);
-        addTearDown(liveCubit.close);
+    test('Release + Backend unavailable emits error, never demo data', () async {
+      // Live Cubit configured with unreachable test host
+      final liveCubit = serviceLocator<OperatorCheckInCubit>(param1: false);
+      addTearDown(liveCubit.close);
 
-        expect(liveCubit.state, isA<OperatorCheckInInitial>());
+      expect(liveCubit.state, isA<OperatorCheckInInitial>());
 
-        // Loading against unreachable host emits OperatorCheckInError, never demo data
-        await liveCubit.loadInitial();
+      // Loading against unreachable host emits OperatorCheckInError, never demo data
+      await liveCubit.loadInitial();
 
-        expect(
-          liveCubit.state,
-          isA<OperatorCheckInError>(),
-          reason:
-              'Live cubit when backend is down must emit error, never fabricated success',
-        );
-        final errorState = liveCubit.state as OperatorCheckInError;
-        expect(errorState.message, isNotEmpty);
+      expect(
+        liveCubit.state,
+        isA<OperatorCheckInError>(),
+        reason:
+            'Live cubit when backend is down must emit error, never fabricated success',
+      );
+      final errorState = liveCubit.state as OperatorCheckInError;
+      expect(errorState.message, isNotEmpty);
 
-        // In contrast, demo Cubit loads sample fixtures
-        final demoCubit = serviceLocator<OperatorCheckInCubit>(param1: true);
-        addTearDown(demoCubit.close);
+      // In contrast, demo Cubit loads sample fixtures
+      final demoCubit = serviceLocator<OperatorCheckInCubit>(param1: true);
+      addTearDown(demoCubit.close);
 
-        await demoCubit.loadInitial();
-        expect(demoCubit.state, isA<OperatorCheckInLoaded>());
-        final loadedState = demoCubit.state as OperatorCheckInLoaded;
-        expect(loadedState.departures, isNotEmpty);
-      },
-    );
+      await demoCubit.loadInitial();
+      expect(demoCubit.state, isA<OperatorCheckInLoaded>());
+      final loadedState = demoCubit.state as OperatorCheckInLoaded;
+      expect(loadedState.departures, isNotEmpty);
+    });
 
-    test(
-      'Repeated DI requests → No mode leakage between cubit instances',
-      () async {
-        final cubit1 = serviceLocator<OperatorCheckInCubit>(param1: true);
-        final cubit2 = serviceLocator<OperatorCheckInCubit>(param1: false);
-        final cubit3 = serviceLocator<OperatorCheckInCubit>(param1: true);
-        addTearDown(cubit1.close);
-        addTearDown(cubit2.close);
-        addTearDown(cubit3.close);
+    test('Repeated DI requests has no mode leakage between cubits', () async {
+      final cubit1 = serviceLocator<OperatorCheckInCubit>(param1: true);
+      final cubit2 = serviceLocator<OperatorCheckInCubit>(param1: false);
+      final cubit3 = serviceLocator<OperatorCheckInCubit>(param1: true);
+      addTearDown(cubit1.close);
+      addTearDown(cubit2.close);
+      addTearDown(cubit3.close);
 
-        await cubit1.loadInitial();
-        await cubit2.loadInitial();
-        await cubit3.loadInitial();
+      await cubit1.loadInitial();
+      await cubit2.loadInitial();
+      await cubit3.loadInitial();
 
-        expect(cubit1.state, isA<OperatorCheckInLoaded>());
-        expect(cubit2.state, isA<OperatorCheckInError>());
-        expect(cubit3.state, isA<OperatorCheckInLoaded>());
-      },
-    );
+      expect(cubit1.state, isA<OperatorCheckInLoaded>());
+      expect(cubit2.state, isA<OperatorCheckInError>());
+      expect(cubit3.state, isA<OperatorCheckInLoaded>());
+    });
 
-    test(
-      'QR and manual check-in functional behavior preserved in both modes',
-      () async {
-        // 1. Demo mode check-in functionality
-        final demoCubit = serviceLocator<OperatorCheckInCubit>(param1: true);
-        addTearDown(demoCubit.close);
+    test('QR and manual check-in preserved in both modes', () async {
+      // 1. Demo mode check-in functionality
+      final demoCubit = serviceLocator<OperatorCheckInCubit>(param1: true);
+      addTearDown(demoCubit.close);
 
-        await demoCubit.loadInitial();
-        expect(demoCubit.state, isA<OperatorCheckInLoaded>());
+      await demoCubit.loadInitial();
+      expect(demoCubit.state, isA<OperatorCheckInLoaded>());
 
-        // Manual check-in via booking code in demo mode
-        await demoCubit.submitScan(bookingCode: 'TM-20261030-001');
-        final demoState = demoCubit.state as OperatorCheckInLoaded;
-        expect(demoState.lastResult, isNotNull);
-        expect(demoState.lastResult!.ticketCode, isNotEmpty);
-        expect(demoState.recentScans, isNotEmpty);
+      // Manual check-in via booking code in demo mode
+      await demoCubit.submitScan(bookingCode: 'TM-20261030-001');
+      final demoState = demoCubit.state as OperatorCheckInLoaded;
+      expect(demoState.lastResult, isNotNull);
+      expect(demoState.lastResult!.ticketCode, isNotEmpty);
+      expect(demoState.recentScans, isNotEmpty);
 
-        // 2. Live mode check-in fails closed when backend unreachable
-        final liveCubit = serviceLocator<OperatorCheckInCubit>(param1: false);
-        addTearDown(liveCubit.close);
+      // 2. Live mode check-in fails closed when backend unreachable
+      final liveCubit = serviceLocator<OperatorCheckInCubit>(param1: false);
+      addTearDown(liveCubit.close);
 
-        await liveCubit.loadInitial();
-        expect(liveCubit.state, isA<OperatorCheckInError>());
-      },
-    );
+      await liveCubit.loadInitial();
+      expect(liveCubit.state, isA<OperatorCheckInError>());
+    });
 
-    testWidgets('Router: Debug + demo=true permits demo mode on Screen #88', (
-      tester,
-    ) async {
+    testWidgets('Debug + demo=true uses demo fixtures', (tester) async {
       await pumpAt(
         tester,
         '${AppRoutes.operatorCheckIn}?demo=true',
@@ -260,51 +244,41 @@ void main() {
       expect(requestedDemoFlags, [true]);
     });
 
-    testWidgets('Router: Debug + no demo parameter defaults to live Backend', (
-      tester,
-    ) async {
+    testWidgets('Debug without demo param is live', (tester) async {
       await pumpAt(tester, AppRoutes.operatorCheckIn, isDebug: true);
 
       expect(find.byType(OperatorCheckInPage), findsOneWidget);
       expect(requestedDemoFlags, [false]);
     });
 
-    testWidgets(
-      'Router: Release + demo=true strictly enforces live Backend (no demo fixtures)',
-      (tester) async {
-        // isDebug: false simulates a production release build
-        await pumpAt(
-          tester,
-          '${AppRoutes.operatorCheckIn}?demo=true',
-          isDebug: false,
-        );
+    testWidgets('Release + demo=true is strictly live', (tester) async {
+      // isDebug: false simulates a production release build
+      await pumpAt(
+        tester,
+        '${AppRoutes.operatorCheckIn}?demo=true',
+        isDebug: false,
+      );
 
-        expect(find.byType(OperatorCheckInPage), findsOneWidget);
-        expect(
-          requestedDemoFlags,
-          [false],
-          reason: 'Release builds must NEVER pass isDemo: true to the Cubit',
-        );
-      },
-    );
+      expect(find.byType(OperatorCheckInPage), findsOneWidget);
+      expect(
+        requestedDemoFlags,
+        [false],
+        reason: 'Release builds must NEVER pass isDemo: true to the Cubit',
+      );
+    });
 
-    testWidgets(
-      'Router: Release + demo=false strictly routes to live Backend',
-      (tester) async {
-        await pumpAt(
-          tester,
-          '${AppRoutes.operatorCheckIn}?demo=false',
-          isDebug: false,
-        );
+    testWidgets('Release + demo=false is live', (tester) async {
+      await pumpAt(
+        tester,
+        '${AppRoutes.operatorCheckIn}?demo=false',
+        isDebug: false,
+      );
 
-        expect(find.byType(OperatorCheckInPage), findsOneWidget);
-        expect(requestedDemoFlags, [false]);
-      },
-    );
+      expect(find.byType(OperatorCheckInPage), findsOneWidget);
+      expect(requestedDemoFlags, [false]);
+    });
 
-    testWidgets('Router: Repeated route navigation leaves no mode leakage', (
-      tester,
-    ) async {
+    testWidgets('Repeated navigation has no leakage', (tester) async {
       // 1. Route with demo=true in debug build
       await pumpAt(
         tester,
