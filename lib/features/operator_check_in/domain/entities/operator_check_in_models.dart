@@ -33,15 +33,15 @@ class DepartureProgress extends Equatable {
 
   @override
   List<Object?> get props => [
-        scheduleId,
-        tourTitle,
-        startAtUtc,
-        endAtUtc,
-        meetingPoint,
-        checkedInParticipants,
-        totalEligibleParticipants,
-        waitingParticipants,
-      ];
+    scheduleId,
+    tourTitle,
+    startAtUtc,
+    endAtUtc,
+    meetingPoint,
+    checkedInParticipants,
+    totalEligibleParticipants,
+    waitingParticipants,
+  ];
 }
 
 class OperatorDepartureSummary extends Equatable {
@@ -81,17 +81,17 @@ class OperatorDepartureSummary extends Equatable {
 
   @override
   List<Object?> get props => [
-        scheduleId,
-        tourId,
-        tourTitle,
-        startAtUtc,
-        endAtUtc,
-        meetingPoint,
-        status,
-        checkedInParticipants,
-        totalEligibleParticipants,
-        waitingParticipants,
-      ];
+    scheduleId,
+    tourId,
+    tourTitle,
+    startAtUtc,
+    endAtUtc,
+    meetingPoint,
+    status,
+    checkedInParticipants,
+    totalEligibleParticipants,
+    waitingParticipants,
+  ];
 }
 
 class CheckInResult extends Equatable {
@@ -113,13 +113,13 @@ class CheckInResult extends Equatable {
 
   @override
   List<Object?> get props => [
-        ticketCode,
-        bookingCode,
-        passengerName,
-        participantCount,
-        checkedInAtUtc,
-        departure,
-      ];
+    ticketCode,
+    bookingCode,
+    passengerName,
+    participantCount,
+    checkedInAtUtc,
+    departure,
+  ];
 }
 
 enum CheckInScanStatus { valid, alreadyUsed, rejected }
@@ -143,13 +143,13 @@ class CheckInScanItem extends Equatable {
 
   @override
   List<Object?> get props => [
-        code,
-        passengerName,
-        participantCount,
-        timestamp,
-        status,
-        reason,
-      ];
+    code,
+    passengerName,
+    participantCount,
+    timestamp,
+    status,
+    reason,
+  ];
 }
 
 enum CheckInFailureKind {
@@ -190,11 +190,11 @@ class CheckInFailure extends Equatable {
 
   @override
   List<Object?> get props => [
-        kind,
-        message,
-        checkedInAt,
-        ticketCode,
-        bookingCode,
-        passengerName,
-      ];
+    kind,
+    message,
+    checkedInAt,
+    ticketCode,
+    bookingCode,
+    passengerName,
+  ];
 }

@@ -64,15 +64,15 @@ final class OperatorCheckInLoaded extends OperatorCheckInState {
 
   @override
   List<Object?> get props => [
-        departures,
-        selectedDeparture,
-        progress,
-        recentScans,
-        isSubmittingScan,
-        lastResult,
-        lastFailure,
-        cameraPermissionGranted,
-      ];
+    departures,
+    selectedDeparture,
+    progress,
+    recentScans,
+    isSubmittingScan,
+    lastResult,
+    lastFailure,
+    cameraPermissionGranted,
+  ];
 }
 
 final class OperatorCheckInError extends OperatorCheckInState {

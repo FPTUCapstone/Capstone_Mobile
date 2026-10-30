@@ -32,8 +32,9 @@ final class _MockCheckInRepository implements OperatorCheckInRepository {
   String? lastScanBookingCode;
 
   @override
-  Future<List<OperatorDepartureSummary>> getTodayDepartures(
-      {DateTime? targetDate}) async {
+  Future<List<OperatorDepartureSummary>> getTodayDepartures({
+    DateTime? targetDate,
+  }) async {
     if (failureToThrow != null) throw failureToThrow!;
     if (genericExceptionToThrow != null) throw genericExceptionToThrow!;
     return departuresToReturn;
@@ -136,71 +137,77 @@ void main() {
       expect(loaded.progress, isNull);
     });
 
-    test('loadInitial emits OperatorCheckInError on repository failure',
-        () async {
-      repository.failureToThrow = const CheckInFailure(
-        kind: CheckInFailureKind.system,
-        message: 'Network connection failed',
-      );
+    test(
+      'loadInitial emits OperatorCheckInError on repository failure',
+      () async {
+        repository.failureToThrow = const CheckInFailure(
+          kind: CheckInFailureKind.system,
+          message: 'Network connection failed',
+        );
 
-      await cubit.loadInitial();
+        await cubit.loadInitial();
 
-      expect(cubit.state, isA<OperatorCheckInError>());
-      final error = cubit.state as OperatorCheckInError;
-      expect(error.message, 'Network connection failed');
-    });
+        expect(cubit.state, isA<OperatorCheckInError>());
+        final error = cubit.state as OperatorCheckInError;
+        expect(error.message, 'Network connection failed');
+      },
+    );
 
-    test('selectDeparture updates selected departure and refreshes progress',
-        () async {
-      repository.departuresToReturn = [
-        OperatorDepartureSummary(
-          scheduleId: 101,
-          tourId: 1,
-          tourTitle: 'Hanoi Morning Tour',
-          startAtUtc: DateTime.utc(2026, 10, 30, 8, 0),
-          endAtUtc: DateTime.utc(2026, 10, 30, 12, 0),
-          meetingPoint: 'Opera House',
-          status: 'Open',
-          checkedInParticipants: 5,
-          totalEligibleParticipants: 10,
-          waitingParticipants: 5,
-        ),
-        OperatorDepartureSummary(
+    test(
+      'selectDeparture updates selected departure and refreshes progress',
+      () async {
+        repository.departuresToReturn = [
+          OperatorDepartureSummary(
+            scheduleId: 101,
+            tourId: 1,
+            tourTitle: 'Hanoi Morning Tour',
+            startAtUtc: DateTime.utc(2026, 10, 30, 8, 0),
+            endAtUtc: DateTime.utc(2026, 10, 30, 12, 0),
+            meetingPoint: 'Opera House',
+            status: 'Open',
+            checkedInParticipants: 5,
+            totalEligibleParticipants: 10,
+            waitingParticipants: 5,
+          ),
+          OperatorDepartureSummary(
+            scheduleId: 102,
+            tourId: 2,
+            tourTitle: 'Hanoi Afternoon Tour',
+            startAtUtc: DateTime.utc(2026, 10, 30, 13, 0),
+            endAtUtc: DateTime.utc(2026, 10, 30, 17, 0),
+            meetingPoint: 'Old Quarter',
+            status: 'Open',
+            checkedInParticipants: 0,
+            totalEligibleParticipants: 15,
+            waitingParticipants: 15,
+          ),
+        ];
+
+        await cubit.loadInitial();
+        expect(
+          (cubit.state as OperatorCheckInLoaded).selectedDeparture?.scheduleId,
+          101,
+        );
+
+        repository.progressToReturn = DepartureProgress(
           scheduleId: 102,
-          tourId: 2,
           tourTitle: 'Hanoi Afternoon Tour',
           startAtUtc: DateTime.utc(2026, 10, 30, 13, 0),
           endAtUtc: DateTime.utc(2026, 10, 30, 17, 0),
           meetingPoint: 'Old Quarter',
-          status: 'Open',
           checkedInParticipants: 0,
           totalEligibleParticipants: 15,
           waitingParticipants: 15,
-        ),
-      ];
+        );
 
-      await cubit.loadInitial();
-      expect((cubit.state as OperatorCheckInLoaded).selectedDeparture?.scheduleId,
-          101);
+        await cubit.selectDeparture(102);
 
-      repository.progressToReturn = DepartureProgress(
-        scheduleId: 102,
-        tourTitle: 'Hanoi Afternoon Tour',
-        startAtUtc: DateTime.utc(2026, 10, 30, 13, 0),
-        endAtUtc: DateTime.utc(2026, 10, 30, 17, 0),
-        meetingPoint: 'Old Quarter',
-        checkedInParticipants: 0,
-        totalEligibleParticipants: 15,
-        waitingParticipants: 15,
-      );
-
-      await cubit.selectDeparture(102);
-
-      final loaded = cubit.state as OperatorCheckInLoaded;
-      expect(loaded.selectedDeparture?.scheduleId, 102);
-      expect(loaded.progress?.scheduleId, 102);
-      expect(repository.lastProgressScheduleId, 102);
-    });
+        final loaded = cubit.state as OperatorCheckInLoaded;
+        expect(loaded.selectedDeparture?.scheduleId, 102);
+        expect(loaded.progress?.scheduleId, 102);
+        expect(repository.lastProgressScheduleId, 102);
+      },
+    );
   });
 
   group('OperatorCheckInCubit - Scan & Verification', () {
@@ -225,26 +232,28 @@ void main() {
       expect(loaded.recentScans.first.code, 'TK-0000000501');
     });
 
-    test('already used ticket scan sets alreadyUsed failure and scan item',
-        () async {
-      repository.failureToThrow = CheckInFailure(
-        kind: CheckInFailureKind.alreadyUsed,
-        message: 'This ticket has already been checked in',
-        ticketCode: 'TK-0000000501',
-        passengerName: 'Nguyen Van A',
-        checkedInAt: DateTime.utc(2026, 10, 30, 8, 15),
-      );
+    test(
+      'already used ticket scan sets alreadyUsed failure and scan item',
+      () async {
+        repository.failureToThrow = CheckInFailure(
+          kind: CheckInFailureKind.alreadyUsed,
+          message: 'This ticket has already been checked in',
+          ticketCode: 'TK-0000000501',
+          passengerName: 'Nguyen Van A',
+          checkedInAt: DateTime.utc(2026, 10, 30, 8, 15),
+        );
 
-      await cubit.submitScan(qrContent: 'TM-QR-ALREADY-USED');
+        await cubit.submitScan(qrContent: 'TM-QR-ALREADY-USED');
 
-      final loaded = cubit.state as OperatorCheckInLoaded;
-      expect(loaded.lastResult, isNull);
-      expect(loaded.lastFailure, isNotNull);
-      expect(loaded.lastFailure?.kind, CheckInFailureKind.alreadyUsed);
-      expect(loaded.recentScans.length, 1);
-      expect(loaded.recentScans.first.status, CheckInScanStatus.alreadyUsed);
-      expect(loaded.recentScans.first.code, 'TK-0000000501');
-    });
+        final loaded = cubit.state as OperatorCheckInLoaded;
+        expect(loaded.lastResult, isNull);
+        expect(loaded.lastFailure, isNotNull);
+        expect(loaded.lastFailure?.kind, CheckInFailureKind.alreadyUsed);
+        expect(loaded.recentScans.length, 1);
+        expect(loaded.recentScans.first.status, CheckInScanStatus.alreadyUsed);
+        expect(loaded.recentScans.first.code, 'TK-0000000501');
+      },
+    );
 
     test('wrong schedule scan sets rejected failure and scan item', () async {
       repository.failureToThrow = const CheckInFailure(

@@ -2,11 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/domain/entities/operator_check_in_models.dart';
 
 class CheckInResultBanner extends StatelessWidget {
-  const CheckInResultBanner({
-    this.result,
-    this.failure,
-    super.key,
-  });
+  const CheckInResultBanner({this.result, this.failure, super.key});
 
   final CheckInResult? result;
   final CheckInFailure? failure;
@@ -15,7 +11,8 @@ class CheckInResultBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     if (result != null) {
       final res = result!;
-      final timeStr = '${res.checkedInAtUtc.toLocal().hour.toString().padLeft(2, '0')}:'
+      final timeStr =
+          '${res.checkedInAtUtc.toLocal().hour.toString().padLeft(2, '0')}:'
           '${res.checkedInAtUtc.toLocal().minute.toString().padLeft(2, '0')}';
 
       return Container(
@@ -98,7 +95,11 @@ class CheckInResultBanner extends StatelessWidget {
                   color: Color(0xFFD97706),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.priority_high, color: Colors.white, size: 16),
+                child: const Icon(
+                  Icons.priority_high,
+                  color: Colors.white,
+                  size: 16,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -117,7 +118,8 @@ class CheckInResultBanner extends StatelessWidget {
                     Text(
                       subtitle.isNotEmpty
                           ? subtitle
-                          : (fail.message ?? 'This ticket has already been checked in.'),
+                          : (fail.message ??
+                                'This ticket has already been checked in.'),
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFFB45309),

@@ -19,11 +19,13 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
     try {
       final departures = await getTodayDepartures();
       if (departures.isEmpty) {
-        emit(const OperatorCheckInLoaded(
-          departures: [],
-          selectedDeparture: null,
-          progress: null,
-        ));
+        emit(
+          const OperatorCheckInLoaded(
+            departures: [],
+            selectedDeparture: null,
+            progress: null,
+          ),
+        );
         return;
       }
 
@@ -50,17 +52,21 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
         );
       }
 
-      emit(OperatorCheckInLoaded(
-        departures: departures,
-        selectedDeparture: selected,
-        progress: progress,
-      ));
+      emit(
+        OperatorCheckInLoaded(
+          departures: departures,
+          selectedDeparture: selected,
+          progress: progress,
+        ),
+      );
     } catch (e) {
-      emit(OperatorCheckInError(
-        e is CheckInFailure
-            ? (e.message ?? 'Failed to load departures')
-            : 'Failed to load departures: $e',
-      ));
+      emit(
+        OperatorCheckInError(
+          e is CheckInFailure
+              ? (e.message ?? 'Failed to load departures')
+              : 'Failed to load departures: $e',
+        ),
+      );
     }
   }
 
@@ -73,11 +79,13 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
       orElse: () => current.departures.first,
     );
 
-    emit(current.copyWith(
-      selectedDeparture: selected,
-      clearLastResult: true,
-      clearLastFailure: true,
-    ));
+    emit(
+      current.copyWith(
+        selectedDeparture: selected,
+        clearLastResult: true,
+        clearLastFailure: true,
+      ),
+    );
 
     try {
       final progress = await getDepartureProgress(scheduleId);
@@ -119,13 +127,15 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
 
       final updatedScans = [scanItem, ...current.recentScans];
 
-      emit(current.copyWith(
-        isSubmittingScan: false,
-        lastResult: result,
-        clearLastFailure: true,
-        progress: result.departure,
-        recentScans: updatedScans,
-      ));
+      emit(
+        current.copyWith(
+          isSubmittingScan: false,
+          lastResult: result,
+          clearLastFailure: true,
+          progress: result.departure,
+          recentScans: updatedScans,
+        ),
+      );
     } on CheckInFailure catch (failure) {
       final scanStatus = failure.kind == CheckInFailureKind.alreadyUsed
           ? CheckInScanStatus.alreadyUsed
@@ -142,31 +152,32 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
 
       final updatedScans = [scanItem, ...current.recentScans];
 
-      emit(current.copyWith(
-        isSubmittingScan: false,
-        lastFailure: failure,
-        clearLastResult: true,
-        recentScans: updatedScans,
-      ));
-    } catch (e) {
-      emit(current.copyWith(
-        isSubmittingScan: false,
-        lastFailure: CheckInFailure(
-          kind: CheckInFailureKind.system,
-          message: e.toString(),
+      emit(
+        current.copyWith(
+          isSubmittingScan: false,
+          lastFailure: failure,
+          clearLastResult: true,
+          recentScans: updatedScans,
         ),
-        clearLastResult: true,
-      ));
+      );
+    } catch (e) {
+      emit(
+        current.copyWith(
+          isSubmittingScan: false,
+          lastFailure: CheckInFailure(
+            kind: CheckInFailureKind.system,
+            message: e.toString(),
+          ),
+          clearLastResult: true,
+        ),
+      );
     }
   }
 
   void clearActiveBanner() {
     final current = state;
     if (current is OperatorCheckInLoaded) {
-      emit(current.copyWith(
-        clearLastResult: true,
-        clearLastFailure: true,
-      ));
+      emit(current.copyWith(clearLastResult: true, clearLastFailure: true));
     }
   }
 
@@ -178,13 +189,13 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
   }
 
   String _reasonFromKind(CheckInFailureKind kind) => switch (kind) {
-        CheckInFailureKind.alreadyUsed => 'Ticket already checked in',
-        CheckInFailureKind.departureNotToday => 'Different departure date',
-        CheckInFailureKind.wrongSchedule => 'Wrong tour departure',
-        CheckInFailureKind.bookingCancelled => 'Booking cancelled',
-        CheckInFailureKind.bookingNotConfirmed => 'Booking unpaid',
-        CheckInFailureKind.invalidQr => 'Invalid or forged QR',
-        CheckInFailureKind.ticketNotFound => 'Ticket not found',
-        _ => 'Check-in rejected',
-      };
+    CheckInFailureKind.alreadyUsed => 'Ticket already checked in',
+    CheckInFailureKind.departureNotToday => 'Different departure date',
+    CheckInFailureKind.wrongSchedule => 'Wrong tour departure',
+    CheckInFailureKind.bookingCancelled => 'Booking cancelled',
+    CheckInFailureKind.bookingNotConfirmed => 'Booking unpaid',
+    CheckInFailureKind.invalidQr => 'Invalid or forged QR',
+    CheckInFailureKind.ticketNotFound => 'Ticket not found',
+    _ => 'Check-in rejected',
+  };
 }

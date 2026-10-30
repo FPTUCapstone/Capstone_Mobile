@@ -13,10 +13,13 @@ final class OperatorCheckInRepositoryImpl implements OperatorCheckInRepository {
   static const _base = '/api/v1/operator/check-in';
 
   @override
-  Future<List<OperatorDepartureSummary>> getTodayDepartures({DateTime? targetDate}) async {
+  Future<List<OperatorDepartureSummary>> getTodayDepartures({
+    DateTime? targetDate,
+  }) async {
     final queryParameters = <String, dynamic>{};
     if (targetDate != null) {
-      final formatted = '${targetDate.year.toString().padLeft(4, '0')}-'
+      final formatted =
+          '${targetDate.year.toString().padLeft(4, '0')}-'
           '${targetDate.month.toString().padLeft(2, '0')}-'
           '${targetDate.day.toString().padLeft(2, '0')}';
       queryParameters['targetDate'] = formatted;
@@ -93,8 +96,10 @@ final class OperatorCheckInRepositoryImpl implements OperatorCheckInRepository {
 
     final data = error.response?.data;
     final map = _asMap(data);
-    final errorCode = (map['errorCode'] ?? map['ErrorCode'] ?? map['title'])?.toString();
-    final message = (map['detail'] ?? map['title'] ?? map['message'])?.toString();
+    final errorCode = (map['errorCode'] ?? map['ErrorCode'] ?? map['title'])
+        ?.toString();
+    final message = (map['detail'] ?? map['title'] ?? map['message'])
+        ?.toString();
 
     DateTime? checkedInAt;
     final checkedInAtRaw = map['checkedInAt'] ?? map['CheckedInAt'];
@@ -104,7 +109,8 @@ final class OperatorCheckInRepositoryImpl implements OperatorCheckInRepository {
 
     final ticketCode = (map['ticketCode'] ?? map['TicketCode'])?.toString();
     final bookingCode = (map['bookingCode'] ?? map['BookingCode'])?.toString();
-    final passengerName = (map['passengerName'] ?? map['PassengerName'])?.toString();
+    final passengerName = (map['passengerName'] ?? map['PassengerName'])
+        ?.toString();
 
     final kind = switch (errorCode) {
       'checkin.unauthorized' => CheckInFailureKind.unauthorized,
@@ -134,12 +140,12 @@ final class OperatorCheckInRepositoryImpl implements OperatorCheckInRepository {
   }
 
   CheckInFailureKind _kindFromStatus(int? statusCode) => switch (statusCode) {
-        401 => CheckInFailureKind.unauthorized,
-        403 => CheckInFailureKind.forbidden,
-        404 => CheckInFailureKind.scheduleNotFound,
-        409 => CheckInFailureKind.alreadyUsed,
-        _ => CheckInFailureKind.system,
-      };
+    401 => CheckInFailureKind.unauthorized,
+    403 => CheckInFailureKind.forbidden,
+    404 => CheckInFailureKind.scheduleNotFound,
+    409 => CheckInFailureKind.alreadyUsed,
+    _ => CheckInFailureKind.system,
+  };
 
   Map<String, dynamic> _asMap(dynamic data) {
     if (data is Map<String, dynamic>) return data;

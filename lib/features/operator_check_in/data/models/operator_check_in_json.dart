@@ -11,12 +11,15 @@ final class OperatorCheckInJson {
       startAtUtc: _asDateTime(map['startAtUtc'] ?? map['StartAtUtc']),
       endAtUtc: _asDateTime(map['endAtUtc'] ?? map['EndAtUtc']),
       meetingPoint: (map['meetingPoint'] ?? map['MeetingPoint']) as String?,
-      checkedInParticipants:
-          _asInt(map['checkedInParticipants'] ?? map['CheckedInParticipants']),
+      checkedInParticipants: _asInt(
+        map['checkedInParticipants'] ?? map['CheckedInParticipants'],
+      ),
       totalEligibleParticipants: _asInt(
-          map['totalEligibleParticipants'] ?? map['TotalEligibleParticipants']),
-      waitingParticipants:
-          _asInt(map['waitingParticipants'] ?? map['WaitingParticipants']),
+        map['totalEligibleParticipants'] ?? map['TotalEligibleParticipants'],
+      ),
+      waitingParticipants: _asInt(
+        map['waitingParticipants'] ?? map['WaitingParticipants'],
+      ),
     );
   }
 
@@ -30,12 +33,15 @@ final class OperatorCheckInJson {
       endAtUtc: _asDateTime(map['endAtUtc'] ?? map['EndAtUtc']),
       meetingPoint: (map['meetingPoint'] ?? map['MeetingPoint']) as String?,
       status: _asString(map['status'] ?? map['Status'] ?? 'Scheduled'),
-      checkedInParticipants:
-          _asInt(map['checkedInParticipants'] ?? map['CheckedInParticipants']),
+      checkedInParticipants: _asInt(
+        map['checkedInParticipants'] ?? map['CheckedInParticipants'],
+      ),
       totalEligibleParticipants: _asInt(
-          map['totalEligibleParticipants'] ?? map['TotalEligibleParticipants']),
-      waitingParticipants:
-          _asInt(map['waitingParticipants'] ?? map['WaitingParticipants']),
+        map['totalEligibleParticipants'] ?? map['TotalEligibleParticipants'],
+      ),
+      waitingParticipants: _asInt(
+        map['waitingParticipants'] ?? map['WaitingParticipants'],
+      ),
     );
   }
 
@@ -50,9 +56,12 @@ final class OperatorCheckInJson {
       ticketCode: _asString(map['ticketCode'] ?? map['TicketCode']),
       bookingCode: _asString(map['bookingCode'] ?? map['BookingCode']),
       passengerName: _asString(map['passengerName'] ?? map['PassengerName']),
-      participantCount:
-          _asInt(map['participantCount'] ?? map['ParticipantCount']),
-      checkedInAtUtc: _asDateTime(map['checkedInAtUtc'] ?? map['CheckedInAtUtc']),
+      participantCount: _asInt(
+        map['participantCount'] ?? map['ParticipantCount'],
+      ),
+      checkedInAtUtc: _asDateTime(
+        map['checkedInAtUtc'] ?? map['CheckedInAtUtc'],
+      ),
       departure: departureProgress(map['departure'] ?? map['Departure']),
     );
   }

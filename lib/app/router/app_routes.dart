@@ -78,6 +78,7 @@ abstract final class AppRoutes {
       queryParameters: params.isEmpty ? null : params,
     ).toString();
   }
+
   static String operatorBookingPath(String bookingId, {bool isDemo = false}) =>
       '/operator/bookings/$bookingId${isDemo ? '?demo=true' : ''}';
   static const editTourPackage = '/operator/tours/:tourId/edit';

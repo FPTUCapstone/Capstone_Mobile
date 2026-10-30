@@ -6,10 +6,7 @@ import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
 class CheckInDepartureHeader extends StatelessWidget {
-  const CheckInDepartureHeader({
-    required this.progress,
-    super.key,
-  });
+  const CheckInDepartureHeader({required this.progress, super.key});
 
   final DepartureProgress progress;
 
@@ -19,7 +16,8 @@ class CheckInDepartureHeader extends StatelessWidget {
     final timeStr =
         '${startLocal.day.toString().padLeft(2, '0')}/${startLocal.month.toString().padLeft(2, '0')}/${startLocal.year} '
         '${startLocal.hour.toString().padLeft(2, '0')}:${startLocal.minute.toString().padLeft(2, '0')}';
-    final subtitle = progress.meetingPoint != null && progress.meetingPoint!.isNotEmpty
+    final subtitle =
+        progress.meetingPoint != null && progress.meetingPoint!.isNotEmpty
         ? '$timeStr · ${progress.meetingPoint}'
         : timeStr;
 
@@ -111,7 +109,9 @@ class CheckInDepartureHeader extends StatelessWidget {
               value: progress.progressRatio,
               minHeight: 6,
               backgroundColor: const Color(0xFFE5E7EB),
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0E9F6E)),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                Color(0xFF0E9F6E),
+              ),
             ),
           ),
         ],
