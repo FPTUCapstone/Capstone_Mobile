@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/availability_status.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summary.dart';
+import 'package:trip_mate_mobile/features/tour_search/presentation/resources/tour_search_en.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/theme/tour_search_palette.dart';
 
 class TourListCard extends StatelessWidget {
@@ -9,12 +10,14 @@ class TourListCard extends StatelessWidget {
     required this.tour,
     this.onTap,
     this.matchingScore,
+    this.useEnglish = false,
     super.key,
   });
 
   final TourSummary tour;
   final VoidCallback? onTap;
   final double? matchingScore;
+  final bool useEnglish;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +30,7 @@ class TourListCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _TourThumbnail(tour: tour),
+              _TourThumbnail(tour: tour, useEnglish: useEnglish),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Column(
@@ -88,7 +91,9 @@ class TourListCard extends StatelessWidget {
                         ),
                         const SizedBox(width: AppSpacing.xxs),
                         Text(
-                          '${tour.durationDays} ngày',
+                          useEnglish
+                              ? TourSearchEn.days(tour.durationDays)
+                              : '${tour.durationDays} ngày',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: TourSearchPalette.navyLight,
                           ),
@@ -101,7 +106,7 @@ class TourListCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.sm),
-
+          if (tour.aggregateRating != null) Text('★ ${tour.aggregateRating}'),
           // ── Price & Availability ───────────────────────────────
           Wrap(
             alignment: WrapAlignment.spaceBetween,
@@ -116,7 +121,7 @@ class TourListCard extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              _AvailabilityBadge(tour: tour),
+              _AvailabilityBadge(tour: tour, useEnglish: useEnglish),
             ],
           ),
         ],
@@ -125,7 +130,7 @@ class TourListCard extends StatelessWidget {
 
     return Semantics(
       label:
-          '${tour.title}, ${_availabilityLabel(tour)}${matchingScore != null ? ', ${(matchingScore! * 100).round()}% match' : ''}',
+          '${tour.title}, ${_availabilityLabel(tour, useEnglish)}${matchingScore != null ? ', ${(matchingScore! * 100).round()}% match' : ''}',
       button: onTap != null,
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -172,7 +177,17 @@ class TourListCard extends StatelessWidget {
     return buffer.toString();
   }
 
-  static String _availabilityLabel(TourSummary tour) {
+  static String _availabilityLabel(TourSummary tour, bool useEnglish) {
+    if (useEnglish) {
+      return switch (tour.availabilityStatus) {
+        AvailabilityStatus.available => TourSearchEn.placesLeft(
+          tour.remainingSlots,
+        ),
+        AvailabilityStatus.soldOut => TourSearchEn.soldOut,
+        AvailabilityStatus.noUpcomingSchedule => TourSearchEn.noSchedule,
+        AvailabilityStatus.unknown => TourSearchEn.availabilityUnknown,
+      };
+    }
     return switch (tour.availabilityStatus) {
       AvailabilityStatus.available => 'Còn ${tour.remainingSlots ?? '?'} chỗ',
       AvailabilityStatus.soldOut => 'Hết chỗ',
@@ -183,9 +198,10 @@ class TourListCard extends StatelessWidget {
 }
 
 class _AvailabilityBadge extends StatelessWidget {
-  const _AvailabilityBadge({required this.tour});
+  const _AvailabilityBadge({required this.tour, required this.useEnglish});
 
   final TourSummary tour;
+  final bool useEnglish;
 
   @override
   Widget build(BuildContext context) {
@@ -196,17 +212,19 @@ class _AvailabilityBadge extends StatelessWidget {
         Icons.event_available_outlined,
       ),
       AvailabilityStatus.soldOut => (
-        'Hết chỗ',
+        useEnglish ? TourSearchEn.soldOut : 'Hết chỗ',
         TourSearchPalette.soldOut,
         Icons.event_busy_outlined,
       ),
       AvailabilityStatus.noUpcomingSchedule => (
-        'Chưa có lịch khởi hành',
+        useEnglish ? TourSearchEn.noSchedule : 'Chưa có lịch khởi hành',
         TourSearchPalette.muted,
         Icons.event_outlined,
       ),
       AvailabilityStatus.unknown => (
-        'Tình trạng chỗ chưa xác định',
+        useEnglish
+            ? TourSearchEn.availabilityUnknown
+            : 'Tình trạng chỗ chưa xác định',
         TourSearchPalette.muted,
         Icons.help_outline,
       ),
@@ -243,6 +261,7 @@ class _AvailabilityBadge extends StatelessWidget {
   }
 
   String _availableLabel() {
+    if (useEnglish) return TourSearchEn.placesLeft(tour.remainingSlots);
     final parts = <String>[];
     if (tour.remainingSlots != null) {
       parts.add('Còn ${tour.remainingSlots} chỗ');
@@ -258,9 +277,10 @@ class _AvailabilityBadge extends StatelessWidget {
 }
 
 class _TourThumbnail extends StatelessWidget {
-  const _TourThumbnail({required this.tour});
+  const _TourThumbnail({required this.tour, required this.useEnglish});
 
   final TourSummary tour;
+  final bool useEnglish;
 
   @override
   Widget build(BuildContext context) {
@@ -280,7 +300,9 @@ class _TourThumbnail extends StatelessWidget {
           ? Image.network(
               rawUrl,
               fit: BoxFit.cover,
-              semanticLabel: 'Ảnh ${tour.title}',
+              semanticLabel: useEnglish
+                  ? TourSearchEn.imageOf(tour.title)
+                  : 'Ảnh ${tour.title}',
               errorBuilder: (_, _, _) => const _NeutralThumbnailPlaceholder(),
               loadingBuilder: (_, child, loadingProgress) {
                 if (loadingProgress == null) return child;

@@ -98,7 +98,7 @@ Map<String, dynamic> _advisoryJson() => {
   'poiName': 'Museum',
   'plannedArrivalUtc': '2026-10-23T02:00:00Z',
   'forecastAtUtc': '2026-10-23T02:15:00Z',
-  'rainMmPerHour': 4.5,
+  'rainIntensityMmPerHour': 4.5,
   'condition': 'moderate rain',
 };
 

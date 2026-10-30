@@ -11,6 +11,7 @@ class TripAlertBanner extends StatelessWidget {
     this.onOpen,
     this.onReviewReroute,
     this.onConfirmArrival,
+    this.onSkipAffectedStop,
   });
 
   final TripAlert alert;
@@ -18,6 +19,7 @@ class TripAlertBanner extends StatelessWidget {
   final VoidCallback? onOpen;
   final VoidCallback? onReviewReroute;
   final VoidCallback? onConfirmArrival;
+  final VoidCallback? onSkipAffectedStop;
 
   @override
   Widget build(BuildContext context) {
@@ -141,6 +143,16 @@ class TripAlertBanner extends StatelessWidget {
                           child: TextButton(
                             onPressed: onConfirmArrival,
                             child: const Text("Confirm I've arrived"),
+                          ),
+                        ),
+                      if (alert.messageCode == 'trip_alert.severe_weather' &&
+                          alert.canSkipAffectedStop &&
+                          onSkipAffectedStop != null)
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: onSkipAffectedStop,
+                            child: const Text('Skip this stop'),
                           ),
                         ),
                       if (alert.rerouteProposalAvailable &&
