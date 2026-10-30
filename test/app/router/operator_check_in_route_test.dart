@@ -116,16 +116,14 @@ void main() {
       expect(
         originalBuggyLogic(uriWithDemo),
         isTrue,
-        reason:
-            'Original bug: ?demo=true activated demo fixtures regardless of build mode',
+        reason: 'Original bug: demo=true activated mock fixtures',
       );
 
       // The corrected logic strictly requires isDebug (kDebugMode):
       expect(
         resolveOperatorCheckInDemo(uriWithDemo, isDebug: false),
         isFalse,
-        reason:
-            'Corrected logic: Release build (?demo=true, isDebug: false) must NEVER enter demo mode',
+        reason: 'Release build with demo=true must not be demo',
       );
 
       expect(
@@ -150,8 +148,7 @@ void main() {
       expect(
         resolveOperatorCheckInDemo(uriWithoutDemo, isDebug: true),
         isFalse,
-        reason:
-            'Debug build without demo query param routes to live Backend by default',
+        reason: 'Debug build without demo param routes to live Backend',
       );
     });
 
@@ -164,21 +161,20 @@ void main() {
       expect(liveRepo, isNot(isA<DemoOperatorCheckInRepository>()));
     });
 
-    test('Release + Backend unavailable emits error, never demo data', () async {
+    test('Release + Backend unavailable emits error', () async {
       // Live Cubit configured with unreachable test host
       final liveCubit = serviceLocator<OperatorCheckInCubit>(param1: false);
       addTearDown(liveCubit.close);
 
       expect(liveCubit.state, isA<OperatorCheckInInitial>());
 
-      // Loading against unreachable host emits OperatorCheckInError, never demo data
+      // Loading against unreachable host emits OperatorCheckInError
       await liveCubit.loadInitial();
 
       expect(
         liveCubit.state,
         isA<OperatorCheckInError>(),
-        reason:
-            'Live cubit when backend is down must emit error, never fabricated success',
+        reason: 'Live cubit emits error when backend is down',
       );
       final errorState = liveCubit.state as OperatorCheckInError;
       expect(errorState.message, isNotEmpty);
