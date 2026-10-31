@@ -57,6 +57,9 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
 
   @override
   Widget build(BuildContext context) {
+    final current = context.watch<OperatorCheckInCubit>().state;
+    final scanInFlight =
+        current is OperatorCheckInLoaded && current.isSubmittingScan;
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -75,17 +78,19 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
           IconButton(
             icon: const Icon(Icons.refresh, color: AppColors.ink),
             tooltip: 'Refresh departures',
-            onPressed: () {
-              final state = context.read<OperatorCheckInCubit>().state;
-              final selectedId = state is OperatorCheckInLoaded
-                  ? state.selectedDeparture?.scheduleId
-                  : widget.initialScheduleId;
-              unawaited(
-                context.read<OperatorCheckInCubit>().loadInitial(
-                  preselectedScheduleId: selectedId,
-                ),
-              );
-            },
+            onPressed: scanInFlight
+                ? null
+                : () {
+                    final state = context.read<OperatorCheckInCubit>().state;
+                    final selectedId = state is OperatorCheckInLoaded
+                        ? state.selectedDeparture?.scheduleId
+                        : widget.initialScheduleId;
+                    unawaited(
+                      context.read<OperatorCheckInCubit>().loadInitial(
+                        preselectedScheduleId: selectedId,
+                      ),
+                    );
+                  },
           ),
         ],
       ),
@@ -345,15 +350,17 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
               ),
             );
           }).toList(),
-          onChanged: (scheduleId) {
-            if (scheduleId != null) {
-              unawaited(
-                context.read<OperatorCheckInCubit>().selectDeparture(
-                  scheduleId,
-                ),
-              );
-            }
-          },
+          onChanged: state.isSubmittingScan
+              ? null
+              : (scheduleId) {
+                  if (scheduleId != null) {
+                    unawaited(
+                      context.read<OperatorCheckInCubit>().selectDeparture(
+                        scheduleId,
+                      ),
+                    );
+                  }
+                },
         ),
       ),
     );
