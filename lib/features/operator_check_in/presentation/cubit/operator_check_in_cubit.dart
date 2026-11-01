@@ -19,11 +19,32 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
   Future<void> loadInitial({int? preselectedScheduleId}) async {
     // Keep the selected departure and its eventual scan feedback together.
     if (isClosed || _scanInFlight) return;
+    final previous = state is OperatorCheckInLoaded
+        ? state as OperatorCheckInLoaded
+        : null;
+    if (previous?.isManualEntryActive ?? false) return;
+    final switchesDeparture =
+        previous != null &&
+        preselectedScheduleId != null &&
+        previous.selectedDeparture?.scheduleId != preselectedScheduleId;
     final generation = ++_requestGeneration;
-    emit(const OperatorCheckInLoading());
+    if (previous == null) {
+      emit(const OperatorCheckInLoading());
+    } else {
+      emit(previous.copyWith(isRefreshing: true));
+    }
     try {
       final departures = await getTodayDepartures();
       if (!_isCurrent(generation)) return;
+      final previousSelection = previous?.selectedDeparture;
+      if (!switchesDeparture &&
+          previousSelection != null &&
+          !departures.any(
+            (d) => d.scheduleId == previousSelection.scheduleId,
+          )) {
+        // A refresh is not an operator-authorized departure/session reset.
+        return;
+      }
       if (departures.isEmpty) {
         emit(
           const OperatorCheckInLoaded(
@@ -35,9 +56,11 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
         return;
       }
 
-      final selected = preselectedScheduleId != null
+      final selectedId =
+          preselectedScheduleId ?? previous?.selectedDeparture?.scheduleId;
+      final selected = selectedId != null
           ? departures.firstWhere(
-              (d) => d.scheduleId == preselectedScheduleId,
+              (d) => d.scheduleId == selectedId,
               orElse: () => departures.first,
             )
           : departures.first;
@@ -51,15 +74,28 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
       }
       if (!_isCurrent(generation)) return;
 
+      final latest = state;
+      final retained = latest is OperatorCheckInLoaded ? latest : previous;
       emit(
-        OperatorCheckInLoaded(
-          departures: departures,
-          selectedDeparture: selected,
-          progress: progress,
-        ),
+        retained?.copyWith(
+              departures: departures,
+              selectedDeparture: selected,
+              progress: progress,
+              isRefreshing: false,
+              clearLastResult: switchesDeparture,
+              clearLastFailure: switchesDeparture,
+              scanArmed: switchesDeparture ? true : retained.scanArmed,
+              scanSession: retained.scanSession + (switchesDeparture ? 1 : 0),
+            ) ??
+            OperatorCheckInLoaded(
+              departures: departures,
+              selectedDeparture: selected,
+              progress: progress,
+            ),
       );
     } catch (e) {
       if (!_isCurrent(generation)) return;
+      if (previous != null) return; // Keep held feedback on a refresh failure.
       emit(
         OperatorCheckInError(
           e is CheckInFailure
@@ -67,13 +103,25 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
               : 'Failed to load departures: $e',
         ),
       );
+    } finally {
+      if (_isCurrent(generation)) {
+        final latest = state;
+        if (latest is OperatorCheckInLoaded && latest.isRefreshing) {
+          emit(latest.copyWith(isRefreshing: false));
+        }
+      }
     }
   }
 
   Future<void> selectDeparture(int scheduleId) async {
     if (isClosed || _scanInFlight) return;
     final current = state;
-    if (current is! OperatorCheckInLoaded) return;
+    if (current is! OperatorCheckInLoaded ||
+        current.isManualEntryActive ||
+        current.isRefreshing) {
+      return;
+    }
+    if (current.selectedDeparture?.scheduleId == scheduleId) return;
     if (!current.departures.any((d) => d.scheduleId == scheduleId)) return;
 
     final selected = current.departures.firstWhere(
@@ -88,6 +136,8 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
         progress: _snapshot(selected),
         clearLastResult: true,
         clearLastFailure: true,
+        scanArmed: true,
+        scanSession: current.scanSession + 1,
       ),
     );
 
@@ -113,7 +163,11 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
     if (isClosed || _scanInFlight) return;
     final current = state;
     if (current is! OperatorCheckInLoaded) return;
-    if (current.isSubmittingScan) return; // Debounce guard
+    if (current.isSubmittingScan || current.isRefreshing) return;
+    if (qrContent != null &&
+        (!current.scanArmed || current.isManualEntryActive)) {
+      return;
+    }
 
     final schedule = current.selectedDeparture;
     if (schedule == null) return;
@@ -121,7 +175,7 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
     _scanInFlight = true;
     // A pending pre-scan read must not replace the returned updated counts.
     ++_requestGeneration;
-    emit(current.copyWith(isSubmittingScan: true));
+    emit(current.copyWith(isSubmittingScan: true, scanArmed: false));
 
     try {
       final result = await scanCheckIn(
@@ -142,7 +196,7 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
         code: result.ticketCode,
         passengerName: result.passengerName,
         participantCount: result.participantCount,
-        timestamp: DateTime.now(),
+        timestamp: result.checkedInAtUtc,
         status: CheckInScanStatus.valid,
       );
 
@@ -161,8 +215,13 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
       if (isClosed) return;
       final latest = state;
       if (latest is! OperatorCheckInLoaded) return;
+      final uncertain =
+          failure.kind == CheckInFailureKind.network ||
+          failure.kind == CheckInFailureKind.system;
       final scanStatus = failure.kind == CheckInFailureKind.alreadyUsed
           ? CheckInScanStatus.alreadyUsed
+          : uncertain
+          ? CheckInScanStatus.notConfirmed
           : CheckInScanStatus.rejected;
 
       final scanItem = CheckInScanItem(
@@ -171,7 +230,9 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
         participantCount: 0,
         timestamp: DateTime.now(),
         status: scanStatus,
-        reason: failure.message ?? _reasonFromKind(failure.kind),
+        reason: uncertain
+            ? 'Check-in not confirmed'
+            : failure.message ?? _reasonFromKind(failure.kind),
       );
 
       final updatedScans = [scanItem, ...latest.recentScans];
@@ -184,17 +245,14 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
           recentScans: updatedScans,
         ),
       );
-    } catch (e) {
+    } catch (_) {
       if (isClosed) return;
       final latest = state;
       if (latest is! OperatorCheckInLoaded) return;
       emit(
         latest.copyWith(
           isSubmittingScan: false,
-          lastFailure: CheckInFailure(
-            kind: CheckInFailureKind.system,
-            message: e.toString(),
-          ),
+          lastFailure: const CheckInFailure(kind: CheckInFailureKind.system),
           clearLastResult: true,
         ),
       );
@@ -203,11 +261,52 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
     }
   }
 
+  bool get canScanQr {
+    final current = state;
+    return !isClosed &&
+        !_scanInFlight &&
+        current is OperatorCheckInLoaded &&
+        current.scanArmed &&
+        !current.isRefreshing &&
+        !current.isManualEntryActive;
+  }
+
   void clearActiveBanner() {
+    if (isClosed || _scanInFlight) return;
+    final current = state;
+    if (current is OperatorCheckInLoaded &&
+        !current.isManualEntryActive &&
+        !current.isRefreshing) {
+      emit(
+        current.copyWith(
+          clearLastResult: true,
+          clearLastFailure: true,
+          scanArmed: true,
+          scanSession: current.scanSession + 1,
+        ),
+      );
+    }
+  }
+
+  bool beginManualEntry() {
+    final current = state;
+    if (isClosed ||
+        _scanInFlight ||
+        current is! OperatorCheckInLoaded ||
+        current.isManualEntryActive ||
+        current.isRefreshing ||
+        current.selectedDeparture == null) {
+      return false;
+    }
+    emit(current.copyWith(isManualEntryActive: true));
+    return true;
+  }
+
+  void endManualEntry() {
     if (isClosed) return;
     final current = state;
     if (current is OperatorCheckInLoaded) {
-      emit(current.copyWith(clearLastResult: true, clearLastFailure: true));
+      emit(current.copyWith(isManualEntryActive: false));
     }
   }
 

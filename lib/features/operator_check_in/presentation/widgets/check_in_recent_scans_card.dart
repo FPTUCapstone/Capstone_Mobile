@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/domain/entities/operator_check_in_models.dart';
+import 'package:trip_mate_mobile/features/operator_check_in/presentation/formatters/check_in_time_format.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
 
 class CheckInRecentScansCard extends StatelessWidget {
@@ -40,9 +41,8 @@ class CheckInRecentScansCard extends StatelessWidget {
             itemBuilder: (context, index) {
               final item = scans[index];
               final isValid = item.status == CheckInScanStatus.valid;
-              final timeStr =
-                  '${item.timestamp.hour.toString().padLeft(2, '0')}:'
-                  '${item.timestamp.minute.toString().padLeft(2, '0')}';
+              final isUncertain = item.status == CheckInScanStatus.notConfirmed;
+              final timeStr = CheckInTimeFormat.dateTime(item.timestamp);
 
               return Padding(
                 padding: const EdgeInsets.symmetric(
@@ -61,7 +61,9 @@ class CheckInRecentScansCard extends StatelessWidget {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        isValid ? Icons.check : Icons.close,
+                        isValid
+                            ? Icons.check
+                            : (isUncertain ? Icons.help_outline : Icons.close),
                         size: 16,
                         color: isValid
                             ? const Color(0xFF0E9F6E)
@@ -87,7 +89,7 @@ class CheckInRecentScansCard extends StatelessWidget {
                           Text(
                             isValid
                                 ? '${item.participantCount} pax · $timeStr'
-                                : '$timeStr · ${item.reason ?? 'rejected'}',
+                                : 'Attempt $timeStr · ${item.reason ?? (isUncertain ? 'not confirmed' : 'rejected')}',
                             style: const TextStyle(
                               fontSize: 11,
                               color: AppColors.muted,
@@ -110,7 +112,9 @@ class CheckInRecentScansCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        isValid ? 'Valid' : 'Rejected',
+                        isValid
+                            ? 'Valid'
+                            : (isUncertain ? 'Not confirmed' : 'Rejected'),
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,

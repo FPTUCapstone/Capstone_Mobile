@@ -6,12 +6,16 @@ class CheckInCameraScannerView extends StatefulWidget {
   const CheckInCameraScannerView({
     required this.onScanned,
     this.isPaused = false,
+    this.canScan,
+    this.scanSession = 0,
     this.scannerBuilder,
     super.key,
   });
 
   final ValueChanged<String> onScanned;
   final bool isPaused;
+  final bool Function()? canScan;
+  final int scanSession;
   final Widget Function(
     BuildContext context, {
     required ValueChanged<String> onDetect,
@@ -25,7 +29,7 @@ class CheckInCameraScannerView extends StatefulWidget {
 
 class _CheckInCameraScannerViewState extends State<CheckInCameraScannerView> {
   late final MobileScannerController _controller;
-  DateTime? _lastScannedTime;
+  bool _hasDetected = false;
 
   @override
   void initState() {
@@ -42,18 +46,22 @@ class _CheckInCameraScannerViewState extends State<CheckInCameraScannerView> {
     super.dispose();
   }
 
-  void _handleDetect(String raw) {
-    if (widget.isPaused) return;
+  @override
+  void didUpdateWidget(covariant CheckInCameraScannerView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.scanSession != widget.scanSession) _hasDetected = false;
+  }
 
-    // Scan debouncing: ignore scans within 1.5 seconds of each other
-    final now = DateTime.now();
-    if (_lastScannedTime != null &&
-        now.difference(_lastScannedTime!) <
-            const Duration(milliseconds: 1500)) {
+  void _handleDetect(String raw) {
+    if (!mounted ||
+        widget.isPaused ||
+        _hasDetected ||
+        raw.isEmpty ||
+        !(widget.canScan?.call() ?? true)) {
       return;
     }
-
-    _lastScannedTime = now;
+    // Latch synchronously: another camera callback can precede the Bloc rebuild.
+    _hasDetected = true;
     widget.onScanned(raw);
   }
 
