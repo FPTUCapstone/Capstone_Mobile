@@ -332,6 +332,35 @@ void main() {
     expect(loaded(), held);
   });
 
+  test('mixed bounded history survives explicit departure selection', () async {
+    for (var index = 0; index < 25; index++) {
+      cubit.clearActiveBanner();
+      if (index.isEven) {
+        repository.scanRequest = null;
+        await cubit.submitScan(qrContent: 'QR-$index');
+      } else {
+        final pending = repository.scanRequest = Completer<CheckInResult>();
+        final scanning = cubit.submitScan(qrContent: 'QR-$index');
+        pending.completeError(
+          const CheckInFailure(kind: CheckInFailureKind.alreadyUsed),
+        );
+        await scanning;
+      }
+    }
+    final history = loaded().recentScans;
+    expect(history.length, 20);
+    expect(history.first.status, CheckInScanStatus.valid);
+    expect(history[1].status, CheckInScanStatus.alreadyUsed);
+    await cubit.selectDeparture(2);
+    expect(loaded().recentScans, history);
+    expect(cubit.canScanQr, isTrue);
+    repository.scanRequest = null;
+    await cubit.submitScan(qrContent: 'QR-B');
+    expect(loaded().recentScans.length, 20);
+    expect(loaded().recentScans.first.code, 'TK-2');
+    expect(loaded().recentScans.skip(1), history.take(19));
+  });
+
   test('scan completion preserves newer camera state', () async {
     final pending = Completer<CheckInResult>();
     repository.scanRequest = pending;

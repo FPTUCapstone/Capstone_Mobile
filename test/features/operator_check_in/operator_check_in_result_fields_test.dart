@@ -128,6 +128,31 @@ void main() {
     expect(find.textContaining('rejected'), findsNothing);
   });
 
+  testWidgets('recent card renders only five of twenty retained entries', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      CheckInRecentScansCard(
+        scans: List.generate(
+          20,
+          (index) => CheckInScanItem(
+            code: 'TK-$index',
+            passengerName: 'Traveler $index',
+            participantCount: 2,
+            timestamp: DateTime.utc(2026, 10, 30),
+            status: CheckInScanStatus.valid,
+          ),
+        ),
+      ),
+    );
+    for (var index = 0; index < 5; index++) {
+      expect(find.text('Traveler $index'), findsOneWidget);
+    }
+    expect(find.text('Traveler 5'), findsNothing);
+    expect(find.text('Traveler 19'), findsNothing);
+  });
+
   for (final timestamp in [
     '2026-12-31T17:05:00Z',
     '2026-12-31T12:05:00-05:00',

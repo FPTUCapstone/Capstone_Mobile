@@ -15,6 +15,7 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
   final ScanCheckInUseCase scanCheckIn;
   int _requestGeneration = 0;
   bool _scanInFlight = false;
+  static const int _maxRecentScans = 20;
 
   Future<void> loadInitial({int? preselectedScheduleId}) async {
     // Keep the selected departure and its eventual scan feedback together.
@@ -198,7 +199,7 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
         status: CheckInScanStatus.valid,
       );
 
-      final updatedScans = [scanItem, ...latest.recentScans];
+      final updatedScans = _prependRecentScan(scanItem, latest.recentScans);
 
       emit(
         latest.copyWith(
@@ -233,7 +234,7 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
             : failure.message ?? _reasonFromKind(failure.kind),
       );
 
-      final updatedScans = [scanItem, ...latest.recentScans];
+      final updatedScans = _prependRecentScan(scanItem, latest.recentScans);
 
       emit(
         latest.copyWith(
@@ -269,6 +270,11 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
         !current.isRefreshing &&
         !current.isManualEntryActive;
   }
+
+  List<CheckInScanItem> _prependRecentScan(
+    CheckInScanItem item,
+    List<CheckInScanItem> history,
+  ) => [item, ...history].take(_maxRecentScans).toList();
 
   void clearActiveBanner() {
     if (isClosed || _scanInFlight) return;

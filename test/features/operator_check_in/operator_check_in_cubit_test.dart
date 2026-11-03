@@ -109,6 +109,68 @@ void main() {
 
   tearDown(() => cubit.close());
 
+  for (final kind in [
+    null,
+    CheckInFailureKind.alreadyUsed,
+    CheckInFailureKind.ticketInvalid,
+    CheckInFailureKind.network,
+    CheckInFailureKind.system,
+  ]) {
+    test('recent history is bounded newest-first for $kind', () async {
+      await cubit.loadInitial();
+      final items = <CheckInScanItem>[];
+      for (var index = 1; index <= 100; index++) {
+        repository.failureToThrow = kind == null
+            ? null
+            : CheckInFailure(kind: kind, ticketCode: 'TK-$index');
+        if (kind == null) {
+          repository.resultToReturn = CheckInResult(
+            ticketCode: 'TK-$index',
+            bookingCode: 'BK-$index',
+            passengerName: 'Traveler $index',
+            participantCount: 2,
+            checkedInAtUtc: DateTime.utc(2026, 10, 30, 8, index),
+            departure: (cubit.state as OperatorCheckInLoaded).progress!,
+          );
+        }
+        cubit.clearActiveBanner();
+        await cubit.submitScan(qrContent: 'QR-$index');
+        final state = cubit.state as OperatorCheckInLoaded;
+        final newest = state.recentScans.first;
+        items.insert(0, newest);
+        expect(newest.code, 'TK-$index');
+        expect(state.recentScans, items.take(20).toList());
+        expect(state.recentScans.length, index < 20 ? index : 20);
+        expect(
+          newest.status,
+          kind == null
+              ? CheckInScanStatus.valid
+              : kind == CheckInFailureKind.alreadyUsed
+              ? CheckInScanStatus.alreadyUsed
+              : kind == CheckInFailureKind.network ||
+                    kind == CheckInFailureKind.system
+              ? CheckInScanStatus.notConfirmed
+              : CheckInScanStatus.rejected,
+        );
+        // A duplicate QR must not create an extra history entry.
+        await cubit.submitScan(qrContent: 'QR-$index');
+        expect(
+          (cubit.state as OperatorCheckInLoaded).recentScans,
+          state.recentScans,
+        );
+      }
+      repository.failureToThrow = null;
+      final retained = (cubit.state as OperatorCheckInLoaded).recentScans;
+      await cubit.loadInitial();
+      expect((cubit.state as OperatorCheckInLoaded).recentScans, retained);
+      cubit.clearActiveBanner();
+      expect((cubit.state as OperatorCheckInLoaded).recentScans, retained);
+      repository.departuresToReturn = [];
+      await cubit.loadInitial();
+      expect((cubit.state as OperatorCheckInLoaded).recentScans, retained);
+    });
+  }
+
   group('OperatorCheckInCubit - Lifecycle & Loading', () {
     test('initial state is OperatorCheckInInitial', () {
       expect(cubit.state, isA<OperatorCheckInInitial>());
