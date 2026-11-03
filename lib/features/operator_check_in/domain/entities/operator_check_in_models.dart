@@ -122,7 +122,7 @@ class CheckInResult extends Equatable {
   ];
 }
 
-enum CheckInScanStatus { valid, alreadyUsed, rejected }
+enum CheckInScanStatus { valid, alreadyUsed, rejected, notConfirmed }
 
 class CheckInScanItem extends Equatable {
   const CheckInScanItem({

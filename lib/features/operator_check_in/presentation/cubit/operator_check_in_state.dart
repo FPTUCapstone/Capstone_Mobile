@@ -23,6 +23,10 @@ final class OperatorCheckInLoaded extends OperatorCheckInState {
     this.progress,
     this.recentScans = const [],
     this.isSubmittingScan = false,
+    this.isRefreshing = false,
+    this.scanArmed = true,
+    this.scanSession = 0,
+    this.isManualEntryActive = false,
     this.lastResult,
     this.lastFailure,
     this.cameraPermissionGranted = true,
@@ -33,6 +37,10 @@ final class OperatorCheckInLoaded extends OperatorCheckInState {
   final DepartureProgress? progress;
   final List<CheckInScanItem> recentScans;
   final bool isSubmittingScan;
+  final bool isRefreshing;
+  final bool scanArmed;
+  final int scanSession;
+  final bool isManualEntryActive;
   final CheckInResult? lastResult;
   final CheckInFailure? lastFailure;
   final bool cameraPermissionGranted;
@@ -41,8 +49,13 @@ final class OperatorCheckInLoaded extends OperatorCheckInState {
     List<OperatorDepartureSummary>? departures,
     OperatorDepartureSummary? selectedDeparture,
     DepartureProgress? progress,
+    bool clearDeparture = false,
     List<CheckInScanItem>? recentScans,
     bool? isSubmittingScan,
+    bool? isRefreshing,
+    bool? scanArmed,
+    int? scanSession,
+    bool? isManualEntryActive,
     CheckInResult? lastResult,
     bool clearLastResult = false,
     CheckInFailure? lastFailure,
@@ -51,10 +64,16 @@ final class OperatorCheckInLoaded extends OperatorCheckInState {
   }) {
     return OperatorCheckInLoaded(
       departures: departures ?? this.departures,
-      selectedDeparture: selectedDeparture ?? this.selectedDeparture,
-      progress: progress ?? this.progress,
+      selectedDeparture: clearDeparture
+          ? null
+          : selectedDeparture ?? this.selectedDeparture,
+      progress: clearDeparture ? null : progress ?? this.progress,
       recentScans: recentScans ?? this.recentScans,
       isSubmittingScan: isSubmittingScan ?? this.isSubmittingScan,
+      isRefreshing: isRefreshing ?? this.isRefreshing,
+      scanArmed: scanArmed ?? this.scanArmed,
+      scanSession: scanSession ?? this.scanSession,
+      isManualEntryActive: isManualEntryActive ?? this.isManualEntryActive,
       lastResult: clearLastResult ? null : (lastResult ?? this.lastResult),
       lastFailure: clearLastFailure ? null : (lastFailure ?? this.lastFailure),
       cameraPermissionGranted:
@@ -69,6 +88,10 @@ final class OperatorCheckInLoaded extends OperatorCheckInState {
     progress,
     recentScans,
     isSubmittingScan,
+    isRefreshing,
+    scanArmed,
+    scanSession,
+    isManualEntryActive,
     lastResult,
     lastFailure,
     cameraPermissionGranted,

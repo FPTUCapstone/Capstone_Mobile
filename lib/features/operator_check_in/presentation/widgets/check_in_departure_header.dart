@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/domain/entities/operator_check_in_models.dart';
+import 'package:trip_mate_mobile/features/operator_check_in/presentation/formatters/check_in_time_format.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
@@ -12,10 +13,7 @@ class CheckInDepartureHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final startLocal = progress.startAtUtc.toLocal();
-    final timeStr =
-        '${startLocal.day.toString().padLeft(2, '0')}/${startLocal.month.toString().padLeft(2, '0')}/${startLocal.year} '
-        '${startLocal.hour.toString().padLeft(2, '0')}:${startLocal.minute.toString().padLeft(2, '0')}';
+    final timeStr = CheckInTimeFormat.dateTime(progress.startAtUtc);
     final subtitle =
         progress.meetingPoint != null && progress.meetingPoint!.isNotEmpty
         ? '$timeStr · ${progress.meetingPoint}'

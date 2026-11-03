@@ -6,6 +6,7 @@ import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/domain/entities/operator_check_in_models.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/presentation/cubit/operator_check_in_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/presentation/cubit/operator_check_in_state.dart';
+import 'package:trip_mate_mobile/features/operator_check_in/presentation/formatters/check_in_time_format.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/presentation/widgets/check_in_camera_scanner_view.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/presentation/widgets/check_in_departure_header.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/presentation/widgets/check_in_manual_code_dialog.dart';
@@ -49,9 +50,15 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
   }
 
   Future<void> _openManualEntryDialog() async {
-    final code = await CheckInManualCodeDialog.show(context);
-    if (code != null && code.isNotEmpty && mounted) {
-      await context.read<OperatorCheckInCubit>().submitScan(bookingCode: code);
+    final cubit = context.read<OperatorCheckInCubit>();
+    if (!cubit.beginManualEntry()) return;
+    try {
+      final code = await CheckInManualCodeDialog.show(context);
+      if (code != null && code.isNotEmpty && mounted) {
+        await cubit.submitScan(bookingCode: code);
+      }
+    } finally {
+      cubit.endManualEntry();
     }
   }
 
@@ -59,7 +66,10 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
   Widget build(BuildContext context) {
     final current = context.watch<OperatorCheckInCubit>().state;
     final scanInFlight =
-        current is OperatorCheckInLoaded && current.isSubmittingScan;
+        current is OperatorCheckInLoaded &&
+        (current.isSubmittingScan ||
+            current.isManualEntryActive ||
+            current.isRefreshing);
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -81,13 +91,11 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
             onPressed: scanInFlight
                 ? null
                 : () {
-                    final state = context.read<OperatorCheckInCubit>().state;
-                    final selectedId = state is OperatorCheckInLoaded
-                        ? state.selectedDeparture?.scheduleId
-                        : widget.initialScheduleId;
                     unawaited(
                       context.read<OperatorCheckInCubit>().loadInitial(
-                        preselectedScheduleId: selectedId,
+                        preselectedScheduleId: current is OperatorCheckInLoaded
+                            ? null
+                            : widget.initialScheduleId,
                       ),
                     );
                   },
@@ -143,7 +151,7 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
           if (state is OperatorCheckInLoaded) {
             if (state.departures.isEmpty) {
               return Center(
-                child: Padding(
+                child: SingleChildScrollView(
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -174,12 +182,16 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
                         minimumHeight: 44,
                         onPressed: () {
                           unawaited(
-                            context.read<OperatorCheckInCubit>().loadInitial(
-                              preselectedScheduleId: widget.initialScheduleId,
-                            ),
+                            context.read<OperatorCheckInCubit>().loadInitial(),
                           );
                         },
                       ),
+                      if (state.lastResult != null || state.lastFailure != null)
+                        CheckInResultBanner(
+                          result: state.lastResult,
+                          failure: state.lastFailure,
+                        ),
+                      CheckInRecentScansCard(scans: state.recentScans),
                     ],
                   ),
                 ),
@@ -209,7 +221,8 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (state.departures.length > 1) ...[
+                  if (state.departures.length > 1 ||
+                      state.selectedDeparture == null) ...[
                     _buildDepartureDropdown(context, state),
                     const SizedBox(height: AppSpacing.sm),
                   ],
@@ -226,8 +239,17 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
                     const SizedBox(height: AppSpacing.sm),
                   ],
                   CheckInCameraScannerView(
+                    key: const ValueKey('check-in-camera'),
                     scannerBuilder: widget.scannerBuilder,
-                    isPaused: state.isSubmittingScan,
+                    scanSession: state.scanSession,
+                    canScan: () =>
+                        context.read<OperatorCheckInCubit>().canScanQr,
+                    isPaused:
+                        state.selectedDeparture == null ||
+                        state.isSubmittingScan ||
+                        !state.scanArmed ||
+                        state.isManualEntryActive ||
+                        state.isRefreshing,
                     onScanned: (raw) {
                       unawaited(
                         context.read<OperatorCheckInCubit>().submitScan(
@@ -286,11 +308,17 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
                         color: Colors.white,
                       ),
                       minimumHeight: 46,
-                      onPressed: () {
-                        context
-                            .read<OperatorCheckInCubit>()
-                            .clearActiveBanner();
-                      },
+                      onPressed:
+                          state.selectedDeparture == null ||
+                              state.isSubmittingScan ||
+                              state.isManualEntryActive ||
+                              state.isRefreshing
+                          ? null
+                          : () {
+                              context
+                                  .read<OperatorCheckInCubit>()
+                                  .clearActiveBanner();
+                            },
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
@@ -304,9 +332,15 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
                         color: AppColors.primary,
                       ),
                       minimumHeight: 46,
-                      onPressed: () {
-                        unawaited(_openManualEntryDialog());
-                      },
+                      onPressed:
+                          state.selectedDeparture == null ||
+                              state.isSubmittingScan ||
+                              state.isManualEntryActive ||
+                              state.isRefreshing
+                          ? null
+                          : () {
+                              unawaited(_openManualEntryDialog());
+                            },
                     ),
                   ),
                 ],
@@ -331,11 +365,10 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
         child: DropdownButton<int>(
           value: state.selectedDeparture?.scheduleId,
           isExpanded: true,
+          hint: const Text('Select departure'),
           icon: const Icon(Icons.arrow_drop_down, color: AppColors.ink),
           items: state.departures.map((departure) {
-            final startLocal = departure.startAtUtc.toLocal();
-            final timeStr =
-                '${startLocal.hour.toString().padLeft(2, '0')}:${startLocal.minute.toString().padLeft(2, '0')}';
+            final timeStr = CheckInTimeFormat.dateTime(departure.startAtUtc);
             return DropdownMenuItem<int>(
               value: departure.scheduleId,
               child: Text(
@@ -350,7 +383,10 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
               ),
             );
           }).toList(),
-          onChanged: state.isSubmittingScan
+          onChanged:
+              state.isSubmittingScan ||
+                  state.isManualEntryActive ||
+                  state.isRefreshing
               ? null
               : (scheduleId) {
                   if (scheduleId != null) {

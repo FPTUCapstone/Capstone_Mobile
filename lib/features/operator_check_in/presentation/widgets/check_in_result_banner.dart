@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/domain/entities/operator_check_in_models.dart';
+import 'package:trip_mate_mobile/features/operator_check_in/presentation/formatters/check_in_time_format.dart';
 
 class CheckInResultBanner extends StatelessWidget {
   const CheckInResultBanner({this.result, this.failure, super.key});
@@ -11,9 +12,7 @@ class CheckInResultBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     if (result != null) {
       final res = result!;
-      final timeStr =
-          '${res.checkedInAtUtc.toLocal().hour.toString().padLeft(2, '0')}:'
-          '${res.checkedInAtUtc.toLocal().minute.toString().padLeft(2, '0')}';
+      final timeStr = CheckInTimeFormat.dateTime(res.checkedInAtUtc);
 
       return Container(
         margin: const EdgeInsets.symmetric(vertical: 8),
@@ -50,12 +49,16 @@ class CheckInResultBanner extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${res.passengerName} · ${res.participantCount} pax · checked in $timeStr',
+                    'Passenger Name: ${res.passengerName} · ${res.participantCount} pax · checked in $timeStr',
                     style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFF065F46),
                     ),
                   ),
+                  Text('Booking Code: ${res.bookingCode}'),
+                  Text('Number of Participants: ${res.participantCount}'),
+                  const Text('Ticket Status: Used'),
+                  const Text('Check-in Result: Success'),
                 ],
               ),
             ),
@@ -70,10 +73,9 @@ class CheckInResultBanner extends StatelessWidget {
 
       if (isAlreadyUsed) {
         final timeStr = fail.checkedInAt != null
-            ? '${fail.checkedInAt!.toLocal().hour.toString().padLeft(2, '0')}:${fail.checkedInAt!.toLocal().minute.toString().padLeft(2, '0')}'
+            ? CheckInTimeFormat.dateTime(fail.checkedInAt!)
             : '';
         final subtitle = [
-          if (fail.passengerName != null) fail.passengerName,
           if (timeStr.isNotEmpty) 'previously checked in at $timeStr',
         ].join(' · ');
 
@@ -125,6 +127,11 @@ class CheckInResultBanner extends StatelessWidget {
                         color: Color(0xFFB45309),
                       ),
                     ),
+                    ..._failureFields(
+                      fail,
+                      ticketStatus: 'Used',
+                      result: 'Already used',
+                    ),
                   ],
                 ),
               ),
@@ -133,7 +140,10 @@ class CheckInResultBanner extends StatelessWidget {
         );
       }
 
-      // Other rejections (invalid QR, wrong schedule, expired, cancelled)
+      final uncertain = switch (fail.kind) {
+        CheckInFailureKind.network || CheckInFailureKind.system => true,
+        _ => false,
+      };
       return Container(
         margin: const EdgeInsets.symmetric(vertical: 8),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -160,7 +170,9 @@ class CheckInResultBanner extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${fail.ticketCode ?? 'Ticket'} rejected',
+                    uncertain
+                        ? 'Check-in not confirmed'
+                        : '${fail.ticketCode ?? 'Ticket'} rejected',
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -169,11 +181,19 @@ class CheckInResultBanner extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    fail.message ?? 'Ticket is not valid for this departure.',
+                    fail.message ??
+                        (uncertain
+                            ? 'The outcome could not be confirmed. Check before trying again.'
+                            : 'Ticket is not valid for this departure.'),
                     style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFFB91C1C),
                     ),
+                  ),
+                  ..._failureFields(
+                    fail,
+                    ticketStatus: 'Unknown',
+                    result: uncertain ? 'Not confirmed' : 'Rejected',
                   ),
                 ],
               ),
@@ -185,4 +205,16 @@ class CheckInResultBanner extends StatelessWidget {
 
     return const SizedBox.shrink();
   }
+
+  List<Widget> _failureFields(
+    CheckInFailure failure, {
+    required String ticketStatus,
+    required String result,
+  }) => [
+    Text('Booking Code: ${failure.bookingCode ?? 'Unavailable'}'),
+    Text('Passenger Name: ${failure.passengerName ?? 'Unavailable'}'),
+    const Text('Number of Participants: Unavailable'),
+    Text('Ticket Status: $ticketStatus'),
+    Text('Check-in Result: $result'),
+  ];
 }
