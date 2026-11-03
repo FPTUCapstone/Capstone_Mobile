@@ -42,6 +42,7 @@ final class _ControlledRepository implements OperatorCheckInRepository {
   final progressRequests = <int, Completer<DepartureProgress>>{};
   Completer<List<OperatorDepartureSummary>>? listRequest;
   Completer<CheckInResult>? scanRequest;
+  final progressCalls = <int>[];
   int listCalls = 0;
   int scanCalls = 0;
 
@@ -54,8 +55,10 @@ final class _ControlledRepository implements OperatorCheckInRepository {
   }
 
   @override
-  Future<DepartureProgress> getDepartureProgress(int scheduleId) async =>
-      progressRequests[scheduleId]?.future ?? _progress(scheduleId);
+  Future<DepartureProgress> getDepartureProgress(int scheduleId) async {
+    progressCalls.add(scheduleId);
+    return progressRequests[scheduleId]?.future ?? _progress(scheduleId);
+  }
 
   @override
   Future<CheckInResult> scanCheckIn({
@@ -229,14 +232,18 @@ void main() {
     'pre-scan progress cannot overwrite newer successful scan progress',
     () async {
       final pending = Completer<DepartureProgress>();
-      repository.progressRequests[1] = pending;
-      final selection = cubit.selectDeparture(1);
-      await cubit.submitScan(qrContent: 'QR-1');
-      pending.complete(_progress(1, checkedIn: 1));
+      repository.progressRequests[2] = pending;
+      final selection = cubit.selectDeparture(2);
+      expect(repository.progressCalls, [1, 2]);
+      expect(pending.isCompleted, isFalse);
+      await cubit.submitScan(qrContent: 'QR-2');
+      expect(loaded().lastResult, _result(2));
+      pending.complete(_progress(2, checkedIn: 1));
       await selection;
 
+      expect(loaded().progress?.scheduleId, 2);
       expect(loaded().progress?.checkedInParticipants, 12);
-      expect(loaded().lastResult?.ticketCode, 'TK-1');
+      expect(loaded().lastResult?.ticketCode, 'TK-2');
     },
   );
 
@@ -250,6 +257,79 @@ void main() {
     pending.complete([_departure(1)]);
     await refreshing;
     expect(loaded().selectedDeparture?.scheduleId, 1);
+  });
+
+  for (final empty in [false, true]) {
+    test('refresh removes obsolete selection, empty: $empty', () async {
+      await cubit.submitScan(qrContent: 'QR-1');
+      final held = loaded();
+      repository.listRequest = Completer<List<OperatorDepartureSummary>>()
+        ..complete(empty ? [] : [_departure(2)]);
+      await cubit.loadInitial();
+      expect(loaded().departures, empty ? [] : [_departure(2)]);
+      expect(loaded().selectedDeparture, isNull);
+      expect(loaded().progress, isNull);
+      expect(loaded().lastResult, held.lastResult);
+      expect(loaded().recentScans, held.recentScans);
+      expect(loaded().scanSession, held.scanSession);
+      expect(cubit.canScanQr, isFalse);
+      expect(cubit.beginManualEntry(), isFalse);
+      await cubit.selectDeparture(1);
+      cubit.clearActiveBanner();
+      await cubit.submitScan(qrContent: 'STALE');
+      await cubit.submitScan(bookingCode: 'STALE');
+      expect(repository.scanCalls, 1);
+      expect(loaded().lastResult, held.lastResult);
+
+      repository.listRequest = Completer<List<OperatorDepartureSummary>>()
+        ..complete([_departure(2)]);
+      await cubit.loadInitial();
+      expect(loaded().selectedDeparture, isNull);
+      await cubit.selectDeparture(2);
+      expect(cubit.canScanQr, isTrue);
+      expect(loaded().lastResult, isNull);
+      expect(loaded().recentScans, held.recentScans);
+      await cubit.submitScan(qrContent: 'QR-2');
+      await cubit.submitScan(qrContent: 'QR-2');
+      expect(repository.scanCalls, 2);
+      expect(loaded().lastResult, _result(2));
+    });
+  }
+
+  for (final kind in [
+    CheckInFailureKind.network,
+    CheckInFailureKind.alreadyUsed,
+  ]) {
+    test('same selection refresh preserves held $kind', () async {
+      final scan = repository.scanRequest = Completer<CheckInResult>();
+      final submitting = cubit.submitScan(qrContent: 'QR-1');
+      scan.completeError(CheckInFailure(kind: kind));
+      await submitting;
+      final held = loaded();
+      repository.listRequest = Completer<List<OperatorDepartureSummary>>()
+        ..complete([_departure(1), _departure(3)]);
+      await cubit.loadInitial();
+      expect(loaded().departures, [_departure(1), _departure(3)]);
+      expect(loaded().selectedDeparture?.scheduleId, 1);
+      expect(loaded().progress?.scheduleId, 1);
+      expect(loaded().lastFailure, held.lastFailure);
+      expect(loaded().recentScans, held.recentScans);
+      expect(loaded().scanSession, held.scanSession);
+      expect(cubit.canScanQr, isFalse);
+    });
+  }
+
+  test('failed refresh retains previous success and latch', () async {
+    await cubit.submitScan(qrContent: 'QR-1');
+    final held = loaded();
+    final response = repository.listRequest =
+        Completer<List<OperatorDepartureSummary>>();
+    final refresh = cubit.loadInitial();
+    response.completeError(
+      const CheckInFailure(kind: CheckInFailureKind.network),
+    );
+    await refresh;
+    expect(loaded(), held);
   });
 
   test('scan completion preserves newer camera state', () async {

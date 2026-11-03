@@ -23,10 +23,6 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
         ? state as OperatorCheckInLoaded
         : null;
     if (previous?.isManualEntryActive ?? false) return;
-    final switchesDeparture =
-        previous != null &&
-        preselectedScheduleId != null &&
-        previous.selectedDeparture?.scheduleId != preselectedScheduleId;
     final generation = ++_requestGeneration;
     if (previous == null) {
       emit(const OperatorCheckInLoading());
@@ -37,34 +33,36 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
       final departures = await getTodayDepartures();
       if (!_isCurrent(generation)) return;
       final previousSelection = previous?.selectedDeparture;
-      if (!switchesDeparture &&
-          previousSelection != null &&
-          !departures.any(
-            (d) => d.scheduleId == previousSelection.scheduleId,
-          )) {
-        // A refresh is not an operator-authorized departure/session reset.
-        return;
-      }
-      if (departures.isEmpty) {
+      final selectionUnavailable =
+          previous != null &&
+          (previousSelection == null ||
+              !departures.any(
+                (d) => d.scheduleId == previousSelection.scheduleId,
+              ));
+      final selectedId = preselectedScheduleId ?? previousSelection?.scheduleId;
+      final candidates = departures.where((d) => d.scheduleId == selectedId);
+      final selected = selectionUnavailable
+          ? null
+          : candidates.firstOrNull ??
+                (previous == null ? departures.firstOrNull : previousSelection);
+      if (selected == null) {
+        final latest = state;
         emit(
-          const OperatorCheckInLoaded(
-            departures: [],
-            selectedDeparture: null,
-            progress: null,
-          ),
+          latest is OperatorCheckInLoaded
+              ? latest.copyWith(
+                  departures: departures,
+                  clearDeparture: true,
+                  isRefreshing: false,
+                  scanArmed: false,
+                )
+              : OperatorCheckInLoaded(departures: departures, scanArmed: false),
         );
         return;
       }
 
-      final selectedId =
-          preselectedScheduleId ?? previous?.selectedDeparture?.scheduleId;
-      final selected = selectedId != null
-          ? departures.firstWhere(
-              (d) => d.scheduleId == selectedId,
-              orElse: () => departures.first,
-            )
-          : departures.first;
-
+      final switchesDeparture =
+          previousSelection != null &&
+          previousSelection.scheduleId != selected.scheduleId;
       var progress = _snapshot(selected);
       try {
         final fetched = await getDepartureProgress(selected.scheduleId);
@@ -266,6 +264,7 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
     return !isClosed &&
         !_scanInFlight &&
         current is OperatorCheckInLoaded &&
+        current.selectedDeparture != null &&
         current.scanArmed &&
         !current.isRefreshing &&
         !current.isManualEntryActive;
@@ -275,6 +274,7 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
     if (isClosed || _scanInFlight) return;
     final current = state;
     if (current is OperatorCheckInLoaded &&
+        current.selectedDeparture != null &&
         !current.isManualEntryActive &&
         !current.isRefreshing) {
       emit(

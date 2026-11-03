@@ -49,6 +49,7 @@ final class OperatorCheckInLoaded extends OperatorCheckInState {
     List<OperatorDepartureSummary>? departures,
     OperatorDepartureSummary? selectedDeparture,
     DepartureProgress? progress,
+    bool clearDeparture = false,
     List<CheckInScanItem>? recentScans,
     bool? isSubmittingScan,
     bool? isRefreshing,
@@ -63,8 +64,10 @@ final class OperatorCheckInLoaded extends OperatorCheckInState {
   }) {
     return OperatorCheckInLoaded(
       departures: departures ?? this.departures,
-      selectedDeparture: selectedDeparture ?? this.selectedDeparture,
-      progress: progress ?? this.progress,
+      selectedDeparture: clearDeparture
+          ? null
+          : selectedDeparture ?? this.selectedDeparture,
+      progress: clearDeparture ? null : progress ?? this.progress,
       recentScans: recentScans ?? this.recentScans,
       isSubmittingScan: isSubmittingScan ?? this.isSubmittingScan,
       isRefreshing: isRefreshing ?? this.isRefreshing,

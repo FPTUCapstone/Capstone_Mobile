@@ -10,12 +10,15 @@ import 'package:trip_mate_mobile/features/operator_check_in/presentation/cubit/o
 import 'package:trip_mate_mobile/features/operator_check_in/presentation/cubit/operator_check_in_state.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/presentation/pages/operator_check_in_page.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/presentation/widgets/check_in_camera_scanner_view.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 
-DepartureProgress _progress(int id) => DepartureProgress(
+DepartureProgress _progress(int id, {DateTime? start}) => DepartureProgress(
   scheduleId: id,
   tourTitle: 'Departure $id',
-  startAtUtc: DateTime.utc(2026, 12, 31, 17),
-  endAtUtc: DateTime.utc(2026, 12, 31, 19),
+  startAtUtc: start ?? DateTime.utc(2026, 12, 31, 17),
+  endAtUtc: (start ?? DateTime.utc(2026, 12, 31, 17)).add(
+    const Duration(hours: 2),
+  ),
   checkedInParticipants: 2,
   totalEligibleParticipants: 10,
   waitingParticipants: 8,
@@ -26,18 +29,23 @@ final class _Repository implements OperatorCheckInRepository {
   CheckInFailure? failure;
   Completer<CheckInResult>? pending;
   final submittedCodes = <String>[];
+  final submittedSchedules = <int>[];
+  List<int> availableSchedules = [1, 2];
+  final departureStarts = <int, DateTime>{};
+
+  DateTime startFor(int id) => departureStarts[id] ?? _progress(id).startAtUtc;
 
   @override
   Future<List<OperatorDepartureSummary>> getTodayDepartures({
     DateTime? targetDate,
-  }) async => [1, 2]
+  }) async => availableSchedules
       .map(
         (id) => OperatorDepartureSummary(
           scheduleId: id,
           tourId: id,
           tourTitle: 'Departure $id',
-          startAtUtc: _progress(id).startAtUtc,
-          endAtUtc: _progress(id).endAtUtc,
+          startAtUtc: startFor(id),
+          endAtUtc: startFor(id).add(const Duration(hours: 2)),
           status: 'Open',
           checkedInParticipants: 0,
           totalEligibleParticipants: 10,
@@ -48,7 +56,7 @@ final class _Repository implements OperatorCheckInRepository {
 
   @override
   Future<DepartureProgress> getDepartureProgress(int scheduleId) async =>
-      _progress(scheduleId);
+      _progress(scheduleId, start: startFor(scheduleId));
 
   @override
   Future<CheckInResult> scanCheckIn({
@@ -59,6 +67,7 @@ final class _Repository implements OperatorCheckInRepository {
     double? longitude,
   }) async {
     scanCalls++;
+    submittedSchedules.add(scheduleId);
     submittedCodes.add(qrContent ?? bookingCode ?? '');
     if (pending != null) return pending!.future;
     if (failure != null) throw failure!;
@@ -71,7 +80,7 @@ final class _Repository implements OperatorCheckInRepository {
     passengerName: 'Passenger',
     participantCount: 2,
     checkedInAtUtc: DateTime.utc(2026, 10, 31, 1, 23),
-    departure: _progress(id),
+    departure: _progress(id, start: startFor(id)),
   );
 }
 
@@ -268,6 +277,83 @@ void main() {
         (cubit.state as OperatorCheckInLoaded).lastResult?.departure.scheduleId,
         2,
       );
+    },
+  );
+
+  testWidgets(
+    'midnight refresh requires explicit selection even when only B is available',
+    (tester) async {
+      repository.availableSchedules = [1];
+      repository.departureStarts.addAll({
+        1: DateTime.utc(2026, 12, 31, 16, 59),
+        2: DateTime.utc(2026, 12, 31, 17),
+      });
+      await mount(tester);
+      detect('QR-A');
+      await tester.pumpAndSettle();
+      final accepted = (cubit.state as OperatorCheckInLoaded).lastResult;
+
+      // Simulate the server rolling its Vietnam calendar-day list forward.
+      repository.availableSchedules = [2];
+      await tester.tap(find.byTooltip('Refresh departures'));
+      await tester.pumpAndSettle();
+      final refreshed = cubit.state as OperatorCheckInLoaded;
+      expect(refreshed.departures.map((d) => d.scheduleId), [2]);
+      expect(refreshed.selectedDeparture, isNull);
+      expect(refreshed.progress, isNull);
+      expect(refreshed.lastResult, accepted);
+      expect(find.text('Booking Code: BK-1'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is AppButton &&
+              widget.label == 'Manual code' &&
+              widget.onPressed != null,
+        ),
+        findsNothing,
+      );
+      detect('STALE');
+      await tester.pumpAndSettle();
+      expect(repository.submittedSchedules, [1]);
+
+      final dropdown = find.byType(DropdownButton<int>);
+      expect(tester.widget<DropdownButton<int>>(dropdown).value, isNull);
+      await tester.tap(dropdown);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('01/01/2027 00:00 · Departure 2').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Booking Code: BK-1'), findsNothing);
+      detect('QR-B');
+      detect('QR-B');
+      await tester.pumpAndSettle();
+      expect(repository.submittedCodes, ['QR-A', 'QR-B']);
+      expect(repository.submittedSchedules, [1, 2]);
+    },
+  );
+
+  testWidgets(
+    'empty refresh shows the empty state and blocks stale callbacks',
+    (tester) async {
+      await mount(tester);
+      detect('QR-A');
+      await tester.pumpAndSettle();
+      final held = cubit.state as OperatorCheckInLoaded;
+      repository.availableSchedules = [];
+      await tester.tap(find.byTooltip('Refresh departures'));
+      await tester.pumpAndSettle();
+
+      final refreshed = cubit.state as OperatorCheckInLoaded;
+      expect(find.text('No departures scheduled for today'), findsOneWidget);
+      expect(refreshed.selectedDeparture, isNull);
+      expect(refreshed.progress, isNull);
+      expect(refreshed.lastResult, held.lastResult);
+      expect(refreshed.recentScans, held.recentScans);
+      expect(find.text('Booking Code: BK-1'), findsOneWidget);
+      expect(find.text('Recent scans'), findsOneWidget);
+      expect(find.text('Manual code'), findsNothing);
+      detect('STALE');
+      await tester.pumpAndSettle();
+      expect(repository.submittedSchedules, [1]);
     },
   );
 
