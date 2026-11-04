@@ -173,8 +173,14 @@ void main() {
 
       expect(find.text('Bộ lọc tìm kiếm'), findsOneWidget);
       expect(find.text('Điểm đến'), findsOneWidget);
-      expect(find.text('Ngày khởi hành'), findsOneWidget);
-      expect(find.text('Khoảng giá (VNĐ)'), findsOneWidget);
+      expect(find.textContaining('Từ ngày:'), findsOneWidget);
+      expect(find.textContaining('Đến ngày:'), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Giá tối thiểu'), findsOneWidget);
+      expect(
+        find.widgetWithText(TextField, 'Thời lượng (ngày)'),
+        findsOneWidget,
+      );
+      expect(find.text('Danh mục'), findsOneWidget);
     });
   });
 }

@@ -81,6 +81,27 @@ void main() {
     );
 
     blocTest<TourSearchCubit, TourSearchState>(
+      'public clear filters preserves trimmed keyword and resets sort and page',
+      build: () => TourSearchCubit(
+        searchTours: SearchToursUseCase(_PagingTourRepository()),
+      ),
+      act: (cubit) async {
+        await cubit.applyPublicQuery(
+          const TourSearchQuery(
+            keyword: ' quiet sea ',
+            destination: 'Hoi An',
+            sort: 'priceDesc',
+            page: 3,
+          ),
+        );
+        await cubit.resetFilters();
+      },
+      verify: (cubit) {
+        expect(cubit.state.query, const TourSearchQuery(keyword: 'quiet sea'));
+      },
+    );
+
+    blocTest<TourSearchCubit, TourSearchState>(
       'dev clear filters preserves keyword and mode and restores default sort',
       build: () => TourSearchCubit(
         searchTours: SearchToursUseCase(_PagingTourRepository()),

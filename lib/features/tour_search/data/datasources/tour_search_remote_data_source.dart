@@ -26,9 +26,8 @@ final class DioTourSearchRemoteDataSource
   );
 
   Future<List<TourCategory>> loadCategories() async {
-    if (!_enabled) return const [];
     final response = await _dio.get<Object?>(
-      '/api/dev/tours/categories',
+      _enabled ? '/api/dev/tours/categories' : '/api/v1/tour-categories',
       options: _options,
     );
     if (response.data is! List) {
@@ -58,7 +57,7 @@ final class DioTourSearchRemoteDataSource
       _enabled ? '/api/dev/tours/search' : '/api/v1/tours',
       queryParameters: _enabled
           ? query.toV2QueryParameters()
-          : query.toQueryParameters(),
+          : query.toPublicQueryParameters(),
       options: _options,
       cancelToken: _enabled ? _searchCancellation : null,
     );
