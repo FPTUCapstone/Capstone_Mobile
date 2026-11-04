@@ -17,8 +17,12 @@ abstract final class NavigationSessionModel {
       sessionId: json['sessionId'] as int,
       itineraryId: json['itineraryId'] as int,
       itineraryVersion: json['itineraryVersion'] as int,
+      bookingId: _optionalInt(json['bookingId']),
       state: _state(json['state']),
-      completionReason: _completionReason(json['completionReason']),
+      // An interruption's reason is a free emergency category, not a completion.
+      completionReason: json['state'] == 'Interrupted'
+          ? null
+          : _completionReason(json['completionReason']),
       startedAt: startedAt,
       expiresAt: _date(json['expiresAtUtc']),
       endedAt: _date(json['endedAtUtc']),
@@ -121,6 +125,7 @@ abstract final class NavigationSessionModel {
     'Navigating' => NavigationSessionState.navigating,
     'Exploring' => NavigationSessionState.exploring,
     'Completed' => NavigationSessionState.completed,
+    'Interrupted' => NavigationSessionState.interrupted,
     _ => throw const FormatException('Invalid navigation session state.'),
   };
 

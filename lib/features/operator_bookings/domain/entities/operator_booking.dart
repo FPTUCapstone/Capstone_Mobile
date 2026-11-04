@@ -11,7 +11,8 @@ enum OperatorBookingStatus implements WireValue {
   confirmed('Confirmed'),
   cancelled('Cancelled'),
   completed('Completed'),
-  expired('Expired');
+  expired('Expired'),
+  interrupted('Interrupted');
 
   const OperatorBookingStatus(this.wire);
 

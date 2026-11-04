@@ -15,6 +15,7 @@ import 'package:trip_mate_mobile/features/auth/domain/entities/traveler_registra
 import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
+import 'package:trip_mate_mobile/features/emergency_tour/domain/entities/emergency_action.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/paged_poi_result.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_detail.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_query.dart';
@@ -23,9 +24,14 @@ import 'package:trip_mate_mobile/features/poi/domain/usecases/get_pois_use_case.
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_shell_page.dart';
+import 'package:trip_mate_mobile/features/traveler_emergency/domain/entities/traveler_emergency_status.dart';
+import 'package:trip_mate_mobile/features/traveler_emergency/domain/repositories/traveler_emergency_repository.dart';
+import 'package:trip_mate_mobile/features/traveler_emergency/domain/usecases/traveler_emergency_use_cases.dart';
+import 'package:trip_mate_mobile/features/traveler_emergency/presentation/cubit/traveler_emergency_notices_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 
+import '../../../operator_weather_safety/support/fake_operator_weather_safety_repository.dart';
 import '../cubit/my_trips_cubit_test.dart';
 
 Future<AuthSessionCubit> _authenticatedCubit({
@@ -77,6 +83,50 @@ void main() {
   });
 
   tearDown(serviceLocator.reset);
+
+  testWidgets('leaving the shell keeps notices until the session ends', (
+    tester,
+  ) async {
+    final cubit = await _authenticatedCubit();
+    addTearDown(cubit.close);
+    final notices = TravelerEmergencyNoticesCubit(
+      getNotices: GetTravelerEmergencyNoticesUseCase(_NoticeRepository()),
+      networkInfo: FakeNetworkInfo(),
+    );
+    addTearDown(notices.close);
+    serviceLocator.registerSingleton<TravelerEmergencyNoticesCubit>(notices);
+    final router = GoRouter(
+      initialLocation: AppRoutes.traveler,
+      routes: [
+        GoRoute(
+          path: AppRoutes.traveler,
+          builder: (_, _) => BlocProvider<AuthSessionCubit>.value(
+            value: cubit,
+            child: const TravelerShellPage(),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.tripHistory,
+          builder: (_, _) => const Scaffold(body: Text('History')),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpAndSettle();
+    expect(notices.state.hasNoticeFor(42), isTrue);
+
+    router.go(AppRoutes.tripHistory);
+    await tester.pumpAndSettle();
+    expect(notices.state.hasNoticeFor(42), isTrue);
+
+    router.go(AppRoutes.traveler);
+    await tester.pumpAndSettle();
+    await cubit.handleSessionExpired();
+    router.go(AppRoutes.tripHistory);
+    await tester.pumpAndSettle();
+    expect(notices.state.hasNoticeFor(42), isFalse);
+  });
 
   testWidgets('notification icon opens the traveler inbox route', (
     tester,
@@ -361,4 +411,24 @@ final class _MemoryStorage implements SecureStorageService {
     }
     values[key] = value;
   }
+}
+
+final class _NoticeRepository implements TravelerEmergencyRepository {
+  @override
+  Future<List<TravelerEmergencyNotice>> getNotices() async => [
+    TravelerEmergencyNotice(
+      bookingId: 42,
+      scheduleId: 7,
+      action: EmergencyAction.emergencyStop,
+      committedAtUtc: DateTime.utc(2026, 11, 3),
+      acknowledgedAtUtc: null,
+    ),
+  ];
+
+  @override
+  Future<TravelerEmergencyStatus> getStatus(int bookingId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<DateTime> acknowledge(int bookingId) => throw UnimplementedError();
 }

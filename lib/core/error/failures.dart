@@ -157,6 +157,7 @@ enum NavigationFailureReason {
   noNavigableItems,
   itineraryScheduleIncomplete,
   sessionCompleted,
+  sessionInterrupted,
   itemAlreadyReached,
   itemNotNavigable,
   sessionNotFound,
@@ -178,6 +179,28 @@ final class NavigationFailure extends Failure {
 
   @override
   List<Object?> get props => [message, reason, activeSessionId];
+}
+
+/// UC-70: stable reasons the Backend rejects an emergency tour request.
+enum EmergencyTourFailureReason {
+  staleImpact,
+  terminal,
+  completed,
+  wrongActionWindow,
+  idempotencyMismatch,
+  unverifiedSessions,
+  wrongPassword,
+  reviewClosed,
+  staleEvidence,
+}
+
+final class EmergencyTourFailure extends Failure {
+  const EmergencyTourFailure(super.message, {required this.reason});
+
+  final EmergencyTourFailureReason reason;
+
+  @override
+  List<Object?> get props => [message, reason];
 }
 
 final class UnknownFailure extends Failure {

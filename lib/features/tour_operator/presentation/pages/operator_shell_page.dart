@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -5,15 +7,21 @@ import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/core/platform/device_window.dart';
+import 'package:trip_mate_mobile/core/push/push_device_coordinator.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/operator_bookings_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/presentation/pages/operator_bookings_list_view.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/operator_safety_reviews_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/operator_safety_reviews_state.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/resources/operator_weather_safety_en.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/operator_coupons_view.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/operator_dashboard_view.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/operator_profile_view.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/operator_revenue_view.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
+import 'package:trip_mate_mobile/shared/widgets/notification_permission_notice.dart';
 
 class OperatorShellPage extends StatefulWidget {
   const OperatorShellPage({this.isDemoMode = false, super.key});
@@ -24,7 +32,8 @@ class OperatorShellPage extends StatefulWidget {
   State<OperatorShellPage> createState() => _OperatorShellPageState();
 }
 
-class _OperatorShellPageState extends State<OperatorShellPage> {
+class _OperatorShellPageState extends State<OperatorShellPage>
+    with WidgetsBindingObserver {
   static const _destinations = <_OperatorDestination>[
     _OperatorDestination(
       'Dashboard',
@@ -50,8 +59,39 @@ class _OperatorShellPageState extends State<OperatorShellPage> {
 
   var _selectedIndex = 0;
 
+  /// UC-70 inbox behind the badge. Demo mode never reaches the Backend.
+  late final OperatorSafetyReviewsCubit? _safetyAlerts = widget.isDemoMode
+      ? null
+      : locateOptional<OperatorSafetyReviewsCubit>();
+
   /// The Bookings tab (UC-40) loads from the backend only once the operator first opens it.
   var _bookingsOpened = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(_safetyAlerts?.startSession());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final alerts = _safetyAlerts;
+    if (alerts == null) return;
+    if (state == AppLifecycleState.resumed) {
+      unawaited(alerts.onForeground());
+    } else if (state == AppLifecycleState.paused) {
+      unawaited(alerts.onBackground());
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    // Sign-out and account changes leave the shell: nothing may survive them.
+    unawaited(_safetyAlerts?.reset());
+    super.dispose();
+  }
 
   void _select(int index) {
     setState(() {
@@ -78,6 +118,7 @@ class _OperatorShellPageState extends State<OperatorShellPage> {
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         actions: [
+          if (_safetyAlerts case final alerts?) _SafetyAlertsAction(alerts),
           IconButton(
             // Busy state comes from the Cubit's own sign-out marker, so a
             // second intent cannot be started while one is in flight.
@@ -91,6 +132,11 @@ class _OperatorShellPageState extends State<OperatorShellPage> {
       ),
       body: Column(
         children: [
+          if (locateOptional<PushDeviceCoordinator>() case final push?)
+            NotificationPermissionNotice(
+              denied: push.permissionDenied,
+              window: serviceLocator<DeviceWindow>(),
+            ),
           if (localCleanupFailure)
             Padding(
               padding: const EdgeInsets.all(AppSpacing.md),
@@ -142,6 +188,32 @@ class _OperatorShellPageState extends State<OperatorShellPage> {
       ),
     );
   }
+}
+
+class _SafetyAlertsAction extends StatelessWidget {
+  const _SafetyAlertsAction(this.alerts);
+
+  final OperatorSafetyReviewsCubit alerts;
+
+  @override
+  Widget build(BuildContext context) =>
+      BlocBuilder<OperatorSafetyReviewsCubit, OperatorSafetyReviewsState>(
+        bloc: alerts,
+        buildWhen: (previous, current) =>
+            previous.badgeCount != current.badgeCount,
+        builder: (context, state) {
+          const icon = Icon(Icons.health_and_safety_outlined);
+          final count = state.badgeCount;
+          return IconButton(
+            key: const Key('operator-safety-alerts'),
+            tooltip: count == 0
+                ? OperatorWeatherSafetyStringsEn.safetyAlerts
+                : OperatorWeatherSafetyStringsEn.badgeSemantics(count),
+            onPressed: () => context.push(AppRoutes.operatorSafetyReviews),
+            icon: count == 0 ? icon : Badge(label: Text('$count'), child: icon),
+          );
+        },
+      );
 }
 
 class _OperatorToursHub extends StatelessWidget {

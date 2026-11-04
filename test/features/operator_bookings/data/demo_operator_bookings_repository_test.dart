@@ -20,7 +20,11 @@ void main() {
         expect(booked, [...booked]..sort((a, b) => b.compareTo(a)));
         expect(
           page.items.map((item) => item.status).toSet(),
-          containsAll(OperatorBookingStatus.values),
+          containsAll(
+            OperatorBookingStatus.values.where(
+              (status) => status != OperatorBookingStatus.interrupted,
+            ),
+          ),
         );
         expect(page.items.first.booker.phoneNumber, isNull);
       },

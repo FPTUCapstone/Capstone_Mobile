@@ -34,6 +34,8 @@ abstract final class OperatorBookingFormatters {
     OperatorBookingStatus.completed =>
       OperatorBookingsStringsEn.statusCompleted,
     OperatorBookingStatus.expired => OperatorBookingsStringsEn.statusExpired,
+    OperatorBookingStatus.interrupted =>
+      OperatorBookingsStringsEn.statusInterrupted,
   };
 
   static StatusBadgeType statusBadge(OperatorBookingStatus status) =>
@@ -43,6 +45,7 @@ abstract final class OperatorBookingFormatters {
         OperatorBookingStatus.cancelled => StatusBadgeType.error,
         OperatorBookingStatus.completed => StatusBadgeType.info,
         OperatorBookingStatus.expired => StatusBadgeType.neutral,
+        OperatorBookingStatus.interrupted => StatusBadgeType.error,
       };
 
   static String paymentStatusLabel(OperatorPaymentStatus status) =>

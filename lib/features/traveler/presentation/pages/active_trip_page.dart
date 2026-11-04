@@ -158,6 +158,9 @@ class _ActiveTripPageState extends State<ActiveTripPage>
       pushHints: widget.isDemoMode
           ? null
           : locateOptional<PushDeviceCoordinator>()?.hints,
+      emergencyHints: widget.isDemoMode
+          ? null
+          : locateOptional<PushDeviceCoordinator>()?.emergencyHints,
       weatherAdvisoryStore: widget.isDemoMode
           ? null
           : locateOptional<WeatherAdvisorySessionStore>(),
@@ -167,7 +170,9 @@ class _ActiveTripPageState extends State<ActiveTripPage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      unawaited((widget.cubit ?? _ownedCubit)?.refreshAlerts());
+      final cubit = widget.cubit ?? _ownedCubit;
+      unawaited(cubit?.refreshSession());
+      unawaited(cubit?.refreshAlerts());
     }
   }
 
@@ -759,10 +764,61 @@ class _ActiveTripPageState extends State<ActiveTripPage>
     return result ?? false;
   }
 
+  /// Opens the booking's notice, over Trip History so Back stays useful. A
+  /// session with no booking of its own has only Trip History to offer.
+  void _showEmergencyStoppedDialog(
+    BuildContext context,
+    String title,
+    int? bookingId,
+  ) {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          key: const Key('active-trip-emergency-stopped'),
+          icon: const Icon(
+            Icons.warning_amber_rounded,
+            color: AppColors.error,
+            size: 40,
+          ),
+          title: const Text('Tour stopped for safety'),
+          content: Text(
+            '$title was stopped by the tour operator. Navigation has ended. '
+            'Open the notice for safety instructions and the operator contact.',
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                context.go(AppRoutes.tripHistory);
+                if (bookingId != null) {
+                  unawaited(
+                    context.push(AppRoutes.travelerEmergency(bookingId)),
+                  );
+                }
+              },
+              child: const Text('View safety notice'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showCompletionDialog(BuildContext context, ActiveTripState state) {
     if (_isCompletionShown) return;
     _isCompletionShown = true;
     final session = state.session;
+    if (session?.isInterrupted ?? false) {
+      _showEmergencyStoppedDialog(
+        context,
+        state.itineraryTitle,
+        session?.bookingId,
+      );
+      return;
+    }
     final (title, icon) = switch (session?.completionReason) {
       NavigationCompletionReason.expired => (
         'Trip time ended',
