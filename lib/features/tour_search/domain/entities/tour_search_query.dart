@@ -37,6 +37,11 @@ final class TourSearchQuery extends Equatable {
   final String? sort;
   final String mode;
 
+  Map<String, Object> toPublicQueryParameters() {
+    final parameters = toV2QueryParameters()..remove('mode');
+    return parameters;
+  }
+
   Map<String, Object> toV2QueryParameters() {
     final parameters = toQueryParameters()..remove('departureDate');
     if ((keyword?.trim().length ?? 0) > 300 ||

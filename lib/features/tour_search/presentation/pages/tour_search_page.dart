@@ -8,8 +8,8 @@ import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_se
 import 'package:trip_mate_mobile/features/tour_search/presentation/resources/tour_search_en.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/theme/tour_search_palette.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/widgets/dev_tour_search_controls.dart';
+import 'package:trip_mate_mobile/features/tour_search/presentation/widgets/public_tour_search_controls.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/widgets/tour_list_card.dart';
-import 'package:trip_mate_mobile/features/tour_search/presentation/widgets/tour_search_filter_sheet.dart';
 
 class TourSearchPage extends StatelessWidget {
   const TourSearchPage({this.isTraveler = false, super.key});
@@ -38,6 +38,8 @@ class TourSearchPage extends StatelessWidget {
                 ),
                 if (cubit.devSearchEnabled)
                   DevTourSearchControls(state: state, cubit: cubit),
+                if (!cubit.devSearchEnabled)
+                  PublicTourSearchControls(state: state, cubit: cubit),
                 if (state.validationFailure case final failure?)
                   _InlineNotice(
                     message:
@@ -51,10 +53,10 @@ class TourSearchPage extends StatelessWidget {
                   _InlineNotice(
                     message: state.failure!.message,
                     icon: Icons.cloud_off_outlined,
-                    actionLabel: cubit.devSearchEnabled ? 'Retry search' : null,
-                    onAction: cubit.devSearchEnabled
-                        ? cubit.retryFailedQuery
-                        : null,
+                    actionLabel: cubit.devSearchEnabled
+                        ? 'Retry search'
+                        : 'Thử lại',
+                    onAction: cubit.retryFailedQuery,
                   ),
                 Expanded(
                   child: _TourListBody(state: state, cubit: cubit),
@@ -81,27 +83,14 @@ class TourSearchPage extends StatelessWidget {
       );
       return;
     }
+    cubit.loadCategories();
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => TourSearchFilterSheet(
-        initialDestination: state.query.destination,
-        initialDepartureDate: state.query.departureDate,
-        initialMinPrice: state.query.minPrice,
-        initialMaxPrice: state.query.maxPrice,
-        onApply: ({destination, departureDate, minPrice, maxPrice}) {
-          cubit.applyFilters(
-            destination: destination,
-            departureDate: departureDate,
-            minPrice: minPrice,
-            maxPrice: maxPrice,
-          );
-        },
-        onReset: cubit.resetFilters,
-      ),
+      builder: (_) => PublicTourSearchFilterSheet(cubit: cubit),
     );
   }
 }
@@ -471,11 +460,7 @@ class _TourListBody extends StatelessWidget {
             );
           }
           if (index > state.items.length) {
-            return cubit.devSearchEnabled
-                ? _PageNavigation(state: state, cubit: cubit)
-                : state.isLoadingMore
-                ? const _LoadingMore()
-                : const SizedBox.shrink();
+            return _PageNavigation(state: state, cubit: cubit);
           }
           final tour = state.items[index - 1];
           return TourListCard(
@@ -660,29 +645,6 @@ class _TourSkeletonList extends StatelessWidget {
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _LoadingMore extends StatelessWidget {
-  const _LoadingMore();
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      label: 'Đang tải thêm tour',
-      child: const Padding(
-        padding: EdgeInsets.all(AppSpacing.md),
-        child: Center(
-          child: SizedBox.square(
-            dimension: 28,
-            child: CircularProgressIndicator(
-              strokeWidth: 3,
-              color: TourSearchPalette.teal,
-            ),
-          ),
         ),
       ),
     );
