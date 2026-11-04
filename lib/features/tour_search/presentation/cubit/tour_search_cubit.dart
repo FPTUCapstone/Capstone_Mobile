@@ -21,9 +21,7 @@ final class TourSearchCubit extends Cubit<TourSearchState> {
   final LoadTourCategoriesUseCase? _loadCategories;
 
   Future<void> loadCategories() async {
-    if (!devSearchEnabled ||
-        _loadCategories == null ||
-        state.categoriesLoading) {
+    if (_loadCategories == null || state.categoriesLoading) {
       return;
     }
     emit(state.copyWith(categoriesLoading: true, categoriesFailure: null));
@@ -43,6 +41,9 @@ final class TourSearchCubit extends Cubit<TourSearchState> {
 
   Future<void> applyV2Query(TourSearchQuery query) =>
       _replace(query.copyWith(page: 1));
+
+  Future<void> applyPublicQuery(TourSearchQuery query) =>
+      _replace(query.copyWith(page: 1, mode: 'lexical'));
 
   Future<void> loadInitial() async {
     await Future.wait([
@@ -70,8 +71,10 @@ final class TourSearchCubit extends Cubit<TourSearchState> {
   }
 
   Future<void> resetFilters() {
-    if (!devSearchEnabled) return _replace(const TourSearchQuery());
     final keyword = state.query.keyword?.trim();
+    if (!devSearchEnabled) {
+      return _replace(TourSearchQuery(keyword: keyword));
+    }
     return _replace(
       TourSearchQuery(
         keyword: keyword,

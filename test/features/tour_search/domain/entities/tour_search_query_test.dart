@@ -126,6 +126,45 @@ void main() {
       expect(params['maxPrice'], 9999999999);
     });
 
+    test('public contract sends every UC-24 lexical criterion', () {
+      final query = TourSearchQuery(
+        keyword: ' biển ',
+        destination: ' Đà Nẵng ',
+        departureDate: DateTime(2026, 11, 1),
+        endDate: DateTime(2026, 11, 30),
+        minPrice: 500000,
+        maxPrice: 2000000,
+        durationDays: 3,
+        category: 'FAMILY',
+        minimumRating: 4.7,
+        sort: 'rating',
+        page: 2,
+      );
+
+      expect(query.toPublicQueryParameters(), {
+        'keyword': 'biển',
+        'destination': 'Đà Nẵng',
+        'startDate': '2026-11-01',
+        'endDate': '2026-11-30',
+        'minPrice': 500000,
+        'maxPrice': 2000000,
+        'durationDays': 3,
+        'category': 'FAMILY',
+        'minimumRating': 4.7,
+        'sort': 'rating',
+        'page': 2,
+        'pageSize': 20,
+      });
+    });
+
+    test('public contract rejects an inverted date range', () {
+      final query = TourSearchQuery(
+        departureDate: DateTime(2026, 12, 1),
+        endDate: DateTime(2026, 11, 1),
+      );
+      expect(query.toPublicQueryParameters, throwsA(isA<ValidationFailure>()));
+    });
+
     test(
       'copyWith preserves unset fields and allows nulling with sentinel',
       () {

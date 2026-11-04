@@ -31,7 +31,10 @@ void main() {
       if (environment == Environment.production) {
         expect(request.path, '/api/v1/tours');
         expect(request.headers.containsKey('X-TM70-Dev-Key'), isFalse);
-        expect(request.queryParameters.containsKey('keyword'), isFalse);
+        expect(request.queryParameters['keyword'], 'biển');
+        final categories = await source.loadCategories();
+        expect(categories.single.code, 'server-code');
+        expect(adapter.request!.path, '/api/v1/tour-categories');
       } else {
         expect(request.path, '/api/dev/tours/search');
         expect(request.cancelToken, isNotNull);
