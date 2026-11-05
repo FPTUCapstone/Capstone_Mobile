@@ -32,23 +32,23 @@ final class OperatorWeatherSafetyRepositoryImpl
 
   static const _messages = <EmergencyTourFailureReason, String>{
     EmergencyTourFailureReason.staleImpact:
-        'The impact changed. Please review the latest impact before confirming.',
+        'Tác động đã thay đổi. Vui lòng xem lại tác động mới nhất trước khi xác nhận.',
     EmergencyTourFailureReason.terminal:
-        'This departure already has a final decision.',
+        'Lịch khởi hành này đã có quyết định cuối cùng.',
     EmergencyTourFailureReason.completed:
-        'A completed departure cannot be cancelled or stopped.',
+        'Lịch khởi hành đã hoàn thành nên không thể hủy hoặc dừng.',
     EmergencyTourFailureReason.wrongActionWindow:
-        'This action no longer matches the departure time. Please review the latest impact.',
+        'Thao tác này không còn phù hợp với thời gian khởi hành. Vui lòng xem lại tác động mới nhất.',
     EmergencyTourFailureReason.idempotencyMismatch:
-        'This request conflicts with an earlier one. Please review the latest impact.',
+        'Yêu cầu này trùng với một yêu cầu trước đó nhưng khác nội dung. Vui lòng xem lại tác động mới nhất.',
     EmergencyTourFailureReason.unverifiedSessions:
-        'Some trip sessions could not be verified, so this action is unavailable.',
+        'Có phiên đi tour chưa được xác minh nên không thể thực hiện thao tác này.',
     EmergencyTourFailureReason.wrongPassword:
-        'The password could not be verified. Please try again.',
+        'Không xác minh được mật khẩu. Vui lòng thử lại.',
     EmergencyTourFailureReason.reviewClosed:
-        'This safety review is closed and cannot be acknowledged.',
+        'Hồ sơ cảnh báo đã đóng nên không thể xác nhận.',
     EmergencyTourFailureReason.staleEvidence:
-        'The evidence changed. Please review the latest evidence before saving.',
+        'Bằng chứng vừa được thay đổi. Vui lòng xem lại nội dung mới nhất trước khi lưu.',
   };
 
   static Failure _toFailure(Object error) {

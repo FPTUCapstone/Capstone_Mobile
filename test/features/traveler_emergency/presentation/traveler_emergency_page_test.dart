@@ -76,11 +76,11 @@ void main() {
 
     final instructions = top(tester, find.text('Stay at the shelter.'));
     final contact = top(tester, find.textContaining('Hotline'));
-    final booking = top(tester, find.text('Your booking'));
+    final booking = top(tester, find.text('Đơn đặt tour của bạn'));
     final notice = top(
       tester,
       find.text(
-        'Payment and refund handling are managed separately under the applicable booking cancellation policy.',
+        'Việc thanh toán và hoàn tiền được xử lý riêng theo chính sách hủy booking áp dụng.',
       ),
     );
     final acknowledge = top(tester, find.byKey(const Key('emergency-ack')));
@@ -101,22 +101,22 @@ void main() {
 
       await pump(tester);
 
-      expect(find.text('Tour cancelled'), findsOneWidget);
+      expect(find.text('Tour đã bị hủy'), findsOneWidget);
       expect(find.text('Road closed'), findsOneWidget);
       expect(
         find.text(
-          'Payment and refund handling are managed separately under the applicable booking cancellation policy.',
+          'Việc thanh toán và hoàn tiền được xử lý riêng theo chính sách hủy booking áp dụng.',
         ),
         findsOneWidget,
       );
-      expect(find.text('Immediate instructions'), findsNothing);
+      expect(find.text('Chỉ dẫn khẩn cấp'), findsNothing);
     },
   );
 
   testWidgets('no refund result is shown', (tester) async {
     await pump(tester);
 
-    expect(find.textContaining('managed separately'), findsOneWidget);
+    expect(find.textContaining('được xử lý riêng'), findsOneWidget);
     expect(find.textContaining('under manual review'), findsNothing);
     expect(find.textContaining('has been completed'), findsNothing);
     expect(find.textContaining('VND'), findsNothing);
@@ -139,7 +139,7 @@ void main() {
     await tester.tap(find.byKey(const Key('emergency-call')));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Could not start the call'), findsOneWidget);
+    expect(find.textContaining('Không thể gọi'), findsOneWidget);
     expect(find.textContaining('Hotline'), findsOneWidget);
   });
 
@@ -158,7 +158,7 @@ void main() {
     tester,
   ) async {
     await pump(tester);
-    expect(find.textContaining('does not mean you are safe'), findsOneWidget);
+    expect(find.textContaining('không có nghĩa là'), findsOneWidget);
 
     final button = find.byKey(const Key('emergency-ack'));
     await tester.ensureVisible(button);
@@ -167,7 +167,7 @@ void main() {
 
     expect(repository.acknowledgeCalls, 1);
     expect(find.byKey(const Key('emergency-ack')), findsNothing);
-    expect(find.textContaining('Receipt recorded'), findsOneWidget);
+    expect(find.textContaining('Đã ghi nhận lúc'), findsOneWidget);
     expect(find.text('Stay at the shelter.'), findsOneWidget);
   });
 
@@ -176,7 +176,7 @@ void main() {
   ) async {
     await pump(tester);
 
-    expect(find.textContaining('other people in your group'), findsOneWidget);
+    expect(find.textContaining('người đi cùng'), findsOneWidget);
   });
 
   testWidgets('a foreign booking is a Safe 404 that names nothing', (
@@ -186,17 +186,17 @@ void main() {
 
     await pump(tester);
 
-    expect(find.text('No emergency notice'), findsOneWidget);
+    expect(find.text('Không có thông báo khẩn cấp'), findsOneWidget);
     expect(find.text('Stay at the shelter.'), findsNothing);
   });
 
   testWidgets('offline offers a retry and recovers', (tester) async {
     network.connected = false;
     await pump(tester);
-    expect(find.text('Try again'), findsOneWidget);
+    expect(find.text('Thử lại'), findsOneWidget);
 
     network.connected = true;
-    await tester.tap(find.text('Try again'));
+    await tester.tap(find.text('Thử lại'));
     await tester.pumpAndSettle();
 
     expect(find.text('Stay at the shelter.'), findsOneWidget);
@@ -216,7 +216,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Stay at the shelter.'), findsOneWidget);
-    expect(find.textContaining('may be out of date'), findsOneWidget);
+    expect(find.textContaining('chưa được cập nhật'), findsOneWidget);
   });
 
   testWidgets('long text fits a small screen with large text', (tester) async {

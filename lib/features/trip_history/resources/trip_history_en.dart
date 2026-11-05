@@ -47,7 +47,7 @@ abstract final class TripHistoryStringsEn {
   static const String statusOngoing = 'Ongoing';
   static const String statusCompleted = 'Completed';
   static const String statusCancelled = 'Cancelled';
-  static const String statusStoppedForSafety = 'Stopped for safety';
+  static const String statusStoppedForSafety = 'Đã dừng vì an toàn';
 
   // Contextual Actions per Record
   static const String actionViewEticket = 'View E-ticket';
@@ -55,7 +55,7 @@ abstract final class TripHistoryStringsEn {
   static const String actionEditReview = 'Edit Review';
   static const String actionViewReview = 'View Review';
   static const String actionViewRefundStatus = 'View Refund Status';
-  static const String actionViewEmergencyNotice = 'Emergency notice';
+  static const String actionViewEmergencyNotice = 'Thông báo khẩn cấp';
   static const String actionViewDetails = 'View Details';
   static const String actionCancel = 'Cancel';
   static const String actionClose = 'Close';

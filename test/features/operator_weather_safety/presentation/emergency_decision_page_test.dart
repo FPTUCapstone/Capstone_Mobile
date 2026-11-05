@@ -133,9 +133,9 @@ void main() {
 
       await pump(tester);
 
-      expect(find.text('Cancel before departure'), findsWidgets);
-      expect(find.textContaining('Affected passengers'), findsOneWidget);
-      expect(find.textContaining('managed separately'), findsOneWidget);
+      expect(find.text('Hủy trước khởi hành'), findsWidgets);
+      expect(find.textContaining('Hành khách bị ảnh hưởng'), findsOneWidget);
+      expect(find.textContaining('được xử lý riêng'), findsOneWidget);
       expect(find.textContaining('Automatic refund'), findsNothing);
       expect(find.textContaining('manual review'), findsNothing);
     });
@@ -148,7 +148,7 @@ void main() {
       await pump(tester);
 
       expect(find.byKey(const Key('emergency-review-decision')), findsNothing);
-      expect(find.textContaining('could not be verified'), findsOneWidget);
+      expect(find.textContaining('chưa được xác minh'), findsOneWidget);
     });
 
     testWidgets('offline hides the form and offers a re-check', (tester) async {
@@ -158,8 +158,8 @@ void main() {
       await pump(tester);
 
       expect(find.byKey(const Key('emergency-review-decision')), findsNothing);
-      expect(find.textContaining('offline'), findsOneWidget);
-      expect(find.text('Check again'), findsOneWidget);
+      expect(find.textContaining('ngoại tuyến'), findsOneWidget);
+      expect(find.text('Kiểm tra lại'), findsOneWidget);
     });
 
     testWidgets('a screen with no password stays capturable', (tester) async {
@@ -177,7 +177,7 @@ void main() {
 
       await pump(tester);
 
-      expect(find.text('Departure not found'), findsOneWidget);
+      expect(find.text('Không tìm thấy lịch khởi hành'), findsOneWidget);
       expect(find.byKey(const Key('emergency-impact-panel')), findsNothing);
     });
 
@@ -232,7 +232,7 @@ void main() {
 
       await tapReview(tester);
 
-      expect(find.text('Describe the reason.'), findsOneWidget);
+      expect(find.text('Vui lòng nhập lý do.'), findsOneWidget);
       expect(repository.impactCalls, before);
     });
 
@@ -262,7 +262,7 @@ void main() {
 
       await tapReview(tester);
       expect(find.byType(AlertDialog), findsOneWidget);
-      expect(find.textContaining('5 passengers'), findsOneWidget);
+      expect(find.textContaining('5 hành khách'), findsOneWidget);
       expect(repository.commands, isEmpty);
 
       await tester.tap(find.byKey(const Key('emergency-confirm-cancel')));
@@ -290,7 +290,7 @@ void main() {
       await tapReview(tester);
 
       expect(find.byType(AlertDialog), findsNothing);
-      expect(find.textContaining('impact changed'), findsOneWidget);
+      expect(find.textContaining('Tác động đã thay đổi'), findsOneWidget);
       expect(find.text('Storm warning'), findsOneWidget);
       expect(repository.commands, isEmpty);
     });
@@ -305,13 +305,13 @@ void main() {
       await scrollTo(tester, reason);
       await tester.tap(reason);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Authority directive').last);
+      await tester.tap(find.text('Chỉ thị của cơ quan chức năng').last);
       await tester.pumpAndSettle();
 
       await tapReview(tester);
 
       expect(find.byType(AlertDialog), findsNothing);
-      expect(find.textContaining('authority reference'), findsOneWidget);
+      expect(find.textContaining('cơ quan ban hành'), findsOneWidget);
     });
 
     testWidgets('rejects a non-HTTPS evidence link', (tester) async {
@@ -378,9 +378,12 @@ void main() {
       await tapReview(tester);
 
       expect(repository.impactCalls, before);
-      expect(find.text('Enter safety instructions.'), findsOneWidget);
-      expect(find.text('Enter an emergency contact.'), findsOneWidget);
-      expect(find.text('Enter your current password.'), findsOneWidget);
+      expect(find.text('Vui lòng nhập chỉ dẫn khẩn cấp.'), findsOneWidget);
+      expect(
+        find.text('Vui lòng nhập đầu mối liên hệ khẩn cấp.'),
+        findsOneWidget,
+      );
+      expect(find.text('Vui lòng nhập mật khẩu hiện tại.'), findsOneWidget);
       expect(find.byKey(const Key('emergency-refund-due')), findsNothing);
     });
 
@@ -418,7 +421,7 @@ void main() {
 
       await tapReview(tester);
 
-      expect(find.textContaining('impact changed'), findsOneWidget);
+      expect(find.textContaining('Tác động đã thay đổi'), findsOneWidget);
       expect(password.text, isEmpty);
       expect(instructions.text, 'Stay at the shelter.');
     });
@@ -431,7 +434,7 @@ void main() {
       network.change(false);
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('offline'), findsOneWidget);
+      expect(find.textContaining('ngoại tuyến'), findsOneWidget);
       expect(controller.text, isEmpty);
     });
 
@@ -440,7 +443,7 @@ void main() {
     ) async {
       repository.commandOutcomes.add(
         const EmergencyTourFailure(
-          'The password could not be verified. Please try again.',
+          'Không xác minh được mật khẩu. Vui lòng thử lại.',
           reason: EmergencyTourFailureReason.wrongPassword,
         ),
       );
@@ -451,7 +454,7 @@ void main() {
       await tester.tap(find.byKey(const Key('emergency-confirm-submit')));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('could not be verified'), findsWidgets);
+      expect(find.textContaining('Không xác minh được mật khẩu'), findsWidgets);
       final field = passwordField(tester);
       expect(field.controller!.text, isEmpty);
       expect(field.focusNode!.hasFocus, isTrue);
@@ -499,7 +502,7 @@ void main() {
       await tester.tap(find.byKey(const Key('emergency-confirm-submit')));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('could not confirm'), findsOneWidget);
+      expect(find.textContaining('Chưa xác nhận được'), findsOneWidget);
       expect(find.byKey(const Key('emergency-review-decision')), findsNothing);
 
       await enter(tester, 'emergency-password', 'transient-value');
@@ -580,13 +583,13 @@ void main() {
           authorityReference: 'NCHMF-1',
         ),
       );
-      expect(find.text('Evidence saved.'), findsOneWidget);
+      expect(find.text('Đã lưu bằng chứng.'), findsOneWidget);
     });
 
     testWidgets('explains that emptying a field clears it', (tester) async {
       await pump(tester);
 
-      expect(find.textContaining('clears a field you empty'), findsOneWidget);
+      expect(find.textContaining('ô bạn xóa trống'), findsOneWidget);
     });
 
     testWidgets('rejects a link with embedded credentials', (tester) async {
@@ -611,7 +614,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repository.evidenceCalls, isEmpty);
-      expect(find.textContaining('Add a link or a reference'), findsOneWidget);
+      expect(find.textContaining('Vui lòng nhập liên kết hoặc'), findsOneWidget);
     });
 
     testWidgets('withdraw asks first and sends no values', (tester) async {
@@ -627,7 +630,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repository.evidenceCalls.single, isNull);
-      expect(find.text('Evidence withdrawn.'), findsOneWidget);
+      expect(find.text('Đã rút lại bằng chứng.'), findsOneWidget);
     });
   });
 }

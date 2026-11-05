@@ -74,8 +74,8 @@ void main() {
 
       await pump(tester);
 
-      expect(find.text('ESCALATED'), findsOneWidget);
-      expect(find.text('ACKNOWLEDGED'), findsOneWidget);
+      expect(find.text('QUÁ HẠN XÁC NHẬN'), findsOneWidget);
+      expect(find.text('ĐÃ XEM'), findsOneWidget);
       expect(find.byIcon(Icons.priority_high_rounded), findsOneWidget);
       expect(find.byIcon(Icons.check_circle_outline), findsOneWidget);
     });
@@ -90,25 +90,25 @@ void main() {
       await tester.tap(find.byKey(const Key('safety-filter-acknowledged')));
       await tester.pumpAndSettle();
 
-      expect(find.text('ESCALATED'), findsNothing);
-      expect(find.text('ACKNOWLEDGED'), findsOneWidget);
+      expect(find.text('QUÁ HẠN XÁC NHẬN'), findsNothing);
+      expect(find.text('ĐÃ XEM'), findsOneWidget);
     });
 
     testWidgets('an empty inbox says so', (tester) async {
       await pump(tester);
 
-      expect(find.text('No safety alerts'), findsOneWidget);
+      expect(find.text('Chưa có cảnh báo an toàn'), findsOneWidget);
     });
 
     testWidgets('an error offers a retry', (tester) async {
       repository.failure = const ServerFailure();
       await pump(tester);
-      expect(find.text('Try again'), findsOneWidget);
+      expect(find.text('Thử lại'), findsOneWidget);
 
       repository
         ..failure = null
         ..reviews = [review()];
-      await tester.tap(find.text('Try again'));
+      await tester.tap(find.text('Thử lại'));
       await tester.pumpAndSettle();
 
       expect(find.text('Hue heritage day tour'), findsOneWidget);
@@ -125,7 +125,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Hue heritage day tour'), findsOneWidget);
-      expect(find.textContaining('out of date'), findsOneWidget);
+      expect(find.textContaining('chưa được cập nhật'), findsOneWidget);
     });
 
     testWidgets('being visible enables polling and leaving disables it', (
@@ -193,7 +193,7 @@ void main() {
       await pump(tester);
 
       expect(find.textContaining('null'), findsNothing);
-      expect(find.text('Not provided'), findsWidgets);
+      expect(find.text('Chưa có thông tin'), findsWidgets);
     });
 
     testWidgets('acknowledging updates the view and tells the inbox', (
@@ -212,7 +212,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repository.acknowledgeCalls, 1);
-      expect(find.text('ACKNOWLEDGED'), findsOneWidget);
+      expect(find.text('ĐÃ XEM'), findsOneWidget);
       expect(find.byKey(const Key('safety-acknowledge')), findsNothing);
       expect(changed, 1);
     });
@@ -224,7 +224,7 @@ void main() {
 
       await pump(tester);
 
-      expect(find.textContaining('does not change the tour'), findsOneWidget);
+      expect(find.textContaining('không làm thay đổi tour'), findsOneWidget);
     });
 
     testWidgets('a double tap sends one acknowledgement', (tester) async {
@@ -255,7 +255,7 @@ void main() {
 
       await pump(tester);
 
-      expect(find.text('Safety alert not found'), findsOneWidget);
+      expect(find.text('Không tìm thấy cảnh báo an toàn'), findsOneWidget);
       expect(find.text('Hue heritage day tour'), findsNothing);
     });
 
@@ -268,6 +268,18 @@ void main() {
 
       expect(find.byKey(const Key('safety-manage-evidence')), findsOneWidget);
       expect(find.byKey(const Key('safety-open-decision')), findsNothing);
+    });
+
+    testWidgets('shows the system evaluation only as an acknowledged note', (
+      tester,
+    ) async {
+      repository.reviewResult = review(
+        immediateInstructions: 'weather.system_reason',
+      );
+
+      await pump(tester);
+
+      expect(find.text('weather.system_reason'), findsNothing);
     });
 
     testWidgets('long text fits a small screen with large text', (

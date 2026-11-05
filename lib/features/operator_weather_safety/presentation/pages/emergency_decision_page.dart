@@ -7,17 +7,18 @@ import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/core/platform/device_window.dart';
 import 'package:trip_mate_mobile/features/emergency_tour/domain/entities/emergency_action.dart';
+import 'package:trip_mate_mobile/features/emergency_tour/resources/emergency_copy_vi.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/domain/entities/emergency_decision.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/emergency_decision_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/emergency_decision_state.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/widgets/emergency_evidence_editor.dart';
-import 'package:trip_mate_mobile/features/operator_weather_safety/resources/operator_weather_safety_en.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/resources/operator_weather_safety_vi.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_empty_state.dart';
 import 'package:trip_mate_mobile/shared/widgets/loading_indicator.dart';
 
-typedef _Strings = OperatorWeatherSafetyStringsEn;
+typedef _Strings = OperatorWeatherSafetyStringsVi;
 
 /// The password lives only in this widget's controller. It is read once at
 /// submit, cleared immediately, and cleared again on cancel, backgrounding and
@@ -305,7 +306,7 @@ class _EmergencyDecisionPageState extends State<EmergencyDecisionPage>
             ],
             if (state.failure case final failure?
                 when state.stage != EmergencyDecisionStage.ambiguous)
-              _Notice(message: failure.message, type: AppAlertType.error),
+              _Notice(message: failure.viMessage, type: AppAlertType.error),
             if (showsForm) _decisionForm(state, impact),
             if (isDecided) const EmergencyEvidenceEditor(),
           ],
@@ -481,7 +482,7 @@ class _EmergencyDecisionPageState extends State<EmergencyDecisionPage>
   List<Widget> _ambiguousActions(EmergencyDecisionState state) => [
     const _Notice(message: _Strings.ambiguous, type: AppAlertType.warning),
     if (state.failure case final failure?)
-      _Notice(message: failure.message, type: AppAlertType.error),
+      _Notice(message: failure.viMessage, type: AppAlertType.error),
     FilledButton(
       key: const Key('emergency-retry-submit'),
       onPressed: () => _retry(state),

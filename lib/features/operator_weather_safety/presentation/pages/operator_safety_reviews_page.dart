@@ -4,11 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/features/emergency_tour/resources/emergency_copy_vi.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/domain/entities/weather_safety_review.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/operator_safety_reviews_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/operator_safety_reviews_state.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/widgets/safety_review_status_badge.dart';
-import 'package:trip_mate_mobile/features/operator_weather_safety/resources/operator_weather_safety_en.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/resources/operator_weather_safety_vi.dart';
 import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
@@ -16,7 +17,7 @@ import 'package:trip_mate_mobile/shared/widgets/app_empty_state.dart';
 import 'package:trip_mate_mobile/shared/widgets/error_view.dart';
 import 'package:trip_mate_mobile/shared/widgets/loading_indicator.dart';
 
-typedef _Strings = OperatorWeatherSafetyStringsEn;
+typedef _Strings = OperatorWeatherSafetyStringsVi;
 
 class OperatorSafetyReviewsPage extends StatefulWidget {
   const OperatorSafetyReviewsPage({super.key});
@@ -81,7 +82,8 @@ class _OperatorSafetyReviewsPageState extends State<OperatorSafetyReviewsPage> {
     OperatorSafetyReviewsStatus.initial ||
     OperatorSafetyReviewsStatus.loading => const LoadingIndicator(),
     OperatorSafetyReviewsStatus.failure => ErrorView(
-      message: state.failure?.message ?? _Strings.loadFailed,
+      retryLabel: _Strings.retry,
+      message: state.failure?.viMessage ?? _Strings.loadFailed,
       onRetry: _cubit.refresh,
     ),
     OperatorSafetyReviewsStatus.ready => RefreshIndicator(

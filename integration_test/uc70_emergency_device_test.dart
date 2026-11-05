@@ -243,9 +243,9 @@ void main() {
       expect(find.textContaining('Continue'), findsNothing);
 
       await tapKey(tester, 'safety-acknowledge');
-      await _until(tester, find.text('ACKNOWLEDGED'));
+      await _until(tester, find.text('ĐÃ XEM'));
 
-      expect(find.text('ACKNOWLEDGED'), findsOneWidget);
+      expect(find.text('ĐÃ XEM'), findsOneWidget);
       final fresh = await operatorRepository.getReview(_futureReview);
       expect(fresh.status, WeatherSafetyReviewStatus.acknowledged);
       expect(fresh.scheduleStatus, 'Scheduled');
@@ -347,9 +347,9 @@ void main() {
           ),
         ),
       );
-      await _until(tester, find.textContaining('could not be verified'));
+      await _until(tester, find.textContaining('chưa được xác minh'));
 
-      expect(find.textContaining('could not be verified'), findsOneWidget);
+      expect(find.textContaining('chưa được xác minh'), findsOneWidget);
       expect(find.byKey(const Key('emergency-review-decision')), findsNothing);
     }, skip: skip != null);
 
@@ -404,7 +404,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Hue'), findsNothing);
       expect(find.text('UC70 controlled E2E tour'), findsOneWidget);
-      expect(find.textContaining('out of date'), findsOneWidget);
+      expect(find.textContaining('chưa được cập nhật'), findsOneWidget);
       final acknowledge = tester.widget<ButtonStyleButton>(
         find.byKey(const Key('safety-acknowledge')),
       );
@@ -516,7 +516,7 @@ void main() {
       tester,
     ) async {
       await pumpDecision(tester, _futureSchedule);
-      expect(find.text('Cancel before departure'), findsOneWidget);
+      expect(find.text('Hủy trước khởi hành'), findsOneWidget);
 
       await enter(tester, 'emergency-reason-details', 'E2E storm warning');
       await enter(tester, 'emergency-contact', '+84 900 000 000');
@@ -540,7 +540,7 @@ void main() {
           findsNothing,
         );
         expect(
-          find.textContaining('already has a final decision'),
+          find.textContaining('đã có quyết định cuối cùng'),
           findsOneWidget,
         );
         expect(find.byKey(const Key('evidence-editor')), findsOneWidget);
@@ -552,7 +552,7 @@ void main() {
       tester,
     ) async {
       await pumpDecision(tester, _activeSchedule);
-      expect(find.text('Emergency stop'), findsOneWidget);
+      expect(find.text('Dừng khẩn cấp'), findsOneWidget);
       _hostStep('CHECK_SECURE_ON');
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(seconds: 6)),
@@ -565,9 +565,9 @@ void main() {
       await tapKey(tester, 'emergency-review-decision');
       await _until(tester, find.byType(AlertDialog));
       await tester.tap(find.byKey(const Key('emergency-confirm-submit')));
-      await _until(tester, find.textContaining('could not be verified'));
+      await _until(tester, find.textContaining('Không xác minh được mật khẩu'));
 
-      expect(find.textContaining('could not be verified'), findsOneWidget);
+      expect(find.textContaining('Không xác minh được mật khẩu'), findsOneWidget);
       final field = tester.widget<TextField>(
         find.descendant(
           of: find.byKey(const Key('emergency-password')),
@@ -597,7 +597,7 @@ void main() {
       await _until(tester, find.byKey(const Key('emergency-success')));
 
       expect(find.byKey(const Key('emergency-success')), findsOneWidget);
-      expect(find.text('Tour stopped'), findsOneWidget);
+      expect(find.text('Đã dừng tour'), findsOneWidget);
       expect(find.text(_password), findsNothing);
     }, skip: skip != null);
 
@@ -649,18 +649,18 @@ void main() {
       await enter(tester, 'evidence-url', 'https://authority.example/notice');
       await enter(tester, 'evidence-authority', 'E2E-AUTH-1');
       await tapKey(tester, 'evidence-save');
-      await _until(tester, find.text('Evidence saved.'));
-      expect(find.text('Evidence saved.'), findsOneWidget);
+      await _until(tester, find.text('Đã lưu bằng chứng.'));
+      expect(find.text('Đã lưu bằng chứng.'), findsOneWidget);
 
       await enter(tester, 'evidence-reference', 'E2E-REF-2');
       await tapKey(tester, 'evidence-save');
-      await _until(tester, find.text('Evidence saved.'));
-      expect(find.text('Evidence saved.'), findsOneWidget);
+      await _until(tester, find.text('Đã lưu bằng chứng.'));
+      expect(find.text('Đã lưu bằng chứng.'), findsOneWidget);
 
       await tapKey(tester, 'evidence-withdraw');
       await tester.tap(find.byKey(const Key('evidence-withdraw-confirm')));
-      await _until(tester, find.text('Evidence withdrawn.'));
-      expect(find.text('Evidence withdrawn.'), findsOneWidget);
+      await _until(tester, find.text('Đã rút lại bằng chứng.'));
+      expect(find.text('Đã rút lại bằng chứng.'), findsOneWidget);
     }, skip: skip != null);
 
     testWidgets('S19 SignalR connects with the JWT and hints trigger REST', (
@@ -713,12 +713,12 @@ void main() {
     ) async {
       await pumpNotice(tester, _futureBooking);
 
-      expect(find.text('Tour cancelled'), findsOneWidget);
+      expect(find.text('Tour đã bị hủy'), findsOneWidget);
       expect(find.text('E2E storm warning'), findsOneWidget);
 
       await tapKey(tester, 'emergency-ack');
-      await _until(tester, find.textContaining('Receipt recorded'));
-      expect(find.textContaining('Receipt recorded'), findsOneWidget);
+      await _until(tester, find.textContaining('Đã ghi nhận lúc'));
+      expect(find.textContaining('Đã ghi nhận lúc'), findsOneWidget);
 
       final fresh = await travelerRepository.getStatus(_futureBooking);
       expect(fresh.acknowledgedAtUtc, isNotNull);
@@ -730,15 +730,15 @@ void main() {
     ) async {
       await pumpNotice(tester, _activeBooking);
 
-      expect(find.text('Tour stopped for safety'), findsOneWidget);
+      expect(find.text('Tour đã dừng vì an toàn'), findsOneWidget);
       expect(find.text('Stay at the shelter.'), findsOneWidget);
       expect(find.textContaining('Hotline'), findsOneWidget);
       expect(find.byKey(const Key('emergency-call')), findsOneWidget);
       expect(find.textContaining('has been completed'), findsNothing);
 
       await tapKey(tester, 'emergency-ack');
-      await _until(tester, find.textContaining('Receipt recorded'));
-      expect(find.textContaining('Receipt recorded'), findsOneWidget);
+      await _until(tester, find.textContaining('Đã ghi nhận lúc'));
+      expect(find.textContaining('Đã ghi nhận lúc'), findsOneWidget);
       final fresh = await travelerRepository.getStatus(_activeBooking);
       expect(fresh.isStopped, isTrue);
     }, skip: skip != null);

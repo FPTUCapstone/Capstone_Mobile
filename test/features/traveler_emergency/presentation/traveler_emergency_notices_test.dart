@@ -137,7 +137,7 @@ void main() {
       await tester.tap(find.byKey(const Key('emergency-banner')));
 
       expect(_opened.single, 42);
-      expect(find.textContaining('stopped for safety'), findsOneWidget);
+      expect(find.textContaining('đã dừng vì an toàn'), findsOneWidget);
     });
 
     testWidgets('several notices open the list', (tester) async {

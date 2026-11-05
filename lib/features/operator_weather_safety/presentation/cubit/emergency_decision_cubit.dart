@@ -130,7 +130,7 @@ final class EmergencyDecisionCubit extends Cubit<EmergencyDecisionState> {
         EmergencyDecisionState(
           stage: EmergencyDecisionStage.ready,
           impact: state.impact,
-          failure: const ValidationFailure('Enter your current password.'),
+          failure: const ValidationFailure('Vui lòng nhập mật khẩu hiện tại.'),
         ),
       );
       return;
@@ -166,7 +166,7 @@ final class EmergencyDecisionCubit extends Cubit<EmergencyDecisionState> {
           stage: EmergencyDecisionStage.ambiguous,
           impact: state.impact,
           pendingDecision: decision,
-          failure: const ValidationFailure('Enter your current password.'),
+          failure: const ValidationFailure('Vui lòng nhập mật khẩu hiện tại.'),
         ),
       );
       return;

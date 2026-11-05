@@ -57,7 +57,7 @@ void main() {
         find.textContaining(RegExp(text, caseSensitive: false));
 
     await pump(tester, booking('Interrupted', TripStatus.cancelled));
-    expect(label('stopped for safety'), findsOneWidget);
+    expect(label('đã dừng vì an toàn'), findsOneWidget);
     expect(label('cancelled'), findsNothing);
 
     await pump(tester, booking('Cancelled', TripStatus.cancelled));

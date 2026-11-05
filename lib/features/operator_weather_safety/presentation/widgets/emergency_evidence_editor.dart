@@ -3,13 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/features/emergency_tour/resources/emergency_copy_vi.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/domain/entities/emergency_decision.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/emergency_evidence_cubit.dart';
-import 'package:trip_mate_mobile/features/operator_weather_safety/resources/operator_weather_safety_en.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/resources/operator_weather_safety_vi.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
 
-typedef _Strings = OperatorWeatherSafetyStringsEn;
+typedef _Strings = OperatorWeatherSafetyStringsVi;
 
 /// Adds, updates or withdraws evidence on a committed decision. Links and text
 /// only: no file, camera, gallery or location access.
@@ -184,7 +185,7 @@ class _EmergencyEvidenceEditorState extends State<EmergencyEvidenceEditor> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                   child: AppAlert(
-                    message: failure.message,
+                    message: failure.viMessage,
                     type: AppAlertType.error,
                   ),
                 ),

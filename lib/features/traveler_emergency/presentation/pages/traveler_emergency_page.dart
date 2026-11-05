@@ -5,10 +5,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/emergency_tour/domain/entities/emergency_action.dart';
+import 'package:trip_mate_mobile/features/emergency_tour/resources/emergency_copy_vi.dart';
 import 'package:trip_mate_mobile/features/traveler_emergency/domain/entities/traveler_emergency_status.dart';
 import 'package:trip_mate_mobile/features/traveler_emergency/presentation/cubit/traveler_emergency_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler_emergency/presentation/cubit/traveler_emergency_state.dart';
-import 'package:trip_mate_mobile/features/traveler_emergency/resources/traveler_emergency_en.dart';
+import 'package:trip_mate_mobile/features/traveler_emergency/resources/traveler_emergency_vi.dart';
 import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
@@ -17,7 +18,7 @@ import 'package:trip_mate_mobile/shared/widgets/error_view.dart';
 import 'package:trip_mate_mobile/shared/widgets/loading_indicator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-typedef _Strings = TravelerEmergencyStringsEn;
+typedef _Strings = TravelerEmergencyStringsVi;
 
 class TravelerEmergencyPage extends StatefulWidget {
   const TravelerEmergencyPage({
@@ -86,7 +87,8 @@ class _TravelerEmergencyPageState extends State<TravelerEmergencyPage>
           icon: Icons.search_off_rounded,
         ),
         TravelerEmergencyLoadStatus.failure => ErrorView(
-          message: state.failure?.message ?? _Strings.loadFailed,
+          retryLabel: _Strings.retry,
+          message: state.failure?.viMessage ?? _Strings.loadFailed,
           onRetry: context.read<TravelerEmergencyCubit>().load,
         ),
         TravelerEmergencyLoadStatus.ready => _content(context, state),
@@ -171,9 +173,11 @@ class _TravelerEmergencyPageState extends State<TravelerEmergencyPage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('${_Strings.bookingStatus}: ${emergency.bookingStatus}'),
                   Text(
-                    '${_Strings.scheduleStatus}: ${emergency.scheduleStatus}',
+                    '${_Strings.bookingStatus}: ${bookingStatusLabel(emergency.bookingStatus)}',
+                  ),
+                  Text(
+                    '${_Strings.scheduleStatus}: ${departureStatusLabel(emergency.scheduleStatus)}',
                   ),
                   Text(
                     '${_Strings.tickets}: ${_Strings.ticketSummary(emergency.totalTicketCount, emergency.cancelledTicketCount, emergency.usedTicketCount)}',
@@ -193,7 +197,7 @@ class _TravelerEmergencyPageState extends State<TravelerEmergencyPage>
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                 child: AppAlert(
-                  message: failure.message,
+                  message: failure.viMessage,
                   type: AppAlertType.error,
                 ),
               ),

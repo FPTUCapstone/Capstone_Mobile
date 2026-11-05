@@ -15,7 +15,7 @@ import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/o
 import 'package:trip_mate_mobile/features/operator_bookings/presentation/pages/operator_bookings_list_view.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/operator_safety_reviews_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/operator_safety_reviews_state.dart';
-import 'package:trip_mate_mobile/features/operator_weather_safety/resources/operator_weather_safety_en.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/resources/operator_weather_safety_vi.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/operator_coupons_view.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/operator_dashboard_view.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/operator_profile_view.dart';
@@ -207,8 +207,8 @@ class _SafetyAlertsAction extends StatelessWidget {
           return IconButton(
             key: const Key('operator-safety-alerts'),
             tooltip: count == 0
-                ? OperatorWeatherSafetyStringsEn.safetyAlerts
-                : OperatorWeatherSafetyStringsEn.badgeSemantics(count),
+                ? OperatorWeatherSafetyStringsVi.safetyAlerts
+                : OperatorWeatherSafetyStringsVi.badgeSemantics(count),
             onPressed: () => context.push(AppRoutes.operatorSafetyReviews),
             icon: count == 0 ? icon : Badge(label: Text('$count'), child: icon),
           );

@@ -46,12 +46,12 @@ final class EmergencyImpact extends Equatable {
 }
 
 enum EmergencyReason {
-  weatherEmergency('WeatherEmergency', 'Weather emergency'),
-  authorityDirective('AuthorityDirective', 'Authority directive'),
-  destinationUnavailable('DestinationUnavailable', 'Destination unavailable'),
-  transportFailure('TransportFailure', 'Transport failure'),
-  safetyIncident('SafetyIncident', 'Safety incident'),
-  other('Other', 'Other');
+  weatherEmergency('WeatherEmergency', 'Thời tiết nguy hiểm'),
+  authorityDirective('AuthorityDirective', 'Chỉ thị của cơ quan chức năng'),
+  destinationUnavailable('DestinationUnavailable', 'Điểm đến không khả dụng'),
+  transportFailure('TransportFailure', 'Sự cố phương tiện'),
+  safetyIncident('SafetyIncident', 'Sự cố mất an toàn'),
+  other('Other', 'Trường hợp khác');
 
   const EmergencyReason(this.wire, this.label);
 

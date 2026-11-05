@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/emergency_tour/domain/entities/emergency_action.dart';
 import 'package:trip_mate_mobile/features/traveler_emergency/domain/entities/traveler_emergency_status.dart';
-import 'package:trip_mate_mobile/features/traveler_emergency/resources/traveler_emergency_en.dart';
+import 'package:trip_mate_mobile/features/traveler_emergency/resources/traveler_emergency_vi.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 
 /// Stays until the notice is acknowledged, so a dismissed push cannot hide it.
@@ -23,9 +23,9 @@ class TravelerEmergencyBanner extends StatelessWidget {
     if (unread.isEmpty) return const SizedBox.shrink();
     final single = unread.length == 1 ? unread.single : null;
     final message = switch (single?.action) {
-      null => TravelerEmergencyStringsEn.bannerSeveral(unread.length),
-      EmergencyAction.emergencyStop => TravelerEmergencyStringsEn.bannerStopped,
-      _ => TravelerEmergencyStringsEn.bannerUpdate,
+      null => TravelerEmergencyStringsVi.bannerSeveral(unread.length),
+      EmergencyAction.emergencyStop => TravelerEmergencyStringsVi.bannerStopped,
+      _ => TravelerEmergencyStringsVi.bannerUpdate,
     };
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.sm),
