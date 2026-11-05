@@ -567,7 +567,10 @@ void main() {
       await tester.tap(find.byKey(const Key('emergency-confirm-submit')));
       await _until(tester, find.textContaining('Không xác minh được mật khẩu'));
 
-      expect(find.textContaining('Không xác minh được mật khẩu'), findsOneWidget);
+      expect(
+        find.textContaining('Không xác minh được mật khẩu'),
+        findsOneWidget,
+      );
       final field = tester.widget<TextField>(
         find.descendant(
           of: find.byKey(const Key('emergency-password')),
@@ -666,6 +669,10 @@ void main() {
     testWidgets('S19 SignalR connects with the JWT and hints trigger REST', (
       tester,
     ) async {
+      // Stopped in S7: the decision closed this departure's review.
+      final stopped = await operatorRepository.getReview(_activeReview);
+      expect(stopped.status, WeatherSafetyReviewStatus.closed);
+
       final realtime = SignalROperatorWeatherSafetyRealtime(
         apiBaseUrl: Uri.parse(_api),
         storage: _Storage(operatorToken),
@@ -676,10 +683,25 @@ void main() {
       expect(await connected.timeout(const Duration(seconds: 20)), isTrue);
 
       final hint = realtime.hints.first;
-      await operatorRepository.acknowledgeReview(_activeReview);
+      // Earlier cases already acknowledged every open review, so a real decision
+      // is what still changes one: it closes the review after commit.
+      final impact = await operatorRepository.getImpact(
+        tourId: _tourId,
+        scheduleId: _offlineSchedule,
+      );
+      await operatorRepository.cancelBeforeDeparture(
+        CancelBeforeDepartureDecision(
+          tourId: _tourId,
+          scheduleId: _offlineSchedule,
+          impactVersion: impact.impactVersion,
+          reason: EmergencyReason.weatherEmergency,
+          reasonDetails: 'Closes the review',
+        ),
+        idempotencyKey: const Uuid().v4(),
+      );
       final received = await hint.timeout(const Duration(seconds: 20));
-      expect(received.reviewId, _activeReview);
-      expect(received.changeType, 'Updated');
+      expect(received.reviewId, _offlineReview);
+      expect(received.changeType, 'Closed');
 
       await realtime.stop();
     }, skip: skip != null);
