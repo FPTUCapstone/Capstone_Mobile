@@ -34,7 +34,7 @@ void main() {
   ) async {
     await pump(tester);
     expect(notice, findsOneWidget);
-    expect(find.textContaining('still appear in the app'), findsOneWidget);
+    expect(find.textContaining('vẫn hiện trong ứng dụng'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('notification-permission-settings')));
     await tester.pump();
@@ -49,7 +49,7 @@ void main() {
     await tester.tap(find.byKey(const Key('notification-permission-settings')));
     await tester.pump();
 
-    expect(find.textContaining('could not be opened'), findsOneWidget);
+    expect(find.textContaining('Không mở được Cài đặt'), findsOneWidget);
   });
 
   testWidgets('dismissing keeps it away', (tester) async {
