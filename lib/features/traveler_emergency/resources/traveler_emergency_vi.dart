@@ -30,6 +30,7 @@ abstract final class TravelerEmergencyStringsVi {
       'Xác nhận chỉ ghi nhận bạn đã đọc thông báo này. Việc này không có nghĩa là '
       'bạn đã an toàn và không làm thay đổi quyết định.';
   static const acknowledge = 'Tôi đã đọc thông báo này';
+  static const viewSafetyNotice = 'Xem thông báo an toàn';
   static const bannerStopped =
       'Một tour bạn đã đặt đã dừng vì an toàn. Chạm để đọc chỉ dẫn.';
   static const bannerUpdate =
@@ -37,6 +38,10 @@ abstract final class TravelerEmergencyStringsVi {
 
   static String bannerSeveral(int count) =>
       'Bạn có $count thông báo khẩn cấp chưa đọc. Chạm để xem các chuyến đi.';
+
+  static String stoppedDialogMessage(String tour) =>
+      '$tour đã bị đơn vị điều hành dừng. Dẫn đường đã kết thúc. '
+      'Hãy mở thông báo để xem chỉ dẫn an toàn và đầu mối liên hệ.';
 
   static String acknowledgedAt(String time) => 'Đã ghi nhận lúc $time.';
 

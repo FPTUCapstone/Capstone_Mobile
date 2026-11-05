@@ -138,9 +138,9 @@ void main() {
         await tester.binding.handlePopRoute();
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
-        expect(find.text('Tour stopped for safety'), findsOneWidget);
+        expect(find.text('Tour đã dừng vì an toàn'), findsOneWidget);
 
-        await tester.tap(find.text('View safety notice'));
+        await tester.tap(find.text('Xem thông báo an toàn'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
 

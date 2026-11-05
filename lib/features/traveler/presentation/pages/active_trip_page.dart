@@ -32,6 +32,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/widgets/reroute_
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_alert_banner.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_alerts_sheet.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/weather_advisory_banner.dart';
+import 'package:trip_mate_mobile/features/traveler_emergency/resources/traveler_emergency_vi.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
 class ActiveTripPage extends StatefulWidget {
@@ -783,11 +784,8 @@ class _ActiveTripPageState extends State<ActiveTripPage>
             color: AppColors.error,
             size: 40,
           ),
-          title: const Text('Tour stopped for safety'),
-          content: Text(
-            '$title was stopped by the tour operator. Navigation has ended. '
-            'Open the notice for safety instructions and the operator contact.',
-          ),
+          title: const Text(TravelerEmergencyStringsVi.stoppedTitle),
+          content: Text(TravelerEmergencyStringsVi.stoppedDialogMessage(title)),
           actions: [
             FilledButton(
               onPressed: () {
@@ -799,7 +797,7 @@ class _ActiveTripPageState extends State<ActiveTripPage>
                   );
                 }
               },
-              child: const Text('View safety notice'),
+              child: const Text(TravelerEmergencyStringsVi.viewSafetyNotice),
             ),
           ],
         ),

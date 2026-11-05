@@ -49,8 +49,8 @@ class _NotificationPermissionNoticeState
           children: [
             AppAlert(
               message: _settingsFailed
-                  ? 'Settings could not be opened. You can allow notifications in your device settings.'
-                  : 'Notifications are off. Safety updates still appear in the app.',
+                  ? 'Không mở được Cài đặt. Bạn có thể bật thông báo trong cài đặt của thiết bị.'
+                  : 'Thông báo đang tắt. Cập nhật an toàn vẫn hiện trong ứng dụng.',
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -58,12 +58,12 @@ class _NotificationPermissionNoticeState
                 TextButton(
                   key: const Key('notification-permission-dismiss'),
                   onPressed: () => setState(() => _dismissed = true),
-                  child: const Text('Not now'),
+                  child: const Text('Để sau'),
                 ),
                 TextButton(
                   key: const Key('notification-permission-settings'),
                   onPressed: _openSettings,
-                  child: const Text('Open settings'),
+                  child: const Text('Mở cài đặt'),
                 ),
               ],
             ),
