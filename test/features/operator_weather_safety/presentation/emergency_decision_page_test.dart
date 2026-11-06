@@ -614,7 +614,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repository.evidenceCalls, isEmpty);
-      expect(find.textContaining('Vui lòng nhập liên kết hoặc'), findsOneWidget);
+      expect(
+        find.textContaining('Vui lòng nhập liên kết hoặc'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('withdraw asks first and sends no values', (tester) async {
