@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/core/network/network_info.dart';
+import 'package:trip_mate_mobile/core/push/emergency_push_hint.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/active_trip_maneuver.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_route.dart';
@@ -37,6 +38,7 @@ void main() {
     NavigationLocationTracker? locationTracker,
     NetworkInfo? networkInfo,
     TripAlertRepository? alertRepository,
+    Stream<EmergencyPushHint>? emergencyHints,
   }) => ActiveTripCubit(
     itineraryId: 101,
     itineraryTitle: 'Đà Nẵng City Explorer',
@@ -47,6 +49,7 @@ void main() {
     idempotencyKey: 'start-key',
     networkInfo: networkInfo,
     alertRepository: alertRepository,
+    emergencyHints: emergencyHints,
   );
 
   NavigationPosition at(NavigationSessionItem item, {double offset = 0}) =>
@@ -396,6 +399,113 @@ void main() {
       },
     );
 
+    group('UC-70 emergency stop', () {
+      NavigationSession interrupted(NavigationSession session) =>
+          NavigationSession(
+            sessionId: session.sessionId,
+            itineraryId: session.itineraryId,
+            itineraryVersion: session.itineraryVersion,
+            state: NavigationSessionState.interrupted,
+            completionReason: null,
+            startedAt: session.startedAt,
+            expiresAt: session.expiresAt,
+            endedAt: now,
+            exploringItemId: null,
+            nextItemId: null,
+            items: session.items,
+          );
+
+      test(
+        'a rejected action reloads the stopped session and ends progression',
+        () async {
+          final cubit = createCubit();
+          await cubit.start();
+          repository.others[9001] = interrupted(cubit.state.session!);
+          repository.nextMutationFailure = const NavigationFailure(
+            'This tour was stopped for safety.',
+            reason: NavigationFailureReason.sessionInterrupted,
+          );
+
+          await cubit.reachItem(1001);
+
+          expect(repository.calls.last, 'get:9001');
+          expect(cubit.state.isTerminal, isTrue);
+          expect(cubit.state.isEmergencyStopped, isTrue);
+          expect(cubit.state.targetItemId, isNull);
+
+          repository.calls.clear();
+          await cubit.reachItem(1001);
+          await cubit.skipItem(1001);
+          await cubit.depart();
+          expect(repository.calls, isEmpty);
+          await cubit.close();
+        },
+      );
+
+      test('resuming discovers a stop made while the app was away', () async {
+        final cubit = createCubit();
+        await cubit.start();
+        repository.others[9001] = interrupted(cubit.state.session!);
+
+        await cubit.refreshSession();
+
+        expect(cubit.state.isEmergencyStopped, isTrue);
+        await cubit.close();
+      });
+
+      test('a stop push ends the session without any action', () async {
+        final hints = StreamController<EmergencyPushHint>.broadcast();
+        addTearDown(hints.close);
+        final cubit = createCubit(emergencyHints: hints.stream);
+        await cubit.start();
+        repository.others[9001] = interrupted(cubit.state.session!);
+
+        hints.add(
+          const TravelerBookingHint(
+            bookingId: 42,
+            operationId: 7,
+            opened: false,
+          ),
+        );
+        await pumpEventQueue();
+
+        expect(cubit.state.isEmergencyStopped, isTrue);
+        await cubit.close();
+      });
+
+      test('an Operator hint does not touch the session', () async {
+        final hints = StreamController<EmergencyPushHint>.broadcast();
+        addTearDown(hints.close);
+        final cubit = createCubit(emergencyHints: hints.stream);
+        await cubit.start();
+        repository.others[9001] = interrupted(cubit.state.session!);
+
+        hints.add(
+          const OperatorReviewHint(
+            reviewId: 5,
+            changeType: 'Created',
+            opened: false,
+          ),
+        );
+        await pumpEventQueue();
+
+        expect(cubit.state.isEmergencyStopped, isFalse);
+        await cubit.close();
+      });
+
+      test('a failed refresh keeps the current session', () async {
+        final cubit = createCubit();
+        await cubit.start();
+        repository.getFailures[9001] = const NetworkFailure();
+
+        await cubit.refreshSession();
+
+        expect(cubit.state.isEmergencyStopped, isFalse);
+        expect(cubit.state.session?.sessionId, 9001);
+        await cubit.close();
+      });
+    });
+
     test('network errors keep the session and report the failure', () async {
       final cubit = createCubit();
       await cubit.start();
@@ -450,6 +560,20 @@ void main() {
   });
 
   group('Failure handling', () {
+    test('a stopped tour cannot be retried into a new session', () async {
+      repository.startFailure = const NavigationFailure(
+        'This tour was stopped for safety.',
+        reason: NavigationFailureReason.sessionInterrupted,
+      );
+      final cubit = createCubit();
+
+      await cubit.start();
+
+      expect(cubit.state.session, isNull);
+      expect(cubit.state.canRetryLoad, isFalse);
+      await cubit.close();
+    });
+
     test('a network failure can be retried with the same action', () async {
       final cubit = createCubit();
       await cubit.start();

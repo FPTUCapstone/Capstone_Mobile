@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/core/network/network_info.dart';
+import 'package:trip_mate_mobile/core/push/emergency_push_hint.dart';
 import 'package:trip_mate_mobile/core/push/trip_push_messaging.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/active_trip_maneuver.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_route.dart';
@@ -42,6 +43,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
     NetworkInfo? networkInfo,
     TripAlertRepository? alertRepository,
     Stream<TripPushHint>? pushHints,
+    Stream<EmergencyPushHint>? emergencyHints,
     WeatherAdvisorySessionStore? weatherAdvisoryStore,
   }) : _sessionRepository = sessionRepository,
        _networkInfo = networkInfo,
@@ -68,6 +70,10 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
         unawaited(refreshAlerts());
       }
     });
+    // Identifiers only: the Backend decides whether this session has ended.
+    _emergencyHintSubscription = emergencyHints?.listen((hint) {
+      if (hint is TravelerBookingHint) unawaited(refreshSession());
+    });
   }
 
   static const offRouteThresholdMeters = 60.0;
@@ -87,6 +93,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
   final WeatherAdvisorySessionStore _weatherAdvisoryStore;
   StreamSubscription<bool>? _connectivitySubscription;
   StreamSubscription<TripPushHint>? _pushHintSubscription;
+  StreamSubscription<EmergencyPushHint>? _emergencyHintSubscription;
 
   /// Set while another confirmation dialog is open, so an arrival question
   /// never stacks on top of it.
@@ -244,6 +251,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
 
   /// Start rejections that a retry cannot change.
   static const _permanentStartFailures = {
+    NavigationFailureReason.sessionInterrupted,
     NavigationFailureReason.outsideTripWindow,
     NavigationFailureReason.itineraryNotActive,
     NavigationFailureReason.noNavigableItems,
@@ -701,6 +709,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
     } on NavigationFailure catch (failure) {
       final refreshed =
           failure.reason == NavigationFailureReason.sessionCompleted ||
+              failure.reason == NavigationFailureReason.sessionInterrupted ||
               failure.reason == NavigationFailureReason.itemAlreadyReached
           ? await _tryRefresh(session.sessionId)
           : null;
@@ -733,6 +742,18 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
           ),
         ),
       );
+    }
+  }
+
+  /// Re-reads the Backend session on resume and reconnect, so a stop made while
+  /// the app was away ends local progression. A failed read keeps the current
+  /// session: the next mutation is still rejected by the Backend.
+  Future<void> refreshSession() async {
+    final session = state.session;
+    if (session == null || state.isTerminal || state.isDemoMode) return;
+    final refreshed = await _tryRefresh(session.sessionId);
+    if (refreshed != null && refreshed.isCompleted) {
+      _applySession(refreshed);
     }
   }
 
@@ -824,6 +845,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
   Future<void> close() async {
     await _connectivitySubscription?.cancel();
     await _pushHintSubscription?.cancel();
+    await _emergencyHintSubscription?.cancel();
     await _stopTracking(invalidate: true);
     return super.close();
   }
@@ -837,6 +859,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
     ) {
       if (state.isOnline != isOnline) _emit(state.copyWith(isOnline: isOnline));
       if (isOnline && state.session != null && !state.isDemoMode) {
+        unawaited(refreshSession());
         unawaited(refreshAlerts());
       }
     }, onError: (Object _) {});

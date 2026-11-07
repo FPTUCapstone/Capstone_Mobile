@@ -11,6 +11,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Gradle 8.14 does not run on the runner default JDK 25; the app targets Java 17.
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:

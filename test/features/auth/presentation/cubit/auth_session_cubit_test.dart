@@ -59,7 +59,7 @@ void main() {
     );
 
     test(
-      'TourOperator authentication does not register Traveler push',
+      'TourOperator authentication registers push and logout removes it',
       () async {
         final lifecycle = _FakePushDeviceLifecycle();
         final cubit = AuthSessionCubit(
@@ -75,10 +75,32 @@ void main() {
           password: 'Password123!',
         );
         await Future<void>.delayed(Duration.zero);
+        await cubit.signOut();
 
-        expect(lifecycle.authenticatedCalls, 0);
+        expect(lifecycle.authenticatedCalls, 1);
+        expect(lifecycle.beforeLogoutCalls, 1);
       },
     );
+
+    test('session restore and expiry cover the TourOperator too', () async {
+      final lifecycle = _FakePushDeviceLifecycle();
+      final storage = FakeSecureStorageService()
+        ..values.addAll({
+          AppConstants.accessTokenKey: 'access',
+          AppConstants.refreshTokenKey: 'refresh',
+          AppConstants.sessionRoleKey: 'tourOperator',
+          AppConstants.keepSignedInKey: 'true',
+        });
+      final cubit = AuthSessionCubit(null, storage, null, lifecycle);
+      addTearDown(cubit.close);
+      await cubit.restoreSession();
+      await Future<void>.delayed(Duration.zero);
+
+      await cubit.handleSessionExpired();
+
+      expect(lifecycle.authenticatedCalls, 1);
+      expect(lifecycle.beforeLogoutCalls, 1);
+    });
 
     test('session expiry removes the Traveler push registration', () async {
       final lifecycle = _FakePushDeviceLifecycle();

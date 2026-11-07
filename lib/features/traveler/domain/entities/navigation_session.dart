@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 
-enum NavigationSessionState { navigating, exploring, completed }
+enum NavigationSessionState { navigating, exploring, completed, interrupted }
 
 enum NavigationCompletionReason { routeFinished, travelerStopped, expired }
 
@@ -22,6 +22,7 @@ final class NavigationSession extends Equatable {
     required this.nextItemId,
     required this.items,
     this.transportMode,
+    this.bookingId,
   });
 
   final int sessionId;
@@ -42,7 +43,15 @@ final class NavigationSession extends Equatable {
   /// itineraries.
   final TransportMode? transportMode;
 
-  bool get isCompleted => state == NavigationSessionState.completed;
+  /// The tour booking this session follows. Null for self-planned trips.
+  final int? bookingId;
+
+  /// The session has ended and no further progress is possible.
+  bool get isCompleted =>
+      state == NavigationSessionState.completed || isInterrupted;
+
+  /// UC-70: the Tour Operator stopped the departure for safety.
+  bool get isInterrupted => state == NavigationSessionState.interrupted;
   bool get isExploring => state == NavigationSessionState.exploring;
   bool get hasPendingItems =>
       items.any((item) => item.status == NavigationItemStatus.pending);
@@ -82,6 +91,7 @@ final class NavigationSession extends Equatable {
       nextItemId: nextItemId,
       items: items ?? this.items,
       transportMode: transportMode,
+      bookingId: bookingId,
     );
   }
 
@@ -99,6 +109,7 @@ final class NavigationSession extends Equatable {
     nextItemId,
     items,
     transportMode,
+    bookingId,
   ];
 }
 

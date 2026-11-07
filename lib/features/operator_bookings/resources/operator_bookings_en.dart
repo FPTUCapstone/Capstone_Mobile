@@ -54,6 +54,7 @@ abstract final class OperatorBookingsStringsEn {
   static const String statusCancelled = 'Cancelled';
   static const String statusCompleted = 'Completed';
   static const String statusExpired = 'Expired';
+  static const String statusInterrupted = 'Interrupted';
   static const String paymentUnpaid = 'Unpaid';
   static const String paymentPaid = 'Paid';
   static const String paymentRefunded = 'Refunded';

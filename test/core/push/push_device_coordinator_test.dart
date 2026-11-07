@@ -171,6 +171,8 @@ final class _FakeMessaging implements TripPushMessaging {
   Future<TripPushHint?> getInitialHint() async => null;
   @override
   Future<bool> requestPermission() async => permissionGranted;
+  @override
+  Future<bool> hasPermission() async => permissionGranted;
 }
 
 final class _MemoryStorage implements SecureStorageService {

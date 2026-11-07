@@ -2,11 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_stop.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_route.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_session.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/reroute_proposal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
@@ -71,6 +74,80 @@ void main() {
   }
 
   group('ActiveTripPage navigation', () {
+    for (final (bookingId, expected) in [
+      (42, 'notice-42'),
+      (null, 'history'),
+    ]) {
+      testWidgets('an emergency stop leads to $expected', (tester) async {
+        usePhoneSurface(tester);
+        final repository = FakeSessionRepository();
+        final cubit = ActiveTripCubit(
+          itineraryId: 101,
+          itineraryTitle: 'Trip',
+          sessionRepository: repository,
+          locationTracker: FakeLocationTracker(),
+          idempotencyKey: 'start-key',
+        );
+        addTearDown(cubit.close);
+        await cubit.start();
+        final running = cubit.state.session!;
+        repository.others[running.sessionId] = NavigationSession(
+          sessionId: running.sessionId,
+          itineraryId: running.itineraryId,
+          itineraryVersion: running.itineraryVersion,
+          bookingId: bookingId,
+          state: NavigationSessionState.interrupted,
+          completionReason: null,
+          startedAt: running.startedAt,
+          expiresAt: running.expiresAt,
+          endedAt: running.startedAt,
+          exploringItemId: null,
+          nextItemId: null,
+          items: running.items,
+        );
+        final router = GoRouter(
+          routes: [
+            GoRoute(
+              path: '/',
+              builder: (_, _) => ActiveTripPage(
+                itineraryId: 101,
+                cubit: cubit,
+                useMapbox: false,
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.tripHistory,
+              builder: (_, _) => const Text('history'),
+            ),
+            GoRoute(
+              path: AppRoutes.travelerEmergencyPattern,
+              builder: (_, state) =>
+                  Text('notice-${state.pathParameters.values.single}'),
+            ),
+          ],
+        );
+        addTearDown(router.dispose);
+        await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+        await tester.pump();
+
+        await cubit.refreshSession();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        // Android Back must not leave the Traveler without the safety notice.
+        await tester.binding.handlePopRoute();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(find.text('Tour đã dừng vì an toàn'), findsOneWidget);
+
+        await tester.tap(find.text('Xem thông báo an toàn'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        expect(find.text(expected), findsOneWidget);
+      });
+    }
+
     testWidgets(
       'renders the preview map, target stop, and manual arrival action',
       (tester) async {

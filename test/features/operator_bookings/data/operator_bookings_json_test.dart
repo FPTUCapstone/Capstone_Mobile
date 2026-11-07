@@ -94,6 +94,18 @@ void main() {
       );
     });
 
+    test('accepts a booking interrupted by an emergency stop', () {
+      final page = OperatorBookingsJson.page(
+        _clone(
+          listPageJson(
+            items: [listBookingJson(id: '1', status: 'Interrupted')],
+          ),
+        ),
+      );
+
+      expect(page.items.single.status.wire, 'Interrupted');
+    });
+
     test('ignores unknown extra properties and never exposes them', () {
       final body = _clone(listPageJson());
       _firstItem(body)['internalNote'] = 'secret';

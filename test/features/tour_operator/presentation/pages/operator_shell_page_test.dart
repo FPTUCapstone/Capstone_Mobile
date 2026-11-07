@@ -20,10 +20,32 @@ import 'package:trip_mate_mobile/features/operator_bookings/domain/repositories/
 import 'package:trip_mate_mobile/features/operator_bookings/domain/usecases/operator_bookings_use_cases.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/operator_bookings_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/resources/operator_bookings_en.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/domain/entities/weather_safety_review.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/domain/repositories/operator_weather_safety_realtime.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/domain/usecases/operator_weather_safety_use_cases.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/operator_safety_reviews_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 
 import '../../../operator_bookings/operator_bookings_fixtures.dart';
+import '../../../operator_weather_safety/support/fake_operator_weather_safety_repository.dart';
+
+final class _CountingRealtime implements OperatorWeatherSafetyRealtime {
+  int starts = 0;
+  int stops = 0;
+
+  @override
+  Stream<bool> get connection => const Stream.empty();
+
+  @override
+  Stream<WeatherSafetyReviewHint> get hints => const Stream.empty();
+
+  @override
+  Future<void> start() async => starts++;
+
+  @override
+  Future<void> stop() async => stops++;
+}
 
 Future<AuthSessionCubit> _authenticatedCubit({
   _RecordingAuthRepository? repository,
@@ -102,6 +124,110 @@ void main() {
   });
 
   tearDown(() => serviceLocator.reset());
+
+  group('UC-70 Safety Alerts', () {
+    late FakeOperatorWeatherSafetyRepository safety;
+    late _CountingRealtime realtime;
+
+    setUp(() {
+      safety = FakeOperatorWeatherSafetyRepository();
+      realtime = _CountingRealtime();
+      serviceLocator.registerLazySingleton<OperatorSafetyReviewsCubit>(
+        () => OperatorSafetyReviewsCubit(
+          getReviews: GetWeatherSafetyReviewsUseCase(safety),
+          networkInfo: FakeNetworkInfo(),
+          realtime: realtime,
+        ),
+      );
+    });
+
+    testWidgets('the badge counts pending and escalated reviews', (
+      tester,
+    ) async {
+      safety.reviews = [
+        review(id: 3),
+        review(id: 2, status: WeatherSafetyReviewStatus.escalated),
+        review(id: 1, status: WeatherSafetyReviewStatus.acknowledged),
+      ];
+      final cubit = await _authenticatedCubit();
+      addTearDown(cubit.close);
+
+      await _pumpShell(tester, cubit);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('operator-safety-alerts')), findsOneWidget);
+      expect(find.text('2'), findsOneWidget);
+      expect(realtime.starts, 1);
+    });
+
+    testWidgets('no badge number is shown when nothing needs attention', (
+      tester,
+    ) async {
+      final cubit = await _authenticatedCubit();
+      addTearDown(cubit.close);
+
+      await _pumpShell(tester, cubit);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('operator-safety-alerts')), findsOneWidget);
+      expect(find.byType(Badge), findsNothing);
+    });
+
+    testWidgets('demo mode never connects or calls the Backend', (
+      tester,
+    ) async {
+      final cubit = await _authenticatedCubit();
+      addTearDown(cubit.close);
+
+      await _pumpShell(tester, cubit, isDemoMode: true);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('operator-safety-alerts')), findsNothing);
+      expect(realtime.starts, 0);
+      expect(safety.getReviewsCalls, 0);
+    });
+
+    testWidgets('backgrounding stops the connection and resuming refreshes', (
+      tester,
+    ) async {
+      final cubit = await _authenticatedCubit();
+      addTearDown(cubit.close);
+      await _pumpShell(tester, cubit);
+      await tester.pumpAndSettle();
+      final before = safety.getReviewsCalls;
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      expect(realtime.stops, 1);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+
+      expect(realtime.starts, 2);
+      expect(safety.getReviewsCalls, before + 1);
+    });
+
+    testWidgets('leaving the shell clears the session data', (tester) async {
+      safety.reviews = [review()];
+      final cubit = await _authenticatedCubit();
+      addTearDown(cubit.close);
+      await _pumpShell(tester, cubit);
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+
+      expect(
+        serviceLocator<OperatorSafetyReviewsCubit>().state.reviews,
+        isEmpty,
+      );
+      expect(realtime.stops, 1);
+    });
+  });
 
   testWidgets('operator shell sign-out uses the backend-integrated flow once', (
     tester,
