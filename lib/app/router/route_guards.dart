@@ -47,7 +47,9 @@ abstract final class RouteGuards {
     if (location == AppRoutes.login) {
       return _safeReturnLocation(session, routerState.uri) ?? home;
     }
-    if (location == AppRoutes.splash || isAuthRoute) {
+    if (location == AppRoutes.splash ||
+        location == AppRoutes.guestHome ||
+        isAuthRoute) {
       return home;
     }
     if (session.role == UserRole.traveler && isOperatorRoute) {

@@ -203,6 +203,8 @@ final class NavigationSessionRepositoryImpl
     'navigation.itinerary_schedule_incomplete':
         NavigationFailureReason.itineraryScheduleIncomplete,
     'navigation.session_completed': NavigationFailureReason.sessionCompleted,
+    'navigation.session_interrupted':
+        NavigationFailureReason.sessionInterrupted,
     'navigation.item_already_reached':
         NavigationFailureReason.itemAlreadyReached,
     'navigation.item_not_navigable': NavigationFailureReason.itemNotNavigable,
@@ -225,6 +227,8 @@ final class NavigationSessionRepositoryImpl
         'Some stops have no planned time, so navigation cannot start.',
     NavigationFailureReason.sessionCompleted:
         'This navigation session has already ended.',
+    NavigationFailureReason.sessionInterrupted:
+        'This tour was stopped for safety.',
     NavigationFailureReason.itemAlreadyReached:
         'This stop was already reached.',
     NavigationFailureReason.itemNotNavigable:

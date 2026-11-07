@@ -11,6 +11,7 @@ import 'package:trip_mate_mobile/core/location/device_location_service.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/core/network/network_info.dart';
 import 'package:trip_mate_mobile/core/network/session_coordinator.dart';
+import 'package:trip_mate_mobile/core/platform/device_window.dart';
 import 'package:trip_mate_mobile/core/push/dio_push_device_repository.dart';
 import 'package:trip_mate_mobile/core/push/push_device_coordinator.dart';
 import 'package:trip_mate_mobile/core/push/push_device_repository.dart';
@@ -86,6 +87,16 @@ import 'package:trip_mate_mobile/features/operator_tours/domain/usecases/tour_pa
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/operator_tours_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/services/tour_image_picker.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/data/datasources/operator_weather_safety_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/data/realtime/signalr_operator_weather_safety_realtime.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/data/repositories/operator_weather_safety_repository_impl.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/domain/repositories/operator_weather_safety_realtime.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/domain/repositories/operator_weather_safety_repository.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/domain/usecases/operator_weather_safety_use_cases.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/emergency_decision_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/emergency_evidence_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/operator_safety_review_detail_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/operator_safety_reviews_cubit.dart';
 import 'package:trip_mate_mobile/features/payment/data/datasources/payment_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/payment/data/repositories/payment_repository_impl.dart';
 import 'package:trip_mate_mobile/features/payment/domain/repositories/payment_repository.dart';
@@ -153,6 +164,12 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/in_app_inb
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler_emergency/data/datasources/traveler_emergency_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/traveler_emergency/data/repositories/traveler_emergency_repository_impl.dart';
+import 'package:trip_mate_mobile/features/traveler_emergency/domain/repositories/traveler_emergency_repository.dart';
+import 'package:trip_mate_mobile/features/traveler_emergency/domain/usecases/traveler_emergency_use_cases.dart';
+import 'package:trip_mate_mobile/features/traveler_emergency/presentation/cubit/traveler_emergency_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler_emergency/presentation/cubit/traveler_emergency_notices_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/canonical_trip_review_repository_impl.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/repositories/demo_trip_records_repository.dart';
@@ -614,6 +631,89 @@ Future<void> configureDependencies({AppConfig? config}) async {
       () => PasswordRecoveryCubit(serviceLocator()),
     )
     ..registerLazySingleton<DemoTripHistoryStore>(DemoTripHistoryStore.new)
+    // UC-70 Operator
+    ..registerLazySingleton<DeviceWindow>(ChannelDeviceWindow.new)
+    ..registerLazySingleton<OperatorWeatherSafetyRepository>(
+      () => OperatorWeatherSafetyRepositoryImpl(
+        DioOperatorWeatherSafetyRemoteDataSource(serviceLocator()),
+      ),
+    )
+    ..registerLazySingleton<OperatorWeatherSafetyRealtime>(
+      () => SignalROperatorWeatherSafetyRealtime(
+        apiBaseUrl: serviceLocator<AppConfig>().apiBaseUrl,
+        storage: serviceLocator(),
+      ),
+    )
+    // Shared by the workspace badge and the inbox; the shell resets it when the
+    // session ends.
+    ..registerLazySingleton<OperatorSafetyReviewsCubit>(
+      () => OperatorSafetyReviewsCubit(
+        getReviews: GetWeatherSafetyReviewsUseCase(serviceLocator()),
+        networkInfo: serviceLocator(),
+        realtime: serviceLocator(),
+      ),
+    )
+    ..registerFactoryParam<OperatorSafetyReviewDetailCubit, int, void>(
+      (reviewId, _) => OperatorSafetyReviewDetailCubit(
+        reviewId: reviewId,
+        getReview: GetWeatherSafetyReviewUseCase(serviceLocator()),
+        acknowledge: AcknowledgeWeatherSafetyReviewUseCase(serviceLocator()),
+        networkInfo: serviceLocator(),
+        hints: serviceLocator<OperatorWeatherSafetyRealtime>().hints,
+      ),
+    )
+    ..registerFactoryParam<
+      EmergencyDecisionCubit,
+      ({int tourId, int scheduleId}),
+      void
+    >(
+      (departure, _) => EmergencyDecisionCubit(
+        tourId: departure.tourId,
+        scheduleId: departure.scheduleId,
+        getImpact: GetEmergencyImpactUseCase(serviceLocator()),
+        cancelBeforeDeparture: CancelBeforeDepartureUseCase(serviceLocator()),
+        emergencyStop: EmergencyStopTourUseCase(serviceLocator()),
+        networkInfo: serviceLocator(),
+      ),
+    )
+    ..registerFactoryParam<
+      EmergencyEvidenceCubit,
+      ({int tourId, int scheduleId}),
+      void
+    >(
+      (departure, _) => EmergencyEvidenceCubit(
+        tourId: departure.tourId,
+        scheduleId: departure.scheduleId,
+        save: SaveEmergencyEvidenceUseCase(serviceLocator()),
+        withdraw: WithdrawEmergencyEvidenceUseCase(serviceLocator()),
+        read: GetEmergencyEvidenceUseCase(serviceLocator()),
+        networkInfo: serviceLocator(),
+      ),
+    )
+    // UC-70 Traveler
+    ..registerLazySingleton<TravelerEmergencyRepository>(
+      () => TravelerEmergencyRepositoryImpl(
+        DioTravelerEmergencyRemoteDataSource(serviceLocator()),
+      ),
+    )
+    // Shared by the banner and Trip History; the shell resets it when the session
+    // ends.
+    ..registerLazySingleton<TravelerEmergencyNoticesCubit>(
+      () => TravelerEmergencyNoticesCubit(
+        getNotices: GetTravelerEmergencyNoticesUseCase(serviceLocator()),
+        networkInfo: serviceLocator(),
+      ),
+    )
+    ..registerFactoryParam<TravelerEmergencyCubit, int, void>(
+      (bookingId, _) => TravelerEmergencyCubit(
+        bookingId: bookingId,
+        getStatus: GetTravelerEmergencyStatusUseCase(serviceLocator()),
+        acknowledge: AcknowledgeTravelerEmergencyStatusUseCase(
+          serviceLocator(),
+        ),
+        networkInfo: serviceLocator(),
+      ),
+    )
     ..registerLazySingleton<CanonicalTripReviewRepository>(
       () => CanonicalTripReviewRepositoryImpl(serviceLocator()),
     )
@@ -699,6 +799,10 @@ Future<void> configureDependencies({AppConfig? config}) async {
           repository: serviceLocator(),
           storage: serviceLocator(),
           messaging: serviceLocator(),
+          emergencyMessaging:
+              serviceLocator<TripPushMessaging>() as EmergencyPushMessaging,
+          clearDisplayed: () =>
+              serviceLocator<DeviceWindow>().clearNotifications(),
         ),
       )
       ..registerLazySingleton<PushDeviceLifecycle>(

@@ -78,9 +78,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
               applicationStatus: applicationStatus,
             ),
           );
-          if (role == UserRole.traveler) {
-            unawaited(_pushDeviceLifecycle?.onAuthenticated());
-          }
+          unawaited(_pushDeviceLifecycle?.onAuthenticated());
         }
         rethrow;
       }
@@ -100,9 +98,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
           errorMessage: signOutLocalCleanupFailureMessage,
         ),
       );
-      if (role == UserRole.traveler) {
-        unawaited(_pushDeviceLifecycle?.onAuthenticated());
-      }
+      unawaited(_pushDeviceLifecycle?.onAuthenticated());
       return;
     }
 
@@ -256,9 +252,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
           ),
         ),
       );
-      if (role == UserRole.traveler) {
-        unawaited(_pushDeviceLifecycle?.onAuthenticated());
-      }
+      unawaited(_pushDeviceLifecycle?.onAuthenticated());
       return;
     }
 
@@ -268,9 +262,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
   /// Session-expiry hook for the network layer: an authenticated (non-auth-
   /// endpoint) 401 clears the complete local session and returns to sign-in.
   Future<void> handleSessionExpired() async {
-    if (state.role == UserRole.traveler) {
-      await _pushDeviceLifecycle?.onBeforeLogout();
-    }
+    await _pushDeviceLifecycle?.onBeforeLogout();
     emit(const AuthSessionState.unauthenticated());
     final storage = _secureStorage;
     if (storage != null) {
@@ -517,9 +509,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
             applicationStatus: response.applicationStatus,
           ),
         );
-        if (role == UserRole.traveler) {
-          unawaited(_pushDeviceLifecycle?.onAuthenticated());
-        }
+        unawaited(_pushDeviceLifecycle?.onAuthenticated());
         return true;
     }
   }

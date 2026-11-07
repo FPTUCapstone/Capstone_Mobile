@@ -650,6 +650,31 @@ void main() {
     );
   });
 
+  // A restored session arrives after the splash has already moved to Guest Home.
+  testWidgets('a signed-in account does not stay on Guest Home', (
+    tester,
+  ) async {
+    expect(
+      await resolve(
+        tester,
+        const AuthSessionState.authenticated(
+          UserRole.tourOperator,
+          applicationStatus: TourOperatorApplicationStatus.approved,
+        ),
+        AppRoutes.guestHome,
+      ),
+      AppRoutes.operator,
+    );
+    expect(
+      await resolve(
+        tester,
+        const AuthSessionState.authenticated(UserRole.traveler),
+        AppRoutes.guestHome,
+      ),
+      AppRoutes.traveler,
+    );
+  });
+
   testWidgets('unauthenticated guest remains on Guest Home without redirect', (
     tester,
   ) async {

@@ -58,6 +58,10 @@ abstract final class AppRoutes {
   static const tripHistory = '/traveler/trips';
   static const eTicketPattern = '/traveler/tickets/:ticketId';
   static const bookingETicketPattern = '/traveler/bookings/:bookingId/ticket';
+  static const travelerEmergencyPattern =
+      '/traveler/bookings/:bookingId/emergency';
+  static String travelerEmergency(int bookingId) =>
+      '/traveler/bookings/$bookingId/emergency';
   static const tripReviewPattern = '/traveler/trips/:tripId/review';
   static const canonicalTripReviewPattern = '/traveler/reviews/:kind/:id';
   static const operator = '/operator';
@@ -69,6 +73,17 @@ abstract final class AppRoutes {
   static const operatorTours = '/operator/tours';
   static const operatorBooking = '/operator/bookings/:bookingId';
   static const operatorCheckIn = '/operator/check-in';
+  static const operatorSafetyReviews = '/operator/weather-safety-reviews';
+  static const operatorSafetyReview =
+      '/operator/weather-safety-reviews/:reviewId';
+  static const operatorEmergencyDecision =
+      '/operator/tours/:tourId/schedules/:scheduleId/emergency';
+  static String operatorSafetyReviewPath(int reviewId) =>
+      '/operator/weather-safety-reviews/$reviewId';
+  static String operatorEmergencyDecisionPath({
+    required int tourId,
+    required int scheduleId,
+  }) => '/operator/tours/$tourId/schedules/$scheduleId/emergency';
   static String operatorCheckInPath({int? scheduleId, bool isDemo = false}) {
     final params = <String, String>{};
     if (scheduleId != null) params['scheduleId'] = scheduleId.toString();
@@ -159,6 +174,7 @@ abstract final class AppRouteNames {
   static const tripHistory = 'trip-history';
   static const eTicket = 'e-ticket';
   static const bookingETicket = 'booking-e-ticket';
+  static const travelerEmergency = 'traveler-emergency';
   static const tripReview = 'trip-review';
   static const operator = 'operator';
   static const operatorApplication = 'operator-application';
@@ -169,5 +185,8 @@ abstract final class AppRouteNames {
   static const operatorTours = 'operator-tours';
   static const operatorBooking = 'operator-booking';
   static const operatorCheckIn = 'operator-check-in';
+  static const operatorSafetyReviews = 'operator-safety-reviews';
+  static const operatorSafetyReview = 'operator-safety-review';
+  static const operatorEmergencyDecision = 'operator-emergency-decision';
   static const editTourPackage = 'edit-tour-package';
 }

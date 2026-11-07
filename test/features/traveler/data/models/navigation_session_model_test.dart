@@ -167,6 +167,36 @@ void main() {
       }
     });
 
+    test('an emergency interruption ends the session whatever its reason', () {
+      final session = NavigationSessionModel.fromJson(
+        navigationSessionJson(
+          state: 'Interrupted',
+          completionReason: 'SafetyIncident',
+          exploringItemId: null,
+          nextItemId: null,
+        ),
+      );
+
+      expect(session.state, NavigationSessionState.interrupted);
+      expect(session.isInterrupted, isTrue);
+      expect(session.isCompleted, isTrue);
+      expect(session.completionReason, isNull);
+    });
+
+    test('reads the booking a session belongs to when there is one', () {
+      expect(
+        NavigationSessionModel.fromJson({
+          ...navigationSessionJson(),
+          'bookingId': 42,
+        }).bookingId,
+        42,
+      );
+      expect(
+        NavigationSessionModel.fromJson(navigationSessionJson()).bookingId,
+        isNull,
+      );
+    });
+
     test('rejects unknown states, statuses, and missing fields', () {
       expect(
         () => NavigationSessionModel.fromJson(
