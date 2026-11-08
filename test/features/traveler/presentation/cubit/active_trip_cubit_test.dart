@@ -869,9 +869,7 @@ void main() {
     });
 
     test('re-routing acceptance bumps the version', () {
-      cubit.openRerouteProposal(
-        TripAlertTestData.sampleRerouteProposal(),
-      );
+      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
       cubit.acceptRerouteProposal();
 
       expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.accepted);
@@ -884,17 +882,13 @@ void main() {
     });
 
     test('declined and expired proposals cannot be accepted later', () {
-      cubit.openRerouteProposal(
-        TripAlertTestData.sampleRerouteProposal(),
-      );
+      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
       cubit.declineRerouteProposal();
       expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.declined);
       cubit.acceptRerouteProposal();
       expect(cubit.state.itineraryVersion, 1);
 
-      cubit.openRerouteProposal(
-        TripAlertTestData.sampleRerouteProposal(),
-      );
+      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
       cubit.expireRerouteProposal();
       expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.expired);
       cubit.openRerouteProposal();
@@ -919,9 +913,7 @@ void main() {
     });
 
     test('a finished trip rejects reroute actions and new alerts', () async {
-      cubit.openRerouteProposal(
-        TripAlertTestData.sampleRerouteProposal(),
-      );
+      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
       await cubit.finish();
 
       expect(cubit.state.isTerminal, isTrue);

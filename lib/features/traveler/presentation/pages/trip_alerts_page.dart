@@ -6,11 +6,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.da
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_cubit.dart';
 
 class TripAlertsPage extends StatelessWidget {
-  const TripAlertsPage({
-    super.key,
-    required this.itineraryId,
-    this.alerts,
-  });
+  const TripAlertsPage({super.key, required this.itineraryId, this.alerts});
 
   final int itineraryId;
   final List<TripAlert>? alerts;
