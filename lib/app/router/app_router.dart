@@ -527,9 +527,7 @@ GoRouter createAppRouter(
           if (itineraryId == null || itineraryId <= 0) {
             return const ErrorView(message: 'Page not found.');
           }
-          final isDemo =
-              kDebugMode && state.uri.queryParameters['demo'] == 'true';
-          return TripAlertsPage(itineraryId: itineraryId, isDemoMode: isDemo);
+          return TripAlertsPage(itineraryId: itineraryId);
         },
       ),
       GoRoute(

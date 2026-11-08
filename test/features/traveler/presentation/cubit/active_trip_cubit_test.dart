@@ -19,6 +19,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_tri
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_state.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/demo/active_trip_demo_fixtures.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/demo/demo_navigation_session_repository.dart';
+import '../../../../support/trip_alert_test_data.dart';
 
 void main() {
   late DateTime now;
@@ -815,14 +816,14 @@ void main() {
 
     tearDown(() => cubit.close());
 
-    test('loads the in-memory session with sample alerts', () {
+    test('loads the in-memory session without fabricated alerts', () {
       expect(cubit.state.status, ActiveTripStatus.navigationActive);
       expect(cubit.state.items.length, 5);
       expect(
         cubit.state.targetItem?.poiName,
         'Marble Mountains (Ngũ Hành Sơn)',
       );
-      expect(cubit.state.alerts, isNotEmpty);
+      expect(cubit.state.alerts, isEmpty);
     });
 
     test('simulated arrival raises the confirmation prompt', () async {
@@ -841,15 +842,17 @@ void main() {
         cubit.state.status,
         ActiveTripStatus.navigationPositionUnavailable,
       );
-      cubit.demoSimulateRouteDeviation();
-      expect(cubit.state.status, ActiveTripStatus.navigationOffRouteDeviation);
-      expect(
-        cubit.state.alerts.any((a) => a.type == TripAlertType.deviation),
-        isTrue,
-      );
     });
 
-    test('dismissing banner alert keeps alert in alerts history', () {
+    test('dismissing banner alert keeps alert in alerts history', () async {
+      final cubit = ActiveTripCubit(
+        itineraryId: 101,
+        sessionRepository: DemoNavigationSessionRepository(),
+        initialAlerts: TripAlertTestData.sampleAlerts(),
+        isDemoMode: true,
+      );
+      addTearDown(cubit.close);
+      await cubit.start();
       final initialCount = cubit.state.alerts.length;
       final activeAlert = cubit.state.activeBannerAlert!;
 
@@ -865,15 +868,12 @@ void main() {
       );
     });
 
-    test('re-routing acceptance bumps the version and applies the shelter', () {
-      cubit.openRerouteProposal(
-        ActiveTripDemoFixtures.createSampleRerouteProposal(),
-      );
+    test('re-routing acceptance bumps the version', () {
+      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
       cubit.acceptRerouteProposal();
 
       expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.accepted);
       expect(cubit.state.itineraryVersion, 2);
-      expect(cubit.state.items[3].poiName, contains('Indoor Shelter'));
 
       cubit.openRerouteProposal();
       expect(cubit.state.isRerouteSheetVisible, isFalse);
@@ -882,20 +882,23 @@ void main() {
     });
 
     test('declined and expired proposals cannot be accepted later', () {
-      cubit.openRerouteProposal(
-        ActiveTripDemoFixtures.createSampleRerouteProposal(),
-      );
+      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
       cubit.declineRerouteProposal();
       expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.declined);
       cubit.acceptRerouteProposal();
       expect(cubit.state.itineraryVersion, 1);
 
-      cubit.openRerouteProposal(
-        ActiveTripDemoFixtures.createSampleRerouteProposal(),
-      );
+      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
       cubit.expireRerouteProposal();
       expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.expired);
       cubit.openRerouteProposal();
+      expect(cubit.state.isRerouteSheetVisible, isFalse);
+    });
+
+    test('opening without a proposal never invents one, even in demo mode', () {
+      cubit.openRerouteProposal();
+
+      expect(cubit.state.activeRerouteProposal, isNull);
       expect(cubit.state.isRerouteSheetVisible, isFalse);
     });
 
@@ -910,9 +913,7 @@ void main() {
     });
 
     test('a finished trip rejects reroute actions and new alerts', () async {
-      cubit.openRerouteProposal(
-        ActiveTripDemoFixtures.createSampleRerouteProposal(),
-      );
+      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
       await cubit.finish();
 
       expect(cubit.state.isTerminal, isTrue);
@@ -946,7 +947,6 @@ void main() {
       expect(cubit.state.isDemoMode, isFalse);
       expect(cubit.state.alerts, isEmpty);
       cubit.demoSimulateArrivalAtNextStop();
-      cubit.demoSimulateWeatherDisruption();
       cubit.demoSimulatePermissionDenied();
       cubit.openRerouteProposal();
 
