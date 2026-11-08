@@ -22,7 +22,6 @@ import 'package:trip_mate_mobile/features/traveler/domain/services/navigation_lo
 import 'package:trip_mate_mobile/features/traveler/domain/services/route_progress_tracker.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/weather_advisory_session_store.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_state.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/demo/active_trip_demo_fixtures.dart';
 import 'package:uuid/uuid.dart';
 
 /// UC-13 live navigation. The Backend session records progress; GPS, arrival
@@ -129,9 +128,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
     required bool isDemoMode,
     required bool isGuidanceAvailable,
   }) {
-    final alerts =
-        initialAlerts ??
-        (isDemoMode ? ActiveTripDemoFixtures.createSampleAlerts() : const []);
+    final alerts = initialAlerts ?? const <TripAlert>[];
     return ActiveTripState(
       itineraryId: itineraryId,
       itineraryTitle: itineraryTitle,
@@ -1063,27 +1060,15 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
     emit(state.copyWith(alerts: updatedAlerts, activeBannerAlert: alert));
   }
 
-  // ─────────────────── UC-15 re-routing (demo backed) ─────────────────── //
+  // ─────────────────── UC-15 re-routing (no Backend yet) ─────────────────── //
 
   /// Opens reroute proposal sheet for user review.
   /// A proposal may be reviewed/actioned only when its status is pending.
-  /// If proposal is null:
-  /// - In production mode: does not invent or reopen non-pending proposals.
-  /// - In demo mode: generates a sample demo proposal if none is active.
+  /// If proposal is null, it reopens the active proposal; it never invents one.
   void openRerouteProposal([RerouteProposal? proposal]) {
     if (state.isTerminal) return;
     final target = proposal ?? state.activeRerouteProposal;
-    if (target == null) {
-      if (!state.isDemoMode) return;
-      final demoProposal = ActiveTripDemoFixtures.createSampleRerouteProposal();
-      emit(
-        state.copyWith(
-          activeRerouteProposal: demoProposal,
-          isRerouteSheetVisible: true,
-        ),
-      );
-      return;
-    }
+    if (target == null) return;
 
     // Terminal proposals (accepted, declined, expired) cannot be reopened
     if (target.status != RerouteStatus.pending) return;
@@ -1113,18 +1098,9 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
     final acceptedProposal = proposal.copyWith(status: RerouteStatus.accepted);
     final nextVersion = state.itineraryVersion + 1;
 
-    // In demo preview, simulate applying shelter stop
-    var session = state.session;
-    if (state.isDemoMode && session != null && session.items.length >= 4) {
-      final items = List<NavigationSessionItem>.from(session.items);
-      items[3] = items[3].copyWith(poiName: 'Helio Center [Indoor Shelter]');
-      session = session.copyWith(items: items);
-    }
-
     emit(
       state.copyWith(
         itineraryVersion: nextVersion,
-        session: session,
         activeRerouteProposal: acceptedProposal,
         isRerouteSheetVisible: false,
         status: ActiveTripStatus.navigationActive,
@@ -1185,56 +1161,6 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
         (state.session?.reachableItems.firstOrNull?.itemId);
     if (itemId == null || state.arrivalPromptItemId != null) return;
     _promptArrival(itemId);
-  }
-
-  /// DEMO_ONLY: Injects a severe weather disruption with reroute proposal.
-  void demoSimulateWeatherDisruption() {
-    if (!state.isDemoMode || state.isTerminal) return;
-    final alert = TripAlert(
-      id: 'demo-weather-${DateTime.now().millisecondsSinceEpoch}',
-      title: 'Severe weather warning',
-      description:
-          'Heavy rainfall (45 mm/h) detected along upcoming route segment.',
-      severity: AlertSeverity.critical,
-      type: TripAlertType.weather,
-      affectedStopName: state.targetItem?.poiName ?? 'Next stop',
-      timestamp: DateTime.now(),
-      rerouteProposalAvailable: true,
-    );
-    final proposal = ActiveTripDemoFixtures.createSampleRerouteProposal();
-
-    emit(
-      state.copyWith(
-        alerts: [alert, ...state.alerts],
-        activeBannerAlert: alert,
-        activeRerouteProposal: proposal,
-        status: ActiveTripStatus.navigationActive,
-      ),
-    );
-  }
-
-  /// DEMO_ONLY: Injects route deviation event (>500m).
-  void demoSimulateRouteDeviation() {
-    if (!state.isDemoMode || state.isTerminal) return;
-    final alert = TripAlert(
-      id: 'demo-deviation-${DateTime.now().millisecondsSinceEpoch}',
-      title: 'Off-route deviation detected',
-      description: 'You have deviated from planned route by >500m.',
-      severity: AlertSeverity.critical,
-      type: TripAlertType.deviation,
-      affectedStopName: 'Off-route segment',
-      timestamp: DateTime.now(),
-      rerouteProposalAvailable: true,
-    );
-    emit(
-      state.copyWith(
-        status: ActiveTripStatus.navigationOffRouteDeviation,
-        alerts: [alert, ...state.alerts],
-        activeBannerAlert: alert,
-        activeRerouteProposal:
-            ActiveTripDemoFixtures.createSampleRerouteProposal(),
-      ),
-    );
   }
 
   /// DEMO_ONLY: Toggles GPS acquiring state.

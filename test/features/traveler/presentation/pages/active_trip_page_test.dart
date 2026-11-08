@@ -23,6 +23,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/widgets/reroute_
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_alert_banner.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_alerts_sheet.dart';
 
+import '../../../../support/trip_alert_test_data.dart';
 import '../cubit/active_trip_cubit_test.dart';
 
 void main() {
@@ -585,7 +586,7 @@ void main() {
     });
   });
 
-  group('ActiveTripPage UC-14/UC-15 demo', () {
+  group('ActiveTripPage UC-14/UC-15 alert and reroute UI', () {
     testWidgets('an open alerts sheet shows alerts received afterwards', (
       tester,
     ) async {
@@ -593,7 +594,7 @@ void main() {
       final cubit = ActiveTripCubit(
         itineraryId: 101,
         sessionRepository: DemoNavigationSessionRepository(),
-        initialAlerts: ActiveTripDemoFixtures.createSampleAlerts(),
+        initialAlerts: TripAlertTestData.sampleAlerts(),
         isDemoMode: true,
       );
       await cubit.start();
@@ -635,7 +636,7 @@ void main() {
       final cubit = ActiveTripCubit(
         itineraryId: 101,
         sessionRepository: DemoNavigationSessionRepository(),
-        initialAlerts: ActiveTripDemoFixtures.createSampleAlerts(),
+        initialAlerts: TripAlertTestData.sampleAlerts(),
         isDemoMode: true,
       );
       await cubit.start();
@@ -656,7 +657,7 @@ void main() {
       await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
       await tester.pumpAndSettle();
 
-      cubit.openRerouteProposal();
+      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
       await tester.pumpAndSettle();
       expect(find.byType(RerouteProposalSheet), findsOneWidget);
 
@@ -674,7 +675,7 @@ void main() {
       await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
       await tester.pumpAndSettle();
 
-      cubit.openRerouteProposal();
+      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
       await tester.pumpAndSettle();
       await tester.tap(find.text('Keep Current Route'));
       await tester.pumpAndSettle();
@@ -692,7 +693,7 @@ void main() {
       await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
       await tester.pumpAndSettle();
 
-      cubit.openRerouteProposal();
+      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Close without changing plan'));
       await tester.pumpAndSettle();

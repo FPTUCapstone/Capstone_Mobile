@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/demo/active_trip_demo_fixtures.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/trip_alerts_page.dart';
+import '../../../../support/trip_alert_test_data.dart';
 
 void main() {
   group('TripAlertsPage', () {
@@ -12,7 +12,7 @@ void main() {
         MaterialApp(
           home: TripAlertsPage(
             itineraryId: 101,
-            alerts: ActiveTripDemoFixtures.createSampleAlerts(),
+            alerts: TripAlertTestData.sampleAlerts(),
           ),
         ),
       );
@@ -40,20 +40,6 @@ void main() {
 
       expect(find.text('No alerts found for this trip.'), findsOneWidget);
       expect(find.textContaining('0 active alerts logged'), findsOneWidget);
-    });
-
-    testWidgets('populates sample alerts when isDemoMode is explicitly true', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: TripAlertsPage(itineraryId: 101, isDemoMode: true),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.textContaining('Severe weather warning'), findsOneWidget);
-      expect(find.text('No alerts found for this trip.'), findsNothing);
     });
   });
 }

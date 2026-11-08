@@ -906,22 +906,6 @@ class _ActiveTripPageState extends State<ActiveTripPage>
                       },
                     ),
                     ActionChip(
-                      avatar: const Icon(Icons.cloud_outlined, size: 16),
-                      label: const Text('Trigger Weather Disruption'),
-                      onPressed: () {
-                        Navigator.pop(sheetContext);
-                        cubit.demoSimulateWeatherDisruption();
-                      },
-                    ),
-                    ActionChip(
-                      avatar: const Icon(Icons.alt_route, size: 16),
-                      label: const Text('Simulate Off-Route (>500m)'),
-                      onPressed: () {
-                        Navigator.pop(sheetContext);
-                        cubit.demoSimulateRouteDeviation();
-                      },
-                    ),
-                    ActionChip(
                       avatar: const Icon(Icons.gps_not_fixed, size: 16),
                       label: const Text('Toggle GPS Acquiring'),
                       onPressed: () {
