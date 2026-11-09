@@ -182,6 +182,46 @@ void main() {
       );
       expect(find.text('Danh mục'), findsOneWidget);
     });
+
+    testWidgets('opens an empty date filter at the current local day', (
+      tester,
+    ) async {
+      final repository = _FakeTourRepository(
+        result: const PagedTourResult(
+          page: 1,
+          pageSize: 20,
+          totalCount: 0,
+          totalPages: 0,
+          items: [],
+        ),
+      );
+
+      final cubit = TourSearchCubit(
+        searchTours: SearchToursUseCase(repository),
+      );
+      addTearDown(cubit.close);
+      await cubit.loadInitial();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BlocProvider.value(value: cubit, child: const TourSearchPage()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Lọc tour'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Từ ngày: Chọn ngày'));
+      await tester.pumpAndSettle();
+
+      final picker = tester.widget<CalendarDatePicker>(
+        find.byType(CalendarDatePicker),
+      );
+      final now = DateTime.now();
+      expect(picker.initialDate, DateTime(now.year, now.month, now.day));
+      expect(picker.firstDate, DateTime(2));
+      expect(picker.lastDate, DateTime(9999, 12, 30));
+    });
   });
 }
 
