@@ -237,8 +237,9 @@ class _PublicTourSearchFilterSheetState
             // UTC bounds cannot be represented safely by the Backend.
             final firstDate = DateTime(2);
             final lastDate = DateTime(9999, 12, 30);
+            final today = DateTime.now();
             final requested = value == null
-                ? firstDate
+                ? DateTime(today.year, today.month, today.day)
                 : DateTime(value.year, value.month, value.day);
             final initialDate = requested.isBefore(firstDate)
                 ? firstDate
