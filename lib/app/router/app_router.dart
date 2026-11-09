@@ -7,6 +7,7 @@ import 'package:trip_mate_mobile/app/router/create_travel_group_route_args.dart'
 import 'package:trip_mate_mobile/app/router/route_guards.dart';
 import 'package:trip_mate_mobile/app/router/travel_group_details_route_args.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/core/platform/device_window.dart';
 import 'package:trip_mate_mobile/features/auth/change_password/presentation/cubit/change_password_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/change_password/presentation/pages/change_password_page.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
@@ -46,6 +47,13 @@ import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/oper
 import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/create_tour_package_page.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/edit_tour_package_page.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/operator_tours_page.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/emergency_decision_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/emergency_evidence_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/operator_safety_review_detail_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/operator_safety_reviews_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/pages/emergency_decision_page.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/pages/operator_safety_review_detail_page.dart';
+import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/pages/operator_safety_reviews_page.dart';
 import 'package:trip_mate_mobile/features/payment/presentation/cubit/payment_cubit.dart';
 import 'package:trip_mate_mobile/features/payment/presentation/pages/payment_page.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
@@ -89,6 +97,9 @@ import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_p
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_settings_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_shell_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/trip_alerts_page.dart';
+import 'package:trip_mate_mobile/features/traveler_emergency/presentation/cubit/traveler_emergency_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler_emergency/presentation/cubit/traveler_emergency_notices_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler_emergency/presentation/pages/traveler_emergency_page.dart';
 import 'package:trip_mate_mobile/features/trip_history/data/datasources/demo_trip_history_store.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/reviewable_record_ref.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_history_item.dart';
@@ -516,9 +527,7 @@ GoRouter createAppRouter(
           if (itineraryId == null || itineraryId <= 0) {
             return const ErrorView(message: 'Page not found.');
           }
-          final isDemo =
-              kDebugMode && state.uri.queryParameters['demo'] == 'true';
-          return TripAlertsPage(itineraryId: itineraryId, isDemoMode: isDemo);
+          return TripAlertsPage(itineraryId: itineraryId);
         },
       ),
       GoRoute(
@@ -564,6 +573,23 @@ GoRouter createAppRouter(
           state.pathParameters['bookingId'],
           ETicketKey.booking,
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.travelerEmergencyPattern,
+        name: AppRouteNames.travelerEmergency,
+        builder: (_, state) {
+          final bookingId = _positiveId(state.pathParameters['bookingId']);
+          if (bookingId == null) return const _RouteNotFound();
+          return BlocProvider<TravelerEmergencyCubit>(
+            create: (_) =>
+                serviceLocator<TravelerEmergencyCubit>(param1: bookingId)
+                  ..load(),
+            child: TravelerEmergencyPage(
+              onAcknowledged:
+                  serviceLocator<TravelerEmergencyNoticesCubit>().refresh,
+            ),
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.tripHistory,
@@ -664,6 +690,61 @@ GoRouter createAppRouter(
         ),
       ),
       GoRoute(
+        path: AppRoutes.operatorSafetyReviews,
+        name: AppRouteNames.operatorSafetyReviews,
+        builder: (_, _) => BlocProvider<OperatorSafetyReviewsCubit>.value(
+          value: serviceLocator<OperatorSafetyReviewsCubit>(),
+          child: const OperatorSafetyReviewsPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.operatorSafetyReview,
+        name: AppRouteNames.operatorSafetyReview,
+        builder: (_, state) {
+          final reviewId = _positiveId(state.pathParameters['reviewId']);
+          if (reviewId == null) return const _RouteNotFound();
+          return BlocProvider<OperatorSafetyReviewDetailCubit>(
+            create: (_) => serviceLocator<OperatorSafetyReviewDetailCubit>(
+              param1: reviewId,
+            )..load(),
+            child: OperatorSafetyReviewDetailPage(
+              onChanged: serviceLocator<OperatorSafetyReviewsCubit>().refresh,
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.operatorEmergencyDecision,
+        name: AppRouteNames.operatorEmergencyDecision,
+        builder: (_, state) {
+          final tourId = _positiveId(state.pathParameters['tourId']);
+          final scheduleId = _positiveId(state.pathParameters['scheduleId']);
+          if (tourId == null || scheduleId == null) {
+            return const _RouteNotFound();
+          }
+          final departure = (tourId: tourId, scheduleId: scheduleId);
+          return MultiBlocProvider(
+            providers: [
+              BlocProvider<EmergencyDecisionCubit>(
+                create: (_) =>
+                    serviceLocator<EmergencyDecisionCubit>(param1: departure)
+                      ..load(),
+              ),
+              BlocProvider<EmergencyEvidenceCubit>(
+                create: (_) =>
+                    serviceLocator<EmergencyEvidenceCubit>(param1: departure),
+              ),
+            ],
+            child: EmergencyDecisionPage(
+              tourId: tourId,
+              scheduleId: scheduleId,
+              window: serviceLocator<DeviceWindow>(),
+              onDecided: serviceLocator<OperatorSafetyReviewsCubit>().refresh,
+            ),
+          );
+        },
+      ),
+      GoRoute(
         path: AppRoutes.operatorBooking,
         name: AppRouteNames.operatorBooking,
         builder: (_, state) => _operatorBookingRoute(
@@ -750,6 +831,21 @@ GoRouter createAppRouter(
       appBar: AppBar(title: const Text('Page not found')),
       body: const ErrorView(message: 'Page not found.'),
     ),
+  );
+}
+
+int? _positiveId(String? raw) {
+  final id = int.tryParse(raw ?? '');
+  return id != null && id > 0 ? id : null;
+}
+
+class _RouteNotFound extends StatelessWidget {
+  const _RouteNotFound();
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Page not found')),
+    body: const ErrorView(message: 'Page not found.'),
   );
 }
 

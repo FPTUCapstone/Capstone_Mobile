@@ -32,6 +32,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/widgets/reroute_
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_alert_banner.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_alerts_sheet.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/weather_advisory_banner.dart';
+import 'package:trip_mate_mobile/features/traveler_emergency/resources/traveler_emergency_vi.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
 class ActiveTripPage extends StatefulWidget {
@@ -158,6 +159,9 @@ class _ActiveTripPageState extends State<ActiveTripPage>
       pushHints: widget.isDemoMode
           ? null
           : locateOptional<PushDeviceCoordinator>()?.hints,
+      emergencyHints: widget.isDemoMode
+          ? null
+          : locateOptional<PushDeviceCoordinator>()?.emergencyHints,
       weatherAdvisoryStore: widget.isDemoMode
           ? null
           : locateOptional<WeatherAdvisorySessionStore>(),
@@ -167,7 +171,9 @@ class _ActiveTripPageState extends State<ActiveTripPage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      unawaited((widget.cubit ?? _ownedCubit)?.refreshAlerts());
+      final cubit = widget.cubit ?? _ownedCubit;
+      unawaited(cubit?.refreshSession());
+      unawaited(cubit?.refreshAlerts());
     }
   }
 
@@ -759,10 +765,58 @@ class _ActiveTripPageState extends State<ActiveTripPage>
     return result ?? false;
   }
 
+  /// Opens the booking's notice, over Trip History so Back stays useful. A
+  /// session with no booking of its own has only Trip History to offer.
+  void _showEmergencyStoppedDialog(
+    BuildContext context,
+    String title,
+    int? bookingId,
+  ) {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          key: const Key('active-trip-emergency-stopped'),
+          icon: const Icon(
+            Icons.warning_amber_rounded,
+            color: AppColors.error,
+            size: 40,
+          ),
+          title: const Text(TravelerEmergencyStringsVi.stoppedTitle),
+          content: Text(TravelerEmergencyStringsVi.stoppedDialogMessage(title)),
+          actions: [
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                context.go(AppRoutes.tripHistory);
+                if (bookingId != null) {
+                  unawaited(
+                    context.push(AppRoutes.travelerEmergency(bookingId)),
+                  );
+                }
+              },
+              child: const Text(TravelerEmergencyStringsVi.viewSafetyNotice),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showCompletionDialog(BuildContext context, ActiveTripState state) {
     if (_isCompletionShown) return;
     _isCompletionShown = true;
     final session = state.session;
+    if (session?.isInterrupted ?? false) {
+      _showEmergencyStoppedDialog(
+        context,
+        state.itineraryTitle,
+        session?.bookingId,
+      );
+      return;
+    }
     final (title, icon) = switch (session?.completionReason) {
       NavigationCompletionReason.expired => (
         'Trip time ended',
@@ -849,22 +903,6 @@ class _ActiveTripPageState extends State<ActiveTripPage>
                       onPressed: () {
                         Navigator.pop(sheetContext);
                         cubit.demoSimulateArrivalAtNextStop();
-                      },
-                    ),
-                    ActionChip(
-                      avatar: const Icon(Icons.cloud_outlined, size: 16),
-                      label: const Text('Trigger Weather Disruption'),
-                      onPressed: () {
-                        Navigator.pop(sheetContext);
-                        cubit.demoSimulateWeatherDisruption();
-                      },
-                    ),
-                    ActionChip(
-                      avatar: const Icon(Icons.alt_route, size: 16),
-                      label: const Text('Simulate Off-Route (>500m)'),
-                      onPressed: () {
-                        Navigator.pop(sheetContext);
-                        cubit.demoSimulateRouteDeviation();
                       },
                     ),
                     ActionChip(

@@ -17,6 +17,8 @@ class TripHistoryCard extends StatelessWidget {
     required this.onViewReview,
     required this.onViewRefund,
     required this.onViewDetails,
+    this.onViewEmergencyNotice,
+    this.hasEmergencyNotice = false,
     super.key,
   });
 
@@ -26,6 +28,13 @@ class TripHistoryCard extends StatelessWidget {
   final ValueChanged<BookingTripRecord> onViewReview;
   final ValueChanged<TripRecord> onViewRefund;
   final ValueChanged<TripRecord> onViewDetails;
+
+  /// UC-70. Null where notices cannot be read, such as demo records.
+  final ValueChanged<BookingTripRecord>? onViewEmergencyNotice;
+
+  /// The Backend reports an emergency operation for this booking; a Cancelled
+  /// status alone never implies one.
+  final bool hasEmergencyNotice;
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +47,9 @@ class TripHistoryCard extends StatelessWidget {
     final statusLabel = switch (record.tab) {
       TripStatus.upcoming => TripHistoryStringsEn.statusConfirmed,
       TripStatus.completed => TripHistoryStringsEn.statusCompleted,
+      // Shares the tab with cancelled bookings, but the tour was not cancelled.
+      TripStatus.cancelled when record.status == 'Interrupted' =>
+        TripHistoryStringsEn.statusStoppedForSafety,
       TripStatus.cancelled => TripHistoryStringsEn.statusCancelled,
     };
     final typeLabel = switch (record) {
@@ -97,6 +109,9 @@ class TripHistoryCard extends StatelessWidget {
               onViewReview: onViewReview,
               onViewRefund: onViewRefund,
               onViewDetails: onViewDetails,
+              onViewEmergencyNotice: hasEmergencyNotice
+                  ? onViewEmergencyNotice
+                  : null,
             ),
           ],
         ),
@@ -227,6 +242,7 @@ class _Actions extends StatelessWidget {
     required this.onViewReview,
     required this.onViewRefund,
     required this.onViewDetails,
+    required this.onViewEmergencyNotice,
   });
 
   final TripRecord record;
@@ -235,10 +251,12 @@ class _Actions extends StatelessWidget {
   final ValueChanged<BookingTripRecord> onViewReview;
   final ValueChanged<TripRecord> onViewRefund;
   final ValueChanged<TripRecord> onViewDetails;
+  final ValueChanged<BookingTripRecord>? onViewEmergencyNotice;
 
   @override
   Widget build(BuildContext context) {
     final record = this.record;
+    final openNotice = onViewEmergencyNotice;
     final actions = record.actions;
     const compact = VisualDensity.compact;
     return Wrap(
@@ -278,6 +296,14 @@ class _Actions extends StatelessWidget {
             icon: const Icon(Icons.currency_exchange, size: 16),
             label: const Text(TripHistoryStringsEn.actionViewRefundStatus),
             style: FilledButton.styleFrom(visualDensity: compact),
+          ),
+        if (record is BookingTripRecord && openNotice != null)
+          OutlinedButton.icon(
+            key: const Key('trip-emergency-notice'),
+            onPressed: () => openNotice(record),
+            icon: const Icon(Icons.warning_amber_rounded, size: 16),
+            label: const Text(TripHistoryStringsEn.actionViewEmergencyNotice),
+            style: OutlinedButton.styleFrom(visualDensity: compact),
           ),
       ],
     );

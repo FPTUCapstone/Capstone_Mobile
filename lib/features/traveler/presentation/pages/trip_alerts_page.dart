@@ -4,30 +4,18 @@ import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_cubit.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/demo/active_trip_demo_fixtures.dart';
 
 class TripAlertsPage extends StatelessWidget {
-  const TripAlertsPage({
-    super.key,
-    required this.itineraryId,
-    this.alerts,
-    this.isDemoMode = false,
-  });
+  const TripAlertsPage({super.key, required this.itineraryId, this.alerts});
 
   final int itineraryId;
   final List<TripAlert>? alerts;
-  final bool isDemoMode;
 
   @override
   Widget build(BuildContext context) {
-    // If wrapped in ActiveTripCubit, read from state; otherwise fallback to provided or demo
+    // If wrapped in ActiveTripCubit, read from state; otherwise use the provided list.
     final cubit = context.readOrNull<ActiveTripCubit>();
-    final activeAlerts =
-        alerts ??
-        cubit?.state.alerts ??
-        (isDemoMode
-            ? ActiveTripDemoFixtures.createSampleAlerts()
-            : const <TripAlert>[]);
+    final activeAlerts = alerts ?? cubit?.state.alerts ?? const <TripAlert>[];
 
     return Scaffold(
       appBar: AppBar(title: const Text('Trip Alerts')),

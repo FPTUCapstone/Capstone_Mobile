@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/core/network/network_info.dart';
+import 'package:trip_mate_mobile/core/push/emergency_push_hint.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/active_trip_maneuver.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_route.dart';
@@ -18,6 +19,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_tri
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_state.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/demo/active_trip_demo_fixtures.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/demo/demo_navigation_session_repository.dart';
+import '../../../../support/trip_alert_test_data.dart';
 
 void main() {
   late DateTime now;
@@ -37,6 +39,7 @@ void main() {
     NavigationLocationTracker? locationTracker,
     NetworkInfo? networkInfo,
     TripAlertRepository? alertRepository,
+    Stream<EmergencyPushHint>? emergencyHints,
   }) => ActiveTripCubit(
     itineraryId: 101,
     itineraryTitle: 'Đà Nẵng City Explorer',
@@ -47,6 +50,7 @@ void main() {
     idempotencyKey: 'start-key',
     networkInfo: networkInfo,
     alertRepository: alertRepository,
+    emergencyHints: emergencyHints,
   );
 
   NavigationPosition at(NavigationSessionItem item, {double offset = 0}) =>
@@ -396,6 +400,113 @@ void main() {
       },
     );
 
+    group('UC-70 emergency stop', () {
+      NavigationSession interrupted(NavigationSession session) =>
+          NavigationSession(
+            sessionId: session.sessionId,
+            itineraryId: session.itineraryId,
+            itineraryVersion: session.itineraryVersion,
+            state: NavigationSessionState.interrupted,
+            completionReason: null,
+            startedAt: session.startedAt,
+            expiresAt: session.expiresAt,
+            endedAt: now,
+            exploringItemId: null,
+            nextItemId: null,
+            items: session.items,
+          );
+
+      test(
+        'a rejected action reloads the stopped session and ends progression',
+        () async {
+          final cubit = createCubit();
+          await cubit.start();
+          repository.others[9001] = interrupted(cubit.state.session!);
+          repository.nextMutationFailure = const NavigationFailure(
+            'This tour was stopped for safety.',
+            reason: NavigationFailureReason.sessionInterrupted,
+          );
+
+          await cubit.reachItem(1001);
+
+          expect(repository.calls.last, 'get:9001');
+          expect(cubit.state.isTerminal, isTrue);
+          expect(cubit.state.isEmergencyStopped, isTrue);
+          expect(cubit.state.targetItemId, isNull);
+
+          repository.calls.clear();
+          await cubit.reachItem(1001);
+          await cubit.skipItem(1001);
+          await cubit.depart();
+          expect(repository.calls, isEmpty);
+          await cubit.close();
+        },
+      );
+
+      test('resuming discovers a stop made while the app was away', () async {
+        final cubit = createCubit();
+        await cubit.start();
+        repository.others[9001] = interrupted(cubit.state.session!);
+
+        await cubit.refreshSession();
+
+        expect(cubit.state.isEmergencyStopped, isTrue);
+        await cubit.close();
+      });
+
+      test('a stop push ends the session without any action', () async {
+        final hints = StreamController<EmergencyPushHint>.broadcast();
+        addTearDown(hints.close);
+        final cubit = createCubit(emergencyHints: hints.stream);
+        await cubit.start();
+        repository.others[9001] = interrupted(cubit.state.session!);
+
+        hints.add(
+          const TravelerBookingHint(
+            bookingId: 42,
+            operationId: 7,
+            opened: false,
+          ),
+        );
+        await pumpEventQueue();
+
+        expect(cubit.state.isEmergencyStopped, isTrue);
+        await cubit.close();
+      });
+
+      test('an Operator hint does not touch the session', () async {
+        final hints = StreamController<EmergencyPushHint>.broadcast();
+        addTearDown(hints.close);
+        final cubit = createCubit(emergencyHints: hints.stream);
+        await cubit.start();
+        repository.others[9001] = interrupted(cubit.state.session!);
+
+        hints.add(
+          const OperatorReviewHint(
+            reviewId: 5,
+            changeType: 'Created',
+            opened: false,
+          ),
+        );
+        await pumpEventQueue();
+
+        expect(cubit.state.isEmergencyStopped, isFalse);
+        await cubit.close();
+      });
+
+      test('a failed refresh keeps the current session', () async {
+        final cubit = createCubit();
+        await cubit.start();
+        repository.getFailures[9001] = const NetworkFailure();
+
+        await cubit.refreshSession();
+
+        expect(cubit.state.isEmergencyStopped, isFalse);
+        expect(cubit.state.session?.sessionId, 9001);
+        await cubit.close();
+      });
+    });
+
     test('network errors keep the session and report the failure', () async {
       final cubit = createCubit();
       await cubit.start();
@@ -450,6 +561,20 @@ void main() {
   });
 
   group('Failure handling', () {
+    test('a stopped tour cannot be retried into a new session', () async {
+      repository.startFailure = const NavigationFailure(
+        'This tour was stopped for safety.',
+        reason: NavigationFailureReason.sessionInterrupted,
+      );
+      final cubit = createCubit();
+
+      await cubit.start();
+
+      expect(cubit.state.session, isNull);
+      expect(cubit.state.canRetryLoad, isFalse);
+      await cubit.close();
+    });
+
     test('a network failure can be retried with the same action', () async {
       final cubit = createCubit();
       await cubit.start();
@@ -691,14 +816,14 @@ void main() {
 
     tearDown(() => cubit.close());
 
-    test('loads the in-memory session with sample alerts', () {
+    test('loads the in-memory session without fabricated alerts', () {
       expect(cubit.state.status, ActiveTripStatus.navigationActive);
       expect(cubit.state.items.length, 5);
       expect(
         cubit.state.targetItem?.poiName,
         'Marble Mountains (Ngũ Hành Sơn)',
       );
-      expect(cubit.state.alerts, isNotEmpty);
+      expect(cubit.state.alerts, isEmpty);
     });
 
     test('simulated arrival raises the confirmation prompt', () async {
@@ -717,15 +842,17 @@ void main() {
         cubit.state.status,
         ActiveTripStatus.navigationPositionUnavailable,
       );
-      cubit.demoSimulateRouteDeviation();
-      expect(cubit.state.status, ActiveTripStatus.navigationOffRouteDeviation);
-      expect(
-        cubit.state.alerts.any((a) => a.type == TripAlertType.deviation),
-        isTrue,
-      );
     });
 
-    test('dismissing banner alert keeps alert in alerts history', () {
+    test('dismissing banner alert keeps alert in alerts history', () async {
+      final cubit = ActiveTripCubit(
+        itineraryId: 101,
+        sessionRepository: DemoNavigationSessionRepository(),
+        initialAlerts: TripAlertTestData.sampleAlerts(),
+        isDemoMode: true,
+      );
+      addTearDown(cubit.close);
+      await cubit.start();
       final initialCount = cubit.state.alerts.length;
       final activeAlert = cubit.state.activeBannerAlert!;
 
@@ -741,15 +868,12 @@ void main() {
       );
     });
 
-    test('re-routing acceptance bumps the version and applies the shelter', () {
-      cubit.openRerouteProposal(
-        ActiveTripDemoFixtures.createSampleRerouteProposal(),
-      );
+    test('re-routing acceptance bumps the version', () {
+      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
       cubit.acceptRerouteProposal();
 
       expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.accepted);
       expect(cubit.state.itineraryVersion, 2);
-      expect(cubit.state.items[3].poiName, contains('Indoor Shelter'));
 
       cubit.openRerouteProposal();
       expect(cubit.state.isRerouteSheetVisible, isFalse);
@@ -758,20 +882,23 @@ void main() {
     });
 
     test('declined and expired proposals cannot be accepted later', () {
-      cubit.openRerouteProposal(
-        ActiveTripDemoFixtures.createSampleRerouteProposal(),
-      );
+      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
       cubit.declineRerouteProposal();
       expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.declined);
       cubit.acceptRerouteProposal();
       expect(cubit.state.itineraryVersion, 1);
 
-      cubit.openRerouteProposal(
-        ActiveTripDemoFixtures.createSampleRerouteProposal(),
-      );
+      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
       cubit.expireRerouteProposal();
       expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.expired);
       cubit.openRerouteProposal();
+      expect(cubit.state.isRerouteSheetVisible, isFalse);
+    });
+
+    test('opening without a proposal never invents one, even in demo mode', () {
+      cubit.openRerouteProposal();
+
+      expect(cubit.state.activeRerouteProposal, isNull);
       expect(cubit.state.isRerouteSheetVisible, isFalse);
     });
 
@@ -786,9 +913,7 @@ void main() {
     });
 
     test('a finished trip rejects reroute actions and new alerts', () async {
-      cubit.openRerouteProposal(
-        ActiveTripDemoFixtures.createSampleRerouteProposal(),
-      );
+      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
       await cubit.finish();
 
       expect(cubit.state.isTerminal, isTrue);
@@ -822,7 +947,6 @@ void main() {
       expect(cubit.state.isDemoMode, isFalse);
       expect(cubit.state.alerts, isEmpty);
       cubit.demoSimulateArrivalAtNextStop();
-      cubit.demoSimulateWeatherDisruption();
       cubit.demoSimulatePermissionDenied();
       cubit.openRerouteProposal();
 

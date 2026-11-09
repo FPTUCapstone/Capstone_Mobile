@@ -2,11 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_stop.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_route.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_session.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/reroute_proposal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
@@ -20,6 +23,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/widgets/reroute_
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_alert_banner.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_alerts_sheet.dart';
 
+import '../../../../support/trip_alert_test_data.dart';
 import '../cubit/active_trip_cubit_test.dart';
 
 void main() {
@@ -71,6 +75,80 @@ void main() {
   }
 
   group('ActiveTripPage navigation', () {
+    for (final (bookingId, expected) in [
+      (42, 'notice-42'),
+      (null, 'history'),
+    ]) {
+      testWidgets('an emergency stop leads to $expected', (tester) async {
+        usePhoneSurface(tester);
+        final repository = FakeSessionRepository();
+        final cubit = ActiveTripCubit(
+          itineraryId: 101,
+          itineraryTitle: 'Trip',
+          sessionRepository: repository,
+          locationTracker: FakeLocationTracker(),
+          idempotencyKey: 'start-key',
+        );
+        addTearDown(cubit.close);
+        await cubit.start();
+        final running = cubit.state.session!;
+        repository.others[running.sessionId] = NavigationSession(
+          sessionId: running.sessionId,
+          itineraryId: running.itineraryId,
+          itineraryVersion: running.itineraryVersion,
+          bookingId: bookingId,
+          state: NavigationSessionState.interrupted,
+          completionReason: null,
+          startedAt: running.startedAt,
+          expiresAt: running.expiresAt,
+          endedAt: running.startedAt,
+          exploringItemId: null,
+          nextItemId: null,
+          items: running.items,
+        );
+        final router = GoRouter(
+          routes: [
+            GoRoute(
+              path: '/',
+              builder: (_, _) => ActiveTripPage(
+                itineraryId: 101,
+                cubit: cubit,
+                useMapbox: false,
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.tripHistory,
+              builder: (_, _) => const Text('history'),
+            ),
+            GoRoute(
+              path: AppRoutes.travelerEmergencyPattern,
+              builder: (_, state) =>
+                  Text('notice-${state.pathParameters.values.single}'),
+            ),
+          ],
+        );
+        addTearDown(router.dispose);
+        await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+        await tester.pump();
+
+        await cubit.refreshSession();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        // Android Back must not leave the Traveler without the safety notice.
+        await tester.binding.handlePopRoute();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(find.text('Tour đã dừng vì an toàn'), findsOneWidget);
+
+        await tester.tap(find.text('Xem thông báo an toàn'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        expect(find.text(expected), findsOneWidget);
+      });
+    }
+
     testWidgets(
       'renders the preview map, target stop, and manual arrival action',
       (tester) async {
@@ -508,7 +586,7 @@ void main() {
     });
   });
 
-  group('ActiveTripPage UC-14/UC-15 demo', () {
+  group('ActiveTripPage UC-14/UC-15 alert and reroute UI', () {
     testWidgets('an open alerts sheet shows alerts received afterwards', (
       tester,
     ) async {
@@ -516,7 +594,7 @@ void main() {
       final cubit = ActiveTripCubit(
         itineraryId: 101,
         sessionRepository: DemoNavigationSessionRepository(),
-        initialAlerts: ActiveTripDemoFixtures.createSampleAlerts(),
+        initialAlerts: TripAlertTestData.sampleAlerts(),
         isDemoMode: true,
       );
       await cubit.start();
@@ -558,7 +636,7 @@ void main() {
       final cubit = ActiveTripCubit(
         itineraryId: 101,
         sessionRepository: DemoNavigationSessionRepository(),
-        initialAlerts: ActiveTripDemoFixtures.createSampleAlerts(),
+        initialAlerts: TripAlertTestData.sampleAlerts(),
         isDemoMode: true,
       );
       await cubit.start();
@@ -579,7 +657,7 @@ void main() {
       await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
       await tester.pumpAndSettle();
 
-      cubit.openRerouteProposal();
+      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
       await tester.pumpAndSettle();
       expect(find.byType(RerouteProposalSheet), findsOneWidget);
 
@@ -597,7 +675,7 @@ void main() {
       await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
       await tester.pumpAndSettle();
 
-      cubit.openRerouteProposal();
+      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
       await tester.pumpAndSettle();
       await tester.tap(find.text('Keep Current Route'));
       await tester.pumpAndSettle();
@@ -615,7 +693,7 @@ void main() {
       await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
       await tester.pumpAndSettle();
 
-      cubit.openRerouteProposal();
+      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Close without changing plan'));
       await tester.pumpAndSettle();

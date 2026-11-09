@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/features/traveler_emergency/presentation/cubit/traveler_emergency_notices_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enums.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_record.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_records_cubit.dart';
@@ -36,9 +40,15 @@ class _TripHistoryPageState extends State<TripHistoryPage>
     TripStatus.cancelled,
   ];
 
+  /// Null in demo mode, which never reaches the Backend.
+  late final TravelerEmergencyNoticesCubit? _notices = widget.isDemoMode
+      ? null
+      : locateOptional<TravelerEmergencyNoticesCubit>();
+
   @override
   void initState() {
     super.initState();
+    unawaited(_notices?.refresh());
     final initialIndex = _tabs.indexOf(
       context.read<TripRecordsCubit>().state.selectedTab,
     );
@@ -248,13 +258,34 @@ class _TripHistoryPageState extends State<TripHistoryPage>
           child: ListView.builder(
             itemCount: state.items.length,
             itemBuilder: (context, index) {
-              return TripHistoryCard(
-                record: state.items[index],
+              final record = state.items[index];
+              Widget card(bool hasNotice) => TripHistoryCard(
+                record: record,
                 onViewEticket: (record) => _openEticket(context, record),
                 onWriteReview: (r) => _openReview(context, r),
                 onViewReview: (r) => _openReview(context, r),
                 onViewRefund: (r) => _openRefund(context, r),
                 onViewDetails: (r) => _showDetail(context, r),
+                hasEmergencyNotice: hasNotice,
+                onViewEmergencyNotice: widget.isDemoMode
+                    ? null
+                    : (r) => context.push(
+                        AppRoutes.travelerEmergency(r.reviewableRecord.id),
+                      ),
+              );
+              final notices = _notices;
+              if (notices == null || record is! BookingTripRecord) {
+                return card(false);
+              }
+              return BlocSelector<
+                TravelerEmergencyNoticesCubit,
+                TravelerEmergencyNoticesState,
+                bool
+              >(
+                bloc: notices,
+                selector: (state) =>
+                    state.hasNoticeFor(record.reviewableRecord.id),
+                builder: (_, hasNotice) => card(hasNotice),
               );
             },
           ),
