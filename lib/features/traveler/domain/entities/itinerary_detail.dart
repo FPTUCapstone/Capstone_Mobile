@@ -20,6 +20,7 @@ final class ItineraryDetail extends Equatable {
     this.startLocation,
     this.endLocation,
     this.budgetVnd,
+    this.provenance,
   });
 
   final int itineraryId;
@@ -46,6 +47,10 @@ final class ItineraryDetail extends Equatable {
 
   /// The budget of the scheduling request; null when none was set.
   final double? budgetVnd;
+
+  /// How the backend produced the schedule; null for itineraries saved before
+  /// it was recorded and for older backends.
+  final ScheduleProvenance? provenance;
 
   /// The owner may change the plan only while nobody is navigating it.
   bool get canEdit => canManage && !isNavigationInProgress;
@@ -75,6 +80,43 @@ final class ItineraryDetail extends Equatable {
     startLocation,
     endLocation,
     budgetVnd,
+    provenance,
+  ];
+}
+
+/// How the backend produced a schedule (ADR-002). [solverKind] is `Csp`,
+/// `CspFallback`, `Heuristic` or `MiniRouting`, and null for the traveler's own
+/// order (`solverOutcome == 'manual_order'`).
+final class ScheduleProvenance extends Equatable {
+  const ScheduleProvenance({
+    required this.solverOutcome,
+    this.solverKind,
+    this.objectiveMode,
+    this.searchCompleted,
+    this.timeOfDayRefined = false,
+  });
+
+  final String solverOutcome;
+  final String? solverKind;
+  final String? objectiveMode;
+
+  /// True when the CSP explored every option; null when the CSP did not run.
+  final bool? searchCompleted;
+
+  /// True when the order was changed for the time of day after the solver.
+  final bool timeOfDayRefined;
+
+  /// The CSP did not finish in time and the fast heuristic produced the plan
+  /// (SRS MSG35).
+  bool get isHeuristicFallback => solverKind == 'CspFallback';
+
+  @override
+  List<Object?> get props => [
+    solverOutcome,
+    solverKind,
+    objectiveMode,
+    searchCompleted,
+    timeOfDayRefined,
   ];
 }
 

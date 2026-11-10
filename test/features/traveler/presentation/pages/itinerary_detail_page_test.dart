@@ -47,6 +47,68 @@ void main() {
     expect(list.onReorderItem, isNotNull);
   });
 
+  // ADR-002 (G3): SRS MSG35 tells the traveler when the fast heuristic produced the plan.
+  testWidgets('shows the MSG35 notice only for a heuristic fallback plan', (
+    tester,
+  ) async {
+    ItineraryDetail withProvenance(ScheduleProvenance provenance) =>
+        ItineraryDetail(
+          itineraryId: _ownerDetail.itineraryId,
+          schedulingRequestId: _ownerDetail.schedulingRequestId,
+          title: _ownerDetail.title,
+          version: _ownerDetail.version,
+          status: _ownerDetail.status,
+          validFrom: _ownerDetail.validFrom,
+          validTo: _ownerDetail.validTo,
+          canManage: true,
+          totalEstimatedCost: _ownerDetail.totalEstimatedCost,
+          totalDurationMinutes: _ownerDetail.totalDurationMinutes,
+          items: _ownerDetail.items,
+          provenance: provenance,
+        );
+
+    Future<void> pump(ItineraryDetail detail) async {
+      final cubit = ItineraryDetailCubit(repository: _Repository(detail));
+      addTearDown(cubit.close);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BlocProvider.value(
+            value: cubit,
+            child: const ItineraryDetailPage(itineraryId: 10),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await pump(
+      withProvenance(
+        const ScheduleProvenance(
+          solverOutcome: 'heuristic_fallback_csp_time_limit',
+          solverKind: 'CspFallback',
+          objectiveMode: 'Lexicographic',
+          searchCompleted: false,
+          timeOfDayRefined: false,
+        ),
+      ),
+    );
+    expect(find.byKey(const Key('schedule_fallback_notice')), findsOneWidget);
+    expect(find.textContaining('heuristic nhanh'), findsOneWidget);
+
+    await pump(
+      withProvenance(
+        const ScheduleProvenance(
+          solverOutcome: 'csp',
+          solverKind: 'Csp',
+          objectiveMode: 'Lexicographic',
+          searchCompleted: true,
+          timeOfDayRefined: false,
+        ),
+      ),
+    );
+    expect(find.byKey(const Key('schedule_fallback_notice')), findsNothing);
+  });
+
   testWidgets('owner cannot change a trip that is being navigated', (
     tester,
   ) async {

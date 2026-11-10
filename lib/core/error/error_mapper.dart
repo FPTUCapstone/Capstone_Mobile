@@ -187,6 +187,18 @@ abstract final class ErrorMapper {
       }
       return const ConstraintFailure();
     }
+    if (statusCode == 503) {
+      final data = error.response?.data;
+      final errorCode = data is Map ? extractErrorCode(data) : null;
+      // ADR-002 (G2): the CSP timed out with no plan; the request is still valid.
+      if (errorCode == 'planning.generation_timeout' ||
+          errorCode == 'itinerary.generation_timeout') {
+        return const ServerFailure(
+          'Your itinerary could not be generated in time. Your request is '
+          'still valid, so please try again in a moment.',
+        );
+      }
+    }
     if (statusCode != null && statusCode >= 500) return const ServerFailure();
 
     return switch (error.type) {

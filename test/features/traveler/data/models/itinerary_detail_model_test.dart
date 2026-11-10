@@ -5,6 +5,51 @@ import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_det
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 
 void main() {
+  // ADR-002 (G2/G3): the backend says how the schedule was produced; older
+  // backends and malformed values leave it null instead of failing the page.
+  test('parses schedule provenance and tolerates its absence', () {
+    Map<String, dynamic> base() => {
+      'itineraryId': 10,
+      'schedulingRequestId': 20,
+      'version': 1,
+      'status': 'Draft',
+      'canManage': true,
+      'totalDurationMinutes': 60,
+      'items': <dynamic>[],
+    };
+
+    final fallback = ItineraryDetailModel.fromJson({
+      ...base(),
+      'provenance': {
+        'solverOutcome': 'heuristic_fallback_csp_time_limit',
+        'solverKind': 'CspFallback',
+        'objectiveMode': 'Lexicographic',
+        'searchCompleted': false,
+        'timeOfDayRefined': false,
+      },
+    }).toEntity();
+
+    expect(
+      fallback.provenance,
+      const ScheduleProvenance(
+        solverOutcome: 'heuristic_fallback_csp_time_limit',
+        solverKind: 'CspFallback',
+        objectiveMode: 'Lexicographic',
+        searchCompleted: false,
+        timeOfDayRefined: false,
+      ),
+    );
+    expect(fallback.provenance!.isHeuristicFallback, isTrue);
+    expect(ItineraryDetailModel.fromJson(base()).toEntity().provenance, isNull);
+    expect(
+      ItineraryDetailModel.fromJson({
+        ...base(),
+        'provenance': {'solverKind': 'Csp'},
+      }).toEntity().provenance,
+      isNull,
+    );
+  });
+
   test('parses rest item, unavailable POI, and nullable fields safely', () {
     final detail = ItineraryDetailModel.fromJson({
       'itineraryId': 10,
