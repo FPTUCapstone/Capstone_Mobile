@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 
 /// Official TripMate emblem widget using the verified brand route-and-compass motif.
 ///
@@ -102,7 +103,7 @@ class TripMateBrand extends StatelessWidget {
     final title = Text(
       'TripMate',
       style: TextStyle(
-        fontFamily: 'Geist',
+        fontFamily: AppTypography.displayFont,
         fontSize: emblemSize * 0.45,
         fontWeight: FontWeight.w800,
         letterSpacing: -0.8,
@@ -208,8 +209,8 @@ class TripMateLogo extends StatelessWidget {
             : 'assets/images/logo/tripmate_emblem_512.png',
       _LogoType.wordmark =>
         isWhite
-            ? 'assets/images/logo/tripmate_wordmark_white.svg' // fallback handled by image if PNG
-            : 'assets/images/logo/tripmate_wordmark.svg',
+            ? 'assets/images/logo/tripmate_logo_full_white_512.png'
+            : 'assets/images/logo/tripmate_logo_full_512.png',
     };
 
     return Image.asset(

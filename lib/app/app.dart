@@ -108,7 +108,10 @@ class _TripMateAppState extends State<TripMateApp> {
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
-          themeMode: ThemeMode.system,
+          // Temporary Decision B1 compatibility guard: keep production runtime in
+          // Light Mode until PR 2 shared widgets and un-migrated feature/Booking
+          // screens adopt TripMateColors and pass full-app Dark Mode QA.
+          themeMode: ThemeMode.light,
           routerConfig: _router,
           scaffoldMessengerKey: _messengerKey,
           builder: (context, child) {

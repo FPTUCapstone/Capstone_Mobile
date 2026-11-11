@@ -64,4 +64,49 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'GuestLandingPage curated POI and tour imagery uses accurate verified Wikimedia assets without Unsplash',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: GuestLandingPage())),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+
+      final tourCardFinder = find.text('Bà Nà Hills & Cầu Vàng Trọn Gói');
+      await tester.scrollUntilVisible(
+        tourCardFinder,
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
+      expect(tourCardFinder, findsOneWidget);
+
+      final renderedAssets = tester
+          .widgetList<Image>(find.byType(Image))
+          .map((w) => w.image)
+          .whereType<AssetImage>()
+          .map((a) => a.assetName)
+          .toList();
+
+      expect(
+        renderedAssets,
+        contains('assets/images/destinations/bana_golden_bridge.jpg'),
+      );
+      expect(
+        renderedAssets,
+        contains('assets/images/destinations/hoian_ancient_town.jpg'),
+      );
+      expect(
+        renderedAssets,
+        contains('assets/images/destinations/hue_ngo_mon.jpg'),
+      );
+      for (final asset in renderedAssets) {
+        expect(asset, isNot(contains('unsplash.com')));
+      }
+    },
+  );
 }

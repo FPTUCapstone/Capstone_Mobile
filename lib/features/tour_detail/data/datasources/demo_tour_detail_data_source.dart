@@ -42,8 +42,9 @@ final class DemoTourDetailDataSource implements TourDetailDataSource {
       basePrice: summary?.basePrice ?? 2890000,
       currency: summary?.currency ?? 'VND',
       images: const [
-        'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b',
-        'https://images.unsplash.com/photo-1528127269322-539801943592',
+        'assets/images/destinations/son_tra_pagoda.jpg',
+        'assets/images/destinations/my_khe_beach.jpg',
+        'assets/images/destinations/hoian_ancient_town.jpg',
       ],
       inclusions: const [
         'Air-conditioned transportation',

@@ -551,10 +551,13 @@ class _TourImageGalleryState extends State<_TourImageGallery> {
             itemCount: widget.images.length,
             onPageChanged: (index) => setState(() => _currentIndex = index),
             itemBuilder: (context, index) {
-              return Image.network(
-                widget.images[index],
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
+              final imageSource = widget.images[index];
+              Widget errorBuilder(
+                BuildContext context,
+                Object error,
+                StackTrace? stackTrace,
+              ) {
+                return Container(
                   color: const Color(0xFFE2E8F0),
                   child: const Center(
                     child: Icon(
@@ -563,7 +566,21 @@ class _TourImageGalleryState extends State<_TourImageGallery> {
                       color: Colors.grey,
                     ),
                   ),
-                ),
+                );
+              }
+
+              if (imageSource.startsWith('assets/')) {
+                return Image.asset(
+                  imageSource,
+                  fit: BoxFit.cover,
+                  errorBuilder: errorBuilder,
+                );
+              }
+
+              return Image.network(
+                imageSource,
+                fit: BoxFit.cover,
+                errorBuilder: errorBuilder,
               );
             },
           ),
