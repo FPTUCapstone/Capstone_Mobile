@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/guest/presentation/pages/guest_landing_page.dart';
+import 'package:trip_mate_mobile/features/poi/presentation/widgets/poi_image.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_sliding_bottom_nav.dart';
 
 void main() {
@@ -85,13 +86,45 @@ void main() {
 
       expect(tourCardFinder, findsOneWidget);
 
-      final renderedAssets = tester
+      // CR-03: Inspect every Image provider directly before type filtering so any
+      // NetworkImage (including Unsplash URLs) on curated views fails the test.
+      final renderedProviders = tester
           .widgetList<Image>(find.byType(Image))
           .map((w) => w.image)
-          .whereType<AssetImage>()
-          .map((a) => a.assetName)
           .toList();
+      expect(renderedProviders, isNotEmpty);
 
+      final renderedAssets = <String>[];
+      for (final provider in renderedProviders) {
+        if (provider is NetworkImage) {
+          expect(provider.url, isNot(contains('unsplash.com')));
+          fail(
+            'Unexpected NetworkImage in curated GuestLandingPage: ${provider.url}',
+          );
+        }
+        expect(provider, isA<AssetImage>());
+        if (provider is AssetImage) {
+          expect(provider.assetName, isNot(contains('unsplash.com')));
+          renderedAssets.add(provider.assetName);
+        }
+      }
+
+      // Inspect curated card PoiImage widgets directly for verified local assets.
+      final poiImageUrls = tester
+          .widgetList<PoiImage>(find.byType(PoiImage))
+          .map((w) => w.url)
+          .toList();
+      expect(poiImageUrls, isNotEmpty);
+      for (final url in poiImageUrls) {
+        expect(url, isNotNull);
+        expect(url, startsWith('assets/images/destinations/'));
+        expect(url, isNot(contains('unsplash.com')));
+      }
+
+      expect(
+        renderedAssets,
+        contains('assets/images/destinations/danang_dragon_night.jpg'),
+      );
       expect(
         renderedAssets,
         contains('assets/images/destinations/bana_golden_bridge.jpg'),
@@ -104,9 +137,6 @@ void main() {
         renderedAssets,
         contains('assets/images/destinations/hue_ngo_mon.jpg'),
       );
-      for (final asset in renderedAssets) {
-        expect(asset, isNot(contains('unsplash.com')));
-      }
     },
   );
 }

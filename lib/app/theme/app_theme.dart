@@ -22,7 +22,7 @@ abstract final class AppTheme {
       secondaryContainer: c.tealSoftContainer,
       onSecondaryContainer: c.textPrimary,
       tertiary: c.coralAccessibleText,
-      onTertiary: Colors.white,
+      onTertiary: c.isDark ? c.textOnCoralBadge : Colors.white,
       tertiaryContainer: c.coralSoftContainer,
       onTertiaryContainer: c.textPrimary,
       error: c.error,

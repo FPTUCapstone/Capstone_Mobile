@@ -8,6 +8,19 @@ import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/app/theme/app_theme.dart';
 import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 
+final class _DummyThemeExtension extends ThemeExtension<TripMateColors> {
+  const _DummyThemeExtension();
+
+  @override
+  ThemeExtension<TripMateColors> copyWith() => this;
+
+  @override
+  ThemeExtension<TripMateColors> lerp(
+    covariant ThemeExtension<TripMateColors>? other,
+    double t,
+  ) => this;
+}
+
 double _relativeLuminanceChannel(double channel) => channel <= 0.03928
     ? channel / 12.92
     : math.pow((channel + 0.055) / 1.055, 2.4).toDouble();
@@ -76,9 +89,30 @@ void main() {
         greaterThan(4.5),
       );
 
-      // ThemeExtension copyWith + lerp
+      // ThemeExtension copyWith + null-safe lerp (CR-01)
+      expect(identical(light.lerp(null, 0.5), light), isTrue);
+      expect(
+        identical(light.lerp(const _DummyThemeExtension(), 0.5), light),
+        isTrue,
+      );
+      final atZero = light.lerp(dark, 0.0);
+      expect(atZero.canvas, light.canvas);
+      expect(atZero.brandNavy, light.brandNavy);
+      expect(atZero.isDark, isFalse);
+
+      final atOne = light.lerp(dark, 1.0);
+      expect(atOne.canvas, dark.canvas);
+      expect(atOne.brandTeal, dark.brandTeal);
+      expect(atOne.isDark, isTrue);
+
       final lerped = light.lerp(dark, 0.5);
-      expect(lerped.canvas, isNot(light.canvas));
+      expect(lerped.canvas, Color.lerp(light.canvas, dark.canvas, 0.5));
+      expect(
+        lerped.coralAccessibleText,
+        Color.lerp(light.coralAccessibleText, dark.coralAccessibleText, 0.5),
+      );
+      expect(lerped.isDark, isTrue);
+      expect(light.lerp(dark, 0.49).isDark, isFalse);
       expect(light.copyWith(brandNavy: Colors.black).brandNavy, Colors.black);
       expect(TripMateRadius.pill, 999.0);
     });
@@ -91,6 +125,26 @@ void main() {
 
         expect(lightTheme.brightness, Brightness.light);
         expect(darkTheme.brightness, Brightness.dark);
+
+        // CR-02: Light and Dark ColorScheme tertiary/onTertiary WCAG AA contrast
+        expect(
+          _contrastRatio(
+            lightTheme.colorScheme.onTertiary,
+            lightTheme.colorScheme.tertiary,
+          ),
+          greaterThanOrEqualTo(4.5),
+        );
+        expect(
+          _contrastRatio(
+            darkTheme.colorScheme.onTertiary,
+            darkTheme.colorScheme.tertiary,
+          ),
+          greaterThanOrEqualTo(4.5),
+        );
+        expect(
+          darkTheme.colorScheme.onTertiary,
+          TripMateColors.dark.textOnCoralBadge,
+        );
 
         expect(lightTheme.scaffoldBackgroundColor, TripMateColors.light.canvas);
         expect(darkTheme.scaffoldBackgroundColor, TripMateColors.dark.canvas);
