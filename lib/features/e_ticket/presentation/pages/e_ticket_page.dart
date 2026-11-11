@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/features/booking_cancellation/presentation/widgets/booking_cancel_sheet.dart';
 import 'package:trip_mate_mobile/features/e_ticket/domain/entities/e_ticket.dart';
 import 'package:trip_mate_mobile/features/e_ticket/domain/entities/e_ticket_failure.dart';
 import 'package:trip_mate_mobile/features/e_ticket/presentation/cubit/e_ticket_cubit.dart';
@@ -193,6 +194,16 @@ final class _TicketView extends StatelessWidget {
               const SizedBox(height: AppSpacing.sm),
               const Text(ETicketStrings.offline, textAlign: TextAlign.center),
             ],
+            const SizedBox(height: AppSpacing.sm),
+            FilledButton.icon(
+              onPressed: () => _cancelBooking(context, ticket.bookingId),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.cancel_outlined),
+              label: const Text('Cancel booking'),
+            ),
           ],
         ],
       ),
@@ -236,6 +247,15 @@ final class _TicketView extends StatelessWidget {
       ),
     );
     if (confirmed == true) await cubit.refresh();
+  }
+
+  Future<void> _cancelBooking(BuildContext context, int bookingId) async {
+    final cubit = context.read<ETicketCubit>();
+    final cancelled = await BookingCancelSheet.show(
+      context,
+      bookingId: bookingId,
+    );
+    if (cancelled == true) await cubit.load();
   }
 }
 

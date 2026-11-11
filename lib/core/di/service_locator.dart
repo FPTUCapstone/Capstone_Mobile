@@ -53,6 +53,12 @@ import 'package:trip_mate_mobile/features/booking/domain/usecases/create_booking
 import 'package:trip_mate_mobile/features/booking/domain/usecases/get_booking_contact_use_case.dart';
 import 'package:trip_mate_mobile/features/booking/domain/usecases/quote_booking_use_case.dart';
 import 'package:trip_mate_mobile/features/booking/presentation/cubit/book_tour_cubit.dart';
+import 'package:trip_mate_mobile/features/booking_cancellation/data/datasources/booking_cancellation_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/booking_cancellation/data/repositories/booking_cancellation_repository_impl.dart';
+import 'package:trip_mate_mobile/features/booking_cancellation/domain/repositories/booking_cancellation_repository.dart';
+import 'package:trip_mate_mobile/features/booking_cancellation/domain/usecases/cancel_booking_use_case.dart';
+import 'package:trip_mate_mobile/features/booking_cancellation/domain/usecases/get_booking_cancellation_preview_use_case.dart';
+import 'package:trip_mate_mobile/features/booking_cancellation/presentation/cubit/booking_cancellation_cubit.dart';
 import 'package:trip_mate_mobile/features/booking_refund/data/datasources/booking_refund_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/booking_refund/data/repositories/booking_refund_repository_impl.dart';
 import 'package:trip_mate_mobile/features/booking_refund/domain/repositories/booking_refund_repository.dart';
@@ -748,6 +754,26 @@ Future<void> configureDependencies({AppConfig? config}) async {
         getTicket: serviceLocator(),
         refreshQr: serviceLocator(),
         networkInfo: serviceLocator(),
+      ),
+    )
+    // UC-41 cancel tour booking
+    ..registerLazySingleton<BookingCancellationRemoteDataSource>(
+      () => DioBookingCancellationRemoteDataSource(serviceLocator()),
+    )
+    ..registerLazySingleton<BookingCancellationRepository>(
+      () => BookingCancellationRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<GetBookingCancellationPreviewUseCase>(
+      () => GetBookingCancellationPreviewUseCase(serviceLocator()),
+    )
+    ..registerFactory<CancelBookingUseCase>(
+      () => CancelBookingUseCase(serviceLocator()),
+    )
+    ..registerFactoryParam<BookingCancellationCubit, int, void>(
+      (bookingId, _) => BookingCancellationCubit(
+        bookingId: bookingId,
+        getPreview: serviceLocator(),
+        cancel: serviceLocator(),
       ),
     )
     ..registerFactoryParam<TripRecordsRepository, bool, void>(

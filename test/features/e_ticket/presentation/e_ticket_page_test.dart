@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/features/booking_cancellation/domain/usecases/cancel_booking_use_case.dart';
+import 'package:trip_mate_mobile/features/booking_cancellation/domain/usecases/get_booking_cancellation_preview_use_case.dart';
+import 'package:trip_mate_mobile/features/booking_cancellation/presentation/cubit/booking_cancellation_cubit.dart';
+import 'package:trip_mate_mobile/features/booking_cancellation/presentation/widgets/booking_cancel_sheet.dart';
 import 'package:trip_mate_mobile/features/e_ticket/domain/entities/e_ticket.dart';
 import 'package:trip_mate_mobile/features/e_ticket/domain/entities/e_ticket_failure.dart';
 import 'package:trip_mate_mobile/features/e_ticket/presentation/cubit/e_ticket_cubit.dart';
@@ -9,6 +14,8 @@ import 'package:trip_mate_mobile/features/e_ticket/presentation/pages/e_ticket_p
 import 'package:trip_mate_mobile/features/e_ticket/presentation/widgets/e_ticket_qr_code.dart';
 import 'package:trip_mate_mobile/features/e_ticket/resources/e_ticket_en.dart';
 
+import '../../booking_cancellation/presentation/booking_cancellation_cubit_test.dart'
+    show FakeBookingCancellationRepository, preview;
 import 'e_ticket_cubit_test.dart'
     show FakeETicketRepository, FakeNetworkInfo, buildCubit, eTicket;
 
@@ -42,6 +49,9 @@ String? qrData(WidgetTester tester) {
 
 Finder refreshButton() =>
     find.widgetWithText(FilledButton, ETicketStrings.refresh);
+
+Finder cancelBookingButton() =>
+    find.widgetWithText(FilledButton, 'Cancel booking');
 
 void main() {
   late FakeETicketRepository repository;
@@ -109,6 +119,7 @@ void main() {
       expect(find.text(ETicketStrings.statusLabel(entry.key)), findsOneWidget);
       expect(qrData(tester) != null, showsQr);
       expect(refreshButton().evaluate().isNotEmpty, showsQr);
+      expect(cancelBookingButton().evaluate().isNotEmpty, showsQr);
     });
   }
 
@@ -240,5 +251,40 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(qrData(tester), 'TM1.first.sig');
+  });
+
+  group('cancel booking entry point (UC-41)', () {
+    setUp(() {
+      final cancellationRepository = FakeBookingCancellationRepository()
+        ..previewReads.add(preview());
+      serviceLocator.registerFactoryParam<BookingCancellationCubit, int, void>(
+        (bookingId, _) => BookingCancellationCubit(
+          bookingId: bookingId,
+          getPreview: GetBookingCancellationPreviewUseCase(
+            cancellationRepository,
+          ),
+          cancel: CancelBookingUseCase(cancellationRepository),
+        ),
+      );
+    });
+
+    tearDown(() {
+      serviceLocator.unregister<BookingCancellationCubit>(
+        disposingFunction: (_) {},
+      );
+    });
+
+    testWidgets('tapping Cancel booking opens the cancellation sheet', (
+      tester,
+    ) async {
+      repository.reads.add(eTicket());
+
+      await pumpPage(tester, repository, network);
+      await tester.ensureVisible(cancelBookingButton());
+      await tester.tap(cancelBookingButton());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(BookingCancelSheet), findsOneWidget);
+    });
   });
 }
