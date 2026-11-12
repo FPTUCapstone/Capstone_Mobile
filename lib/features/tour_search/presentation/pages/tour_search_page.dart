@@ -6,6 +6,7 @@ import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_state.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/resources/tour_search_en.dart';
+import 'package:trip_mate_mobile/features/tour_search/presentation/resources/tour_search_vi.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/theme/tour_search_palette.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/widgets/dev_tour_search_controls.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/widgets/public_tour_search_controls.dart';
@@ -51,7 +52,9 @@ class TourSearchPage extends StatelessWidget {
                   ),
                 if (state.failure != null && state.items.isNotEmpty)
                   _InlineNotice(
-                    message: state.failure!.message,
+                    message: cubit.devSearchEnabled
+                        ? state.failure!.message
+                        : TourSearchVi.systemError,
                     icon: Icons.cloud_off_outlined,
                     actionLabel: cubit.devSearchEnabled
                         ? 'Retry search'
@@ -405,7 +408,9 @@ class _TourListBody extends StatelessWidget {
             ? 'Tours could not be loaded'
             : 'Chưa thể tải danh sách tour',
         message:
-            state.failure?.message ??
+            (cubit.devSearchEnabled
+                ? state.failure?.message
+                : TourSearchVi.systemError) ??
             (cubit.devSearchEnabled ? 'Please retry.' : 'Vui lòng thử lại.'),
         actionLabel: cubit.devSearchEnabled
             ? TourSearchEn.retrySearch
