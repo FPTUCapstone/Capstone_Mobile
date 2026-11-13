@@ -121,9 +121,11 @@ void main() {
       expect(find.text('Đặt lại bộ lọc'), findsOneWidget);
     });
 
-    testWidgets('renders error state on failure', (tester) async {
+    testWidgets('renders localized MSG127 without exposing failure details', (
+      tester,
+    ) async {
       final repository = _FakeTourRepository(
-        error: const NetworkFailure('Lỗi kết nối mạng.'),
+        error: const ServerFailure('private SQL/provider detail'),
       );
 
       final cubit = TourSearchCubit(
@@ -140,7 +142,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Chưa thể tải danh sách tour'), findsOneWidget);
-      expect(find.text('Lỗi kết nối mạng.'), findsOneWidget);
+      expect(
+        find.text(
+          'TripMate tạm thời không thể xử lý yêu cầu của bạn. '
+          'Vui lòng kiểm tra kết nối và thử lại.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('private SQL'), findsNothing);
       expect(find.text('Thử lại'), findsOneWidget);
     });
 
