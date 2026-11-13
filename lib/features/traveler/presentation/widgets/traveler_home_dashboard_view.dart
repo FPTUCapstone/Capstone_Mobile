@@ -1,10 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/features/tour_discovery/domain/entities/tour_discovery_item.dart';
+import 'package:trip_mate_mobile/features/tour_discovery/presentation/widgets/tour_discovery_feed_states.dart';
 import 'package:trip_mate_mobile/features/tour_discovery/presentation/widgets/traveler_tour_discovery_section.dart';
+import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
+import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_state.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_state.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
@@ -12,8 +19,40 @@ import 'package:trip_mate_mobile/shared/widgets/app_shimmer.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
 /// Traveler Home / Dashboard screen implementing SRS #44.
-class TravelerHomeDashboardView extends StatelessWidget {
-  const TravelerHomeDashboardView({super.key});
+class TravelerHomeDashboardView extends StatefulWidget {
+  const TravelerHomeDashboardView({super.key, this.tourSearchCubit});
+
+  final TourSearchCubit? tourSearchCubit;
+
+  @override
+  State<TravelerHomeDashboardView> createState() =>
+      _TravelerHomeDashboardViewState();
+}
+
+class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
+  TourSearchCubit? _tourCubit;
+  bool _ownsCubit = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.tourSearchCubit != null) {
+      _tourCubit = widget.tourSearchCubit;
+      _ownsCubit = false;
+    } else if (serviceLocator.isRegistered<TourSearchCubit>()) {
+      _tourCubit = serviceLocator<TourSearchCubit>();
+      _ownsCubit = true;
+      unawaited(_tourCubit!.loadInitial());
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsCubit) {
+      _tourCubit?.close();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +61,10 @@ class TravelerHomeDashboardView extends StatelessWidget {
     return RefreshIndicator(
       color: AppColors.secondary,
       onRefresh: () async {
-        await context.read<MyTripsCubit>().load();
+        await Future.wait([
+          context.read<MyTripsCubit>().load(),
+          if (_tourCubit != null) _tourCubit!.refresh(),
+        ]);
       },
       child: ListView(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -44,7 +86,7 @@ class TravelerHomeDashboardView extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
 
           // Featured Central Vietnam Tours (SRS #63, #64)
-          const TravelerTourDiscoverySection(),
+          _buildTourDiscoverySection(context),
           const SizedBox(height: AppSpacing.lg),
 
           // Top Destinations / POIs (SRS #50)
@@ -52,6 +94,52 @@ class TravelerHomeDashboardView extends StatelessWidget {
           const SizedBox(height: AppSpacing.xl),
         ],
       ),
+    );
+  }
+
+  Widget _buildTourDiscoverySection(BuildContext context) {
+    final cubit = _tourCubit;
+    if (cubit == null) {
+      return const TravelerTourDiscoverySection(
+        feedState: TourDiscoveryFeedState.empty,
+        tours: [],
+      );
+    }
+
+    return BlocBuilder<TourSearchCubit, TourSearchState>(
+      bloc: cubit,
+      builder: (context, state) {
+        final TourDiscoveryFeedState feedState;
+        final List<TourDiscoveryItem> tours;
+        VoidCallback? onRetry;
+
+        if (state.status == TourSearchStatus.loading && state.items.isEmpty) {
+          feedState = TourDiscoveryFeedState.loading;
+          tours = const [];
+          onRetry = null;
+        } else if (state.status == TourSearchStatus.failure &&
+            state.items.isEmpty) {
+          feedState = TourDiscoveryFeedState.error;
+          tours = const [];
+          onRetry = () => cubit.retryFailedQuery();
+        } else if (state.items.isEmpty) {
+          feedState = TourDiscoveryFeedState.empty;
+          tours = const [];
+          onRetry = null;
+        } else {
+          feedState = TourDiscoveryFeedState.content;
+          tours = state.items
+              .map(TourDiscoveryItem.fromSummary)
+              .toList(growable: false);
+          onRetry = null;
+        }
+
+        return TravelerTourDiscoverySection(
+          feedState: feedState,
+          tours: tours,
+          onRetryFeed: onRetry,
+        );
+      },
     );
   }
 

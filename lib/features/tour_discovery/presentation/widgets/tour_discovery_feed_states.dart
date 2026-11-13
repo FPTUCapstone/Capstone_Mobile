@@ -183,11 +183,11 @@ class TourDiscoveryEmptyView extends StatelessWidget {
 class TourDiscoveryErrorView extends StatelessWidget {
   const TourDiscoveryErrorView({
     super.key,
-    required this.onRetry,
+    this.onRetry,
     required this.onTapSearch,
   });
 
-  final VoidCallback onRetry;
+  final VoidCallback? onRetry;
   final VoidCallback onTapSearch;
 
   @override
@@ -229,12 +229,14 @@ class TourDiscoveryErrorView extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              OutlinedButton.icon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh, size: 14),
-                label: const Text('Thử lại'),
-              ),
-              const SizedBox(width: 8),
+              if (onRetry != null) ...[
+                OutlinedButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh, size: 14),
+                  label: const Text('Thử lại'),
+                ),
+                const SizedBox(width: 8),
+              ],
               FilledButton(
                 onPressed: onTapSearch,
                 child: const Text('Tìm kiếm tour'),

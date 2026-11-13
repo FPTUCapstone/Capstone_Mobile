@@ -16,8 +16,8 @@ import 'package:trip_mate_mobile/shared/widgets/motion/editorial_scroll_reveal.d
 class TravelerTourDiscoverySection extends StatelessWidget {
   const TravelerTourDiscoverySection({
     super.key,
-    this.tours = TourDiscoveryItem.curatedDefault,
-    this.feedState = TourDiscoveryFeedState.content,
+    this.tours = const [],
+    this.feedState = TourDiscoveryFeedState.empty,
     this.motionEnabled = true,
     this.reduceMotion = false,
     this.onTapTour,
@@ -81,7 +81,7 @@ class TravelerTourDiscoverySection extends StatelessWidget {
         stateBody = KeyedSubtree(
           key: const ValueKey('tour_feed_error'),
           child: TourDiscoveryErrorView(
-            onRetry: onRetryFeed ?? () {},
+            onRetry: onRetryFeed,
             onTapSearch: () => context.push(AppRoutes.tourSearch),
           ),
         );
