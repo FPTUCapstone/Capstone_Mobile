@@ -289,6 +289,33 @@ void main() {
     expect(failureFor(429).message, isNot(contains('routing')));
   });
 
+  // ADR-002 (G2): a CSP timeout without a plan is retryable, not infeasible.
+  test('maps a generation timeout to a retryable service failure', () {
+    for (final (path, code) in [
+      ('/scheduling-requests', 'planning.generation_timeout'),
+      ('/api/v1/itineraries/10/regenerate', 'itinerary.generation_timeout'),
+    ]) {
+      final failure = ErrorMapper.toFailure(
+        DioException(
+          requestOptions: RequestOptions(path: path),
+          response: Response(
+            requestOptions: RequestOptions(path: path),
+            statusCode: 503,
+            data: {
+              'title':
+                  'The itinerary could not be generated in time. Please try again.',
+              'errorCode': code,
+            },
+          ),
+        ),
+      );
+
+      expect(failure, isA<ServerFailure>());
+      expect(failure.message, contains('could not be generated in time'));
+      expect(failure.message, contains('try again'));
+    }
+  });
+
   test('preserves the safe planning reason for an infeasible request', () {
     final failure = ErrorMapper.toFailure(
       DioException(

@@ -272,6 +272,21 @@ final class _DetailContent extends StatelessWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
+        // ADR-002 (G3), SRS MSG35: the CSP did not finish in time.
+        if (detail.provenance?.isHeuristicFallback ?? false) ...[
+          Card(
+            key: const Key('schedule_fallback_notice'),
+            color: Theme.of(context).colorScheme.tertiaryContainer,
+            child: const Padding(
+              padding: EdgeInsets.all(AppSpacing.sm),
+              child: Text(
+                'Lịch trình được tạo bằng chế độ heuristic nhanh do bài toán '
+                'quá phức tạp để thuật toán CSP hoàn tất kịp thời.',
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
         if (map case final map?) ...[
           map,
           const SizedBox(height: AppSpacing.sm),

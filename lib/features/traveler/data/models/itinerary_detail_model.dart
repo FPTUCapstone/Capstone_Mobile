@@ -41,6 +41,7 @@ final class ItineraryDetailModel {
     startLocation: _location(_json['startLocation']),
     endLocation: _location(_json['endLocation']),
     budgetVnd: readDouble(_json['budgetVnd']),
+    provenance: _provenance(_json['provenance']),
   );
 
   ItineraryDetailItem _item(Map<String, dynamic> json) {
@@ -86,6 +87,24 @@ final class ItineraryDetailModel {
       address: json['address'] as String?,
       latitude: readDouble(json['latitude']),
       longitude: readDouble(json['longitude']),
+    );
+  }
+
+  /// Missing on older backends and older itineraries; a malformed value is
+  /// ignored rather than failing the whole page.
+  ScheduleProvenance? _provenance(Object? value) {
+    if (value is! Map) return null;
+    final outcome = value['solverOutcome'];
+    if (outcome is! String) return null;
+    final kind = value['solverKind'];
+    final mode = value['objectiveMode'];
+    final completed = value['searchCompleted'];
+    return ScheduleProvenance(
+      solverOutcome: outcome,
+      solverKind: kind is String ? kind : null,
+      objectiveMode: mode is String ? mode : null,
+      searchCompleted: completed is bool ? completed : null,
+      timeOfDayRefined: value['timeOfDayRefined'] == true,
     );
   }
 
