@@ -157,6 +157,37 @@ void main() {
     expect(find.text('Inbox destination'), findsOneWidget);
   });
 
+  testWidgets('support action opens general help from the traveler shell', (
+    tester,
+  ) async {
+    final cubit = await _authenticatedCubit();
+    addTearDown(cubit.close);
+    final router = GoRouter(
+      initialLocation: AppRoutes.traveler,
+      routes: [
+        GoRoute(
+          path: AppRoutes.traveler,
+          builder: (_, _) => BlocProvider.value(
+            value: cubit,
+            child: const TravelerShellPage(),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.supportChat,
+          builder: (_, state) {
+            expect(state.extra, isNull);
+            return const Scaffold(body: Text('General support destination'));
+          },
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.tap(find.byTooltip('Support chat'));
+    await tester.pumpAndSettle();
+    expect(find.text('General support destination'), findsOneWidget);
+  });
+
   testWidgets('trips tab lists the traveler itineraries on each visit', (
     tester,
   ) async {

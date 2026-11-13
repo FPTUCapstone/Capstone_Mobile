@@ -23,7 +23,7 @@ final class AuthInterceptor extends Interceptor {
   final Future<Response<dynamic>> Function(RequestOptions options)? _retry;
 
   /// One refresh serves every request that failed with the same expired token.
-  Future<String?>? _pendingRefresh;
+  final _pendingRefresh = <String, Future<String?>>{};
 
   /// Most endpoints under this prefix (login, register, refresh, password
   /// reset, ...) run before a session exists; their 401 is a normal
@@ -31,6 +31,7 @@ final class AuthInterceptor extends Interceptor {
   static const _authPathPrefix = '/api/v1/auth/';
   static const _refreshPath = '/api/v1/auth/refresh';
   static const _retriedKey = 'authRetriedAfterRefresh';
+  static const _sessionKey = 'authRequestSession';
 
   /// UC-07: the one Bearer-carrying, already-authenticated exception to
   /// [_authPathPrefix] — its 401 means the session credential itself was
@@ -50,18 +51,47 @@ final class AuthInterceptor extends Interceptor {
       handler.next(options);
       return;
     }
+    if (options.cancelToken?.isCancelled == true) {
+      handler.reject(options.cancelToken!.cancelError!);
+      return;
+    }
     final explicitAuthorization = options.headers['Authorization'];
-    if (explicitAuthorization is String &&
-        explicitAuthorization.trim().isNotEmpty) {
+    final hasExplicit =
+        explicitAuthorization is String &&
+        explicitAuthorization.trim().isNotEmpty;
+    if (hasExplicit &&
+        (!explicitAuthorization.startsWith('Bearer ') ||
+            (options.path.startsWith(_authPathPrefix) &&
+                !_authenticatedAuthPaths.contains(options.path)))) {
       handler.next(options);
       return;
     }
-
-    final accessToken = await _secureStorage.read(AppConstants.accessTokenKey);
-    if (accessToken != null && accessToken.isNotEmpty) {
-      options.headers['Authorization'] = 'Bearer $accessToken';
+    try {
+      final current = await _secureStorage.withSessionLock(_readSession);
+      final boundSession = options.extra[_sessionKey];
+      if (boundSession is _RequestSession && !boundSession.matches(current)) {
+        handler.reject(
+          DioException.requestCancelled(
+            requestOptions: options,
+            reason: 'The request session has ended.',
+          ),
+        );
+        return;
+      }
+      options.extra[_sessionKey] ??=
+          hasExplicit &&
+              explicitAuthorization != 'Bearer ${current.accessToken}'
+          ? _RequestSession(explicitAuthorization.substring(7), null)
+          : current;
+      if (!hasExplicit &&
+          current.accessToken != null &&
+          current.accessToken!.isNotEmpty) {
+        options.headers['Authorization'] = 'Bearer ${current.accessToken}';
+      }
+      handler.next(options);
+    } catch (error) {
+      handler.reject(DioException(requestOptions: options, error: error));
     }
-    handler.next(options);
   }
 
   @override
@@ -95,9 +125,23 @@ final class AuthInterceptor extends Interceptor {
       return;
     }
 
+    final session = options.extra[_sessionKey] is _RequestSession
+        ? options.extra[_sessionKey] as _RequestSession
+        : _RequestSession(authorization.substring(7), null);
+    if (!await _isCurrent(session) ||
+        options.cancelToken?.isCancelled == true) {
+      handler.next(err);
+      return;
+    }
+
     final retry = _retry;
     if (retry != null && options.extra[_retriedKey] != true) {
-      final accessToken = await _refreshAccessToken();
+      final accessToken = await _refreshAccessToken(session);
+      if (!await _isCurrent(session) ||
+          options.cancelToken?.isCancelled == true) {
+        handler.next(err);
+        return;
+      }
       if (accessToken != null) {
         final renewed = options.copyWith(
           headers: {...options.headers, 'Authorization': 'Bearer $accessToken'},
@@ -115,7 +159,11 @@ final class AuthInterceptor extends Interceptor {
 
     if (_coordinator != null) {
       try {
-        await _coordinator.invalidate();
+        await _coordinator.invalidate(
+          isCurrent: () async =>
+              session.matches(await _readSession()) &&
+              options.cancelToken?.isCancelled != true,
+        );
       } catch (_) {
         // Invalidation is best-effort; the original HTTP 401 must continue.
       }
@@ -123,14 +171,35 @@ final class AuthInterceptor extends Interceptor {
     handler.next(err);
   }
 
-  Future<String?> _refreshAccessToken() => _pendingRefresh ??=
-      _requestAccessToken().whenComplete(() => _pendingRefresh = null);
+  Future<_RequestSession> _readSession() async => _RequestSession(
+    await _secureStorage.read(AppConstants.accessTokenKey),
+    await _secureStorage.read(AppConstants.refreshTokenKey),
+  );
 
-  Future<String?> _requestAccessToken() async {
-    final client = _refreshClient;
-    final refreshToken = await _secureStorage.read(
-      AppConstants.refreshTokenKey,
+  Future<bool> _isCurrent(_RequestSession session) async {
+    try {
+      return await _secureStorage.withSessionLock(
+        () async => session.matches(await _readSession()),
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<String?> _refreshAccessToken(_RequestSession session) {
+    final refreshToken = session.refreshToken;
+    if (refreshToken == null || refreshToken.isEmpty) return Future.value(null);
+    return _pendingRefresh.putIfAbsent(
+      refreshToken,
+      () => _requestAccessToken(session).whenComplete(() {
+        _pendingRefresh.remove(refreshToken);
+      }),
     );
+  }
+
+  Future<String?> _requestAccessToken(_RequestSession session) async {
+    final client = _refreshClient;
+    final refreshToken = session.refreshToken;
     if (client == null || refreshToken == null || refreshToken.isEmpty) {
       return null;
     }
@@ -144,11 +213,29 @@ final class AuthInterceptor extends Interceptor {
           ? data['accessToken']
           : null;
       if (accessToken is! String || accessToken.isEmpty) return null;
-      await _secureStorage.write(AppConstants.accessTokenKey, accessToken);
-      return accessToken;
+      return await _secureStorage.withSessionLock(() async {
+        if (!session.matches(await _readSession())) return null;
+        await _secureStorage.write(AppConstants.accessTokenKey, accessToken);
+        return accessToken;
+      });
     } catch (_) {
       // An expired, revoked or unreachable refresh ends the session normally.
       return null;
     }
   }
+}
+
+/// Kept as an opaque object so request logging cannot stringify credentials.
+final class _RequestSession {
+  const _RequestSession(this.accessToken, this.refreshToken);
+
+  final String? accessToken;
+  final String? refreshToken;
+
+  bool matches(_RequestSession current) =>
+      current.accessToken != null &&
+      current.accessToken!.isNotEmpty &&
+      (refreshToken == null
+          ? current.accessToken == accessToken
+          : current.refreshToken == refreshToken);
 }

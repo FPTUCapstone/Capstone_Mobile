@@ -7,6 +7,7 @@ import 'package:trip_mate_mobile/app/router/create_travel_group_route_args.dart'
 import 'package:trip_mate_mobile/app/router/route_guards.dart';
 import 'package:trip_mate_mobile/app/router/travel_group_details_route_args.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/core/platform/device_window.dart';
 import 'package:trip_mate_mobile/features/auth/change_password/presentation/cubit/change_password_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/change_password/presentation/pages/change_password_page.dart';
@@ -26,6 +27,7 @@ import 'package:trip_mate_mobile/features/auth/presentation/pages/splash_page.da
 import 'package:trip_mate_mobile/features/auth/presentation/pages/traveler_registration_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/pages/verify_email_page.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/services/operator_document_picker.dart';
+import 'package:trip_mate_mobile/features/booking/domain/entities/booking_participant.dart';
 import 'package:trip_mate_mobile/features/booking/presentation/cubit/book_tour_cubit.dart';
 import 'package:trip_mate_mobile/features/booking/presentation/pages/book_tour_page.dart';
 import 'package:trip_mate_mobile/features/booking_refund/presentation/cubit/booking_refund_progress_cubit.dart';
@@ -60,6 +62,9 @@ import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubi
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/poi_detail_page.dart';
+import 'package:trip_mate_mobile/features/support_chat/domain/entities/support_chat.dart';
+import 'package:trip_mate_mobile/features/support_chat/presentation/cubit/support_chat_cubit.dart';
+import 'package:trip_mate_mobile/features/support_chat/presentation/pages/support_chat_page.dart';
 import 'package:trip_mate_mobile/features/tour_detail/presentation/pages/tour_detail_page.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/presentation/pages/tour_recommendations_page.dart';
@@ -240,8 +245,28 @@ GoRouter createAppRouter(
         },
         builder: (_, state) {
           final scheduleId = state.uri.queryParameters['scheduleId']!;
+          final adults = int.tryParse(
+            state.uri.queryParameters['adults'] ?? '',
+          );
           return BlocProvider(
-            create: (_) => serviceLocator<BookTourCubit>(param1: scheduleId),
+            create: (_) => serviceLocator<BookTourCubit>(
+              param1: scheduleId,
+              param2: adults == null
+                  ? null
+                  : ParticipantCounts(
+                      adult: adults,
+                      child:
+                          int.tryParse(
+                            state.uri.queryParameters['children'] ?? '0',
+                          ) ??
+                          -1,
+                      infant:
+                          int.tryParse(
+                            state.uri.queryParameters['infants'] ?? '0',
+                          ) ??
+                          -1,
+                    ),
+            ),
             child: const BookTourPage(),
           );
         },
@@ -293,6 +318,27 @@ GoRouter createAppRouter(
         name: AppRouteNames.travelerSettings,
         builder: (_, _) => const TravelerSettingsPage(),
       ),
+      for (final path in [AppRoutes.supportChat, AppRoutes.operatorSupportChat])
+        GoRoute(
+          path: path,
+          builder: (_, state) => BlocProvider(
+            create: (_) {
+              final cubit = SupportChatCubit(
+                serviceLocator(),
+                sessionChanges: sessionCubit.stream,
+              );
+              if (state.extra case final SupportChatContext initialContext) {
+                cubit.selectContext(initialContext);
+              }
+              return cubit;
+            },
+            child: BlocListener<SupportChatCubit, SupportChatState>(
+              listenWhen: (_, state) => state.failure is AuthenticationFailure,
+              listener: (_, _) => sessionCubit.handleSessionExpired(),
+              child: const SupportChatPage(),
+            ),
+          ),
+        ),
       GoRoute(
         path: AppRoutes.travelerProfile,
         name: AppRouteNames.travelerProfile,

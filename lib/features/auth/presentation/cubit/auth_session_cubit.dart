@@ -144,7 +144,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
   /// One invalidation attempt: invalidate the restore gate first, then clean
   /// every session key independently — a failing key must never stop the
   /// remaining best-effort deletions.
-  Future<void> _attemptLocalInvalidation(SecureStorageService storage) async {
+  Future<void> _attemptLocalInvalidation(
+    SecureStorageService storage,
+  ) => storage.withSessionLock(() async {
     await _invalidateRestoreGate(storage);
     for (final key in [
       AppConstants.accessTokenKey,
@@ -159,7 +161,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
         // Continue with the remaining keys; verification decides fail-closed.
       }
     }
-  }
+  });
 
   /// Makes `keep_signed_in == 'true'` unsatisfiable using the existing storage
   /// API and the existing representation: delete the key, or persist 'false'
@@ -261,12 +263,32 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
 
   /// Session-expiry hook for the network layer: an authenticated (non-auth-
   /// endpoint) 401 clears the complete local session and returns to sign-in.
-  Future<void> handleSessionExpired() async {
+  Future<void> handleSessionExpired({
+    Future<bool> Function()? isCurrent,
+  }) async {
     await _pushDeviceLifecycle?.onBeforeLogout();
-    emit(const AuthSessionState.unauthenticated());
     final storage = _secureStorage;
+    var invalidated = false;
     if (storage != null) {
-      await _clearStoredSessionBestEffort(storage);
+      await storage.withSessionLock(() async {
+        if (isCurrent != null && !await isCurrent()) return;
+        emit(const AuthSessionState.unauthenticated());
+        await _clearSessionKeysBestEffort(storage);
+        invalidated = true;
+      });
+    } else if (isCurrent == null || await isCurrent()) {
+      emit(const AuthSessionState.unauthenticated());
+      invalidated = true;
+    }
+    if (!invalidated) {
+      if (state.isAuthenticated) {
+        try {
+          await _pushDeviceLifecycle?.onAuthenticated();
+        } catch (_) {
+          // A cancelled expiry keeps the current session usable without push.
+        }
+      }
+      return;
     }
     // Firebase sign-out is best-effort here. A provider failure must never
     // keep a server-rejected Mobile session visible after its local identity
@@ -546,7 +568,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     AuthSession response, {
     required UserRole role,
     bool keepSignedIn = true,
-  }) async {
+  }) => storage.withSessionLock(() async {
     await storage.write(AppConstants.accessTokenKey, response.accessToken);
     await storage.write(AppConstants.refreshTokenKey, response.refreshToken);
     await storage.write(AppConstants.sessionRoleKey, role.name);
@@ -562,19 +584,21 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
       await storage.delete(AppConstants.sessionApplicationStatusKey);
     }
     await storage.write(AppConstants.keepSignedInKey, keepSignedIn.toString());
-  }
+  });
 
-  Future<void> _clearStoredSession(SecureStorageService storage) async {
-    await storage.delete(AppConstants.accessTokenKey);
-    await storage.delete(AppConstants.refreshTokenKey);
-    await storage.delete(AppConstants.sessionRoleKey);
-    await storage.delete(AppConstants.sessionApplicationStatusKey);
-    await storage.delete(AppConstants.keepSignedInKey);
-  }
+  Future<void> _clearStoredSession(SecureStorageService storage) =>
+      storage.withSessionLock(() async {
+        await storage.delete(AppConstants.accessTokenKey);
+        await storage.delete(AppConstants.refreshTokenKey);
+        await storage.delete(AppConstants.sessionRoleKey);
+        await storage.delete(AppConstants.sessionApplicationStatusKey);
+        await storage.delete(AppConstants.keepSignedInKey);
+      });
 
-  Future<void> _clearStoredSessionBestEffort(
-    SecureStorageService storage,
-  ) async {
+  Future<void> _clearStoredSessionBestEffort(SecureStorageService storage) =>
+      storage.withSessionLock(() => _clearSessionKeysBestEffort(storage));
+
+  Future<void> _clearSessionKeysBestEffort(SecureStorageService storage) async {
     for (final key in [
       AppConstants.keepSignedInKey,
       AppConstants.sessionRoleKey,

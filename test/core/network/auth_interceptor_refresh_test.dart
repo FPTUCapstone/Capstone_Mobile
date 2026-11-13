@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -6,7 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/constants/app_constants.dart';
 import 'package:trip_mate_mobile/core/network/interceptors/auth_interceptor.dart';
 import 'package:trip_mate_mobile/core/network/session_coordinator.dart';
+import 'package:trip_mate_mobile/core/push/push_device_coordinator.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 
 void main() {
   late _MemoryStorage storage;
@@ -14,6 +17,7 @@ void main() {
   late _Server auth;
   late Dio dio;
   late int invalidated;
+  late SessionCoordinator coordinator;
 
   setUp(() {
     storage = _MemoryStorage({
@@ -21,8 +25,7 @@ void main() {
       AppConstants.refreshTokenKey: 'refresh-1',
     });
     invalidated = 0;
-    final coordinator = SessionCoordinator()
-      ..register(() async => invalidated++);
+    coordinator = SessionCoordinator()..register(() async => invalidated++);
     api = _Server((options) {
       // Only the renewed token is accepted by business endpoints.
       return options.headers['Authorization'] == 'Bearer fresh-access'
@@ -78,6 +81,66 @@ void main() {
     expect(auth.requests, hasLength(1));
     expect(invalidated, 0);
   });
+
+  test(
+    'late chat 401 cannot replay private history in a new session',
+    () async {
+      final arrived = Completer<void>();
+      final respond = Completer<void>();
+      api.handler = (options) async {
+        arrived.complete();
+        await respond.future;
+        return (401, {'errorCode': 'Unauthorized'});
+      };
+      final request = dio.post<dynamic>(
+        '/api/v1/support-chat/messages',
+        data: {
+          'message': 'Follow-up',
+          'history': [
+            {'role': 'assistant', 'content': 'Private account A reply'},
+          ],
+        },
+      );
+      final assertion = expectLater(request, throwsA(isA<DioException>()));
+      await arrived.future;
+      storage.values[AppConstants.accessTokenKey] = 'account-B';
+      storage.values[AppConstants.refreshTokenKey] = 'refresh-B';
+      respond.complete();
+      await assertion;
+      expect(api.requests, hasLength(1));
+      expect(auth.requests, isEmpty);
+      expect(invalidated, 0);
+      expect(storage.values[AppConstants.accessTokenKey], 'account-B');
+    },
+  );
+
+  test(
+    'session change during refresh cannot overwrite or invalidate new login',
+    () async {
+      final arrived = Completer<void>();
+      final respond = Completer<void>();
+      auth.handler = (_) async {
+        arrived.complete();
+        await respond.future;
+        return (
+          200,
+          {
+            'data': {'accessToken': 'fresh-access'},
+          },
+        );
+      };
+      final request = dio.get<dynamic>('/api/v1/itineraries');
+      final assertion = expectLater(request, throwsA(isA<DioException>()));
+      await arrived.future;
+      storage.values[AppConstants.accessTokenKey] = 'account-B';
+      storage.values[AppConstants.refreshTokenKey] = 'refresh-B';
+      respond.complete();
+      await assertion;
+      expect(api.requests, hasLength(1));
+      expect(invalidated, 0);
+      expect(storage.values[AppConstants.accessTokenKey], 'account-B');
+    },
+  );
 
   test(
     'a rejected refresh invalidates the session and keeps the 401',
@@ -143,12 +206,161 @@ void main() {
     expect(auth.requests, isEmpty);
     expect(invalidated, 0);
   });
+
+  test(
+    'expired session cleanup cannot clear a login completed during push cleanup',
+    () async {
+      final push = _PausedPushCleanup();
+      final cubit = AuthSessionCubit(null, storage, null, push);
+      addTearDown(cubit.close);
+      storage.values[AppConstants.sessionRoleKey] = 'traveler';
+      storage.values[AppConstants.keepSignedInKey] = 'true';
+      await cubit.restoreSession();
+      coordinator.register(
+        cubit.handleSessionExpired,
+        guarded: (isCurrent) =>
+            cubit.handleSessionExpired(isCurrent: isCurrent),
+      );
+      auth.handler = (_) => (401, {'errorCode': 'Revoked'});
+      final request = dio.get<dynamic>('/api/v1/itineraries');
+      final assertion = expectLater(request, throwsA(isA<DioException>()));
+      await push.started.future;
+      await storage.withSessionLock(() async {
+        await storage.write(AppConstants.accessTokenKey, 'account-B');
+        await storage.write(AppConstants.refreshTokenKey, 'refresh-B');
+      });
+      push.resume.complete();
+      await assertion;
+      expect(cubit.state.isAuthenticated, isTrue);
+      expect(storage.values[AppConstants.accessTokenKey], 'account-B');
+      expect(storage.values[AppConstants.refreshTokenKey], 'refresh-B');
+    },
+  );
+
+  test(
+    'explicit Firebase auth still dispatches when secure storage fails',
+    () async {
+      storage.failReads = true;
+      api.handler = (_) => (200, {'ok': true});
+      final response = await dio.post<dynamic>(
+        '/api/v1/auth/register',
+        options: Options(headers: {'Authorization': 'Bearer firebase-token'}),
+      );
+      expect(response.statusCode, 200);
+      expect(
+        api.requests.single.headers['Authorization'],
+        'Bearer firebase-token',
+      );
+      expect(auth.requests, isEmpty);
+    },
+  );
+
+  test('storage read failure settles the request with an error', () async {
+    storage.failReads = true;
+    await expectLater(
+      dio.get<dynamic>('/api/v1/itineraries'),
+      throwsA(isA<DioException>()),
+    );
+    expect(api.requests, isEmpty);
+  });
+
+  test('login waits for an in-flight refresh credential write', () async {
+    final writing = Completer<void>();
+    final finishWrite = Completer<void>();
+    storage.beforeWrite = (key, value) async {
+      if (value == 'fresh-access') {
+        writing.complete();
+        await finishWrite.future;
+      }
+    };
+    final request = dio.get<dynamic>('/api/v1/itineraries');
+    final assertion = expectLater(request, throwsA(isA<DioException>()));
+    await writing.future;
+    var savedB = false;
+    final loginB = storage.withSessionLock(() async {
+      await storage.write(AppConstants.accessTokenKey, 'account-B');
+      await storage.write(AppConstants.refreshTokenKey, 'refresh-B');
+      savedB = true;
+    });
+    await Future<void>.delayed(Duration.zero);
+    expect(savedB, isFalse);
+    finishWrite.complete();
+    await loginB;
+    await assertion;
+    expect(storage.values[AppConstants.accessTokenKey], 'account-B');
+    expect(storage.values[AppConstants.refreshTokenKey], 'refresh-B');
+    expect(api.requests, hasLength(1));
+    expect(invalidated, 0);
+  });
+
+  test(
+    'an explicit old credential cannot refresh using the current account',
+    () async {
+      storage.values[AppConstants.accessTokenKey] = 'account-B';
+      storage.values[AppConstants.refreshTokenKey] = 'refresh-B';
+      await expectLater(
+        dio.post<dynamic>(
+          '/api/v1/support-chat/messages',
+          options: Options(headers: {'Authorization': 'Bearer account-A'}),
+          data: {'message': 'Private account A question'},
+        ),
+        throwsA(isA<DioException>()),
+      );
+      expect(api.requests, hasLength(1));
+      expect(auth.requests, isEmpty);
+      expect(invalidated, 0);
+    },
+  );
+
+  test(
+    'cancelling during refresh prevents replay and session invalidation',
+    () async {
+      final arrived = Completer<void>();
+      final respond = Completer<void>();
+      auth.handler = (_) async {
+        arrived.complete();
+        await respond.future;
+        return (
+          200,
+          {
+            'data': {'accessToken': 'fresh-access'},
+          },
+        );
+      };
+      final cancellation = CancelToken();
+      final request = dio.post<dynamic>(
+        '/api/v1/support-chat/messages',
+        cancelToken: cancellation,
+        data: {'message': 'Private question'},
+      );
+      final assertion = expectLater(request, throwsA(isA<DioException>()));
+      await arrived.future;
+      cancellation.cancel();
+      respond.complete();
+      await assertion;
+      await Future<void>.delayed(Duration.zero);
+      expect(api.requests, hasLength(1));
+      expect(invalidated, 0);
+    },
+  );
+}
+
+final class _PausedPushCleanup implements PushDeviceLifecycle {
+  final started = Completer<void>();
+  final resume = Completer<void>();
+  @override
+  Future<void> onAuthenticated() async {}
+  @override
+  Future<void> onBeforeLogout() async {
+    started.complete();
+    await resume.future;
+  }
 }
 
 final class _Server implements HttpClientAdapter {
   _Server(this.handler);
 
-  (int, Object) Function(RequestOptions options) handler;
+  FutureOr<(int, Object)> Function(RequestOptions options) handler;
   final requests = <RequestOptions>[];
 
   @override
@@ -158,7 +370,7 @@ final class _Server implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     requests.add(options);
-    final (status, body) = handler(options);
+    final (status, body) = await handler(options);
     return ResponseBody.fromString(
       jsonEncode(body),
       status,
@@ -176,6 +388,8 @@ final class _MemoryStorage implements SecureStorageService {
   _MemoryStorage(this.values);
 
   final Map<String, String> values;
+  bool failReads = false;
+  Future<void> Function(String key, String value)? beforeWrite;
 
   @override
   Future<void> delete(String key) async => values.remove(key);
@@ -184,8 +398,14 @@ final class _MemoryStorage implements SecureStorageService {
   Future<void> deleteAll() async => values.clear();
 
   @override
-  Future<String?> read(String key) async => values[key];
+  Future<String?> read(String key) async {
+    if (failReads) throw StateError('Storage unavailable');
+    return values[key];
+  }
 
   @override
-  Future<void> write(String key, String value) async => values[key] = value;
+  Future<void> write(String key, String value) async {
+    await beforeWrite?.call(key, value);
+    values[key] = value;
+  }
 }

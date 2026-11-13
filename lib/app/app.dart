@@ -53,7 +53,11 @@ class _TripMateAppState extends State<TripMateApp> {
   @override
   void initState() {
     super.initState();
-    _sessionCoordinator.register(_sessionCubit.handleSessionExpired);
+    _sessionCoordinator.register(
+      _sessionCubit.handleSessionExpired,
+      guarded: (isCurrent) =>
+          _sessionCubit.handleSessionExpired(isCurrent: isCurrent),
+    );
     if (serviceLocator.isRegistered<PushDeviceCoordinator>()) {
       final push = serviceLocator<PushDeviceCoordinator>();
       _pushSubscription = push.hints.listen(_handlePushHint);
