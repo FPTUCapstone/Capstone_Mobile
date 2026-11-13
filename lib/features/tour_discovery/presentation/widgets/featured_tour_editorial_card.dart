@@ -4,6 +4,7 @@ import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/features/tour_discovery/domain/entities/tour_discovery_item.dart';
 import 'package:trip_mate_mobile/features/tour_discovery/presentation/widgets/tour_discovery_meta_widgets.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/availability_status.dart';
+import 'package:trip_mate_mobile/shared/widgets/motion/editorial_parallax_image.dart';
 
 class FeaturedTourEditorialCard extends StatelessWidget {
   const FeaturedTourEditorialCard({
@@ -12,6 +13,8 @@ class FeaturedTourEditorialCard extends StatelessWidget {
     required this.onTap,
     this.compact = false,
     this.enlargedText = false,
+    this.motionEnabled = true,
+    this.reduceMotion = false,
     this.imageBuilder,
   });
 
@@ -19,6 +22,8 @@ class FeaturedTourEditorialCard extends StatelessWidget {
   final VoidCallback onTap;
   final bool compact;
   final bool enlargedText;
+  final bool motionEnabled;
+  final bool reduceMotion;
   final Widget Function(BuildContext context, Widget defaultImage)?
   imageBuilder;
 
@@ -50,23 +55,13 @@ class FeaturedTourEditorialCard extends StatelessWidget {
         ),
       );
     }
-    if (url.startsWith('assets/')) {
-      return Image.asset(
-        url,
-        fit: BoxFit.cover,
-        semanticLabel: 'Ảnh tour ${tour.title}',
-      );
-    }
-    return Image.network(
-      url,
-      fit: BoxFit.cover,
+    return EditorialParallaxImage(
+      imageUrl: url,
       semanticLabel: 'Ảnh tour ${tour.title}',
-      errorBuilder: (_, _, _) => Container(
-        color: const Color(0xFFE2E8F0),
-        child: const Center(
-          child: Icon(Icons.broken_image, size: 36, color: Colors.grey),
-        ),
-      ),
+      axis: Axis.vertical,
+      maxDisplacement: 10,
+      enabled: motionEnabled,
+      reduceMotion: reduceMotion,
     );
   }
 
