@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/app/theme/app_theme.dart';
 import 'package:trip_mate_mobile/features/tour_detail/presentation/pages/tour_detail_page.dart';
-import 'package:trip_mate_mobile/features/tour_discovery/domain/entities/tour_discovery_item.dart';
 import 'package:trip_mate_mobile/shared/widgets/motion/editorial_tactile_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/motion/editorial_tour_hero.dart';
+
+import '../../support/tour_discovery_fixtures.dart';
 
 Widget _buildHarness(Widget child) {
   return MaterialApp(
@@ -128,7 +129,7 @@ void main() {
     testWidgets(
       'TourDetailPage mounts frame-0 image header and EditorialTourHero when initialSummary is provided',
       (tester) async {
-        final summary = TourDiscoveryItem.curatedDefault[0].toSummary();
+        final summary = TourDiscoveryTestFixtures.sampleTours[0].toSummary();
 
         await tester.pumpWidget(
           MaterialApp(

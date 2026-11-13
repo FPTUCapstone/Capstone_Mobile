@@ -7,6 +7,8 @@ import 'package:trip_mate_mobile/features/tour_discovery/presentation/widgets/tr
 import 'package:trip_mate_mobile/shared/widgets/motion/editorial_parallax_image.dart';
 import 'package:trip_mate_mobile/shared/widgets/motion/editorial_scroll_reveal.dart';
 
+import '../../support/tour_discovery_fixtures.dart';
+
 Widget _buildHarness(Widget child, {bool disableAnimations = false}) {
   return MaterialApp(
     theme: AppTheme.light,
@@ -202,8 +204,9 @@ void main() {
         // Transition to content
         await tester.pumpWidget(
           _buildHarness(
-            const TravelerTourDiscoverySection(
+            TravelerTourDiscoverySection(
               feedState: TourDiscoveryFeedState.content,
+              tours: TourDiscoveryTestFixtures.sampleTours,
             ),
           ),
         );

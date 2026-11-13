@@ -12,6 +12,8 @@ import 'package:trip_mate_mobile/shared/widgets/motion/editorial_parallax_image.
 import 'package:trip_mate_mobile/shared/widgets/motion/editorial_scroll_reveal.dart';
 import 'package:trip_mate_mobile/shared/widgets/motion/editorial_tactile_card.dart';
 
+import '../../support/tour_discovery_fixtures.dart';
+
 Widget _buildTestApp({
   required Widget child,
   Size size = const Size(390, 844),
@@ -32,7 +34,7 @@ Widget _buildTestApp({
 }
 
 void main() {
-  final sampleTours = TourDiscoveryItem.curatedDefault;
+  final sampleTours = TourDiscoveryTestFixtures.sampleTours;
 
   group('COMMIT 05: Responsive Viewport Matrix', () {
     const viewports = <String, Size>{

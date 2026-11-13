@@ -5,7 +5,10 @@ import 'package:trip_mate_mobile/features/tour_discovery/domain/entities/tour_di
 import 'package:trip_mate_mobile/features/tour_discovery/presentation/widgets/compact_horizontal_tour_card.dart';
 import 'package:trip_mate_mobile/features/tour_discovery/presentation/widgets/featured_tour_editorial_card.dart';
 import 'package:trip_mate_mobile/features/tour_discovery/presentation/widgets/search_continuation_strip.dart';
+import 'package:trip_mate_mobile/features/tour_discovery/presentation/widgets/tour_discovery_feed_states.dart';
 import 'package:trip_mate_mobile/features/tour_discovery/presentation/widgets/traveler_tour_discovery_section.dart';
+
+import '../../support/tour_discovery_fixtures.dart';
 
 Widget _buildHarness(
   Widget child, {
@@ -30,7 +33,7 @@ void main() {
       'FeaturedTourEditorialCard renders complete layout and fires onTap',
       (tester) async {
         var tapped = false;
-        final tour = TourDiscoveryItem.curatedDefault[0];
+        final tour = TourDiscoveryTestFixtures.sampleTours[0];
 
         await tester.pumpWidget(
           _buildHarness(
@@ -53,7 +56,7 @@ void main() {
       'CompactHorizontalTourCard renders horizontal layout and fires onTap',
       (tester) async {
         var tapped = false;
-        final tour = TourDiscoveryItem.curatedDefault[1];
+        final tour = TourDiscoveryTestFixtures.sampleTours[1];
 
         await tester.pumpWidget(
           _buildHarness(
@@ -96,7 +99,11 @@ void main() {
 
         await tester.pumpWidget(
           _buildHarness(
-            TravelerTourDiscoverySection(onTapTour: (t) => selectedTour = t),
+            TravelerTourDiscoverySection(
+              tours: TourDiscoveryTestFixtures.sampleTours,
+              feedState: TourDiscoveryFeedState.content,
+              onTapTour: (t) => selectedTour = t,
+            ),
           ),
         );
 
@@ -123,7 +130,10 @@ void main() {
         (tester) async {
           await tester.pumpWidget(
             _buildHarness(
-              const TravelerTourDiscoverySection(),
+              TravelerTourDiscoverySection(
+                tours: TourDiscoveryTestFixtures.sampleTours,
+                feedState: TourDiscoveryFeedState.content,
+              ),
               size: Size(width, 800),
               textScale: scale,
             ),
