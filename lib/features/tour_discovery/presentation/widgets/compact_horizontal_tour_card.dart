@@ -1,0 +1,212 @@
+import 'package:flutter/material.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
+import 'package:trip_mate_mobile/features/tour_discovery/domain/entities/tour_discovery_item.dart';
+import 'package:trip_mate_mobile/features/tour_discovery/presentation/widgets/tour_discovery_meta_widgets.dart';
+import 'package:trip_mate_mobile/features/tour_search/domain/entities/availability_status.dart';
+
+class CompactHorizontalTourCard extends StatelessWidget {
+  const CompactHorizontalTourCard({
+    super.key,
+    required this.tour,
+    required this.onTap,
+    this.compact = false,
+    this.enlargedText = false,
+    this.imageBuilder,
+  });
+
+  final TourDiscoveryItem tour;
+  final VoidCallback onTap;
+  final bool compact;
+  final bool enlargedText;
+  final Widget Function(BuildContext context, Widget defaultImage)?
+  imageBuilder;
+
+  String _formatCompactDuration(TourDiscoveryItem item) {
+    final durationText = '${item.durationDays} ngày';
+    if (item.availabilityStatus == AvailabilityStatus.soldOut) {
+      return '$durationText · Hết chỗ';
+    }
+    if (item.departureAtUtc != null) {
+      final d = item.departureAtUtc!.day.toString().padLeft(2, '0');
+      final m = item.departureAtUtc!.month.toString().padLeft(2, '0');
+      return '$durationText · $d/$m';
+    }
+    return durationText;
+  }
+
+  Widget _buildDefaultImage() {
+    final url = tour.imageUrl;
+    if (url == null || url.isEmpty) {
+      return Container(
+        color: const Color(0xFFE2E8F0),
+        child: const Center(
+          child: Icon(Icons.image_outlined, size: 28, color: Colors.grey),
+        ),
+      );
+    }
+    if (url.startsWith('assets/')) {
+      return Image.asset(
+        url,
+        fit: BoxFit.cover,
+        semanticLabel: 'Ảnh tour ${tour.title}',
+      );
+    }
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      semanticLabel: 'Ảnh tour ${tour.title}',
+      errorBuilder: (_, _, _) => Container(
+        color: const Color(0xFFE2E8F0),
+        child: const Center(
+          child: Icon(Icons.broken_image, size: 28, color: Colors.grey),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.tmColors;
+    final soldOut = tour.availabilityStatus == AvailabilityStatus.soldOut;
+    final thumbWidth = (compact && enlargedText)
+        ? 76.0
+        : (compact ? 88.0 : 96.0);
+    final thumbHeight = (compact && enlargedText)
+        ? 86.0
+        : (compact ? 92.0 : 96.0);
+    final pad = compact ? 10.0 : 12.0;
+
+    final imageWidget = imageBuilder != null
+        ? imageBuilder!(context, _buildDefaultImage())
+        : _buildDefaultImage();
+
+    return Material(
+      color: c.surfaceCard,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 96),
+          padding: EdgeInsets.all(pad),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: c.borderSubtle),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: thumbWidth,
+                height: thumbHeight,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: imageWidget,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            tour.destinations,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: AppTypography.uiFont,
+                              color: c.brandTeal,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        if (tour.rating != null) ...[
+                          const SizedBox(width: 6),
+                          RatingInline(rating: tour.rating!, fontSize: 11.5),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      tour.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: AppTypography.displayFont,
+                        color: c.textPrimary,
+                        fontSize: (compact && enlargedText)
+                            ? 13.5
+                            : (compact ? 14 : 14.5),
+                        fontWeight: FontWeight.w700,
+                        height: 1.26,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      tour.operatorName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: AppTypography.uiFont,
+                        color: c.textSecondary,
+                        fontSize: 11.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    if (compact && enlargedText)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _formatCompactDuration(tour),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: AppTypography.uiFont,
+                              color: soldOut ? c.error : c.textSecondary,
+                              fontSize: 11.5,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          InlinePriceWithUnit(priceVnd: tour.priceVnd),
+                        ],
+                      )
+                    else
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _formatCompactDuration(tour),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: AppTypography.uiFont,
+                                color: soldOut ? c.error : c.textSecondary,
+                                fontSize: 11.5,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          InlinePriceWithUnit(
+                            priceVnd: tour.priceVnd,
+                            showUnit: false,
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

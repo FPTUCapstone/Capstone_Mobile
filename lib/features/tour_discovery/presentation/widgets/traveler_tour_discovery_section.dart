@@ -3,184 +3,92 @@ import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
-import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
-import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
+import 'package:trip_mate_mobile/features/tour_discovery/domain/entities/tour_discovery_item.dart';
+import 'package:trip_mate_mobile/features/tour_discovery/presentation/widgets/compact_horizontal_tour_card.dart';
+import 'package:trip_mate_mobile/features/tour_discovery/presentation/widgets/featured_tour_editorial_card.dart';
+import 'package:trip_mate_mobile/features/tour_discovery/presentation/widgets/search_continuation_strip.dart';
 
-/// Isolated presentation section for Featured Central Vietnam Tours on Traveler Home
-/// (SRS #44, #63, #64).
+/// Variant A (Featured 16:9 + Compact Editorial Feed) for Traveler Home (SRS #44, #63, #64).
 class TravelerTourDiscoverySection extends StatelessWidget {
-  const TravelerTourDiscoverySection({super.key});
+  const TravelerTourDiscoverySection({
+    super.key,
+    this.tours = TourDiscoveryItem.curatedDefault,
+    this.onTapTour,
+  });
 
-  static const defaultTours = [
-    TourCardItem(
-      id: 'hue',
-      title: 'Khám phá Cố đô Huế & Ca Huế sông Hương',
-      duration: '1 Ngày',
-      rating: 4.9,
-      price: 850000,
-      tag: 'Gợi ý khám phá',
-    ),
-    TourCardItem(
-      id: 'bana',
-      title: 'Bà Nà Hills & Cầu Vàng trọn gói',
-      duration: '1 Ngày',
-      rating: 4.8,
-      price: 1250000,
-      tag: 'Gợi ý khám phá',
-    ),
-    TourCardItem(
-      id: 'hoian',
-      title: 'Hội An phố cổ & Rừng dừa Bảy Mẫu',
-      duration: 'Nửa ngày',
-      rating: 4.9,
-      price: 650000,
-      tag: 'Gợi ý khám phá',
-    ),
-  ];
+  final List<TourDiscoveryItem> tours;
+  final void Function(TourDiscoveryItem tour)? onTapTour;
+
+  void _handleTourTap(BuildContext context, TourDiscoveryItem tour) {
+    if (onTapTour != null) {
+      onTapTour!(tour);
+    } else {
+      context.push(AppRoutes.tourDetail(tour.id), extra: tour.toSummary());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (tours.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final c = context.tmColors;
+    final width = MediaQuery.sizeOf(context).width;
+    final compact = width < 375;
+    final enlargedText = MediaQuery.textScalerOf(context).scale(1) > 1.15;
+
+    final featured = tours.first;
+    final subsequent = tours.skip(1).take(2).toList(growable: false);
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               'Tour nổi bật miền Trung',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              style: TextStyle(
+                fontFamily: AppTypography.displayFont,
                 fontWeight: FontWeight.w700,
-                color: AppColors.ink,
+                fontSize: 18,
+                color: c.textPrimary,
               ),
             ),
             TextButton(
               onPressed: () => context.push(AppRoutes.tourSearch),
+              style: TextButton.styleFrom(
+                foregroundColor: c.brandTeal,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
               child: const Text('Xem tất cả'),
             ),
           ],
         ),
-        SizedBox(
-          height: 180,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: defaultTours.length,
-            itemBuilder: (context, index) {
-              final tour = defaultTours[index];
-              return Container(
-                width: 240,
-                margin: const EdgeInsets.only(right: AppSpacing.sm),
-                child: AppCard(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  onTap: () => context.push(AppRoutes.tourSearch),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primarySoft,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              tour.tag,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.secondary,
-                              ),
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.star,
-                                size: 14,
-                                color: Color(0xFFF59E0B),
-                              ),
-                              const SizedBox(width: 2),
-                              Text(
-                                '${tour.rating}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Expanded(
-                        child: Text(
-                          tour.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.ink,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.schedule,
-                            size: 13,
-                            color: AppColors.muted,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            tour.duration,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.muted,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        TripFormatters.formatCurrencyVnd(tour.price),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.secondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+        const SizedBox(height: AppSpacing.sm),
+        FeaturedTourEditorialCard(
+          tour: featured,
+          compact: compact,
+          enlargedText: enlargedText,
+          onTap: () => _handleTourTap(context, featured),
+        ),
+        for (final item in subsequent) ...[
+          const SizedBox(height: 10),
+          CompactHorizontalTourCard(
+            tour: item,
+            compact: compact,
+            enlargedText: enlargedText,
+            onTap: () => _handleTourTap(context, item),
           ),
+        ],
+        const SizedBox(height: 12),
+        SearchContinuationStrip(
+          enlargedText: enlargedText,
+          onTap: () => context.push(AppRoutes.tourSearch),
         ),
       ],
     );
   }
-}
-
-class TourCardItem {
-  const TourCardItem({
-    required this.id,
-    required this.title,
-    required this.duration,
-    required this.rating,
-    required this.price,
-    required this.tag,
-  });
-
-  final String id;
-  final String title;
-  final String duration;
-  final double rating;
-  final int price;
-  final String tag;
 }
