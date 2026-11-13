@@ -203,7 +203,7 @@ void main() {
         addTearDown(cubit.close);
         await cubit.load(10);
 
-        await cubit.removeStop(201);
+        await cubit.removeStop(201, StopRemovalReason.notInterested);
 
         expect(repository.sentStops.single, const [ItineraryStop(poiId: 202)]);
         expect(
@@ -250,7 +250,7 @@ void main() {
       final undo = cubit.state.undoStops;
 
       repository.failure = const NetworkFailure();
-      await cubit.removeStop(201);
+      await cubit.removeStop(201, StopRemovalReason.notInterested);
 
       expect(cubit.state.status, ItineraryDetailStatus.failure);
       expect(undo, isNotNull);
@@ -264,9 +264,88 @@ void main() {
       await cubit.load(10);
 
       await cubit.changeLegMode(toPoiId: 202, mode: TransportMode.walking);
-      await cubit.removeStop(201);
+      await cubit.removeStop(201, StopRemovalReason.notInterested);
 
       expect(repository.sentStops, isEmpty);
+    });
+  });
+
+  group('removal reasons', () {
+    test('removing a stop sends why it was removed', () async {
+      final repository = _Repository(loaded: _twoStops);
+      final cubit = ItineraryDetailCubit(repository: repository);
+      addTearDown(cubit.close);
+      await cubit.load(10);
+
+      await cubit.removeStop(201, StopRemovalReason.noTime);
+
+      expect(repository.sentStops.single, const [ItineraryStop(poiId: 202)]);
+      expect(repository.sentRemovalReasons.single, {
+        201: StopRemovalReason.noTime,
+      });
+    });
+
+    test('saving the editor sends the reasons of the dropped stops', () async {
+      final repository = _Repository(loaded: _twoStops);
+      final cubit = ItineraryDetailCubit(repository: repository);
+      addTearDown(cubit.close);
+      await cubit.load(10);
+
+      await cubit.reorder(
+        [202],
+        removalReasons: {201: StopRemovalReason.alreadyVisited},
+      );
+
+      expect(repository.sentStops.single, const [ItineraryStop(poiId: 202)]);
+      expect(repository.sentRemovalReasons.single, {
+        201: StopRemovalReason.alreadyVisited,
+      });
+    });
+
+    test('the reasons do not change the operation key of a retry', () async {
+      final repository = _Repository(
+        loaded: _twoStops,
+        failure: const NetworkFailure(),
+      );
+      final cubit = ItineraryDetailCubit(repository: repository);
+      addTearDown(cubit.close);
+      await cubit.load(10);
+
+      await cubit.removeStop(201, StopRemovalReason.noTime);
+      await cubit.removeStop(201, StopRemovalReason.notInterested);
+
+      expect(repository.keys, hasLength(2));
+      expect(repository.keys.toSet(), hasLength(1));
+    });
+
+    test('undoing a removal sends no reason', () async {
+      final repository = _Repository(loaded: _twoStops)
+        ..updatedDetails.addAll([_twoStopsLater, _twoStops]);
+      final cubit = ItineraryDetailCubit(repository: repository);
+      addTearDown(cubit.close);
+      await cubit.load(10);
+      await cubit.removeStop(201, StopRemovalReason.notInterested);
+
+      await cubit.undo();
+
+      expect(repository.sentStops, hasLength(2));
+      expect(repository.sentRemovalReasons.last, isEmpty);
+    });
+
+    test('reorder, replace, insert and leg changes send no reason', () async {
+      final repository = _Repository(loaded: _twoStops)
+        ..updatedDetails.addAll(List.filled(4, _twoStops));
+      final cubit = ItineraryDetailCubit(repository: repository);
+      addTearDown(cubit.close);
+      await cubit.load(10);
+
+      await cubit.reorder([202, 201]);
+      await cubit.replaceStop(oldPoiId: 201, newPoiId: 301, poiName: 'Park');
+      await cubit.insertStop(afterPoiId: 201, poiId: 909, poiName: 'Noodles');
+      await cubit.changeLegMode(toPoiId: 202, mode: TransportMode.walking);
+
+      expect(repository.sentStops, hasLength(4));
+      expect(repository.sentRemovalReasons, everyElement(isEmpty));
     });
   });
 }
@@ -400,6 +479,7 @@ final class _Repository implements ItineraryRepository {
   final regeneratedIds = <int>[];
   final acceptedIds = <int>[];
   final sentStops = <List<ItineraryStop>>[];
+  final sentRemovalReasons = <Map<int, StopRemovalReason>>[];
   final updatedDetails = <ItineraryDetail>[];
 
   @override
@@ -434,9 +514,11 @@ final class _Repository implements ItineraryRepository {
     required int itineraryId,
     required List<ItineraryStop> stops,
     required String idempotencyKey,
+    Map<int, StopRemovalReason> removalReasons = const {},
   }) async {
     keys.add(idempotencyKey);
     sentStops.add(stops);
+    sentRemovalReasons.add(removalReasons);
     if (failure != null) throw failure!;
     return updatedDetails.isEmpty ? _detail : updatedDetails.removeAt(0);
   }

@@ -8,6 +8,7 @@ import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/core/utils/trip_time_format.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_stop.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_suggestion.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_route.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/external_review_repository.dart';
@@ -486,8 +487,10 @@ final class _DetailContent extends StatelessWidget {
             !await _confirmMandatoryChange(context, item, replacing: false)) {
           return;
         }
-        if (context.mounted) {
-          await context.read<ItineraryDetailCubit>().removeStop(poiId);
+        if (!context.mounted) return;
+        final reason = await _askRemovalReason(context);
+        if (reason != null && context.mounted) {
+          await context.read<ItineraryDetailCubit>().removeStop(poiId, reason);
         }
       case ItineraryStopAction.reviews:
         final reviews = reviewRepository;
@@ -602,16 +605,56 @@ final class _DetailContent extends StatelessWidget {
   }
 
   Future<void> _openEditor(BuildContext context, ItineraryDetail detail) async {
-    final ids = await showModalBottomSheet<List<int>>(
+    final edit = await showModalBottomSheet<_ItemsEdit>(
       context: context,
       isScrollControlled: true,
       builder: (_) => _EditItemsSheet(items: detail.visitItems),
     );
-    if (ids != null && context.mounted) {
-      await context.read<ItineraryDetailCubit>().reorder(ids);
+    if (edit != null && context.mounted) {
+      await context.read<ItineraryDetailCubit>().reorder(
+        edit.orderedPoiIds,
+        removalReasons: edit.removalReasons,
+      );
     }
   }
 }
+
+/// What the editor sheet returns on "Lưu thay đổi": the kept stops in order
+/// and why each dropped stop was dropped.
+typedef _ItemsEdit = ({
+  List<int> orderedPoiIds,
+  Map<int, StopRemovalReason> removalReasons,
+});
+
+/// Asks why a stop is being removed. Picking a reason is the confirmation:
+/// closing the sheet returns null and the stop stays.
+Future<StopRemovalReason?> _askRemovalReason(BuildContext context) =>
+    showModalBottomSheet<StopRemovalReason>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Text(
+                'Vì sao bạn bỏ điểm này?',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            for (final (reason, label) in const [
+              (StopRemovalReason.notInterested, 'Không thích'),
+              (StopRemovalReason.noTime, 'Không đủ thời gian'),
+              (StopRemovalReason.alreadyVisited, 'Đã đi rồi'),
+            ])
+              ListTile(
+                title: Text(label),
+                onTap: () => Navigator.of(context).pop(reason),
+              ),
+          ],
+        ),
+      ),
+    );
 
 final class _EditItemsSheet extends StatefulWidget {
   const _EditItemsSheet({required this.items});
@@ -624,6 +667,16 @@ final class _EditItemsSheet extends StatefulWidget {
 
 final class _EditItemsSheetState extends State<_EditItemsSheet> {
   late final List<ItineraryDetailItem> _items = [...widget.items];
+  final _removalReasons = <int, StopRemovalReason>{};
+
+  Future<void> _remove(ItineraryDetailItem item) async {
+    final reason = await _askRemovalReason(context);
+    if (reason == null || !mounted) return;
+    setState(() {
+      _items.remove(item);
+      _removalReasons[item.poiId!] = reason;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -658,8 +711,7 @@ final class _EditItemsSheetState extends State<_EditItemsSheet> {
                         ? const Icon(Icons.lock_outline)
                         : IconButton(
                             tooltip: 'Bỏ ${item.poiName ?? 'địa điểm'}',
-                            onPressed: () =>
-                                setState(() => _items.removeAt(index)),
+                            onPressed: () => _remove(item),
                             icon: const Icon(Icons.remove_circle_outline),
                           ),
                   );
@@ -671,9 +723,12 @@ final class _EditItemsSheetState extends State<_EditItemsSheet> {
               label: 'Lưu thay đổi',
               onPressed: _items.isEmpty
                   ? null
-                  : () => Navigator.of(context).pop(
-                      _items.map((item) => item.poiId!).toList(growable: false),
-                    ),
+                  : () => Navigator.of(context).pop<_ItemsEdit>((
+                      orderedPoiIds: _items
+                          .map((item) => item.poiId!)
+                          .toList(growable: false),
+                      removalReasons: _removalReasons,
+                    )),
             ),
           ],
         ),

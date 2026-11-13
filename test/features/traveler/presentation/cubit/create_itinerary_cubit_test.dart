@@ -240,6 +240,7 @@ final class _FailingRepository implements ItineraryRepository {
     required int itineraryId,
     required List<ItineraryStop> stops,
     required String idempotencyKey,
+    Map<int, StopRemovalReason> removalReasons = const {},
   }) => throw UnimplementedError();
 }
 
@@ -273,6 +274,7 @@ final class _ConflictRepository implements ItineraryRepository {
     required int itineraryId,
     required List<ItineraryStop> stops,
     required String idempotencyKey,
+    Map<int, StopRemovalReason> removalReasons = const {},
   }) => throw UnimplementedError();
 }
 
@@ -312,5 +314,6 @@ final class _DelayedRepository implements ItineraryRepository {
     required int itineraryId,
     required List<ItineraryStop> stops,
     required String idempotencyKey,
+    Map<int, StopRemovalReason> removalReasons = const {},
   }) => throw UnimplementedError();
 }

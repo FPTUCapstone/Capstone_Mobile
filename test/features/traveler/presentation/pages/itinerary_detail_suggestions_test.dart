@@ -127,10 +127,65 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Bỏ khỏi lịch'));
     await tester.pumpAndSettle();
 
+    // The confirmation is followed by the reason; nothing is removed before it.
+    expect(find.text('Vì sao bạn bỏ điểm này?'), findsOneWidget);
+    expect(repository.sentStops, isEmpty);
+    await tester.tap(find.text('Không thích'));
+    await tester.pumpAndSettle();
+
     expect(repository.sentStops.single, const [
       ItineraryStop(poiId: 2),
       ItineraryStop(poiId: 3),
     ]);
+    expect(repository.sentRemovalReasons.single, {
+      1: StopRemovalReason.notInterested,
+    });
+  });
+
+  for (final (label, reason) in const [
+    ('Không thích', StopRemovalReason.notInterested),
+    ('Không đủ thời gian', StopRemovalReason.noTime),
+    ('Đã đi rồi', StopRemovalReason.alreadyVisited),
+  ]) {
+    testWidgets('removing a stop asks why and sends "$label"', (tester) async {
+      final (repository, _) = await pump(tester, lunchPlan());
+
+      await tester.tap(find.byTooltip('Tùy chọn cho My Khe Beach'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Bỏ khỏi lịch'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Vì sao bạn bỏ điểm này?'), findsOneWidget);
+      expect(find.text('Không thích'), findsOneWidget);
+      expect(find.text('Không đủ thời gian'), findsOneWidget);
+      expect(find.text('Đã đi rồi'), findsOneWidget);
+      expect(repository.sentStops, isEmpty);
+
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+
+      expect(repository.sentStops.single, const [
+        ItineraryStop(poiId: 1),
+        ItineraryStop(poiId: 3),
+      ]);
+      expect(repository.sentRemovalReasons.single, {2: reason});
+    });
+  }
+
+  testWidgets('closing the reason picker removes nothing', (tester) async {
+    final (repository, _) = await pump(tester, lunchPlan());
+
+    await tester.tap(find.byTooltip('Tùy chọn cho My Khe Beach'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bỏ khỏi lịch'));
+    await tester.pumpAndSettle();
+    expect(find.text('Vì sao bạn bỏ điểm này?'), findsOneWidget);
+    // Tap the scrim above the picker.
+    await tester.tapAt(const Offset(20, 20));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Vì sao bạn bỏ điểm này?'), findsNothing);
+    expect(repository.sentStops, isEmpty);
   });
 
   testWidgets('replacing a stop uses same-category suggestions', (

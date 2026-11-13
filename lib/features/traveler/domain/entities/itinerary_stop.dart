@@ -18,3 +18,7 @@ final class ItineraryStop extends Equatable {
   @override
   List<Object?> get props => [poiId, transportModeToNext];
 }
+
+/// Why the traveler removed a stop. Only [notInterested] counts against the
+/// place in later recommendations.
+enum StopRemovalReason { notInterested, noTime, alreadyVisited }

@@ -111,15 +111,21 @@ import 'package:trip_mate_mobile/features/payment/domain/usecases/complete_mock_
 import 'package:trip_mate_mobile/features/payment/domain/usecases/create_or_reuse_payment_use_case.dart';
 import 'package:trip_mate_mobile/features/payment/domain/usecases/get_booking_payment_status_use_case.dart';
 import 'package:trip_mate_mobile/features/payment/presentation/cubit/payment_cubit.dart';
+import 'package:trip_mate_mobile/features/poi/data/datasources/poi_favorite_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/poi/data/datasources/poi_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/poi/data/repositories/poi_favorite_repository_impl.dart';
 import 'package:trip_mate_mobile/features/poi/data/repositories/poi_repository_impl.dart';
 import 'package:trip_mate_mobile/features/poi/data/services/geolocator_poi_location_service.dart';
+import 'package:trip_mate_mobile/features/poi/domain/repositories/poi_favorite_repository.dart';
 import 'package:trip_mate_mobile/features/poi/domain/repositories/poi_location_service.dart';
 import 'package:trip_mate_mobile/features/poi/domain/repositories/poi_repository.dart';
 import 'package:trip_mate_mobile/features/poi/domain/usecases/get_poi_detail_use_case.dart';
+import 'package:trip_mate_mobile/features/poi/domain/usecases/get_poi_favorite_use_case.dart';
 import 'package:trip_mate_mobile/features/poi/domain/usecases/get_poi_location_use_case.dart';
 import 'package:trip_mate_mobile/features/poi/domain/usecases/get_pois_use_case.dart';
+import 'package:trip_mate_mobile/features/poi/domain/usecases/set_poi_favorite_use_case.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
+import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_favorite_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_detail/data/datasources/dio_tour_detail_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/tour_detail/data/datasources/tour_detail_data_source.dart';
@@ -159,6 +165,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/leave_travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigation_session_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/recommendation_feedback_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/route_directions_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_preferences_repository.dart';
@@ -269,6 +276,24 @@ Future<void> configureDependencies({AppConfig? config}) async {
       ),
     )
     ..registerFactory<PoiDetailCubit>(() => PoiDetailCubit(serviceLocator()))
+    ..registerLazySingleton<PoiFavoriteRemoteDataSource>(
+      () => DioPoiFavoriteRemoteDataSource(serviceLocator()),
+    )
+    ..registerLazySingleton<PoiFavoriteRepository>(
+      () => PoiFavoriteRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<GetPoiFavoriteUseCase>(
+      () => GetPoiFavoriteUseCase(serviceLocator()),
+    )
+    ..registerFactory<SetPoiFavoriteUseCase>(
+      () => SetPoiFavoriteUseCase(serviceLocator()),
+    )
+    ..registerFactory<PoiFavoriteCubit>(
+      () => PoiFavoriteCubit(
+        getFavorite: serviceLocator(),
+        setFavorite: serviceLocator(),
+      ),
+    )
     // ── Tour Search ────────────────────────────────────────────────────
     // Cancellation belongs to one consumer (Guest or Search), not the app.
     ..registerFactory<DioTourSearchRemoteDataSource>(
@@ -579,6 +604,9 @@ Future<void> configureDependencies({AppConfig? config}) async {
       () => ItineraryRepositoryImpl(dioClient: serviceLocator()),
     )
     ..registerLazySingleton<ItinerarySuggestionRepository>(
+      () => ItineraryRepositoryImpl(dioClient: serviceLocator()),
+    )
+    ..registerLazySingleton<RecommendationFeedbackRepository>(
       () => ItineraryRepositoryImpl(dioClient: serviceLocator()),
     )
     ..registerLazySingleton<ExternalReviewRepository>(

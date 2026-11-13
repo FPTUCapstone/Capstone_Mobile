@@ -592,6 +592,7 @@ final class _FakeItineraryRepository implements ItineraryRepository {
     required int itineraryId,
     required List<ItineraryStop> stops,
     required String idempotencyKey,
+    Map<int, StopRemovalReason> removalReasons = const {},
   }) => throw UnimplementedError();
 }
 
@@ -623,5 +624,6 @@ final class _CompleterItineraryRepository implements ItineraryRepository {
     required int itineraryId,
     required List<ItineraryStop> stops,
     required String idempotencyKey,
+    Map<int, StopRemovalReason> removalReasons = const {},
   }) => throw UnimplementedError();
 }

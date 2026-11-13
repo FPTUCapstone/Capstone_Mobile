@@ -18,6 +18,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_se
 import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigation_session_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/recommendation_feedback_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/route_directions_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/trip_alert_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/geo_distance.dart';
@@ -34,6 +35,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_ale
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/weather_advisory_banner.dart';
 import 'package:trip_mate_mobile/features/traveler_emergency/resources/traveler_emergency_vi.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
+import 'package:uuid/uuid.dart';
 
 class ActiveTripPage extends StatefulWidget {
   const ActiveTripPage({
@@ -45,6 +47,7 @@ class ActiveTripPage extends StatefulWidget {
     this.sessionRepository,
     this.locationTracker,
     this.directionsRepository,
+    this.feedbackRepository,
     this.useMapbox,
     this.isDemoMode = false,
     this.initialIncidentId,
@@ -57,6 +60,10 @@ class ActiveTripPage extends StatefulWidget {
   final NavigationSessionRepository? sessionRepository;
   final NavigationLocationTracker? locationTracker;
   final RouteDirectionsRepository? directionsRepository;
+
+  /// Receives the thumbs of the completion dialog; defaults to the registered
+  /// repository. Without one the dialog does not ask.
+  final RecommendationFeedbackRepository? feedbackRepository;
 
   /// Defaults to whether a Mapbox token is configured.
   final bool? useMapbox;
@@ -805,7 +812,10 @@ class _ActiveTripPageState extends State<ActiveTripPage>
     );
   }
 
-  void _showCompletionDialog(BuildContext context, ActiveTripState state) {
+  Future<void> _showCompletionDialog(
+    BuildContext context,
+    ActiveTripState state,
+  ) async {
     if (_isCompletionShown) return;
     _isCompletionShown = true;
     final session = state.session;
@@ -832,13 +842,35 @@ class _ActiveTripPageState extends State<ActiveTripPage>
         ? 'Navigation session ended.'
         : 'You reached ${session.reachedCount} of ${session.items.length} stops'
               '${session.skippedCount > 0 ? ' and skipped ${session.skippedCount}' : ''}.';
-    showDialog<void>(
+    final feedbackRepository =
+        widget.feedbackRepository ??
+        (widget.isDemoMode
+            ? null
+            : locateOptional<RecommendationFeedbackRepository>());
+    final reachedStops = feedbackRepository == null || session == null
+        ? const <NavigationSessionItem>[]
+        : session.items.where((item) => item.isReached).toList(growable: false);
+    // POI ID -> liked. Filled by the thumbs, sent once the dialog is left.
+    final answers = <int, bool>{};
+    await showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
+        // A long trip has more stops than fit on a screen.
+        scrollable: true,
         icon: Icon(icon, color: AppColors.success, size: 40),
         title: Text(title),
-        content: Text('${state.itineraryTitle}: $summary'),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('${state.itineraryTitle}: $summary'),
+            if (reachedStops.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.md),
+              _StopThumbs(stops: reachedStops, answers: answers),
+            ],
+          ],
+        ),
         actions: [
           FilledButton(
             onPressed: () {
@@ -858,6 +890,19 @@ class _ActiveTripPageState extends State<ActiveTripPage>
         ],
       ),
     );
+    if (feedbackRepository == null || session == null) return;
+    for (final MapEntry(key: poiId, value: liked) in answers.entries) {
+      // Best effort: the traveler is already on the way home, so a lost
+      // answer is dropped without a message and nothing waits for it.
+      feedbackRepository
+          .sendStopFeedback(
+            clientEventId: const Uuid().v4(),
+            itineraryId: session.itineraryId,
+            poiId: poiId,
+            liked: liked,
+          )
+          .ignore();
+    }
   }
 
   void _showDemoControls(BuildContext context, ActiveTripCubit cubit) {
@@ -959,6 +1004,73 @@ String _formatDuration(double seconds) {
   final minutes = (seconds / 60).ceil();
   if (minutes < 60) return '$minutes min';
   return '${minutes ~/ 60} h ${minutes % 60} min';
+}
+
+/// The optional thumbs up or down for each reached stop in the completion
+/// dialog. [answers] maps a POI ID to liked (true) or disliked (false); the
+/// dialog's owner reads it when the dialog closes.
+class _StopThumbs extends StatefulWidget {
+  const _StopThumbs({required this.stops, required this.answers});
+
+  final List<NavigationSessionItem> stops;
+  final Map<int, bool> answers;
+
+  @override
+  State<_StopThumbs> createState() => _StopThumbsState();
+}
+
+class _StopThumbsState extends State<_StopThumbs> {
+  /// Tapping the chosen thumb again clears the answer.
+  void _toggle(int poiId, bool liked) => setState(() {
+    if (widget.answers[poiId] == liked) {
+      widget.answers.remove(poiId);
+    } else {
+      widget.answers[poiId] = liked;
+    }
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'How were the stops? (optional)',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        for (final stop in widget.stops)
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  stop.poiName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              IconButton(
+                tooltip: 'Like ${stop.poiName}',
+                onPressed: () => _toggle(stop.poiId, true),
+                icon: Icon(
+                  widget.answers[stop.poiId] == true
+                      ? Icons.thumb_up
+                      : Icons.thumb_up_outlined,
+                ),
+              ),
+              IconButton(
+                tooltip: 'Dislike ${stop.poiName}',
+                onPressed: () => _toggle(stop.poiId, false),
+                icon: Icon(
+                  widget.answers[stop.poiId] == false
+                      ? Icons.thumb_down
+                      : Icons.thumb_down_outlined,
+                ),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
 }
 
 class _MessageScaffold extends StatelessWidget {

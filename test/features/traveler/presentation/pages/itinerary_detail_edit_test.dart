@@ -239,6 +239,71 @@ void main() {
       expect(find.textContaining('Gần, có thể đi bộ'), findsNothing);
     },
   );
+
+  group('the reorder or remove editor', () {
+    Future<void> openEditor(WidgetTester tester) async {
+      await tester.tap(find.text('Sắp xếp hoặc bỏ địa điểm'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('asks why before dropping a row and saves the reasons', (
+      tester,
+    ) async {
+      final repository = await pump(tester, editablePlan());
+      await openEditor(tester);
+
+      await tester.tap(find.byTooltip('Bỏ My Khe Beach'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Vì sao bạn bỏ điểm này?'), findsOneWidget);
+      expect(find.text('Không thích'), findsOneWidget);
+      expect(find.text('Không đủ thời gian'), findsOneWidget);
+      expect(find.text('Đã đi rồi'), findsOneWidget);
+      // The row stays until a reason is picked.
+      expect(find.byTooltip('Bỏ My Khe Beach'), findsOneWidget);
+
+      await tester.tap(find.text('Đã đi rồi'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Vì sao bạn bỏ điểm này?'), findsNothing);
+      expect(find.byTooltip('Bỏ My Khe Beach'), findsNothing);
+      // Nothing is saved before "Lưu thay đổi".
+      expect(repository.sentStops, isEmpty);
+
+      await tester.tap(find.byTooltip('Bỏ Noodle house'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Không thích'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lưu thay đổi'));
+      await tester.pumpAndSettle();
+
+      expect(repository.sentStops.single, const [ItineraryStop(poiId: 1)]);
+      expect(repository.sentRemovalReasons.single, {
+        2: StopRemovalReason.alreadyVisited,
+        3: StopRemovalReason.notInterested,
+      });
+    });
+
+    testWidgets('closing the reason picker keeps the row', (tester) async {
+      final repository = await pump(tester, editablePlan());
+      await openEditor(tester);
+
+      await tester.tap(find.byTooltip('Bỏ My Khe Beach'));
+      await tester.pumpAndSettle();
+      // Tap the scrim above the picker: only the picker closes.
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Vì sao bạn bỏ điểm này?'), findsNothing);
+      expect(find.byTooltip('Bỏ My Khe Beach'), findsOneWidget);
+
+      await tester.tap(find.text('Lưu thay đổi'));
+      await tester.pumpAndSettle();
+
+      expect(repository.sentStops.single, hasLength(3));
+      expect(repository.sentRemovalReasons.single, isEmpty);
+    });
+  });
 }
 
 /// Three stops (Vietnam time 08:00, 09:22, 10:25): museum, beach, noodle house.
@@ -342,6 +407,7 @@ final class EditRepository implements ItineraryRepository {
 
   final ItineraryDetail detail;
   final sentStops = <List<ItineraryStop>>[];
+  final sentRemovalReasons = <Map<int, StopRemovalReason>>[];
   final updatedDetails = <ItineraryDetail>[];
   Failure? updateFailure;
   int regenerateCalls = 0;
@@ -372,8 +438,10 @@ final class EditRepository implements ItineraryRepository {
     required int itineraryId,
     required List<ItineraryStop> stops,
     required String idempotencyKey,
+    Map<int, StopRemovalReason> removalReasons = const {},
   }) async {
     sentStops.add(stops);
+    sentRemovalReasons.add(removalReasons);
     if (updateFailure case final failure?) throw failure;
     return updatedDetails.isEmpty ? detail : updatedDetails.removeAt(0);
   }
