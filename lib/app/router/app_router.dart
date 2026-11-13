@@ -223,9 +223,11 @@ GoRouter createAppRouter(
           final summary = state.extra is TourSummary
               ? state.extra as TourSummary
               : null;
+          final heroTag = state.uri.queryParameters['heroTag'];
           return TourDetailPage(
             tourId: tourId,
             initialSummary: summary,
+            heroTag: heroTag,
             isDemoMode: isDemo,
           );
         },

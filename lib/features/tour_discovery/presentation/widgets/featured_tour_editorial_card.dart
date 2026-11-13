@@ -4,13 +4,17 @@ import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/features/tour_discovery/domain/entities/tour_discovery_item.dart';
 import 'package:trip_mate_mobile/features/tour_discovery/presentation/widgets/tour_discovery_meta_widgets.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/availability_status.dart';
+import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
 import 'package:trip_mate_mobile/shared/widgets/motion/editorial_parallax_image.dart';
+import 'package:trip_mate_mobile/shared/widgets/motion/editorial_tactile_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/motion/editorial_tour_hero.dart';
 
 class FeaturedTourEditorialCard extends StatelessWidget {
   const FeaturedTourEditorialCard({
     super.key,
     required this.tour,
     required this.onTap,
+    this.heroTag,
     this.compact = false,
     this.enlargedText = false,
     this.motionEnabled = true,
@@ -20,6 +24,7 @@ class FeaturedTourEditorialCard extends StatelessWidget {
 
   final TourDiscoveryItem tour;
   final VoidCallback onTap;
+  final String? heroTag;
   final bool compact;
   final bool enlargedText;
   final bool motionEnabled;
@@ -76,115 +81,111 @@ class FeaturedTourEditorialCard extends StatelessWidget {
         ? imageBuilder!(context, _buildDefaultImage())
         : _buildDefaultImage();
 
-    return Material(
-      color: c.surfaceCard,
+    return EditorialTactileCard(
+      onTap: onTap,
       borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: c.borderSubtle),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AspectRatio(
-                aspectRatio: 16 / 9,
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16),
-                  ),
-                  child: imageWidget,
-                ),
+      backgroundColor: c.surfaceCard,
+      borderColor: c.borderSubtle,
+      enabled: motionEnabled,
+      reduceMotion: reduceMotion,
+      semanticLabel:
+          '${tour.title}, ${tour.durationDays} ngày, từ ${TripFormatters.formatCurrencyVnd(tour.priceVnd)}',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: EditorialTourHero(
+              heroTag: heroTag,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
               ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  compact ? 14 : 16,
-                  12,
-                  compact ? 14 : 16,
-                  14,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              child: imageWidget,
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              compact ? 14 : 16,
+              12,
+              compact ? 14 : 16,
+              14,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '${tour.destinations} · ${tour.durationDays} ngày',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontFamily: AppTypography.uiFont,
-                              color: c.brandTeal,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
+                    Expanded(
+                      child: Text(
+                        '${tour.destinations} · ${tour.durationDays} ngày',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: AppTypography.uiFont,
+                          color: c.brandTeal,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
                         ),
-                        if (tour.rating != null) ...[
-                          const SizedBox(width: 8),
-                          RatingInline(rating: tour.rating!),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      tour.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: AppTypography.displayFont,
-                        color: c.textPrimary,
-                        fontSize: compact ? 15.5 : 16.5,
-                        fontWeight: FontWeight.w700,
-                        height: 1.28,
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    Divider(
-                      height: 1,
-                      thickness: 1,
-                      color: c.borderSubtle.withValues(alpha: 0.75),
-                    ),
-                    const SizedBox(height: 10),
-                    if (stackFooter)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          OperatorAndScheduleMeta(
-                            operatorName: tour.operatorName,
-                            scheduleText: scheduleSummary,
-                            isSoldOut: soldOut,
-                          ),
-                          const SizedBox(height: 8),
-                          PriceAnchor(priceVnd: tour.priceVnd, alignEnd: false),
-                        ],
-                      )
-                    else
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Expanded(
-                            child: OperatorAndScheduleMeta(
-                              operatorName: tour.operatorName,
-                              scheduleText: scheduleSummary,
-                              isSoldOut: soldOut,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          PriceAnchor(priceVnd: tour.priceVnd, alignEnd: true),
-                        ],
-                      ),
+                    if (tour.rating != null) ...[
+                      const SizedBox(width: 8),
+                      RatingInline(rating: tour.rating!),
+                    ],
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 5),
+                Text(
+                  tour.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: AppTypography.displayFont,
+                    color: c.textPrimary,
+                    fontSize: compact ? 15.5 : 16.5,
+                    fontWeight: FontWeight.w700,
+                    height: 1.28,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: c.borderSubtle.withValues(alpha: 0.75),
+                ),
+                const SizedBox(height: 10),
+                if (stackFooter)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      OperatorAndScheduleMeta(
+                        operatorName: tour.operatorName,
+                        scheduleText: scheduleSummary,
+                        isSoldOut: soldOut,
+                      ),
+                      const SizedBox(height: 8),
+                      PriceAnchor(priceVnd: tour.priceVnd, alignEnd: false),
+                    ],
+                  )
+                else
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: OperatorAndScheduleMeta(
+                          operatorName: tour.operatorName,
+                          scheduleText: scheduleSummary,
+                          isSoldOut: soldOut,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      PriceAnchor(priceVnd: tour.priceVnd, alignEnd: true),
+                    ],
+                  ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

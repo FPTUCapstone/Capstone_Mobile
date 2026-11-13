@@ -12,7 +12,7 @@ import 'package:trip_mate_mobile/features/tour_discovery/presentation/widgets/to
 import 'package:trip_mate_mobile/shared/widgets/motion/editorial_scroll_reveal.dart';
 
 /// Variant A (Featured 16:9 + Compact Editorial Feed) for Traveler Home (SRS #44, #63, #64)
-/// with full Motion System integration (MOTION-01, MOTION-02, MOTION-05).
+/// with full Motion System integration (MOTION-01 to MOTION-05).
 class TravelerTourDiscoverySection extends StatelessWidget {
   const TravelerTourDiscoverySection({
     super.key,
@@ -36,11 +36,18 @@ class TravelerTourDiscoverySection extends StatelessWidget {
   static final TourRevealCoordinator _fallbackCoordinator =
       TourRevealCoordinator();
 
-  void _handleTourTap(BuildContext context, TourDiscoveryItem tour) {
+  void _handleTourTap(
+    BuildContext context,
+    TourDiscoveryItem tour,
+    String heroTag,
+  ) {
     if (onTapTour != null) {
       onTapTour!(tour);
     } else {
-      context.push(AppRoutes.tourDetail(tour.id), extra: tour.toSummary());
+      context.push(
+        AppRoutes.tourDetail(tour.id, heroTag: heroTag),
+        extra: tour.toSummary(),
+      );
     }
   }
 
@@ -91,6 +98,7 @@ class TravelerTourDiscoverySection extends StatelessWidget {
 
         final featured = tours.first;
         final subsequent = tours.skip(1).take(2).toList(growable: false);
+        final featuredHeroTag = 'home_featured_${featured.id}';
 
         stateBody = KeyedSubtree(
           key: const ValueKey('tour_feed_content_a'),
@@ -105,30 +113,40 @@ class TravelerTourDiscoverySection extends StatelessWidget {
                 staggerIndex: 0,
                 child: FeaturedTourEditorialCard(
                   tour: featured,
+                  heroTag: featuredHeroTag,
                   compact: compact,
                   enlargedText: enlargedText,
                   motionEnabled: motionEnabled,
                   reduceMotion: reduceMotion,
-                  onTap: () => _handleTourTap(context, featured),
+                  onTap: () =>
+                      _handleTourTap(context, featured, featuredHeroTag),
                 ),
               ),
               for (var i = 0; i < subsequent.length; i++) ...[
                 const SizedBox(height: 10),
-                EditorialScrollReveal(
-                  itemKey: 'reveal_home_compact_${subsequent[i].id}',
-                  coordinator: coordinator,
-                  enabled: motionEnabled,
-                  reduceMotion: reduceMotion,
-                  staggerIndex: i + 1,
-                  child: CompactHorizontalTourCard(
-                    tour: subsequent[i],
-                    compact: compact,
-                    enlargedText: enlargedText,
-                    motionEnabled: motionEnabled,
+                () {
+                  final compactHeroTag = 'home_compact_${subsequent[i].id}';
+                  return EditorialScrollReveal(
+                    itemKey: 'reveal_home_compact_${subsequent[i].id}',
+                    coordinator: coordinator,
+                    enabled: motionEnabled,
                     reduceMotion: reduceMotion,
-                    onTap: () => _handleTourTap(context, subsequent[i]),
-                  ),
-                ),
+                    staggerIndex: i + 1,
+                    child: CompactHorizontalTourCard(
+                      tour: subsequent[i],
+                      heroTag: compactHeroTag,
+                      compact: compact,
+                      enlargedText: enlargedText,
+                      motionEnabled: motionEnabled,
+                      reduceMotion: reduceMotion,
+                      onTap: () => _handleTourTap(
+                        context,
+                        subsequent[i],
+                        compactHeroTag,
+                      ),
+                    ),
+                  );
+                }(),
               ],
               const SizedBox(height: 12),
               EditorialScrollReveal(
