@@ -331,7 +331,7 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     // ── Tour Recommendations ───────────────────────────────────────────
     ..registerLazySingleton<TourRecommendationsDataSource>(
-      () => const PendingTourRecommendationsDataSource(),
+      () => DioTourRecommendationsDataSource(serviceLocator()),
     )
     ..registerLazySingleton<TourRecommendationsRepository>(
       () => TourRecommendationsRepositoryImpl(serviceLocator()),

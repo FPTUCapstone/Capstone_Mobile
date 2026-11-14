@@ -25,6 +25,13 @@ class TourRecommendationsPage extends StatelessWidget {
   }
 }
 
+Future<void> _openPreferencesAndRefresh(BuildContext context) async {
+  await context.push(AppRoutes.travelerPreferences);
+  if (context.mounted) {
+    await context.read<TourRecommendationsCubit>().refresh();
+  }
+}
+
 class _TourRecommendationsView extends StatelessWidget {
   const _TourRecommendationsView();
 
@@ -44,7 +51,7 @@ class _TourRecommendationsView extends StatelessWidget {
           IconButton(
             tooltip: TourRecommendationsStrings.preferencesTooltip,
             icon: const Icon(Icons.tune),
-            onPressed: () => context.push(AppRoutes.travelerPreferences),
+            onPressed: () => _openPreferencesAndRefresh(context),
           ),
         ],
       ),
@@ -65,6 +72,23 @@ class _TourRecommendationsView extends StatelessWidget {
               const SliverToBoxAdapter(
                 child: _RecommendationExplanationBanner(),
               ),
+
+              if (state.errorMessage == TourRecommendationsState.msg127 &&
+                  state.recommendations.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: MaterialBanner(
+                      content: Text(TourRecommendationsState.msg127),
+                      actions: [
+                        TextButton(
+                          onPressed: cubit.refresh,
+                          child: const Text(TourRecommendationsStrings.retry),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
               // ── Main Body based on Status ──────────────────────────────────
               switch (state.status) {
@@ -88,7 +112,7 @@ class _TourRecommendationsView extends StatelessWidget {
                   hasScrollBody: false,
                   child: _NoPreferencesView(
                     message:
-                        state.errorMessage ?? TourRecommendationsState.msg28,
+                        state.errorMessage ?? TourRecommendationsState.msg183,
                   ),
                 ),
 
@@ -174,7 +198,7 @@ class _RecommendationExplanationBanner extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   GestureDetector(
-                    onTap: () => context.push(AppRoutes.travelerPreferences),
+                    onTap: () => _openPreferencesAndRefresh(context),
                     child: const Text(
                       TourRecommendationsStrings.bannerEditPreferences,
                       style: TextStyle(
@@ -256,7 +280,7 @@ class _PendingIntegrationView extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             OutlinedButton.icon(
-              onPressed: () => context.push(AppRoutes.travelerPreferences),
+              onPressed: () => _openPreferencesAndRefresh(context),
               icon: const Icon(Icons.tune),
               label: const Text(
                 TourRecommendationsStrings.updateTravelPreferences,
@@ -270,7 +294,7 @@ class _PendingIntegrationView extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// No Preferences View (MSG28)
+// No Preferences View (MSG183)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _NoPreferencesView extends StatelessWidget {
@@ -310,7 +334,7 @@ class _NoPreferencesView extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
             FilledButton.icon(
-              onPressed: () => context.push(AppRoutes.travelerPreferences),
+              onPressed: () => _openPreferencesAndRefresh(context),
               icon: const Icon(Icons.tune),
               label: const Text(
                 TourRecommendationsStrings.setupTravelPreferences,
@@ -376,7 +400,7 @@ class _NoMatchesView extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             OutlinedButton.icon(
-              onPressed: () => context.push(AppRoutes.travelerPreferences),
+              onPressed: () => _openPreferencesAndRefresh(context),
               icon: const Icon(Icons.tune),
               label: const Text(TourRecommendationsStrings.adjustPreferences),
             ),
@@ -519,7 +543,7 @@ class _RecommendationListSliver extends StatelessWidget {
                   children: [
                     TourListCard(
                       tour: rec.tour,
-                      matchingScore: rec.matchingScore,
+                      matchingScore: rec.matchingScore / 100,
                       onTap: () {
                         context.push(
                           AppRoutes.tourDetail(
@@ -577,10 +601,10 @@ class _RecommendationListSliver extends StatelessWidget {
               currentPage: currentPage,
               totalPages: totalPages,
               onPrevious: currentPage > 1
-                  ? () => cubit.loadDemoPage(currentPage - 1)
+                  ? () => cubit.loadPage(currentPage - 1)
                   : null,
               onNext: currentPage < totalPages
-                  ? () => cubit.loadDemoPage(currentPage + 1)
+                  ? () => cubit.loadPage(currentPage + 1)
                   : null,
             );
           },

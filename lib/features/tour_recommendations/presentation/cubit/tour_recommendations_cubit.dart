@@ -35,15 +35,45 @@ final class TourRecommendationsCubit extends Cubit<TourRecommendationsState> {
 
   final GetTourRecommendations _getTourRecommendations;
   final bool isDemoMode;
+  Future<void>? _refreshInFlight;
+  int _requestSequence = 0;
 
   /// Loads initial recommendations.
-  Future<void> load({bool hasPreferences = true, int page = 1}) async {
-    emit(TourRecommendationsState.loading(isDemoMode: isDemoMode));
+  Future<void> load({
+    bool hasPreferences = true,
+    int page = 1,
+    bool refresh = false,
+  }) async {
+    if (refresh && _refreshInFlight != null) return _refreshInFlight!;
+    final operation = _load(
+      hasPreferences: hasPreferences,
+      page: page,
+      refresh: refresh,
+    );
+    if (!refresh) return operation;
+    _refreshInFlight = operation.whenComplete(() => _refreshInFlight = null);
+    return _refreshInFlight!;
+  }
+
+  Future<void> _load({
+    required bool hasPreferences,
+    required int page,
+    required bool refresh,
+  }) async {
+    final requestId = ++_requestSequence;
+    if (state.recommendations.isEmpty) {
+      emit(TourRecommendationsState.loading(isDemoMode: isDemoMode));
+    }
 
     try {
       final result = await _getTourRecommendations(
-        TourRecommendationsQuery(page: page, hasPreferences: hasPreferences),
+        TourRecommendationsQuery(
+          page: page,
+          hasPreferences: hasPreferences,
+          refresh: refresh,
+        ),
       );
+      if (requestId != _requestSequence) return;
 
       switch (result) {
         case TourRecommendationsPending():
@@ -71,27 +101,38 @@ final class TourRecommendationsCubit extends Cubit<TourRecommendationsState> {
           );
       }
     } on Object {
-      emit(
-        TourRecommendationsState.error(
-          TourRecommendationsState.msg127,
-          isDemoMode: isDemoMode,
-        ),
-      );
+      if (requestId != _requestSequence) return;
+      if (state.recommendations.isNotEmpty) {
+        emit(
+          state.copyWith(
+            status: TourRecommendationsStatus.success,
+            errorMessage: TourRecommendationsState.msg127,
+          ),
+        );
+      } else {
+        emit(
+          TourRecommendationsState.error(
+            TourRecommendationsState.msg127,
+            isDemoMode: isDemoMode,
+          ),
+        );
+      }
     }
   }
 
   /// Refreshes recommendations.
   Future<void> refresh() async {
-    await load(page: 1);
+    await load(page: 1, refresh: true);
   }
+
+  Future<void> loadPage(int page) => load(page: page);
 
   /// Loads a specific page in Demo Mode.
   Future<void> loadDemoPage(int page) async {
-    if (!isDemoMode) return;
-    await load(page: page);
+    await loadPage(page);
   }
 
-  /// Simulates MSG28 state in Demo Mode (no interest tags configured).
+  /// Simulates MSG183 state in Demo Mode (no interest tags configured).
   void simulateNoPreferences() {
     if (!isDemoMode) return;
     emit(const TourRecommendationsState.noPreferences(isDemoMode: true));

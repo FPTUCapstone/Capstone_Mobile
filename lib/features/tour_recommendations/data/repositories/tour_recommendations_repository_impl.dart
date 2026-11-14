@@ -17,27 +17,43 @@ final class TourRecommendationsRepositoryImpl
   ) async {
     if (!query.hasPreferences) return const TourRecommendationsNoPreferences();
 
-    final sourceResult = await _dataSource.fetchCandidates();
+    final sourceResult = await _dataSource.fetchCandidates(query);
     if (sourceResult is TourRecommendationCandidatesPending) {
       return const TourRecommendationsPending();
     }
+    if (sourceResult is TourRecommendationCandidatesNoPreferences) {
+      return const TourRecommendationsNoPreferences();
+    }
 
+    final available = sourceResult as TourRecommendationCandidatesAvailable;
     final candidates =
-        (sourceResult as TourRecommendationCandidatesAvailable).items
+        available.items
             .where(
               (item) =>
                   item.isApproved &&
                   item.isPublic &&
                   item.tour.availabilityStatus ==
                       AvailabilityStatus.available &&
-                  item.matchingScore > 0.80,
+                  item.matchingScore > 80.00,
             )
             .toList()
           ..sort(
             (left, right) => right.matchingScore.compareTo(left.matchingScore),
           );
 
-    if (candidates.isEmpty) return const TourRecommendationsNoMatches();
+    if (candidates.isEmpty &&
+        (!available.serverPaged || available.totalItems == 0)) {
+      return const TourRecommendationsNoMatches();
+    }
+
+    if (available.serverPaged) {
+      return TourRecommendationsSuccess(
+        recommendations: candidates.map(_toEntity).toList(growable: false),
+        currentPage: available.page,
+        totalPages: available.totalPages,
+        totalItems: available.totalItems,
+      );
+    }
 
     final totalPages = (candidates.length / query.pageSize).ceil();
     final currentPage = query.page.clamp(1, totalPages);
@@ -47,17 +63,18 @@ final class TourRecommendationsRepositoryImpl
     return TourRecommendationsSuccess(
       recommendations: candidates
           .sublist(start, end)
-          .map(
-            (item) => TourRecommendation(
-              tour: item.tour,
-              matchingScore: item.matchingScore,
-              matchReasons: item.matchReasons,
-            ),
-          )
+          .map(_toEntity)
           .toList(growable: false),
       currentPage: currentPage,
       totalPages: totalPages,
       totalItems: candidates.length,
     );
   }
+
+  static TourRecommendation _toEntity(TourRecommendationCandidate item) =>
+      TourRecommendation(
+        tour: item.tour,
+        matchingScore: item.matchingScore,
+        matchReasons: item.matchReasons,
+      );
 }

@@ -93,22 +93,15 @@ void main() {
         expect(find.byType(TourListCard), findsWidgets);
         expect(find.textContaining('match'), findsWidgets);
 
-        // Scroll down to reveal pagination controls
-        await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
-        await tester.pumpAndSettle();
-
         final nextBtn = find.byKey(const Key('rec-next-page-button'));
+        await tester.scrollUntilVisible(
+          nextBtn,
+          500,
+          scrollable: find.byType(Scrollable).first,
+        );
         expect(nextBtn, findsOneWidget);
-
-        await tester.tap(nextBtn);
-        await tester.pumpAndSettle();
-
-        await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
-        await tester.pumpAndSettle();
-
-        final prevBtn = find.byKey(const Key('rec-prev-page-button'));
-        expect(prevBtn, findsOneWidget);
-        expect(find.text('2 / 2'), findsOneWidget);
+        expect(tester.widget<OutlinedButton>(nextBtn).onPressed, isNull);
+        expect(find.text('1 / 1'), findsOneWidget);
       },
     );
 
@@ -229,13 +222,13 @@ void main() {
       },
     );
 
-    testWidgets('demo mode simulation switches to MSG28 no preferences state', (
+    testWidgets('demo mode simulation switches to MSG183 no preferences state', (
       tester,
     ) async {
       await tester.pumpWidget(_buildTestWidget(isDemoMode: true));
       await tester.pumpAndSettle();
 
-      // Tap demo chip for MSG28
+      // Tap demo chip for MSG183
       final chip = find.text(TourRecommendationsStrings.demoChipNoPreferences);
       expect(chip, findsOneWidget);
       await tester.tap(chip);
@@ -245,7 +238,7 @@ void main() {
         find.text(TourRecommendationsStrings.noPreferencesTitle),
         findsOneWidget,
       );
-      expect(find.text(TourRecommendationsState.msg28), findsOneWidget);
+      expect(find.text(TourRecommendationsState.msg183), findsOneWidget);
       expect(
         find.text(TourRecommendationsStrings.setupTravelPreferences),
         findsOneWidget,

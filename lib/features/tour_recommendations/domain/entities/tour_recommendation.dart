@@ -15,15 +15,16 @@ final class TourRecommendation extends Equatable {
   /// The underlying tour summary.
   final TourSummary tour;
 
-  /// Matching score between 0.0 and 1.0 (e.g. 0.92 for 92%).
-  /// Must be > 0.80 per canonical matching threshold rule.
+  /// Persisted Backend score on the 0–100 scale (e.g. 80.01).
+  /// Must be strictly greater than 80.00.
   final double matchingScore;
 
   /// Reasons explaining why this tour was matched with the traveler's preferences.
   final List<String> matchReasons;
 
   /// Returns matching score as an integer percentage (e.g. 92).
-  int get scorePercentage => (matchingScore * 100).round();
+  String get scorePercentage =>
+      matchingScore.toStringAsFixed(2).replaceFirst(RegExp(r'\.00$'), '');
 
   @override
   List<Object?> get props => [tour, matchingScore, matchReasons];

@@ -31,7 +31,7 @@ abstract final class TourRecommendationsStrings {
   static const String demoControlsTitle =
       'DEMO SIMULATION CONTROLS (Debug Mode Only)';
   static const String demoChipSuccess = 'Success (>80%)';
-  static const String demoChipNoPreferences = 'No Preferences (MSG28)';
+  static const String demoChipNoPreferences = 'No Preferences (MSG183)';
   static const String demoChipNoMatches = 'No Matches >80% (MSG64)';
   static const String demoChipError = 'Network Error (MSG127)';
 }
