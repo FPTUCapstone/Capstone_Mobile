@@ -108,4 +108,56 @@ void main() {
 
     expect(find.text('Title Slide 2'), findsOneWidget);
   });
+
+  testWidgets(
+    'defaultSlides use verified local destination assets without Unsplash URLs',
+    (tester) async {
+      for (final slide in GuestHeroBanner.defaultSlides) {
+        expect(slide.imageUrl, startsWith('assets/images/destinations/'));
+        expect(slide.imageUrl, isNot(contains('unsplash.com')));
+      }
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: GuestHeroBanner(autoRotate: false)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final image = tester.widget<Image>(find.byType(Image).first);
+      expect(image.image, isA<AssetImage>());
+      expect(
+        (image.image as AssetImage).assetName,
+        'assets/images/destinations/danang_dragon_bridge.jpg',
+      );
+    },
+  );
+
+  testWidgets(
+    'renders placeholder fallback when local asset path does not exist',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: GuestHeroBanner(
+              autoRotate: false,
+              customSlides: [
+                HeroSlideData(
+                  tag: '✦ TEST',
+                  title: 'Missing Asset',
+                  subtitle: 'Fallback Check',
+                  imageUrl: 'assets/images/destinations/nonexistent.jpg',
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byIcon(Icons.landscape_outlined), findsOneWidget);
+    },
+  );
 }

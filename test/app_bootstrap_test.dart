@@ -6,6 +6,7 @@ import 'package:trip_mate_mobile/app/bootstrap.dart';
 import 'package:trip_mate_mobile/app/config/app_config.dart';
 import 'package:trip_mate_mobile/app/config/app_initialization_status.dart';
 import 'package:trip_mate_mobile/app/config/environment.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 
@@ -105,6 +106,27 @@ void main() {
       expect(
         find.text('Hành trình trọn vẹn,\ntrải nghiệm thông minh'),
         findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'Decision B1: TripMateApp renders usable Light Mode when host OS Dark Mode is active',
+    (tester) async {
+      tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+      addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+
+      await tester.pumpWidget(const TripMateApp());
+      await tester.pumpAndSettle();
+
+      final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
+      expect(materialApp.themeMode, ThemeMode.light);
+
+      final scaffoldContext = tester.element(find.byType(Scaffold).first);
+      expect(Theme.of(scaffoldContext).brightness, Brightness.light);
+      expect(
+        Theme.of(scaffoldContext).scaffoldBackgroundColor,
+        TripMateColors.light.canvas,
       );
     },
   );
