@@ -4,7 +4,6 @@ import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/features/tour_discovery/domain/entities/tour_discovery_item.dart';
 import 'package:trip_mate_mobile/features/tour_discovery/presentation/widgets/tour_discovery_meta_widgets.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/availability_status.dart';
-import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
 import 'package:trip_mate_mobile/shared/widgets/motion/editorial_parallax_image.dart';
 import 'package:trip_mate_mobile/shared/widgets/motion/editorial_tactile_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/motion/editorial_tour_hero.dart';
@@ -89,7 +88,7 @@ class FeaturedTourEditorialCard extends StatelessWidget {
       enabled: motionEnabled,
       reduceMotion: reduceMotion,
       semanticLabel:
-          '${tour.title}, ${tour.durationDays} ngày, từ ${TripFormatters.formatCurrencyVnd(tour.priceVnd)}',
+          '${tour.title}, ${tour.durationDays} ngày, từ ${formatTourDiscoveryPrice(tour.priceVnd, tour.currency)}',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -164,7 +163,11 @@ class FeaturedTourEditorialCard extends StatelessWidget {
                         isSoldOut: soldOut,
                       ),
                       const SizedBox(height: 8),
-                      PriceAnchor(priceVnd: tour.priceVnd, alignEnd: false),
+                      PriceAnchor(
+                        priceVnd: tour.priceVnd,
+                        currency: tour.currency,
+                        alignEnd: false,
+                      ),
                     ],
                   )
                 else
@@ -179,7 +182,11 @@ class FeaturedTourEditorialCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      PriceAnchor(priceVnd: tour.priceVnd, alignEnd: true),
+                      PriceAnchor(
+                        priceVnd: tour.priceVnd,
+                        currency: tour.currency,
+                        alignEnd: true,
+                      ),
                     ],
                   ),
               ],

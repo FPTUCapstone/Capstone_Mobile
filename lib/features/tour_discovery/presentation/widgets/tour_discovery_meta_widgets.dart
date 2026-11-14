@@ -81,15 +81,38 @@ class OperatorAndScheduleMeta extends StatelessWidget {
   }
 }
 
+/// Formats tour price with currency integrity.
+///
+/// For VND, formats as Vietnamese Dong using [TripFormatters.formatCurrencyVnd].
+/// For non-VND or unsupported currencies, formats the numeric amount with thousand
+/// separators and appends the explicit currency code, preventing silent mislabeling.
+String formatTourDiscoveryPrice(int amount, [String currency = 'VND']) {
+  final upper = currency.toUpperCase().trim();
+  if (upper == 'VND' || upper.isEmpty) {
+    return TripFormatters.formatCurrencyVnd(amount);
+  }
+  final s = amount.toString();
+  final buffer = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) {
+      buffer.write(',');
+    }
+    buffer.write(s[i]);
+  }
+  return '${buffer.toString()} $upper';
+}
+
 class PriceAnchor extends StatelessWidget {
   const PriceAnchor({
     super.key,
     required this.priceVnd,
     required this.alignEnd,
+    this.currency = 'VND',
   });
 
   final int priceVnd;
   final bool alignEnd;
+  final String currency;
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +132,7 @@ class PriceAnchor extends StatelessWidget {
           ),
         ),
         Text(
-          TripFormatters.formatCurrencyVnd(priceVnd),
+          formatTourDiscoveryPrice(priceVnd, currency),
           style: AppTypography.price(c.brandTeal, fontSize: 17.5),
         ),
       ],
@@ -121,18 +144,21 @@ class InlinePriceWithUnit extends StatelessWidget {
   const InlinePriceWithUnit({
     super.key,
     required this.priceVnd,
+    this.currency = 'VND',
     this.showUnit = true,
   });
 
   final int priceVnd;
+  final String currency;
   final bool showUnit;
 
   @override
   Widget build(BuildContext context) {
     final c = context.tmColors;
+    final formattedPrice = formatTourDiscoveryPrice(priceVnd, currency);
     if (!showUnit) {
       return Text(
-        TripFormatters.formatCurrencyVnd(priceVnd),
+        formattedPrice,
         style: AppTypography.price(c.brandTeal, fontSize: 15.5),
       );
     }
@@ -142,7 +168,7 @@ class InlinePriceWithUnit extends StatelessWidget {
       textBaseline: TextBaseline.alphabetic,
       children: [
         Text(
-          TripFormatters.formatCurrencyVnd(priceVnd),
+          formattedPrice,
           style: AppTypography.price(c.brandTeal, fontSize: 15.5),
         ),
         const SizedBox(width: 4),
