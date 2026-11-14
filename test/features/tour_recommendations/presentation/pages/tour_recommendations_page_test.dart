@@ -222,28 +222,31 @@ void main() {
       },
     );
 
-    testWidgets('demo mode simulation switches to MSG183 no preferences state', (
-      tester,
-    ) async {
-      await tester.pumpWidget(_buildTestWidget(isDemoMode: true));
-      await tester.pumpAndSettle();
+    testWidgets(
+      'demo mode simulation switches to MSG183 no preferences state',
+      (tester) async {
+        await tester.pumpWidget(_buildTestWidget(isDemoMode: true));
+        await tester.pumpAndSettle();
 
-      // Tap demo chip for MSG183
-      final chip = find.text(TourRecommendationsStrings.demoChipNoPreferences);
-      expect(chip, findsOneWidget);
-      await tester.tap(chip);
-      await tester.pumpAndSettle();
+        // Tap demo chip for MSG183
+        final chip = find.text(
+          TourRecommendationsStrings.demoChipNoPreferences,
+        );
+        expect(chip, findsOneWidget);
+        await tester.tap(chip);
+        await tester.pumpAndSettle();
 
-      expect(
-        find.text(TourRecommendationsStrings.noPreferencesTitle),
-        findsOneWidget,
-      );
-      expect(find.text(TourRecommendationsState.msg183), findsOneWidget);
-      expect(
-        find.text(TourRecommendationsStrings.setupTravelPreferences),
-        findsOneWidget,
-      );
-    });
+        expect(
+          find.text(TourRecommendationsStrings.noPreferencesTitle),
+          findsOneWidget,
+        );
+        expect(find.text(TourRecommendationsState.msg183), findsOneWidget);
+        expect(
+          find.text(TourRecommendationsStrings.setupTravelPreferences),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets('demo mode simulation switches to MSG64 no matches state', (
       tester,
