@@ -5,6 +5,11 @@ import 'package:trip_mate_mobile/features/support_chat/domain/entities/support_c
 abstract final class SupportChatNavigation {
   static String? locationFor(String url) {
     if (url == '/tours') return AppRoutes.tourSearch;
+    if (url == '/plan') return AppRoutes.createItinerary;
+    if (url == '/pois') return AppRoutes.explore;
+    if (url == '/account/profile') return AppRoutes.travelerProfile;
+    if (url == '/account/preferences') return AppRoutes.travelerPreferences;
+    if (url == '/account/security') return AppRoutes.travelerChangePassword;
     if (url == '/account/trips') return AppRoutes.tripHistory;
     final tour = RegExp(r'^/tours/([0-9]+)$').firstMatch(url);
     if (tour != null) {
