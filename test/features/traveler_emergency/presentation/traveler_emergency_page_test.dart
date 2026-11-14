@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/emergency_tour/domain/entities/emergency_action.dart';
 import 'package:trip_mate_mobile/features/traveler_emergency/domain/entities/traveler_emergency_status.dart';
@@ -43,25 +45,72 @@ void main() {
     );
     addTearDown(cubit.close);
     unawaited(cubit.load());
+    // The real route patterns, with placeholders for the destinations, so a
+    // tap proves which existing screen the page opens.
+    final router = GoRouter(
+      initialLocation: AppRoutes.travelerEmergency(42),
+      routes: [
+        GoRoute(
+          path: AppRoutes.travelerEmergencyPattern,
+          builder: (_, _) => BlocProvider.value(
+            value: cubit,
+            child: TravelerEmergencyPage(
+              dial: (uri) async {
+                dialled.add(uri);
+                return dialSucceeds;
+              },
+            ),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.bookingRefundPattern,
+          builder: (_, state) => Scaffold(
+            body: Text('Refund progress ${state.pathParameters['bookingId']}'),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.tourDetailPattern,
+          builder: (_, state) =>
+              Scaffold(body: Text('Tour ${state.pathParameters['tourId']}')),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
     await tester.pumpWidget(
-      MaterialApp(
+      MaterialApp.router(
+        routerConfig: router,
         builder: (context, child) => MediaQuery(
           data: MediaQuery.of(
             context,
           ).copyWith(textScaler: TextScaler.linear(textScale)),
           child: child!,
         ),
-        home: BlocProvider.value(
-          value: cubit,
-          child: TravelerEmergencyPage(
-            dial: (uri) async {
-              dialled.add(uri);
-              return dialSucceeds;
-            },
-          ),
-        ),
       ),
     );
+    await tester.pumpAndSettle();
+  }
+
+  const refundSubmittedCopy =
+      'Bạn sẽ được hoàn 100% số tiền đã thanh toán. Yêu cầu hoàn tiền đã được tạo.';
+  const underReviewStopCopy =
+      'Tour đã dừng vì lý do an toàn. Phần dịch vụ chưa thực hiện sẽ được '
+      'TripMate xem xét hoàn tiền. Kết quả sẽ được thông báo cho bạn.';
+  const underReviewCancelCopy =
+      'Khoản thanh toán của bạn đang được TripMate kiểm tra để hoàn tiền. '
+      'Kết quả sẽ được thông báo cho bạn.';
+  const notApplicableCopy =
+      'Booking này chưa được thanh toán nên không phát sinh hoàn tiền.';
+  const unknownCopy =
+      'TripMate sẽ thông báo cho bạn về việc hoàn tiền (nếu có).';
+  const oldCopy =
+      'Việc thanh toán và hoàn tiền được xử lý riêng theo chính sách hủy booking áp dụng.';
+  final refundButton = find.byKey(const Key('emergency-refund-progress'));
+  final rebookButton = find.byKey(const Key('emergency-rebook'));
+
+  Future<void> tapVisible(WidgetTester tester, Finder finder) async {
+    await tester.ensureVisible(finder);
+    await tester.pumpAndSettle();
+    await tester.tap(finder);
     await tester.pumpAndSettle();
   }
 
@@ -77,12 +126,7 @@ void main() {
     final instructions = top(tester, find.text('Stay at the shelter.'));
     final contact = top(tester, find.textContaining('Hotline'));
     final booking = top(tester, find.text('Đơn đặt tour của bạn'));
-    final notice = top(
-      tester,
-      find.text(
-        'Việc thanh toán và hoàn tiền được xử lý riêng theo chính sách hủy booking áp dụng.',
-      ),
-    );
+    final notice = top(tester, find.text(unknownCopy));
     final acknowledge = top(tester, find.byKey(const Key('emergency-ack')));
 
     expect(instructions, lessThan(contact));
@@ -91,35 +135,140 @@ void main() {
     expect(notice, lessThan(acknowledge));
   });
 
-  testWidgets(
-    'a cancellation shows reason, schedule state and neutral payment copy',
-    (tester) async {
+  testWidgets('a cancellation shows reason and schedule state', (tester) async {
+    repository.status = TravelerEmergencyFixture.build(
+      action: EmergencyAction.cancelBeforeDeparture,
+      immediateInstructions: null,
+    );
+
+    await pump(tester);
+
+    expect(find.text('Tour đã bị hủy'), findsOneWidget);
+    expect(find.text('Road closed'), findsOneWidget);
+    expect(find.text('Chỉ dẫn khẩn cấp'), findsNothing);
+  });
+
+  group('refund handling copy', () {
+    final cases = [
+      (
+        RefundHandling.refundSubmitted,
+        EmergencyAction.cancelBeforeDeparture,
+        refundSubmittedCopy,
+      ),
+      (
+        RefundHandling.underReview,
+        EmergencyAction.emergencyStop,
+        underReviewStopCopy,
+      ),
+      (
+        RefundHandling.underReview,
+        EmergencyAction.cancelBeforeDeparture,
+        underReviewCancelCopy,
+      ),
+      (
+        RefundHandling.notApplicable,
+        EmergencyAction.cancelBeforeDeparture,
+        notApplicableCopy,
+      ),
+      (
+        RefundHandling.notApplicable,
+        EmergencyAction.emergencyStop,
+        notApplicableCopy,
+      ),
+      (RefundHandling.unknown, EmergencyAction.emergencyStop, unknownCopy),
+      (
+        RefundHandling.unknown,
+        EmergencyAction.cancelBeforeDeparture,
+        unknownCopy,
+      ),
+      (RefundHandling.underReview, EmergencyAction.unknown, unknownCopy),
+    ];
+    for (final (handling, action, copy) in cases) {
+      testWidgets('$handling + $action shows its own line', (tester) async {
+        repository.status = TravelerEmergencyFixture.build(
+          action: action,
+          refundHandling: handling,
+        );
+
+        await pump(tester);
+
+        expect(find.text(copy), findsOneWidget);
+        expect(find.text(oldCopy), findsNothing);
+        expect(find.textContaining('VND'), findsNothing);
+      });
+    }
+  });
+
+  group('refund progress button', () {
+    testWidgets('opens the refund progress of this booking', (tester) async {
       repository.status = TravelerEmergencyFixture.build(
         action: EmergencyAction.cancelBeforeDeparture,
-        immediateInstructions: null,
+        refundHandling: RefundHandling.refundSubmitted,
+      );
+      await pump(tester);
+
+      expect(find.text('Xem tiến độ hoàn tiền'), findsOneWidget);
+      await tapVisible(tester, refundButton);
+
+      expect(find.text('Refund progress 42'), findsOneWidget);
+    });
+
+    for (final handling in [
+      RefundHandling.underReview,
+      RefundHandling.notApplicable,
+      RefundHandling.unknown,
+    ]) {
+      testWidgets('is hidden when refund handling is $handling', (
+        tester,
+      ) async {
+        repository.status = TravelerEmergencyFixture.build(
+          action: EmergencyAction.cancelBeforeDeparture,
+          refundHandling: handling,
+        );
+
+        await pump(tester);
+
+        expect(refundButton, findsNothing);
+      });
+    }
+  });
+
+  group('rebooking button', () {
+    testWidgets('a cancelled departure opens the same tour to book again', (
+      tester,
+    ) async {
+      repository.status = TravelerEmergencyFixture.build(
+        action: EmergencyAction.cancelBeforeDeparture,
+        refundHandling: RefundHandling.refundSubmitted,
+        tourId: 12,
+      );
+      await pump(tester);
+
+      expect(find.text('Đặt chuyến khác'), findsOneWidget);
+      await tapVisible(tester, rebookButton);
+
+      expect(find.text('Tour 12'), findsOneWidget);
+    });
+
+    testWidgets('an emergency stop offers no rebooking', (tester) async {
+      repository.status = TravelerEmergencyFixture.build(tourId: 12);
+
+      await pump(tester);
+
+      expect(rebookButton, findsNothing);
+    });
+
+    testWidgets('an older Backend without the tour id offers no rebooking', (
+      tester,
+    ) async {
+      repository.status = TravelerEmergencyFixture.build(
+        action: EmergencyAction.cancelBeforeDeparture,
       );
 
       await pump(tester);
 
-      expect(find.text('Tour đã bị hủy'), findsOneWidget);
-      expect(find.text('Road closed'), findsOneWidget);
-      expect(
-        find.text(
-          'Việc thanh toán và hoàn tiền được xử lý riêng theo chính sách hủy booking áp dụng.',
-        ),
-        findsOneWidget,
-      );
-      expect(find.text('Chỉ dẫn khẩn cấp'), findsNothing);
-    },
-  );
-
-  testWidgets('no refund result is shown', (tester) async {
-    await pump(tester);
-
-    expect(find.textContaining('được xử lý riêng'), findsOneWidget);
-    expect(find.textContaining('under manual review'), findsNothing);
-    expect(find.textContaining('has been completed'), findsNothing);
-    expect(find.textContaining('VND'), findsNothing);
+      expect(rebookButton, findsNothing);
+    });
   });
 
   testWidgets('the Call action dials the published number', (tester) async {

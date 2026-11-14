@@ -79,6 +79,7 @@ abstract final class OperatorWeatherSafetyJson {
       scheduleStatus: _requiredText(json['scheduleStatus']),
       affectedBookingCount: _requiredCount(json['affectedBookingCount']),
       committedAtUtc: _requiredDate(json['committedAtUtc']),
+      refundsSubmitted: _optionalCount(json['refundsSubmitted']),
     );
   }
 
@@ -169,6 +170,9 @@ abstract final class OperatorWeatherSafetyJson {
     if (value is int && value >= 0) return value;
     throw const FormatException('Invalid emergency count.');
   }
+
+  static int? _optionalCount(Object? value) =>
+      value is int && value >= 0 ? value : null;
 
   static String _requiredText(Object? value) {
     final text = _text(value);
