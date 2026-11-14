@@ -8,26 +8,36 @@ class TourDiscoveryItem extends Equatable {
   const TourDiscoveryItem({
     required this.id,
     required this.title,
-    required this.destinations,
+    String? destinations,
+    List<String>? destinationsList,
     required this.operatorName,
     required this.durationDays,
     required this.priceVnd,
+    this.currency = 'VND',
+    this.representativeScheduleId,
     this.rating,
     this.imageUrl,
     this.availabilityStatus = AvailabilityStatus.available,
     this.remainingSlots,
     this.departureAtUtc,
     this.isCuratedAsset = false,
-  });
+  }) : assert(
+         destinations != null || destinationsList != null,
+         'Either destinations or destinationsList must be provided.',
+       ),
+       _destinationsList = destinationsList,
+       _destinationsString = destinations;
 
   factory TourDiscoveryItem.fromSummary(TourSummary summary) {
     return TourDiscoveryItem(
       id: summary.tourId,
       title: summary.title,
-      destinations: summary.destinations.join(' · '),
+      destinationsList: summary.destinations,
       operatorName: summary.operatorName,
       durationDays: summary.durationDays,
       priceVnd: summary.basePrice,
+      currency: summary.currency,
+      representativeScheduleId: summary.representativeScheduleId,
       rating: summary.aggregateRating,
       imageUrl: summary.thumbnailUrl,
       availabilityStatus: summary.availabilityStatus,
@@ -39,10 +49,13 @@ class TourDiscoveryItem extends Equatable {
 
   final String id;
   final String title;
-  final String destinations;
+  final List<String>? _destinationsList;
+  final String? _destinationsString;
   final String operatorName;
   final int durationDays;
   final int priceVnd;
+  final String currency;
+  final String? representativeScheduleId;
   final double? rating;
   final String? imageUrl;
   final AvailabilityStatus availabilityStatus;
@@ -50,16 +63,35 @@ class TourDiscoveryItem extends Equatable {
   final DateTime? departureAtUtc;
   final bool isCuratedAsset;
 
+  /// Derived display string joining canonical destinations with ' · '.
+  String get destinations {
+    if (_destinationsList != null) {
+      return _destinationsList.join(' · ');
+    }
+    return _destinationsString ?? '';
+  }
+
+  /// Canonical ordered list of destinations.
+  List<String> get destinationsList {
+    if (_destinationsList != null) {
+      return _destinationsList;
+    }
+    if (_destinationsString != null && _destinationsString.isNotEmpty) {
+      return _destinationsString.split(' · ');
+    }
+    return const [];
+  }
+
   TourSummary toSummary() {
     return TourSummary(
       tourId: id,
       title: title,
-      destinations: destinations.split(' · '),
+      destinations: destinationsList,
       operatorName: operatorName,
       durationDays: durationDays,
       basePrice: priceVnd,
-      currency: 'VND',
-      representativeScheduleId: null,
+      currency: currency,
+      representativeScheduleId: representativeScheduleId,
       departureAtUtc: departureAtUtc,
       availabilityStatus: availabilityStatus,
       remainingSlots: remainingSlots,
@@ -72,10 +104,12 @@ class TourDiscoveryItem extends Equatable {
   List<Object?> get props => [
     id,
     title,
-    destinations,
+    destinationsList,
     operatorName,
     durationDays,
     priceVnd,
+    currency,
+    representativeScheduleId,
     rating,
     imageUrl,
     availabilityStatus,
