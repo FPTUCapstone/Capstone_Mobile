@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/availability_status.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summary.dart';
-import 'package:trip_mate_mobile/features/tour_search/presentation/resources/tour_search_en.dart';
+import 'package:trip_mate_mobile/features/tour_search/presentation/resources/public_search_copy.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/theme/tour_search_palette.dart';
 
 class TourListCard extends StatelessWidget {
@@ -91,9 +91,7 @@ class TourListCard extends StatelessWidget {
                         ),
                         const SizedBox(width: AppSpacing.xxs),
                         Text(
-                          useEnglish
-                              ? TourSearchEn.days(tour.durationDays)
-                              : '${tour.durationDays} ngày',
+                          publicSearchDays(tour.durationDays, useEnglish),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: TourSearchPalette.navyLight,
                           ),
@@ -178,21 +176,23 @@ class TourListCard extends StatelessWidget {
   }
 
   static String _availabilityLabel(TourSummary tour, bool useEnglish) {
-    if (useEnglish) {
-      return switch (tour.availabilityStatus) {
-        AvailabilityStatus.available => TourSearchEn.placesLeft(
-          tour.remainingSlots,
-        ),
-        AvailabilityStatus.soldOut => TourSearchEn.soldOut,
-        AvailabilityStatus.noUpcomingSchedule => TourSearchEn.noSchedule,
-        AvailabilityStatus.unknown => TourSearchEn.availabilityUnknown,
-      };
-    }
     return switch (tour.availabilityStatus) {
-      AvailabilityStatus.available => 'Còn ${tour.remainingSlots ?? '?'} chỗ',
-      AvailabilityStatus.soldOut => 'Hết chỗ',
-      AvailabilityStatus.noUpcomingSchedule => 'Chưa có lịch khởi hành',
-      AvailabilityStatus.unknown => 'Tình trạng chỗ chưa xác định',
+      AvailabilityStatus.available => publicSearchSlots(
+        tour.remainingSlots,
+        useEnglish,
+      ),
+      AvailabilityStatus.soldOut => publicSearchCopy(
+        SearchText.soldOut,
+        useEnglish,
+      ),
+      AvailabilityStatus.noUpcomingSchedule => publicSearchCopy(
+        SearchText.noSchedule,
+        useEnglish,
+      ),
+      AvailabilityStatus.unknown => publicSearchCopy(
+        SearchText.unknown,
+        useEnglish,
+      ),
     };
   }
 }
@@ -212,19 +212,17 @@ class _AvailabilityBadge extends StatelessWidget {
         Icons.event_available_outlined,
       ),
       AvailabilityStatus.soldOut => (
-        useEnglish ? TourSearchEn.soldOut : 'Hết chỗ',
+        publicSearchCopy(SearchText.soldOut, useEnglish),
         TourSearchPalette.soldOut,
         Icons.event_busy_outlined,
       ),
       AvailabilityStatus.noUpcomingSchedule => (
-        useEnglish ? TourSearchEn.noSchedule : 'Chưa có lịch khởi hành',
+        publicSearchCopy(SearchText.noSchedule, useEnglish),
         TourSearchPalette.muted,
         Icons.event_outlined,
       ),
       AvailabilityStatus.unknown => (
-        useEnglish
-            ? TourSearchEn.availabilityUnknown
-            : 'Tình trạng chỗ chưa xác định',
+        publicSearchCopy(SearchText.unknown, useEnglish),
         TourSearchPalette.muted,
         Icons.help_outline,
       ),
@@ -261,10 +259,10 @@ class _AvailabilityBadge extends StatelessWidget {
   }
 
   String _availableLabel() {
-    if (useEnglish) return TourSearchEn.placesLeft(tour.remainingSlots);
+    if (useEnglish) return publicSearchSlots(tour.remainingSlots, true);
     final parts = <String>[];
     if (tour.remainingSlots != null) {
-      parts.add('Còn ${tour.remainingSlots} chỗ');
+      parts.add(publicSearchSlots(tour.remainingSlots, false));
     }
     if (tour.departureAtUtc != null) {
       final vn = tour.departureAtUtc!.add(const Duration(hours: 7));
@@ -272,7 +270,9 @@ class _AvailabilityBadge extends StatelessWidget {
       final month = vn.month.toString().padLeft(2, '0');
       parts.add('$day/$month/${vn.year}');
     }
-    return parts.isEmpty ? 'Có chỗ' : parts.join(' • ');
+    return parts.isEmpty
+        ? publicSearchCopy(SearchText.available, false)
+        : parts.join(' • ');
   }
 }
 
@@ -300,9 +300,7 @@ class _TourThumbnail extends StatelessWidget {
           ? Image.network(
               rawUrl,
               fit: BoxFit.cover,
-              semanticLabel: useEnglish
-                  ? TourSearchEn.imageOf(tour.title)
-                  : 'Ảnh ${tour.title}',
+              semanticLabel: publicSearchImage(tour.title, useEnglish),
               errorBuilder: (_, _, _) => const _NeutralThumbnailPlaceholder(),
               loadingBuilder: (_, child, loadingProgress) {
                 if (loadingProgress == null) return child;

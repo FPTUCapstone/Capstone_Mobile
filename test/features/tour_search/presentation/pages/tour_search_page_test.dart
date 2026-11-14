@@ -13,6 +13,11 @@ import 'package:trip_mate_mobile/features/tour_search/presentation/pages/tour_se
 
 void main() {
   group('TourSearchPage', () {
+    final dispatcher =
+        TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher;
+    setUp(() => dispatcher.localeTestValue = const Locale('vi'));
+    tearDown(dispatcher.clearLocaleTestValue);
+
     testWidgets('renders tours and header in success state', (tester) async {
       final repository = _FakeTourRepository(
         result: const PagedTourResult(
@@ -192,6 +197,44 @@ void main() {
       expect(find.text('Danh mục'), findsOneWidget);
     });
 
+    testWidgets('public locale switch preserves input and does not search', (
+      tester,
+    ) async {
+      final repository = _FakeTourRepository(
+        result: const PagedTourResult(
+          page: 1,
+          pageSize: 20,
+          totalCount: 0,
+          totalPages: 0,
+          items: [],
+        ),
+      );
+      final cubit = TourSearchCubit(
+        searchTours: SearchToursUseCase(repository),
+      );
+      addTearDown(cubit.close);
+      await cubit.loadInitial();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BlocProvider.value(value: cubit, child: const TourSearchPage()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final input = find.byKey(const Key('public-search-keyword'));
+      await tester.enterText(input, 'Huế');
+      final before = cubit.state;
+      final calls = repository.searchCalls;
+      final selector = tester.widget<DropdownButton<String>>(
+        find.byType(DropdownButton<String>).first,
+      );
+      selector.onChanged!('en');
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(input).controller!.text, 'Huế');
+      expect(tester.widget<TextField>(input).decoration!.labelText, 'Keyword');
+      expect(cubit.state, same(before));
+      expect(repository.searchCalls, calls);
+    });
+
     testWidgets('opens an empty date filter at the current local day', (
       tester,
     ) async {
@@ -239,9 +282,11 @@ final class _FakeTourRepository implements TourSearchRepository {
 
   final PagedTourResult? result;
   final Failure? error;
+  int searchCalls = 0;
 
   @override
   Future<PagedTourResult> searchTours(TourSearchQuery query) async {
+    searchCalls++;
     if (error != null) throw error!;
     return result!;
   }
