@@ -32,14 +32,18 @@ This document provides complete implementation, motion verification, architectur
    - Updated `TourDiscoveryItem` to preserve `representativeScheduleId` and `currency` without hardcoded defaults.
    - Preserved canonical ordered `destinationsList`, eliminating delimiter corruption when destination names contain ` · ` or when lists are empty.
    - Verified 1:1 lossless round-tripping between `TourSummary` and `TourDiscoveryItem`.
-5. **R5 — Reconciled Documentation & Verification Claims:**
+5. **R5 — Currency Integrity & Non-VND Protection:**
+   - Implemented `formatTourDiscoveryPrice` in `tour_discovery_meta_widgets.dart` to format VND using standard conventions while explicitly formatting non-VND currencies (e.g. `USD`, `EUR`, `JPY`) with their actual currency code and thousand separators.
+   - Wired `currency: tour.currency` to `PriceAnchor`, `InlinePriceWithUnit`, and accessibility `semanticLabel`s on both `FeaturedTourEditorialCard` and `CompactHorizontalTourCard`.
+   - Prevented silent mislabeling of foreign currencies as VND.
+6. **R6 — Reconciled Documentation & Verification Claims:**
    - Corrected git HEAD SHA references against actual commit tree.
    - Removed all unsubstantiated claims asserting that `FlowDelegate` or `RepaintBoundary` "guarantees" 60/120 FPS.
    - Explicitly maintained **`PERFORMANCE_NOT_VERIFIED`** pending actual Profile AOT hardware evidence.
    - Maintained **`SONARQUBE_NOT_VERIFIED`** under SRS §4.2.6 due to absence of scanner tooling in the environment.
-6. **R6 — Verified CI Workflow & Comprehensive Test Suite:**
+7. **R7 — Verified CI Workflow & Comprehensive Test Suite:**
    - Documented that stacked PR #77 receives no automatic GitHub Actions checks because `.github/workflows/ci.yml` strictly targets base branches `[develop, main]`.
-   - Added `tour_discovery_item_test.dart` (8 tests) and updated `traveler_tour_discovery_integration_test.dart`. Full test suite passed (2,461 tests passed, 0 failed, 4 skipped).
+   - Executed full test suite (**2,467 passed, 0 failed, 4 skipped** across 817 files).
 
 ---
 
@@ -174,4 +178,7 @@ All commits on `feature/editorial-tour-discovery-motion` stacked on base `eb9158
 | **09** | `66c5d59` | `docs(tour-discovery): reconcile verification claims and update PR77 evidence` |
 | **10** | `a39fcf2` | `fix(tour-discovery): preserve full tour contract fields without data loss` |
 | **11** | `48dc2ec` | `test(tour-discovery): verify lossless round-trip and contract fidelity` |
-| **12** | `HEAD` | `docs(tour-discovery): document lossless contract remediation evidence` |
+| **12** | `b6acfd5` | `docs(tour-discovery): document lossless contract remediation evidence` |
+| **13** | `190282a` | `fix(tour-discovery): enforce explicit currency formatting and prevent silent VND mislabeling` |
+| **14** | `da277d1` | `test(tour-discovery): verify currency formatting integrity and non-VND card rendering` |
+| **15** | `HEAD` | `docs(tour-discovery): document currency integrity and final merge handoff readiness` |
