@@ -476,6 +476,7 @@ final class _Repository implements ItineraryRepository {
     required int itineraryId,
     required List<ItineraryStop> stops,
     required String idempotencyKey,
+    Map<int, StopRemovalReason> removalReasons = const {},
   }) async {
     sentStops.add(stops);
     if (updateFailure != null) throw updateFailure!;

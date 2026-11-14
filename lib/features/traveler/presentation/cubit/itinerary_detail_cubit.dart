@@ -120,7 +120,11 @@ final class ItineraryDetailCubit extends Cubit<ItineraryDetailState> {
   }
 
   /// Puts the visit stops in this order (leaving out the others).
-  Future<void> reorder(List<int> orderedVisitPoiIds) async {
+  /// [removalReasons] tells, by POI ID, why a stop was left out.
+  Future<void> reorder(
+    List<int> orderedVisitPoiIds, {
+    Map<int, StopRemovalReason> removalReasons = const {},
+  }) async {
     final detail = state.detail;
     if (detail == null) return;
     final ids = List<int>.unmodifiable(orderedVisitPoiIds);
@@ -136,6 +140,7 @@ final class ItineraryDetailCubit extends Cubit<ItineraryDetailState> {
     }
     await updateStops(
       ItineraryStops.reorder(ItineraryStops.current(detail), ids),
+      removalReasons: removalReasons,
     );
   }
 
@@ -190,12 +195,12 @@ final class ItineraryDetailCubit extends Cubit<ItineraryDetailState> {
     );
   }
 
-  Future<void> removeStop(int poiId) async {
+  Future<void> removeStop(int poiId, StopRemovalReason reason) async {
     final detail = state.detail;
     if (detail == null) return;
     final stops = ItineraryStops.remove(ItineraryStops.current(detail), poiId);
     if (stops.isEmpty) return;
-    await updateStops(stops);
+    await updateStops(stops, removalReasons: {poiId: reason});
   }
 
   /// Re-sends the stops from before the last edit.
@@ -208,9 +213,12 @@ final class ItineraryDetailCubit extends Cubit<ItineraryDetailState> {
 
   /// Saves exactly these stops as a new version. [newPlaceNames] names places
   /// that are not in the itinerary yet, for a "does not fit" message.
+  /// [removalReasons] tells, by POI ID, why a stop was left out; it is not
+  /// part of the operation key, which identifies the stops only.
   Future<void> updateStops(
     List<ItineraryStop> stops, {
     Map<int, String> newPlaceNames = const {},
+    Map<int, StopRemovalReason> removalReasons = const {},
     bool isUndo = false,
   }) async {
     if (isClosed) return;
@@ -242,6 +250,7 @@ final class ItineraryDetailCubit extends Cubit<ItineraryDetailState> {
         itineraryId: itineraryId,
         stops: pending,
         idempotencyKey: key,
+        removalReasons: removalReasons,
       );
       if (isClosed) return;
       _itineraryId = detail.itineraryId;

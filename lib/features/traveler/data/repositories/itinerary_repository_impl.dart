@@ -14,12 +14,14 @@ import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_sum
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_list_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_suggestion_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/recommendation_feedback_repository.dart';
 
 final class ItineraryRepositoryImpl
     implements
         ItineraryRepository,
         ItineraryListRepository,
-        ItinerarySuggestionRepository {
+        ItinerarySuggestionRepository,
+        RecommendationFeedbackRepository {
   const ItineraryRepositoryImpl({required DioClient dioClient})
     : _dioClient = dioClient;
 
@@ -116,6 +118,7 @@ final class ItineraryRepositoryImpl
     required int itineraryId,
     required List<ItineraryStop> stops,
     required String idempotencyKey,
+    Map<int, StopRemovalReason> removalReasons = const {},
   }) async {
     try {
       final response = await _dioClient.dio.put<Map<String, dynamic>>(
@@ -129,6 +132,12 @@ final class ItineraryRepositoryImpl
                   'transportModeToNext': transportModeApiName(mode),
               },
           ],
+          if (removalReasons.isNotEmpty)
+            'removedStops': [
+              for (final MapEntry(key: poiId, value: reason)
+                  in removalReasons.entries)
+                {'poiId': poiId, 'reason': _removalReasonName(reason)},
+            ],
         },
         options: Options(headers: {'Idempotency-Key': idempotencyKey}),
       );
@@ -164,6 +173,36 @@ final class ItineraryRepositoryImpl
       throw ErrorMapper.toFailure(error);
     }
   }
+
+  @override
+  Future<void> sendStopFeedback({
+    required String clientEventId,
+    required int itineraryId,
+    required int poiId,
+    required bool liked,
+  }) async {
+    try {
+      await _dioClient.dio.post<Object?>(
+        '/api/v1/recommendation-feedback',
+        data: {
+          'clientEventId': clientEventId,
+          'eventType': liked ? 'Like' : 'Dislike',
+          'poiId': poiId,
+          'itineraryId': itineraryId,
+          'source': 'Itinerary',
+        },
+      );
+    } catch (error) {
+      throw ErrorMapper.toFailure(error);
+    }
+  }
+
+  static String _removalReasonName(StopRemovalReason reason) =>
+      switch (reason) {
+        StopRemovalReason.notInterested => 'NotInterested',
+        StopRemovalReason.noTime => 'NoTime',
+        StopRemovalReason.alreadyVisited => 'AlreadyVisited',
+      };
 
   ItineraryDetail _detail(Map<String, dynamic>? data) {
     if (data == null) {

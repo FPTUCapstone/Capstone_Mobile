@@ -205,7 +205,9 @@ GoRouter createAppRouter(
           create: (_) =>
               serviceLocator<PoiDetailCubit>()
                 ..load(state.pathParameters['id'] ?? ''),
-          child: const PoiDetailPage(),
+          child: PoiDetailPage(
+            isTraveler: sessionCubit.state.role == UserRole.traveler,
+          ),
         ),
       ),
       GoRoute(

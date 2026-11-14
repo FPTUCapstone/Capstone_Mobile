@@ -22,12 +22,14 @@ abstract interface class ItineraryRepository {
   );
 
   /// Saves a new version with exactly these visit stops (add, replace, remove,
-  /// reorder, or change a leg's transport). Throws `StopInfeasibleFailure`
-  /// when a stop would not fit.
+  /// reorder, or change a leg's transport). [removalReasons] tells, by POI ID,
+  /// why a stop was left out. Throws `StopInfeasibleFailure` when a stop would
+  /// not fit.
   Future<ItineraryDetail> updateStops({
     required int itineraryId,
     required List<ItineraryStop> stops,
     required String idempotencyKey,
+    Map<int, StopRemovalReason> removalReasons = const {},
   }) => throw UnimplementedError(
     'Persisted itinerary adjustment is not available.',
   );

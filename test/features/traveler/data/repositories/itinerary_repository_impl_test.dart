@@ -64,6 +64,98 @@ void main() {
     expect(detail.version, 2);
   });
 
+  test('updateStops sends why the removed stops were removed', () async {
+    final adapter = respond(_detailJson(itineraryId: 11, version: 2));
+
+    await repository.updateStops(
+      itineraryId: 10,
+      stops: const [ItineraryStop(poiId: 12)],
+      idempotencyKey: 'key-1',
+      removalReasons: const {
+        34: StopRemovalReason.notInterested,
+        35: StopRemovalReason.noTime,
+        36: StopRemovalReason.alreadyVisited,
+      },
+    );
+
+    expect(adapter.request?.headers['Idempotency-Key'], 'key-1');
+    expect(adapter.request?.data, {
+      'stops': [
+        {'poiId': 12},
+      ],
+      'removedStops': [
+        {'poiId': 34, 'reason': 'NotInterested'},
+        {'poiId': 35, 'reason': 'NoTime'},
+        {'poiId': 36, 'reason': 'AlreadyVisited'},
+      ],
+    });
+  });
+
+  test('updateStops leaves removedStops out when there is no reason', () async {
+    final adapter = respond(_detailJson());
+
+    await repository.updateStops(
+      itineraryId: 10,
+      stops: const [ItineraryStop(poiId: 12)],
+      idempotencyKey: 'key-1',
+      removalReasons: const {},
+    );
+
+    expect(adapter.request?.data, {
+      'stops': [
+        {'poiId': 12},
+      ],
+    });
+  });
+
+  test('a thumbs up is sent as a Like on the itinerary', () async {
+    final adapter = respond({'eventId': 1}, statusCode: 201);
+
+    await repository.sendStopFeedback(
+      clientEventId: 'event-1',
+      itineraryId: 99,
+      poiId: 12,
+      liked: true,
+    );
+
+    expect(adapter.request?.method, 'POST');
+    expect(adapter.request?.path, '/api/v1/recommendation-feedback');
+    expect(adapter.request?.data, {
+      'clientEventId': 'event-1',
+      'eventType': 'Like',
+      'poiId': 12,
+      'itineraryId': 99,
+      'source': 'Itinerary',
+    });
+  });
+
+  test('a thumbs down is sent as a Dislike', () async {
+    final adapter = respond({'eventId': 1});
+
+    await repository.sendStopFeedback(
+      clientEventId: 'event-2',
+      itineraryId: 99,
+      poiId: 12,
+      liked: false,
+    );
+
+    expect((adapter.request?.data as Map)['eventType'], 'Dislike');
+  });
+
+  test('feedback the backend rejects is a typed failure', () async {
+    respond({'title': 'Not found'}, statusCode: 404);
+
+    await expectLater(
+      repository.sendStopFeedback(
+        clientEventId: 'event-3',
+        itineraryId: 99,
+        poiId: 12,
+        liked: true,
+      ),
+      throwsA(isA<NotFoundFailure>()),
+    );
+  });
+
   test('food suggestions are asked for after a stop', () async {
     final adapter = respond({
       'itineraryId': 10,
