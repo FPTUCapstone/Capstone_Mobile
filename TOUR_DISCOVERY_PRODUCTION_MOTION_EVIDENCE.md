@@ -120,15 +120,27 @@ Zero `RenderFlex` overflow errors verified across all tested physical viewport c
 ## 6. SRS §4.2.6 & Quality Gate Analysis
 
 ### 6.1 SonarQube Status: `SONARQUBE_NOT_VERIFIED`
-- **Official SRS Clause:** §4.2.6 requires maintainability and testability with zero Critical or Blocker bugs before release.
+- **Official SRS Clause:** §4.2.6 requires maintainability and testability: *"Quality Gate: SonarQube must pass with 0 Critical/Blocker bugs before merge."* (Mandated strictly prior to merge into `develop`).
 - **Investigation Result:**
   - `sonar-project.properties`: **Absent** from repository root.
-  - `sonar-scanner` / SonarCloud CLI: **Not installed** in execution environment.
+  - `sonar-scanner` / SonarQube CLI: **Not installed** in execution environment.
   - GitHub Actions SonarQube workflow: **Not configured** in `.github/workflows/`.
-- **Classification:** **`SONARQUBE_NOT_VERIFIED`** (honestly reported without fabricating passing quality gate evidence).
-- **Remediation Recommendation:** Add SonarCloud integration to GitHub Actions via `SonarSource/sonarqube-scan-action` configured for Dart LCOV analysis.
+  - Repository Secrets: `gh secret list` confirms only `MAPBOX_ACCESS_TOKEN` is present; `SONAR_TOKEN` is **absent**.
+- **Classification:** **`SONARQUBE_NOT_VERIFIED`** (honestly reported; cannot claim passing quality gate without active tooling).
+- **Remediation Recommendation:**
+  - Register the public repository on SonarCloud (free for open-source public repos) or configure an on-prem SonarQube server.
+  - Add `SONAR_TOKEN` to GitHub Actions repository secrets.
+  - Use the official supported **`sonarsource/sonarqube-scan-action`** and **`sonarsource/sonarqube-quality-gate-action`** (replacing the deprecated `sonarcloud-github-action`).
+  - Configure `sonar.dart.coverage.reportPaths=coverage/lcov.info` to import Flutter coverage.
 
-### 6.2 Code Quality & Static Analysis: `PASS`
+### 6.2 Code Coverage Status: `COVERAGE_NOT_VERIFIED`
+- **Official SRS Clause:** §4.2.6 requires: *"Test Coverage: Unit test ≥ 85% (CSP/FSM logic); Integration test ≥ 80%."*
+- **Investigation Result:**
+  - Total tests passing: **2,467 passed, 0 failed, 4 skipped** across 817 test files.
+  - Code coverage calculation: Line/branch percentage metrics from `flutter test --coverage` have not yet been generated into `coverage/lcov.info` and parsed.
+- **Classification:** **`COVERAGE_NOT_VERIFIED`** (passing test counts alone verify functionality and prevent regression, but do not satisfy formal percentage coverage compliance without LCOV analysis).
+
+### 6.3 Code Quality & Static Analysis: `PASS`
 - `dart analyze .`: **0 issues found** (Clean across entire codebase).
 - `dart format --set-exit-if-changed .`: **0 changed files (100% compliant)**.
 - Strict null safety: 100% compliant, zero force unwraps (`!`).
@@ -181,4 +193,5 @@ All commits on `feature/editorial-tour-discovery-motion` stacked on base `eb9158
 | **12** | `b6acfd5` | `docs(tour-discovery): document lossless contract remediation evidence` |
 | **13** | `190282a` | `fix(tour-discovery): enforce explicit currency formatting and prevent silent VND mislabeling` |
 | **14** | `da277d1` | `test(tour-discovery): verify currency formatting integrity and non-VND card rendering` |
-| **15** | `HEAD` | `docs(tour-discovery): document currency integrity and final merge handoff readiness` |
+| **15** | `b212c6b` | `docs(tour-discovery): document currency integrity and final merge handoff readiness` |
+| **16** | `HEAD` | `docs(tour-discovery): align merge gates with SRS 4.2.6 and SonarQube scan action` |
