@@ -19,6 +19,8 @@ import 'package:uuid/uuid.dart';
 final class BookTourCubit extends Cubit<BookTourState> {
   BookTourCubit({
     required String tourScheduleId,
+    int? initialAdultCount,
+    ParticipantCounts? initialParticipantCounts,
     required QuoteBookingUseCase quoteBooking,
     required CreateBookingUseCase createBooking,
     required GetBookingContactUseCase getBookingContact,
@@ -26,7 +28,14 @@ final class BookTourCubit extends Cubit<BookTourState> {
        _quoteBooking = quoteBooking,
        _createBooking = createBooking,
        _getBookingContact = getBookingContact,
-       super(const BookTourState()) {
+       super(
+         BookTourState(
+           participantCounts: _initialCounts(
+             initialAdultCount,
+             initialParticipantCounts,
+           ),
+         ),
+       ) {
     _requestQuote();
     _loadBookingContact();
   }
@@ -40,6 +49,23 @@ final class BookTourCubit extends Cubit<BookTourState> {
   int _quoteGeneration = 0;
   String? _pendingIdempotencyKey;
   String? _pendingPayload;
+
+  static int _initialAdultCount(int? value) =>
+      value != null && value >= 1 && value <= 50 ? value : 1;
+
+  static ParticipantCounts _initialCounts(
+    int? adults,
+    ParticipantCounts? counts,
+  ) {
+    if (counts != null &&
+        counts.adult >= 1 &&
+        counts.child >= 0 &&
+        counts.infant >= 0 &&
+        counts.total <= 50) {
+      return counts;
+    }
+    return ParticipantCounts(adult: _initialAdultCount(adults));
+  }
 
   void updateParticipantCounts(ParticipantCounts counts) {
     emit(state.copyWith(participantCounts: counts));

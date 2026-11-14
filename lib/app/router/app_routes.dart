@@ -35,6 +35,8 @@ abstract final class AppRoutes {
       '/bookings/$bookingId/refund';
 
   static const traveler = '/traveler';
+  static const supportChat = '/traveler/support-chat';
+  static const operatorSupportChat = '/operator/support-chat';
   static const tourRecommendations = '/traveler/tours/recommendations';
   static const travelerSettings = '/traveler/settings';
   static const inAppInbox = '/traveler/notifications';
@@ -127,10 +129,23 @@ abstract final class AppRoutes {
   static String poiDetail(int id) => '/explore/poi/$id';
   static String tourDetail(String tourId, {bool demo = false}) =>
       demo ? '/explore/tours/$tourId?demo=true' : '/explore/tours/$tourId';
-  static String bookTour(String tourId, String scheduleId) => Uri(
-    path: '/explore/tours/$tourId/book',
-    queryParameters: {'scheduleId': scheduleId},
-  ).toString();
+  static String bookTour(
+    String tourId,
+    String scheduleId, {
+    int? adults,
+    int? children,
+    int? infants,
+  }) {
+    final parameters = <String, String>{'scheduleId': scheduleId};
+    if (adults != null) parameters['adults'] = adults.toString();
+    if (children != null) parameters['children'] = children.toString();
+    if (infants != null) parameters['infants'] = infants.toString();
+    return Uri(
+      path: '/explore/tours/$tourId/book',
+      queryParameters: parameters,
+    ).toString();
+  }
+
   static const authPrefix = '/auth';
   static const travelerPrefix = '/traveler';
   static const operatorPrefix = '/operator';

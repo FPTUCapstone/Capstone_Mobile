@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
+import 'package:trip_mate_mobile/features/support_chat/domain/entities/support_chat.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_stop.dart';
@@ -11,6 +13,39 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/itinerary_
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_detail_page.dart';
 
 void main() {
+  testWidgets('support action passes the explicitly viewed itinerary', (
+    tester,
+  ) async {
+    final cubit = ItineraryDetailCubit(repository: _Repository(_ownerDetail));
+    addTearDown(cubit.close);
+    SupportChatContext? selected;
+    final router = GoRouter(
+      initialLocation: '/detail',
+      routes: [
+        GoRoute(
+          path: '/detail',
+          builder: (_, _) => BlocProvider.value(
+            value: cubit,
+            child: const ItineraryDetailPage(itineraryId: 10),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.supportChat,
+          builder: (_, state) {
+            selected = state.extra as SupportChatContext?;
+            return const Scaffold(body: Text('Itinerary support'));
+          },
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Ask about this itinerary'));
+    await tester.pumpAndSettle();
+    expect(selected, const SupportChatContext(kind: 'itinerary', id: '10'));
+    expect(find.text('Itinerary support'), findsOneWidget);
+  });
   testWidgets('owner sees persisted timeline and owner actions', (
     tester,
   ) async {
