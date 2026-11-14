@@ -49,7 +49,7 @@ final class TourRecommendationsState extends Equatable {
   const TourRecommendationsState.noPreferences({bool isDemoMode = false})
     : this(
         status: TourRecommendationsStatus.noPreferences,
-        errorMessage: msg28,
+        errorMessage: msg183,
         isDemoMode: isDemoMode,
       );
 
@@ -95,8 +95,8 @@ final class TourRecommendationsState extends Equatable {
   bool get isLoading => status == TourRecommendationsStatus.loading;
   bool get hasMore => currentPage < totalPages;
 
-  /// MSG28: No interest tag configured.
-  static const String msg28 =
+  /// MSG183: Add at least one interest tag in Travel Preferences (current SRS).
+  static const String msg183 =
       'Please configure at least one travel interest tag in Travel Preferences to receive personalized tour recommendations.';
 
   /// MSG64: No tours reach the similarity threshold (> 80%).

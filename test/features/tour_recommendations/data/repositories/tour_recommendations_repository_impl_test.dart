@@ -12,12 +12,12 @@ void main() {
     () async {
       final repository = TourRecommendationsRepositoryImpl(
         _FakeDataSource([
-          _candidate('threshold', 0.80),
-          _candidate('private', 0.99, isPublic: false),
-          _candidate('unapproved', 0.98, isApproved: false),
-          _candidate('sold-out', 0.97, status: AvailabilityStatus.soldOut),
-          _candidate('second', 0.82),
-          _candidate('first', 0.95),
+          _candidate('threshold', 80.00),
+          _candidate('private', 99, isPublic: false),
+          _candidate('unapproved', 98, isApproved: false),
+          _candidate('sold-out', 97, status: AvailabilityStatus.soldOut),
+          _candidate('second', 82),
+          _candidate('first', 95),
         ]),
       );
 
@@ -34,7 +34,7 @@ void main() {
   );
 
   test('returns no preferences before asking the data source', () async {
-    final source = _FakeDataSource([_candidate('tour', 0.95)]);
+    final source = _FakeDataSource([_candidate('tour', 95)]);
     final repository = TourRecommendationsRepositoryImpl(source);
 
     final result = await repository.getRecommendations(
@@ -47,7 +47,7 @@ void main() {
 
   test('returns no matches when all candidates are ineligible', () async {
     final repository = TourRecommendationsRepositoryImpl(
-      _FakeDataSource([_candidate('threshold', 0.80)]),
+      _FakeDataSource([_candidate('threshold', 80.00)]),
     );
 
     final result = await repository.getRecommendations(
@@ -90,7 +90,9 @@ final class _FakeDataSource implements TourRecommendationsDataSource {
   int calls = 0;
 
   @override
-  Future<TourRecommendationCandidates> fetchCandidates() async {
+  Future<TourRecommendationCandidates> fetchCandidates(
+    TourRecommendationsQuery query,
+  ) async {
     calls++;
     return TourRecommendationCandidatesAvailable(candidates);
   }

@@ -1,6 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:trip_mate_mobile/features/tour_recommendations/domain/entities/tour_recommendation.dart';
+import 'package:trip_mate_mobile/features/tour_recommendations/domain/entities/tour_recommendations_query.dart';
+import 'package:trip_mate_mobile/features/tour_recommendations/domain/entities/tour_recommendations_result.dart';
+import 'package:trip_mate_mobile/features/tour_recommendations/domain/repositories/tour_recommendations_repository.dart';
+import 'package:trip_mate_mobile/features/tour_recommendations/domain/usecases/get_tour_recommendations.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/presentation/cubit/tour_recommendations_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/presentation/cubit/tour_recommendations_state.dart';
+import 'package:trip_mate_mobile/features/tour_search/domain/entities/availability_status.dart';
+import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summary.dart';
 
 void main() {
   group('TourRecommendationsCubit', () {
@@ -30,7 +37,7 @@ void main() {
     );
 
     test(
-      'demo mode loads deterministic recommendations with scores > 0.80',
+      'demo mode loads deterministic recommendations with scores > 80.00',
       () async {
         final cubit = TourRecommendationsCubit(isDemoMode: true);
         addTearDown(cubit.close);
@@ -43,7 +50,7 @@ void main() {
 
         // Verify all items have matchingScore > 0.80
         for (final rec in cubit.state.recommendations) {
-          expect(rec.matchingScore, greaterThan(0.80));
+          expect(rec.matchingScore, greaterThan(80.00));
         }
 
         // Verify descending order
@@ -64,19 +71,19 @@ void main() {
 
       await cubit.load();
       expect(cubit.state.currentPage, 1);
-      expect(cubit.state.totalPages, 2);
+      expect(cubit.state.totalPages, 1);
 
       await cubit.loadDemoPage(2);
-      expect(cubit.state.currentPage, 2);
+      expect(cubit.state.currentPage, 1);
       expect(cubit.state.recommendations, isNotEmpty);
 
       // Page boundary clamping
       await cubit.loadDemoPage(99);
-      expect(cubit.state.currentPage, 2);
+      expect(cubit.state.currentPage, 1);
     });
 
     test(
-      'simulateNoPreferences emits noPreferences state with MSG28',
+      'simulateNoPreferences emits noPreferences state with MSG183',
       () async {
         final cubit = TourRecommendationsCubit(isDemoMode: true);
         addTearDown(cubit.close);
@@ -84,7 +91,7 @@ void main() {
         cubit.simulateNoPreferences();
 
         expect(cubit.state.status, TourRecommendationsStatus.noPreferences);
-        expect(cubit.state.errorMessage, TourRecommendationsState.msg28);
+        expect(cubit.state.errorMessage, TourRecommendationsState.msg183);
       },
     );
 
@@ -118,5 +125,56 @@ void main() {
       await cubit.refresh();
       expect(cubit.state.status, TourRecommendationsStatus.success);
     });
+
+    test('MSG127 keeps the previously displayed recommendations', () async {
+      final repository = _SuccessThenFailureRepository();
+      final cubit = TourRecommendationsCubit(
+        getTourRecommendations: GetTourRecommendations(repository),
+      );
+      addTearDown(cubit.close);
+
+      await cubit.load();
+      await cubit.refresh();
+
+      expect(cubit.state.status, TourRecommendationsStatus.success);
+      expect(cubit.state.recommendations, const [_recommendation]);
+      expect(cubit.state.errorMessage, TourRecommendationsState.msg127);
+    });
   });
+}
+
+const _recommendation = TourRecommendation(
+  tour: TourSummary(
+    tourId: '1',
+    title: 'Hoi An',
+    destinations: ['Hoi An'],
+    operatorName: 'TripMate',
+    durationDays: 1,
+    basePrice: 100000,
+    currency: 'VND',
+    representativeScheduleId: '2',
+    departureAtUtc: null,
+    availabilityStatus: AvailabilityStatus.available,
+    remainingSlots: 1,
+  ),
+  matchingScore: 90,
+);
+
+final class _SuccessThenFailureRepository
+    implements TourRecommendationsRepository {
+  var calls = 0;
+
+  @override
+  Future<TourRecommendationsResult> getRecommendations(
+    TourRecommendationsQuery query,
+  ) async {
+    calls++;
+    if (calls > 1) throw StateError('network');
+    return const TourRecommendationsSuccess(
+      recommendations: [_recommendation],
+      currentPage: 1,
+      totalPages: 1,
+      totalItems: 1,
+    );
+  }
 }
