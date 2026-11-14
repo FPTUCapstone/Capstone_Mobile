@@ -364,6 +364,17 @@ void main() {
 
         await tester.pumpAndSettle();
 
+        // Assert lossless contract data transfer to TourDetailPage initialSummary
+        final detailWidget = tester.widget<TourDetailPage>(
+          find.byType(TourDetailPage),
+        );
+        expect(detailWidget.initialSummary?.representativeScheduleId, 'sch_01');
+        expect(detailWidget.initialSummary?.currency, 'VND');
+        expect(detailWidget.initialSummary?.destinations, const [
+          'Huế',
+          'Đại Nội',
+        ]);
+
         // Back navigation verification
         expect(find.byIcon(Icons.arrow_back), findsWidgets);
         await tester.tap(find.byIcon(Icons.arrow_back).first);
