@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/emergency_tour/domain/entities/emergency_action.dart';
@@ -185,10 +187,7 @@ class _TravelerEmergencyPageState extends State<TravelerEmergencyPage>
                 ],
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.only(bottom: AppSpacing.sm),
-              child: Text(_Strings.paymentHandlingNotice),
-            ),
+            _refundAndRebooking(context, emergency),
             const Padding(
               padding: EdgeInsets.only(bottom: AppSpacing.sm),
               child: AppAlert(message: _Strings.companionReminder),
@@ -204,6 +203,47 @@ class _TravelerEmergencyPageState extends State<TravelerEmergencyPage>
             _acknowledgement(context, state, emergency),
           ],
         ),
+      ),
+    );
+  }
+
+  /// The refund line, the existing refund-progress screen when a refund
+  /// request exists, and a normal new booking of the same tour after a
+  /// cancellation.
+  Widget _refundAndRebooking(
+    BuildContext context,
+    TravelerEmergencyStatus emergency,
+  ) {
+    final tourId = emergency.rebookableTourId;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            _Strings.refundHandling(emergency.refundHandling, emergency.action),
+          ),
+          if (emergency.hasRefundRequest) ...[
+            const SizedBox(height: AppSpacing.sm),
+            OutlinedButton.icon(
+              key: const Key('emergency-refund-progress'),
+              onPressed: () => context.push(
+                AppRoutes.bookingRefund('${emergency.bookingId}'),
+              ),
+              icon: const Icon(Icons.currency_exchange_rounded),
+              label: const Text(_Strings.viewRefundProgress),
+            ),
+          ],
+          if (tourId != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            OutlinedButton.icon(
+              key: const Key('emergency-rebook'),
+              onPressed: () => context.push(AppRoutes.tourDetail('$tourId')),
+              icon: const Icon(Icons.travel_explore_rounded),
+              label: const Text(_Strings.bookAnotherTrip),
+            ),
+          ],
+        ],
       ),
     );
   }

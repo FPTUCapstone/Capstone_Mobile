@@ -16,6 +16,8 @@ Map<String, dynamic> stoppedStatusJson() => {
   'emergencyContact': 'Hotline +84 900 000 000',
   'committedAtUtc': '2026-11-10T02:00:00Z',
   'acknowledgedAtUtc': null,
+  'refundHandling': 'UnderReview',
+  'tourId': 12,
 };
 
 extension TravelerEmergencyFixture on TravelerEmergencyStatus {
@@ -24,6 +26,8 @@ extension TravelerEmergencyFixture on TravelerEmergencyStatus {
     String? emergencyContact = 'Hotline +84 900 000 000',
     String? immediateInstructions = 'Stay at the shelter.',
     DateTime? acknowledgedAtUtc,
+    RefundHandling refundHandling = RefundHandling.unknown,
+    int? tourId,
   }) => TravelerEmergencyStatus(
     bookingId: 42,
     tourScheduleId: 31,
@@ -41,5 +45,7 @@ extension TravelerEmergencyFixture on TravelerEmergencyStatus {
     emergencyContact: emergencyContact,
     committedAtUtc: DateTime.utc(2026, 11, 10, 2),
     acknowledgedAtUtc: acknowledgedAtUtc,
+    refundHandling: refundHandling,
+    tourId: tourId,
   );
 }

@@ -8,6 +8,7 @@ import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/emergency_tour/domain/entities/emergency_action.dart';
 import 'package:trip_mate_mobile/features/traveler_emergency/data/datasources/traveler_emergency_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/traveler_emergency/data/repositories/traveler_emergency_repository_impl.dart';
+import 'package:trip_mate_mobile/features/traveler_emergency/domain/entities/traveler_emergency_status.dart';
 
 import '../../operator_weather_safety/support/emergency_fixtures.dart';
 import '../../operator_weather_safety/support/fake_dio_adapter.dart';
@@ -45,6 +46,69 @@ void main() {
     expect(status.immediateInstructions, 'Stay at the shelter.');
     expect(status.emergencyContact, 'Hotline +84 900 000 000');
     expect(status.acknowledgedAtUtc, isNull);
+  });
+
+  group('refund handling and rebooking tour', () {
+    test('parses the refund handling and the tour of the departure', () async {
+      http.reply(200, stoppedStatusJson());
+
+      final status = await repository.getStatus(42);
+
+      expect(status.refundHandling, RefundHandling.underReview);
+      expect(status.tourId, 12);
+    });
+
+    final wireValues = {
+      'RefundSubmitted': RefundHandling.refundSubmitted,
+      'UnderReview': RefundHandling.underReview,
+      'NotApplicable': RefundHandling.notApplicable,
+      'SomethingNew': RefundHandling.unknown,
+      42: RefundHandling.unknown,
+    };
+    for (final MapEntry(key: wire, value: expected) in wireValues.entries) {
+      test('refund handling $wire is $expected', () async {
+        http.reply(200, stoppedStatusJson()..['refundHandling'] = wire);
+
+        final status = await repository.getStatus(42);
+
+        expect(status.refundHandling, expected);
+      });
+    }
+
+    test('an older Backend without the new fields still parses', () async {
+      http.reply(
+        200,
+        stoppedStatusJson()
+          ..remove('refundHandling')
+          ..remove('tourId'),
+      );
+
+      final status = await repository.getStatus(42);
+
+      expect(status.refundHandling, RefundHandling.unknown);
+      expect(status.tourId, isNull);
+      expect(status.action, EmergencyAction.emergencyStop);
+    });
+
+    for (final invalid in [0, -1, '12', null]) {
+      test('tour id $invalid is treated as missing', () async {
+        http.reply(200, stoppedStatusJson()..['tourId'] = invalid);
+
+        final status = await repository.getStatus(42);
+
+        expect(status.tourId, isNull);
+      });
+    }
+
+    test('acknowledging keeps refund handling and tour id', () {
+      final status = TravelerEmergencyFixture.build(
+        refundHandling: RefundHandling.refundSubmitted,
+        tourId: 12,
+      ).acknowledged(DateTime.utc(2026, 11, 10, 4));
+
+      expect(status.refundHandling, RefundHandling.refundSubmitted);
+      expect(status.tourId, 12);
+    });
   });
 
   test('an unknown action value stays unknown', () async {

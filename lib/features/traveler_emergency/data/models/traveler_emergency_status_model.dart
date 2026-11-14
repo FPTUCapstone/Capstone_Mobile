@@ -23,6 +23,10 @@ abstract final class TravelerEmergencyStatusModel {
       immediateInstructions: _text(raw['immediateInstructions']),
       emergencyContact: _text(raw['emergencyContact']),
       acknowledgedAtUtc: _date(raw['acknowledgedAtUtc']),
+      // Added later by the Backend: an older one omits both, which must not
+      // hide the safety content.
+      refundHandling: RefundHandling.fromWire(raw['refundHandling']),
+      tourId: _optionalId(raw['tourId']),
     );
   }
 
@@ -57,6 +61,9 @@ abstract final class TravelerEmergencyStatusModel {
     if (value is int && value > 0) return value;
     throw const FormatException('Invalid emergency identifier.');
   }
+
+  static int? _optionalId(Object? value) =>
+      value is int && value > 0 ? value : null;
 
   static int _count(Object? value) {
     if (value is int && value >= 0) return value;

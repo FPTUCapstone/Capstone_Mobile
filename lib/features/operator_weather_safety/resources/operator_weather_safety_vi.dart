@@ -77,8 +77,12 @@ abstract final class OperatorWeatherSafetyStringsVi {
   static const passengers = 'Hành khách bị ảnh hưởng';
   static const activeSessions = 'Phiên đi tour đang chạy';
   static const unusedTickets = 'Vé chưa dùng';
-  static const paymentHandlingNotice =
-      'Việc thanh toán và hoàn tiền được xử lý riêng theo chính sách hủy booking áp dụng.';
+  static const cancelRefundNotice =
+      'Mỗi booking đã thanh toán sẽ được hoàn 100% số tiền đã trả. '
+      'Booking chưa thanh toán không phát sinh hoàn tiền.';
+  static const stopRefundNotice =
+      'Booking đã thanh toán sẽ được TripMate xem xét hoàn phần dịch vụ '
+      'chưa thực hiện.';
   static const impactChanged =
       'Tác động đã thay đổi. Vui lòng xem lại tác động mới nhất trước khi xác nhận.';
   static const checkAgain = 'Kiểm tra lại';
@@ -145,6 +149,11 @@ abstract final class OperatorWeatherSafetyStringsVi {
 
   static String successMessage(int bookings) =>
       '$bookings đơn đặt tour bị ảnh hưởng. Du khách có thể đọc quyết định trong ứng dụng.';
+
+  static String successRefundsSubmitted(int requests) =>
+      'Đã tạo $requests yêu cầu hoàn tiền.';
+  static const successRefundsUnderReview =
+      'Các booking đã thanh toán đã được chuyển cho TripMate xem xét hoàn tiền.';
 
   // Evidence editor
   static const manageEvidenceTitle = 'Bằng chứng khẩn cấp';
