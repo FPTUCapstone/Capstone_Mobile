@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/tour_discovery/domain/entities/tour_discovery_item.dart';
+import 'package:trip_mate_mobile/features/tour_discovery/presentation/widgets/tour_discovery_meta_widgets.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/availability_status.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summary.dart';
 
@@ -244,5 +245,36 @@ void main() {
       expect(itemA, isNot(equals(itemDifferentSchedule)));
       expect(itemA, isNot(equals(itemDifferentCurrency)));
     });
+  });
+
+  group('Currency Formatting & Integrity (formatTourDiscoveryPrice)', () {
+    test('formats standard VND amounts using Vietnamese Dong convention', () {
+      expect(formatTourDiscoveryPrice(850000, 'VND'), '850,000 VND');
+      expect(formatTourDiscoveryPrice(1250000, 'vnd'), '1,250,000 VND');
+      expect(formatTourDiscoveryPrice(5600000), '5,600,000 VND');
+    });
+
+    test('preserves free label for zero VND amounts', () {
+      expect(formatTourDiscoveryPrice(0, 'VND'), 'Free');
+    });
+
+    test(
+      'formats non-VND currencies with actual currency code and thousands separators',
+      () {
+        expect(formatTourDiscoveryPrice(150, 'USD'), '150 USD');
+        expect(formatTourDiscoveryPrice(1500, 'USD'), '1,500 USD');
+        expect(formatTourDiscoveryPrice(1250000, 'EUR'), '1,250,000 EUR');
+        expect(formatTourDiscoveryPrice(50000, 'JPY'), '50,000 JPY');
+      },
+    );
+
+    test(
+      'never assumes non-VND is VND, preventing silent currency mislabeling',
+      () {
+        final formattedUsd = formatTourDiscoveryPrice(250, 'USD');
+        expect(formattedUsd, isNot(contains('VND')));
+        expect(formattedUsd, '250 USD');
+      },
+    );
   });
 }

@@ -119,6 +119,52 @@ void main() {
       },
     );
 
+    testWidgets(
+      'FeaturedTourEditorialCard renders non-VND currency code without silent mislabeling',
+      (tester) async {
+        const usdTour = TourDiscoveryItem(
+          id: 'usd_tour',
+          title: 'Danang VIP International Experience',
+          destinations: 'Đà Nẵng · Hội An',
+          operatorName: 'Global Explorer',
+          durationDays: 2,
+          priceVnd: 250,
+          currency: 'USD',
+          rating: 4.9,
+        );
+
+        await tester.pumpWidget(
+          _buildHarness(FeaturedTourEditorialCard(tour: usdTour, onTap: () {})),
+        );
+
+        expect(find.text('250 USD'), findsOneWidget);
+        expect(find.textContaining('VND'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'CompactHorizontalTourCard renders non-VND currency code without silent mislabeling',
+      (tester) async {
+        const usdTour = TourDiscoveryItem(
+          id: 'usd_compact',
+          title: 'Hoi An Lantern VIP Tour',
+          destinations: 'Hội An',
+          operatorName: 'Global Explorer',
+          durationDays: 1,
+          priceVnd: 120,
+          currency: 'USD',
+          rating: 4.8,
+        );
+
+        await tester.pumpWidget(
+          _buildHarness(CompactHorizontalTourCard(tour: usdTour, onTap: () {})),
+        );
+
+        expect(find.text('120 USD'), findsOneWidget);
+        expect(find.textContaining('VND'), findsNothing);
+      },
+    );
+
     for (final (width, name, scale) in [
       (360.0, '360dp standard', 1.0),
       (390.0, '390dp standard', 1.0),
