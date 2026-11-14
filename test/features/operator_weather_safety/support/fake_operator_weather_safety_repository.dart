@@ -49,13 +49,21 @@ EmergencyImpact impact({
   impactVersion: version,
 );
 
-final operationResult = EmergencyOperationResult(
+final operationResult = decisionResult();
+
+EmergencyOperationResult decisionResult({
+  EmergencyAction action = EmergencyAction.cancelBeforeDeparture,
+  int? refundsSubmitted,
+}) => EmergencyOperationResult(
   operationId: 90,
   tourScheduleId: 31,
-  action: EmergencyAction.cancelBeforeDeparture,
-  scheduleStatus: 'Cancelled',
+  action: action,
+  scheduleStatus: action == EmergencyAction.emergencyStop
+      ? 'EmergencyStopped'
+      : 'Cancelled',
   affectedBookingCount: 3,
   committedAtUtc: DateTime.utc(2026, 11, 10, 2),
+  refundsSubmitted: refundsSubmitted,
 );
 
 final class FakeOperatorWeatherSafetyRepository

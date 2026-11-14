@@ -1,3 +1,6 @@
+import 'package:trip_mate_mobile/features/emergency_tour/domain/entities/emergency_action.dart';
+import 'package:trip_mate_mobile/features/traveler_emergency/domain/entities/traveler_emergency_status.dart';
+
 abstract final class TravelerEmergencyStringsVi {
   static const pageTitle = 'Thông báo khẩn cấp';
   static const retry = 'Thử lại';
@@ -19,8 +22,20 @@ abstract final class TravelerEmergencyStringsVi {
   static const bookingStatus = 'Trạng thái đơn';
   static const scheduleStatus = 'Trạng thái lịch khởi hành';
   static const tickets = 'Vé';
-  static const paymentHandlingNotice =
-      'Việc thanh toán và hoàn tiền được xử lý riêng theo chính sách hủy booking áp dụng.';
+  static const refundSubmitted =
+      'Bạn sẽ được hoàn 100% số tiền đã thanh toán. Yêu cầu hoàn tiền đã được tạo.';
+  static const refundUnderReviewStopped =
+      'Tour đã dừng vì lý do an toàn. Phần dịch vụ chưa thực hiện sẽ được '
+      'TripMate xem xét hoàn tiền. Kết quả sẽ được thông báo cho bạn.';
+  static const refundUnderReviewCancelled =
+      'Khoản thanh toán của bạn đang được TripMate kiểm tra để hoàn tiền. '
+      'Kết quả sẽ được thông báo cho bạn.';
+  static const refundNotApplicable =
+      'Booking này chưa được thanh toán nên không phát sinh hoàn tiền.';
+  static const refundUnknown =
+      'TripMate sẽ thông báo cho bạn về việc hoàn tiền (nếu có).';
+  static const viewRefundProgress = 'Xem tiến độ hoàn tiền';
+  static const bookAnotherTrip = 'Đặt chuyến khác';
   static const staleNotice =
       'Thông báo này có thể chưa được cập nhật. Nội dung sẽ tự làm mới khi có mạng trở lại.';
   static const companionReminder =
@@ -42,6 +57,21 @@ abstract final class TravelerEmergencyStringsVi {
   static String stoppedDialogMessage(String tour) =>
       '$tour đã bị đơn vị điều hành dừng. Dẫn đường đã kết thúc. '
       'Hãy mở thông báo để xem chỉ dẫn an toàn và đầu mối liên hệ.';
+
+  /// The refund line of a booking, from the Backend's refund handling and the
+  /// decision; anything not recognised gets the neutral line.
+  static String refundHandling(
+    RefundHandling handling,
+    EmergencyAction action,
+  ) => switch ((handling, action)) {
+    (RefundHandling.refundSubmitted, _) => refundSubmitted,
+    (RefundHandling.underReview, EmergencyAction.emergencyStop) =>
+      refundUnderReviewStopped,
+    (RefundHandling.underReview, EmergencyAction.cancelBeforeDeparture) =>
+      refundUnderReviewCancelled,
+    (RefundHandling.notApplicable, _) => refundNotApplicable,
+    _ => refundUnknown,
+  };
 
   static String acknowledgedAt(String time) => 'Đã ghi nhận lúc $time.';
 

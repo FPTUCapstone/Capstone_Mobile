@@ -59,6 +59,7 @@ Map<String, dynamic> impactJson({
 
 Map<String, dynamic> actionResultJson({
   String action = 'EmergencyStopActive',
+  int refundsSubmitted = 0,
 }) => {
   'operationId': 90,
   'tourScheduleId': 31,
@@ -66,6 +67,7 @@ Map<String, dynamic> actionResultJson({
   'scheduleStatus': 'EmergencyStopped',
   'affectedBookingCount': 3,
   'committedAtUtc': '2026-11-10T02:00:00Z',
+  'refundsSubmitted': refundsSubmitted,
 };
 
 Map<String, dynamic> problem(String errorCode, {String title = 'Rejected'}) => {

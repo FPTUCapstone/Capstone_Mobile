@@ -28,6 +28,15 @@ final class _FakeWindow implements DeviceWindow {
   Future<bool> openNotificationSettings() async => true;
 }
 
+const cancelRefundCopy =
+    'Mỗi booking đã thanh toán sẽ được hoàn 100% số tiền đã trả. '
+    'Booking chưa thanh toán không phát sinh hoàn tiền.';
+const stopRefundCopy =
+    'Booking đã thanh toán sẽ được TripMate xem xét hoàn phần dịch vụ '
+    'chưa thực hiện.';
+const stopReviewResultCopy =
+    'Các booking đã thanh toán đã được chuyển cho TripMate xem xét hoàn tiền.';
+
 void main() {
   late FakeOperatorWeatherSafetyRepository repository;
   late FakeNetworkInfo network;
@@ -128,16 +137,42 @@ void main() {
   }
 
   group('impact and fail-closed views', () {
-    testWidgets('shows the impact without any refund figure', (tester) async {
+    testWidgets('a cancellation explains the full refund before confirming', (
+      tester,
+    ) async {
       repository.impacts.add(impact());
 
       await pump(tester);
 
       expect(find.text('Hủy trước khởi hành'), findsWidgets);
       expect(find.textContaining('Hành khách bị ảnh hưởng'), findsOneWidget);
-      expect(find.textContaining('được xử lý riêng'), findsOneWidget);
-      expect(find.textContaining('Automatic refund'), findsNothing);
-      expect(find.textContaining('manual review'), findsNothing);
+      expect(find.text(cancelRefundCopy), findsOneWidget);
+      expect(find.text(stopRefundCopy), findsNothing);
+      expect(find.textContaining('được xử lý riêng'), findsNothing);
+      expect(find.textContaining('VND'), findsNothing);
+    });
+
+    testWidgets('a stop explains the refund review before confirming', (
+      tester,
+    ) async {
+      repository.impacts.add(impact(action: EmergencyAction.emergencyStop));
+
+      await pump(tester);
+
+      expect(find.text(stopRefundCopy), findsOneWidget);
+      expect(find.text(cancelRefundCopy), findsNothing);
+      expect(find.textContaining('được xử lý riêng'), findsNothing);
+    });
+
+    testWidgets('an unknown action promises nothing about refunds', (
+      tester,
+    ) async {
+      repository.impacts.add(impact(action: EmergencyAction.unknown));
+
+      await pump(tester);
+
+      expect(find.text(cancelRefundCopy), findsNothing);
+      expect(find.text(stopRefundCopy), findsNothing);
     });
 
     testWidgets('unverified sessions hide the form and explain why', (
@@ -277,6 +312,45 @@ void main() {
       expect(find.byKey(const Key('emergency-success')), findsOneWidget);
     });
 
+    testWidgets('a cancellation reports how many refund requests it created', (
+      tester,
+    ) async {
+      repository
+        ..impacts.add(impact())
+        ..commandOutcomes.add(decisionResult(refundsSubmitted: 2));
+      await pump(tester);
+      await fillCancel(tester);
+
+      await tapReview(tester);
+      await tester.tap(find.byKey(const Key('emergency-confirm-submit')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('emergency-success')), findsOneWidget);
+      expect(
+        find.textContaining('Đã tạo 2 yêu cầu hoàn tiền.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining(stopReviewResultCopy), findsNothing);
+    });
+
+    testWidgets('an older Backend without the refund count shows no count', (
+      tester,
+    ) async {
+      repository
+        ..impacts.add(impact())
+        ..commandOutcomes.add(decisionResult());
+      await pump(tester);
+      await fillCancel(tester);
+
+      await tapReview(tester);
+      await tester.tap(find.byKey(const Key('emergency-confirm-submit')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('emergency-success')), findsOneWidget);
+      expect(find.textContaining('yêu cầu hoàn tiền'), findsNothing);
+      expect(find.textContaining(stopReviewResultCopy), findsNothing);
+    });
+
     testWidgets('a stale impact keeps the form text and asks for review', (
       tester,
     ) async {
@@ -398,6 +472,27 @@ void main() {
 
       expect(find.byKey(const Key('emergency-success')), findsOneWidget);
       expect(find.text('transient-value'), findsNothing);
+    });
+
+    testWidgets('success says paid bookings went to TripMate review', (
+      tester,
+    ) async {
+      repository.commandOutcomes.add(
+        decisionResult(
+          action: EmergencyAction.emergencyStop,
+          refundsSubmitted: 0,
+        ),
+      );
+      await pump(tester);
+      await fillStop(tester);
+
+      await tapReview(tester);
+      await tester.tap(find.byKey(const Key('emergency-confirm-submit')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Đã dừng tour'), findsOneWidget);
+      expect(find.textContaining(stopReviewResultCopy), findsOneWidget);
+      expect(find.textContaining('Đã tạo'), findsNothing);
     });
 
     testWidgets('an impact change at review clears the password', (

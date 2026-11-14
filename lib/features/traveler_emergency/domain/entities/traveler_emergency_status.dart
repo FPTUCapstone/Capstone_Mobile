@@ -1,6 +1,28 @@
 import 'package:equatable/equatable.dart';
 import 'package:trip_mate_mobile/features/emergency_tour/domain/entities/emergency_action.dart';
 
+/// How the payment of a booking affected by a UC-70 decision is refunded.
+/// [unknown] covers an older Backend that does not send the value, and any
+/// future value, so the page falls back to a neutral line.
+enum RefundHandling {
+  /// A 100% refund request was created for this booking.
+  refundSubmitted,
+
+  /// The booking was paid; TripMate reviews the refund case by case.
+  underReview,
+
+  /// Nothing was paid, so there is nothing to refund.
+  notApplicable,
+  unknown;
+
+  static RefundHandling fromWire(Object? value) => switch (value) {
+    'RefundSubmitted' => refundSubmitted,
+    'UnderReview' => underReview,
+    'NotApplicable' => notApplicable,
+    _ => unknown,
+  };
+}
+
 /// Discovery data for one affected booking; the detail stays behind the status
 /// endpoint. Exists only when the Backend reports a real emergency operation.
 final class TravelerEmergencyNotice extends Equatable {
@@ -47,6 +69,8 @@ final class TravelerEmergencyStatus extends Equatable {
     this.immediateInstructions,
     this.emergencyContact,
     this.acknowledgedAtUtc,
+    this.refundHandling = RefundHandling.unknown,
+    this.tourId,
   });
 
   static final _phone = RegExp(r'\+?\d[\d\s().-]{6,}\d');
@@ -68,8 +92,20 @@ final class TravelerEmergencyStatus extends Equatable {
   /// Receipt only: it does not mean the Traveler is safe.
   final DateTime? acknowledgedAtUtc;
 
+  final RefundHandling refundHandling;
+
+  /// The tour of the cancelled departure; absent on an older Backend.
+  final int? tourId;
+
   bool get isStopped => action == EmergencyAction.emergencyStop;
   bool get isAcknowledged => acknowledgedAtUtc != null;
+
+  bool get hasRefundRequest => refundHandling == RefundHandling.refundSubmitted;
+
+  /// The tour to book again: only a departure cancelled before it started,
+  /// and only when the Backend names its tour.
+  int? get rebookableTourId =>
+      action == EmergencyAction.cancelBeforeDeparture ? tourId : null;
 
   /// The first phone number in the free-text contact, ready for a `tel:` link.
   String? get dialableContact {
@@ -92,6 +128,8 @@ final class TravelerEmergencyStatus extends Equatable {
     immediateInstructions: immediateInstructions,
     emergencyContact: emergencyContact,
     acknowledgedAtUtc: at,
+    refundHandling: refundHandling,
+    tourId: tourId,
   );
 
   @override
@@ -110,5 +148,7 @@ final class TravelerEmergencyStatus extends Equatable {
     immediateInstructions,
     emergencyContact,
     acknowledgedAtUtc,
+    refundHandling,
+    tourId,
   ];
 }

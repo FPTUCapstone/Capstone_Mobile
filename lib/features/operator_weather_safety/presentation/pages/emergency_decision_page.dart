@@ -559,14 +559,21 @@ class _ImpactPanel extends StatelessWidget {
         Text('${_Strings.unpaidBookings}: ${impact.unpaidBookingCount}'),
         Text('${_Strings.activeSessions}: ${impact.activeSessionCount}'),
         Text('${_Strings.unusedTickets}: ${impact.unusedTicketCount}'),
-        const SizedBox(height: AppSpacing.xs),
-        const Text(
-          _Strings.paymentHandlingNotice,
-          style: TextStyle(color: AppColors.muted),
-        ),
+        if (_refundNotice case final notice?) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Text(notice, style: const TextStyle(color: AppColors.muted)),
+        ],
       ],
     ),
   );
+
+  /// What happens to paid bookings, told before the Operator confirms. An
+  /// unrecognised action promises nothing.
+  String? get _refundNotice => switch (impact.action) {
+    EmergencyAction.cancelBeforeDeparture => _Strings.cancelRefundNotice,
+    EmergencyAction.emergencyStop => _Strings.stopRefundNotice,
+    EmergencyAction.unknown => null,
+  };
 }
 
 class _ConfirmationDialog extends StatelessWidget {
@@ -631,8 +638,22 @@ class _Success extends StatelessWidget {
       title: result.action == EmergencyAction.emergencyStop
           ? _Strings.successStopped
           : _Strings.successCancelled,
-      message: _Strings.successMessage(result.affectedBookingCount),
+      message: [
+        _Strings.successMessage(result.affectedBookingCount),
+        ?_refundOutcome,
+      ].join('\n'),
       type: AppAlertType.success,
     ),
   );
+
+  /// The refund side of the committed decision; nothing when an older Backend
+  /// did not report the count of a cancellation.
+  String? get _refundOutcome => switch (result.action) {
+    EmergencyAction.cancelBeforeDeparture => switch (result.refundsSubmitted) {
+      final count? => _Strings.successRefundsSubmitted(count),
+      null => null,
+    },
+    EmergencyAction.emergencyStop => _Strings.successRefundsUnderReview,
+    EmergencyAction.unknown => null,
+  };
 }

@@ -222,7 +222,13 @@ void main() {
     test(
       'cancel forwards the idempotency key and the exact contract',
       () async {
-        http.reply(200, actionResultJson(action: 'CancelBeforeDeparture'));
+        http.reply(
+          200,
+          actionResultJson(
+            action: 'CancelBeforeDeparture',
+            refundsSubmitted: 2,
+          ),
+        );
 
         final result = await repository.cancelBeforeDeparture(
           cancel,
@@ -247,8 +253,55 @@ void main() {
         });
         expect(result.operationId, 90);
         expect(result.action, EmergencyAction.cancelBeforeDeparture);
+        expect(result.refundsSubmitted, 2);
       },
     );
+
+    test('a stop reports no refund requests created', () async {
+      http.reply(200, actionResultJson());
+
+      final result = await repository.emergencyStop(
+        stop,
+        currentPassword: 'transient-value',
+        idempotencyKey: 'key-2',
+      );
+
+      expect(result.action, EmergencyAction.emergencyStop);
+      expect(result.refundsSubmitted, 0);
+    });
+
+    for (final invalid in [null, -1, '2']) {
+      test('refundsSubmitted $invalid is treated as unknown', () async {
+        http.reply(
+          200,
+          actionResultJson(action: 'CancelBeforeDeparture')
+            ..['refundsSubmitted'] = invalid,
+        );
+
+        final result = await repository.cancelBeforeDeparture(
+          cancel,
+          idempotencyKey: 'key-1',
+        );
+
+        expect(result.refundsSubmitted, isNull);
+      });
+    }
+
+    test('an older Backend without refundsSubmitted still parses', () async {
+      http.reply(
+        200,
+        actionResultJson(action: 'CancelBeforeDeparture')
+          ..remove('refundsSubmitted'),
+      );
+
+      final result = await repository.cancelBeforeDeparture(
+        cancel,
+        idempotencyKey: 'key-1',
+      );
+
+      expect(result.operationId, 90);
+      expect(result.refundsSubmitted, isNull);
+    });
 
     test('stop sends the password only in the request body', () async {
       http.reply(200, actionResultJson());

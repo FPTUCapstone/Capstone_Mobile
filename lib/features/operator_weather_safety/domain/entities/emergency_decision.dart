@@ -210,6 +210,7 @@ final class EmergencyOperationResult extends Equatable {
     required this.scheduleStatus,
     required this.affectedBookingCount,
     required this.committedAtUtc,
+    this.refundsSubmitted,
   });
 
   final int operationId;
@@ -219,6 +220,10 @@ final class EmergencyOperationResult extends Equatable {
   final int affectedBookingCount;
   final DateTime committedAtUtc;
 
+  /// 100% refund requests the decision created (always 0 for a stop); null
+  /// when an older Backend does not report it.
+  final int? refundsSubmitted;
+
   @override
   List<Object?> get props => [
     operationId,
@@ -227,6 +232,7 @@ final class EmergencyOperationResult extends Equatable {
     scheduleStatus,
     affectedBookingCount,
     committedAtUtc,
+    refundsSubmitted,
   ];
 }
 
