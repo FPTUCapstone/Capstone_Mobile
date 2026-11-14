@@ -28,14 +28,18 @@ This document provides complete implementation, motion verification, architectur
    - Selected cards transmit valid backend tour IDs (`tour.id`) to `AppRoutes.tourDetail(tourId, heroTag: heroTag)` with `extra: tour.toSummary()`.
    - Verified Frame-0 Hero mount (`_TourDetailLoadingHeroView`) in `TourDetailPage` prevents white-popping during network load.
    - Verified error handling, back navigation, and image error fallbacks across all states.
-4. **R4 — Reconciled Documentation & Verification Claims:**
+4. **R4 — Lossless Data Contract Remediation (Owner Authorized):**
+   - Updated `TourDiscoveryItem` to preserve `representativeScheduleId` and `currency` without hardcoded defaults.
+   - Preserved canonical ordered `destinationsList`, eliminating delimiter corruption when destination names contain ` · ` or when lists are empty.
+   - Verified 1:1 lossless round-tripping between `TourSummary` and `TourDiscoveryItem`.
+5. **R5 — Reconciled Documentation & Verification Claims:**
    - Corrected git HEAD SHA references against actual commit tree.
    - Removed all unsubstantiated claims asserting that `FlowDelegate` or `RepaintBoundary` "guarantees" 60/120 FPS.
    - Explicitly maintained **`PERFORMANCE_NOT_VERIFIED`** pending actual Profile AOT hardware evidence.
    - Maintained **`SONARQUBE_NOT_VERIFIED`** under SRS §4.2.6 due to absence of scanner tooling in the environment.
-5. **R5 — Verified CI Workflow & Comprehensive Test Suite:**
+6. **R6 — Verified CI Workflow & Comprehensive Test Suite:**
    - Documented that stacked PR #77 receives no automatic GitHub Actions checks because `.github/workflows/ci.yml` strictly targets base branches `[develop, main]`.
-   - Added `traveler_tour_discovery_integration_test.dart` and executed the full test suite (2,453 tests passed, 0 failed, 4 skipped).
+   - Added `tour_discovery_item_test.dart` (8 tests) and updated `traveler_tour_discovery_integration_test.dart`. Full test suite passed (2,461 tests passed, 0 failed, 4 skipped).
 
 ---
 
@@ -167,4 +171,7 @@ All commits on `feature/editorial-tour-discovery-motion` stacked on base `eb9158
 | **06** | `38bfb37` | `docs(tour-discovery): add visual review motion QA and performance evidence` |
 | **07** | `7bf3c27` | `refactor(tour-discovery): eliminate production fixture dependency and connect real tour search feed` |
 | **08** | `0465987` | `test(tour-discovery): verify data flow lifecycle states and tour detail hero navigation` |
-| **09** | *(Pending)* | `docs(tour-discovery): reconcile verification claims and update PR77 evidence` |
+| **09** | `66c5d59` | `docs(tour-discovery): reconcile verification claims and update PR77 evidence` |
+| **10** | `a39fcf2` | `fix(tour-discovery): preserve full tour contract fields without data loss` |
+| **11** | `48dc2ec` | `test(tour-discovery): verify lossless round-trip and contract fidelity` |
+| **12** | `HEAD` | `docs(tour-discovery): document lossless contract remediation evidence` |
