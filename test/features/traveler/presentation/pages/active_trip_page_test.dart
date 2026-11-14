@@ -13,6 +13,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_se
 import 'package:trip_mate_mobile/features/traveler/domain/entities/reroute_proposal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/recommendation_feedback_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/navigation_location_tracker.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/demo/active_trip_demo_fixtures.dart';
@@ -715,6 +716,330 @@ void main() {
       await cubit.close();
     });
   });
+
+  group('ActiveTripPage completion feedback', () {
+    const marble = 'Marble Mountains (Ngũ Hành Sơn)';
+    const chamMuseum = 'Bảo tàng Điêu khắc Chăm';
+    final dialog = find.byType(AlertDialog);
+    Finder inDialog(Finder finder) =>
+        find.descendant(of: dialog, matching: finder);
+    List<String?> snackBarTexts(WidgetTester tester) => tester
+        .widgetList<Text>(
+          find.descendant(
+            of: find.byType(SnackBar),
+            matching: find.byType(Text),
+          ),
+        )
+        .map((text) => text.data)
+        .toList();
+
+    /// The trip page pushed over a home route, as in the app, so that
+    /// "Back to Home" has somewhere to go.
+    Future<void> pumpOverHome(
+      WidgetTester tester,
+      ActiveTripCubit cubit, {
+      RecommendationFeedbackRepository? feedback,
+    }) async {
+      usePhoneSurface(tester);
+      addTearDown(cubit.close);
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: Text('home screen'))),
+      );
+      unawaited(
+        tester
+            .state<NavigatorState>(find.byType(Navigator))
+            .push(
+              MaterialPageRoute<void>(
+                builder: (_) => ActiveTripPage(
+                  itineraryId: 101,
+                  cubit: cubit,
+                  feedbackRepository: feedback,
+                  useMapbox: false,
+                  isDemoMode: true,
+                ),
+              ),
+            ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    /// Reaches the Marble Mountains (POI 11) and the Cham museum (POI 13),
+    /// skips the restaurant in between and ends the trip with two stops left.
+    Future<void> finishWithTwoReachedStops(
+      WidgetTester tester,
+      ActiveTripCubit cubit,
+    ) async {
+      await cubit.reachItem(1001);
+      await cubit.depart();
+      await cubit.skipItem(1002);
+      await cubit.reachItem(1003);
+      await cubit.finish();
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('asks about the reached stops only', (tester) async {
+      final cubit = await startedDemoCubit();
+      await pumpOverHome(tester, cubit, feedback: _FakeFeedbackRepository());
+
+      await finishWithTwoReachedStops(tester, cubit);
+
+      expect(find.text('Navigation ended'), findsOneWidget);
+      expect(
+        inDialog(find.textContaining('You reached 2 of 5 stops')),
+        findsOneWidget,
+      );
+      expect(
+        inDialog(find.text('How were the stops? (optional)')),
+        findsOneWidget,
+      );
+      expect(inDialog(find.text(marble)), findsOneWidget);
+      expect(inDialog(find.text(chamMuseum)), findsOneWidget);
+      // Skipped and never-reached stops are not asked about.
+      expect(inDialog(find.text('Cơm Gà Bà Buội')), findsNothing);
+      expect(inDialog(find.text('Chợ Hàn (Han Market)')), findsNothing);
+      expect(find.byTooltip('Like $marble'), findsOneWidget);
+      expect(find.byTooltip('Dislike $marble'), findsOneWidget);
+      expect(inDialog(find.byIcon(Icons.thumb_up_outlined)), findsNWidgets(2));
+      expect(
+        inDialog(find.byIcon(Icons.thumb_down_outlined)),
+        findsNWidgets(2),
+      );
+    });
+
+    testWidgets('sends the chosen thumbs when the traveler leaves', (
+      tester,
+    ) async {
+      final feedback = _FakeFeedbackRepository();
+      final cubit = await startedDemoCubit();
+      await pumpOverHome(tester, cubit, feedback: feedback);
+      await finishWithTwoReachedStops(tester, cubit);
+
+      await tester.tap(find.byTooltip('Like $marble'));
+      // Changing one's mind keeps the last answer only.
+      await tester.tap(find.byTooltip('Like $chamMuseum'));
+      await tester.pump();
+      await tester.tap(find.byTooltip('Dislike $chamMuseum'));
+      await tester.pump();
+
+      expect(inDialog(find.byIcon(Icons.thumb_up)), findsOneWidget);
+      expect(inDialog(find.byIcon(Icons.thumb_down)), findsOneWidget);
+      // Nothing is sent while the dialog is still open.
+      expect(feedback.sent, isEmpty);
+
+      await tester.tap(find.text('Back to Home'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('home screen'), findsOneWidget);
+      expect(
+        feedback.sent.map(
+          (event) => (event.itineraryId, event.poiId, event.liked),
+        ),
+        [(101, 11, true), (101, 13, false)],
+      );
+      final eventIds = feedback.sent.map((event) => event.clientEventId);
+      expect(eventIds.toSet(), hasLength(2));
+      expect(
+        eventIds,
+        everyElement(
+          matches(
+            RegExp(
+              r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets('tapping the chosen thumb again clears the answer', (
+      tester,
+    ) async {
+      final feedback = _FakeFeedbackRepository();
+      final cubit = await startedDemoCubit();
+      await pumpOverHome(tester, cubit, feedback: feedback);
+      await finishWithTwoReachedStops(tester, cubit);
+
+      await tester.tap(find.byTooltip('Like $marble'));
+      await tester.pump();
+      expect(inDialog(find.byIcon(Icons.thumb_up)), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Like $marble'));
+      await tester.pump();
+      expect(inDialog(find.byIcon(Icons.thumb_up)), findsNothing);
+
+      await tester.tap(find.text('Back to Home'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('home screen'), findsOneWidget);
+      expect(feedback.sent, isEmpty);
+    });
+
+    testWidgets('leaving without an answer sends nothing', (tester) async {
+      final feedback = _FakeFeedbackRepository();
+      final cubit = await startedDemoCubit();
+      await pumpOverHome(tester, cubit, feedback: feedback);
+      await finishWithTwoReachedStops(tester, cubit);
+
+      await tester.tap(find.text('Back to Home'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('home screen'), findsOneWidget);
+      expect(feedback.sent, isEmpty);
+    });
+
+    testWidgets('still goes home when sending fails', (tester) async {
+      final feedback = _FakeFeedbackRepository()
+        ..failure = const NetworkFailure();
+      final cubit = await startedDemoCubit();
+      await pumpOverHome(tester, cubit, feedback: feedback);
+      await finishWithTwoReachedStops(tester, cubit);
+
+      await tester.tap(find.byTooltip('Like $marble'));
+      await tester.tap(find.byTooltip('Dislike $chamMuseum'));
+      await tester.pump();
+      // The trip's own "Arrived at ..." message may still be showing.
+      final messagesBefore = snackBarTexts(tester);
+      await tester.tap(find.text('Back to Home'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('home screen'), findsOneWidget);
+      // Both were tried; neither failure reached the traveler.
+      expect(feedback.sent, hasLength(2));
+      expect(snackBarTexts(tester), messagesBefore);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('does not wait for a send that never answers', (tester) async {
+      final feedback = _FakeFeedbackRepository()..neverAnswers = true;
+      final cubit = await startedDemoCubit();
+      await pumpOverHome(tester, cubit, feedback: feedback);
+      await finishWithTwoReachedStops(tester, cubit);
+
+      await tester.tap(find.byTooltip('Like $marble'));
+      await tester.tap(find.byTooltip('Like $chamMuseum'));
+      await tester.pump();
+      await tester.tap(find.text('Back to Home'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('home screen'), findsOneWidget);
+      // The second answer is not held back by the first.
+      expect(feedback.sent, hasLength(2));
+    });
+
+    testWidgets('does not ask when feedback cannot be sent', (tester) async {
+      final cubit = await startedDemoCubit();
+      await pumpOverHome(tester, cubit);
+
+      await finishWithTwoReachedStops(tester, cubit);
+
+      expect(
+        inDialog(find.textContaining('You reached 2 of 5 stops')),
+        findsOneWidget,
+      );
+      expect(find.text('How were the stops? (optional)'), findsNothing);
+      expect(inDialog(find.byIcon(Icons.thumb_up_outlined)), findsNothing);
+      expect(find.text('Back to Home'), findsOneWidget);
+    });
+
+    testWidgets('does not ask when no stop was reached', (tester) async {
+      final cubit = await startedDemoCubit();
+      await pumpOverHome(tester, cubit, feedback: _FakeFeedbackRepository());
+
+      await cubit.finish();
+      await tester.pumpAndSettle();
+
+      expect(
+        inDialog(find.textContaining('You reached 0 of 5 stops')),
+        findsOneWidget,
+      );
+      expect(find.text('How were the stops? (optional)'), findsNothing);
+    });
+
+    testWidgets('a long list of reached stops scrolls inside the dialog', (
+      tester,
+    ) async {
+      final feedback = _FakeFeedbackRepository();
+      final template = ActiveTripDemoFixtures.createDemoSession();
+      final session = template.copyWith(
+        items: [
+          for (var number = 1; number <= 30; number++)
+            NavigationSessionItem(
+              itemId: 2000 + number,
+              sequenceNo: number,
+              poiId: 500 + number,
+              poiName: 'Stop $number',
+              latitude: 16,
+              longitude: 108,
+              plannedArrival: template.startedAt,
+              plannedDeparture: template.startedAt,
+              isMandatory: false,
+              status: NavigationItemStatus.reached,
+              reachedAt: template.startedAt,
+              skippedAt: null,
+            ),
+        ],
+      );
+      final cubit = ActiveTripCubit(
+        itineraryId: 101,
+        itineraryTitle: 'Long trip',
+        sessionRepository: DemoNavigationSessionRepository(
+          initialSession: session,
+        ),
+        initialAlerts: const [],
+        isDemoMode: true,
+      );
+      await cubit.start();
+      await pumpOverHome(tester, cubit, feedback: feedback);
+
+      await cubit.finish();
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Trip Completed!'), findsOneWidget);
+      // The button stays on screen; the last stop is reached by scrolling.
+      expect(find.text('Back to Home').hitTestable(), findsOneWidget);
+      expect(find.byTooltip('Dislike Stop 30').hitTestable(), findsNothing);
+
+      await tester.ensureVisible(find.byTooltip('Dislike Stop 30'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Dislike Stop 30'));
+      await tester.pump();
+      await tester.tap(find.text('Back to Home'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('home screen'), findsOneWidget);
+      expect(
+        feedback.sent.map(
+          (event) => (event.itineraryId, event.poiId, event.liked),
+        ),
+        [(101, 530, false)],
+      );
+    });
+  });
+}
+
+final class _FakeFeedbackRepository
+    implements RecommendationFeedbackRepository {
+  final sent =
+      <({String clientEventId, int itineraryId, int poiId, bool liked})>[];
+  Failure? failure;
+  bool neverAnswers = false;
+
+  @override
+  Future<void> sendStopFeedback({
+    required String clientEventId,
+    required int itineraryId,
+    required int poiId,
+    required bool liked,
+  }) async {
+    sent.add((
+      clientEventId: clientEventId,
+      itineraryId: itineraryId,
+      poiId: poiId,
+      liked: liked,
+    ));
+    if (neverAnswers) await Completer<void>().future;
+    if (failure case final failure?) throw failure;
+  }
 }
 
 ItineraryDetail _detail({required String title}) => ItineraryDetail(
@@ -769,5 +1094,6 @@ final class _FakeItineraryRepository implements ItineraryRepository {
     required int itineraryId,
     required List<ItineraryStop> stops,
     required String idempotencyKey,
+    Map<int, StopRemovalReason> removalReasons = const {},
   }) => throw UnimplementedError();
 }

@@ -2,16 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_detail.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_state.dart';
+import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_favorite_cubit.dart';
+import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_favorite_state.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/theme/poi_palette.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/widgets/poi_image.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/widgets/poi_status_and_rating.dart';
 import 'package:trip_mate_mobile/shared/formatters/visit_price_format.dart';
 
 class PoiDetailPage extends StatelessWidget {
-  const PoiDetailPage({super.key});
+  const PoiDetailPage({this.isTraveler = false, super.key});
+
+  /// A signed-in traveler gets the favorite heart.
+  final bool isTraveler;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +46,10 @@ class PoiDetailPage extends StatelessWidget {
             onBack: () => _backToExplore(context),
             onRetry: context.read<PoiDetailCubit>().retry,
           ),
-          PoiDetailStatus.success => _PoiDetailContent(detail: state.detail!),
+          PoiDetailStatus.success => _PoiDetailContent(
+            detail: state.detail!,
+            isTraveler: isTraveler,
+          ),
         };
       },
     );
@@ -56,9 +65,10 @@ class PoiDetailPage extends StatelessWidget {
 }
 
 class _PoiDetailContent extends StatelessWidget {
-  const _PoiDetailContent({required this.detail});
+  const _PoiDetailContent({required this.detail, required this.isTraveler});
 
   final PoiDetail detail;
+  final bool isTraveler;
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +86,7 @@ class _PoiDetailContent extends StatelessWidget {
               tooltip: 'Quay lại',
               icon: const Icon(Icons.arrow_back),
             ),
+            actions: [if (isTraveler) _FavoriteButton(poiId: detail.id)],
             flexibleSpace: FlexibleSpaceBar(
               background: _PhotoGallery(
                 photos: detail.photos,
@@ -219,6 +230,57 @@ class _PoiDetailContent extends StatelessWidget {
     'outdoor' => 'Ngoài trời',
     _ => 'Trong & ngoài trời',
   };
+}
+
+/// The traveler's favorite heart for this place. Hidden when the favorite
+/// feature is not registered (e.g. in widget tests).
+class _FavoriteButton extends StatefulWidget {
+  const _FavoriteButton({required this.poiId});
+
+  final int poiId;
+
+  @override
+  State<_FavoriteButton> createState() => _FavoriteButtonState();
+}
+
+class _FavoriteButtonState extends State<_FavoriteButton> {
+  PoiFavoriteCubit? _cubit;
+
+  @override
+  void initState() {
+    super.initState();
+    _cubit = locateOptional<PoiFavoriteCubit>()?..load(widget.poiId);
+  }
+
+  @override
+  void dispose() {
+    _cubit?.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = _cubit;
+    if (cubit == null) return const SizedBox.shrink();
+    return BlocConsumer<PoiFavoriteCubit, PoiFavoriteState>(
+      bloc: cubit,
+      listenWhen: (previous, current) =>
+          previous.status != current.status &&
+          current.status == PoiFavoriteStatus.saveFailed,
+      listener: (context, _) => ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Chưa lưu được yêu thích. Vui lòng thử lại.'),
+          ),
+        ),
+      builder: (context, state) => IconButton(
+        tooltip: state.isFavorite ? 'Bỏ yêu thích' : 'Yêu thích',
+        onPressed: cubit.toggle,
+        icon: Icon(state.isFavorite ? Icons.favorite : Icons.favorite_border),
+      ),
+    );
+  }
 }
 
 class _PhotoGallery extends StatefulWidget {

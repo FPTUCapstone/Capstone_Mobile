@@ -124,6 +124,11 @@ class _TravelerShellPageState extends State<TravelerShellPage>
           : AppBar(
               title: _buildAppBarTitle(_selectedIndex),
               actions: [
+                IconButton(
+                  tooltip: 'Support chat',
+                  icon: const Icon(Icons.support_agent),
+                  onPressed: () => context.push(AppRoutes.supportChat),
+                ),
                 if (_selectedIndex == 0)
                   IconButton(
                     icon: const Icon(Icons.notifications_none_outlined),

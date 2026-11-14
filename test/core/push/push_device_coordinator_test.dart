@@ -1,12 +1,66 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:trip_mate_mobile/core/constants/app_constants.dart';
 import 'package:trip_mate_mobile/core/push/push_device_coordinator.dart';
 import 'package:trip_mate_mobile/core/push/push_device_repository.dart';
 import 'package:trip_mate_mobile/core/push/trip_push_messaging.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 
 void main() {
+  test(
+    'abandoned chat expiry restores real push registration and delivery',
+    () async {
+      final repository = _FakeRepository();
+      repository.firstRegistration = Completer<void>();
+      final storage = _MemoryStorage();
+      storage.values.addAll({
+        AppConstants.accessTokenKey: 'access-A',
+        AppConstants.refreshTokenKey: 'refresh-A',
+        AppConstants.sessionRoleKey: 'traveler',
+        AppConstants.keepSignedInKey: 'true',
+      });
+      final messaging = _FakeMessaging(token: 'fcm-token');
+      final started = Completer<void>();
+      final resume = Completer<void>();
+      final push = PushDeviceCoordinator(
+        repository: repository,
+        storage: storage,
+        messaging: messaging,
+        clearDisplayed: () async {
+          started.complete();
+          await resume.future;
+        },
+      );
+      addTearDown(push.close);
+      final cubit = AuthSessionCubit(null, storage, null, push);
+      addTearDown(cubit.close);
+      await cubit.restoreSession();
+      await repository.firstRegistration!.future;
+      final received = <TripPushHint>[];
+      final subscription = push.hints.listen(received.add);
+      addTearDown(subscription.cancel);
+      var cancelled = false;
+      final expiry = cubit.handleSessionExpired(
+        isCurrent: () async => !cancelled,
+      );
+      await started.future;
+      cancelled = true;
+      resume.complete();
+      await expiry;
+      expect(cubit.state.isAuthenticated, isTrue);
+      expect(repository.removals, hasLength(1));
+      expect(repository.registrations, hasLength(2));
+      messaging.foregroundController.add(
+        const TripPushHint(sessionId: 7, incidentId: 9, opened: false),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(received, hasLength(1));
+      expect(storage.values[AppConstants.accessTokenKey], 'access-A');
+    },
+  );
+
   test(
     'registers a stable installation after authenticated permission',
     () async {
@@ -135,6 +189,7 @@ final class _Registration {
 final class _FakeRepository implements PushDeviceRepository {
   final registrations = <_Registration>[];
   final removals = <String>[];
+  Completer<void>? firstRegistration;
 
   @override
   Future<void> register({
@@ -142,6 +197,7 @@ final class _FakeRepository implements PushDeviceRepository {
     required String token,
   }) async {
     registrations.add(_Registration(installationId, token));
+    if (firstRegistration?.isCompleted == false) firstRegistration!.complete();
   }
 
   @override

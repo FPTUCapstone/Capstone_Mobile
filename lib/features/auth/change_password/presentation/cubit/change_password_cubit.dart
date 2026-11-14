@@ -94,35 +94,36 @@ final class ChangePasswordCubit extends Cubit<ChangePasswordState> {
   /// revoked every pre-change refresh token server-side, so the restored
   /// pair is a consistent *local* snapshot, not necessarily one the Backend
   /// will still accept — the user may still need to sign in again.
-  Future<void> _replaceSessionTokensOrRollback(AuthSession session) async {
-    final previousAccessToken = await _secureStorage.read(
-      AppConstants.accessTokenKey,
-    );
-    final previousRefreshToken = await _secureStorage.read(
-      AppConstants.refreshTokenKey,
-    );
+  Future<void> _replaceSessionTokensOrRollback(AuthSession session) =>
+      _secureStorage.withSessionLock(() async {
+        final previousAccessToken = await _secureStorage.read(
+          AppConstants.accessTokenKey,
+        );
+        final previousRefreshToken = await _secureStorage.read(
+          AppConstants.refreshTokenKey,
+        );
 
-    try {
-      await _secureStorage.write(
-        AppConstants.accessTokenKey,
-        session.accessToken,
-      );
-      await _secureStorage.write(
-        AppConstants.refreshTokenKey,
-        session.refreshToken,
-      );
-    } catch (_) {
-      await _restoreBestEffort(
-        AppConstants.accessTokenKey,
-        previousAccessToken,
-      );
-      await _restoreBestEffort(
-        AppConstants.refreshTokenKey,
-        previousRefreshToken,
-      );
-      throw const _SessionReplaceFailedException();
-    }
-  }
+        try {
+          await _secureStorage.write(
+            AppConstants.accessTokenKey,
+            session.accessToken,
+          );
+          await _secureStorage.write(
+            AppConstants.refreshTokenKey,
+            session.refreshToken,
+          );
+        } catch (_) {
+          await _restoreBestEffort(
+            AppConstants.accessTokenKey,
+            previousAccessToken,
+          );
+          await _restoreBestEffort(
+            AppConstants.refreshTokenKey,
+            previousRefreshToken,
+          );
+          throw const _SessionReplaceFailedException();
+        }
+      });
 
   Future<void> _restoreBestEffort(String key, String? value) async {
     try {

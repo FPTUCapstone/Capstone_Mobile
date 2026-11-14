@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
+import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/booking_refund/domain/entities/booking_refund_progress.dart';
 import 'package:trip_mate_mobile/features/booking_refund/presentation/cubit/booking_refund_progress_cubit.dart';
 import 'package:trip_mate_mobile/features/booking_refund/presentation/cubit/booking_refund_progress_state.dart';
+import 'package:trip_mate_mobile/features/support_chat/domain/entities/support_chat.dart';
 import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/loading_indicator.dart';
@@ -30,6 +35,34 @@ final class _BookingRefundProgressPageState
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Refund progress')),
+    bottomNavigationBar:
+        BlocBuilder<BookingRefundProgressCubit, BookingRefundProgressState>(
+          builder: (context, state) {
+            if (state.status != BookingRefundProgressStatus.success ||
+                state.progress == null) {
+              return const SizedBox.shrink();
+            }
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.support_agent),
+                  label: const Text('Ask about this refund'),
+                  onPressed: () => context.push(
+                    context.read<AuthSessionCubit>().state.role ==
+                            UserRole.tourOperator
+                        ? AppRoutes.operatorSupportChat
+                        : AppRoutes.supportChat,
+                    extra: SupportChatContext(
+                      kind: 'refund',
+                      id: widget.bookingId,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
     body: BlocBuilder<BookingRefundProgressCubit, BookingRefundProgressState>(
       builder: (context, state) => switch (state.status) {
         BookingRefundProgressStatus.initial ||
