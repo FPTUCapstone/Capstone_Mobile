@@ -9,8 +9,12 @@ import 'package:trip_mate_mobile/features/booking/presentation/cubit/book_tour_s
 
 import '../../booking_fakes.dart';
 
-BookTourCubit _cubit(FakeBookingRepository repository) => BookTourCubit(
+BookTourCubit _cubit(
+  FakeBookingRepository repository, {
+  int? initialAdultCount,
+}) => BookTourCubit(
   tourScheduleId: '123',
+  initialAdultCount: initialAdultCount,
   quoteBooking: QuoteBookingUseCase(repository),
   createBooking: CreateBookingUseCase(repository),
   getBookingContact: GetBookingContactUseCase(repository),
@@ -20,6 +24,26 @@ Future<void> _settle() =>
     Future<void>.delayed(const Duration(milliseconds: 400));
 
 void main() {
+  test('preserves mixed participants in the first quote', () async {
+    final repository = FakeBookingRepository();
+    final cubit = BookTourCubit(
+      tourScheduleId: '123',
+      initialParticipantCounts: const ParticipantCounts(
+        adult: 2,
+        child: 1,
+        infant: 1,
+      ),
+      quoteBooking: QuoteBookingUseCase(repository),
+      createBooking: CreateBookingUseCase(repository),
+      getBookingContact: GetBookingContactUseCase(repository),
+    );
+    addTearDown(cubit.close);
+    await _settle();
+    expect(
+      repository.quoteCalls.single.$2,
+      const ParticipantCounts(adult: 2, child: 1, infant: 1),
+    );
+  });
   group('lead contact prefill', () {
     test(
       'loads profile contact values without making them immutable',
@@ -53,6 +77,46 @@ void main() {
   });
 
   group('quote', () {
+    test('uses a valid initial adult count for the first quote', () async {
+      final repository = FakeBookingRepository();
+      final cubit = _cubit(repository, initialAdultCount: 4);
+      addTearDown(cubit.close);
+
+      await _settle();
+
+      expect(cubit.state.participantCounts, const ParticipantCounts(adult: 4));
+      expect(
+        repository.quoteCalls.single.$2,
+        const ParticipantCounts(adult: 4),
+      );
+      expect(repository.createCalls, isEmpty);
+    });
+
+    test(
+      'uses the default adult count for an out-of-range initial value',
+      () async {
+        for (final initialAdultCount in [0, -1, 51]) {
+          final repository = FakeBookingRepository();
+          final cubit = _cubit(
+            repository,
+            initialAdultCount: initialAdultCount,
+          );
+          addTearDown(cubit.close);
+
+          await _settle();
+
+          expect(
+            cubit.state.participantCounts,
+            const ParticipantCounts(adult: 1),
+          );
+          expect(
+            repository.quoteCalls.single.$2,
+            const ParticipantCounts(adult: 1),
+          );
+        }
+      },
+    );
+
     test(
       'requests a quote for the initial participant counts on construction',
       () async {

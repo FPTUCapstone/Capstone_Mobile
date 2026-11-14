@@ -48,6 +48,7 @@ import 'package:trip_mate_mobile/features/auth/presentation/cubit/register_opera
 import 'package:trip_mate_mobile/features/auth/presentation/services/operator_document_picker.dart';
 import 'package:trip_mate_mobile/features/booking/data/datasources/booking_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/booking/data/repositories/booking_repository_impl.dart';
+import 'package:trip_mate_mobile/features/booking/domain/entities/booking_participant.dart';
 import 'package:trip_mate_mobile/features/booking/domain/repositories/booking_repository.dart';
 import 'package:trip_mate_mobile/features/booking/domain/usecases/create_booking_use_case.dart';
 import 'package:trip_mate_mobile/features/booking/domain/usecases/get_booking_contact_use_case.dart';
@@ -127,6 +128,10 @@ import 'package:trip_mate_mobile/features/poi/domain/usecases/set_poi_favorite_u
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_favorite_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
+import 'package:trip_mate_mobile/features/support_chat/data/datasources/support_chat_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/support_chat/data/repositories/support_chat_repository_impl.dart';
+import 'package:trip_mate_mobile/features/support_chat/domain/repositories/support_chat_repository.dart';
+import 'package:trip_mate_mobile/features/support_chat/domain/usecases/send_support_message.dart';
 import 'package:trip_mate_mobile/features/tour_detail/data/datasources/dio_tour_detail_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/tour_detail/data/datasources/tour_detail_data_source.dart';
 import 'package:trip_mate_mobile/features/tour_detail/data/repositories/tour_detail_repository_impl.dart';
@@ -467,9 +472,10 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerFactory<GetBookingContactUseCase>(
       () => GetBookingContactUseCase(serviceLocator()),
     )
-    ..registerFactoryParam<BookTourCubit, String, void>(
-      (tourScheduleId, _) => BookTourCubit(
+    ..registerFactoryParam<BookTourCubit, String, ParticipantCounts?>(
+      (tourScheduleId, counts) => BookTourCubit(
         tourScheduleId: tourScheduleId,
+        initialParticipantCounts: counts,
         quoteBooking: serviceLocator(),
         createBooking: serviceLocator(),
         getBookingContact: serviceLocator(),
@@ -559,6 +565,15 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerLazySingleton<ChangePasswordRemoteDataSource>(
       () => ChangePasswordRemoteDataSourceImpl(serviceLocator()),
+    )
+    ..registerLazySingleton<SupportChatRemoteDataSource>(
+      () => SupportChatRemoteDataSource(serviceLocator()),
+    )
+    ..registerLazySingleton<SupportChatRepository>(
+      () => SupportChatRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<SendSupportMessage>(
+      () => SendSupportMessage(serviceLocator()),
     )
     ..registerLazySingleton<ChangePasswordRepository>(
       () => ChangePasswordRepositoryImpl(serviceLocator()),

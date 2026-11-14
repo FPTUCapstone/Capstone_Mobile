@@ -6,6 +6,7 @@ import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/core/utils/trip_time_format.dart';
+import 'package:trip_mate_mobile/features/support_chat/domain/entities/support_chat.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_stop.dart';
@@ -245,6 +246,17 @@ final class _DetailContent extends StatelessWidget {
     return AppPageScaffold(
       title: detail.title ?? 'Lịch trình của bạn',
       actions: [
+        IconButton(
+          tooltip: 'Ask about this itinerary',
+          icon: const Icon(Icons.support_agent),
+          onPressed: () => context.push(
+            AppRoutes.supportChat,
+            extra: SupportChatContext(
+              kind: 'itinerary',
+              id: detail.itineraryId.toString(),
+            ),
+          ),
+        ),
         if (detail.canEdit)
           IconButton(
             tooltip: 'Tạo lại lịch trình',
