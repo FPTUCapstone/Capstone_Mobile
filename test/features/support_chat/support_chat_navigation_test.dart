@@ -2,6 +2,27 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/support_chat/presentation/support_chat_navigation.dart';
 
 void main() {
+  test('maps feature navigation to the corresponding mobile screens', () {
+    expect(
+      SupportChatNavigation.locationFor('/plan'),
+      '/traveler/itineraries/create',
+    );
+    expect(SupportChatNavigation.locationFor('/pois'), '/explore');
+    expect(
+      SupportChatNavigation.locationFor('/account/profile'),
+      '/traveler/profile',
+    );
+    expect(
+      SupportChatNavigation.locationFor('/account/preferences'),
+      '/traveler/preferences',
+    );
+    expect(
+      SupportChatNavigation.locationFor('/account/security'),
+      '/traveler/change-password',
+    );
+    expect(SupportChatNavigation.locationFor('/plan?next=//evil.test'), isNull);
+  });
+
   test('preserves every participant category in a booking handoff', () {
     expect(
       SupportChatNavigation.locationFor(
