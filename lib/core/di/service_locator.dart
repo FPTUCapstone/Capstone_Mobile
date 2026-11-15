@@ -104,6 +104,11 @@ import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/c
 import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/emergency_evidence_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/operator_safety_review_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/operator_safety_reviews_cubit.dart';
+import 'package:trip_mate_mobile/features/partial_refund_proposal/data/datasources/partial_refund_proposal_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/partial_refund_proposal/data/repositories/partial_refund_proposal_repository_impl.dart';
+import 'package:trip_mate_mobile/features/partial_refund_proposal/domain/repositories/partial_refund_proposal_repository.dart';
+import 'package:trip_mate_mobile/features/partial_refund_proposal/domain/usecases/partial_refund_proposal_use_cases.dart';
+import 'package:trip_mate_mobile/features/partial_refund_proposal/presentation/cubit/partial_refund_proposal_cubit.dart';
 import 'package:trip_mate_mobile/features/payment/data/datasources/payment_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/payment/data/repositories/payment_repository_impl.dart';
 import 'package:trip_mate_mobile/features/payment/domain/repositories/payment_repository.dart';
@@ -518,6 +523,25 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerFactory<BookingRefundProgressCubit>(
       () => BookingRefundProgressCubit(getProgress: serviceLocator()),
+    )
+    ..registerLazySingleton<PartialRefundProposalRemoteDataSource>(
+      () => DioPartialRefundProposalRemoteDataSource(serviceLocator()),
+    )
+    ..registerLazySingleton<PartialRefundProposalRepository>(
+      () => PartialRefundProposalRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<GetPartialRefundProposalUseCase>(
+      () => GetPartialRefundProposalUseCase(serviceLocator()),
+    )
+    ..registerFactory<RespondToPartialRefundProposalUseCase>(
+      () => RespondToPartialRefundProposalUseCase(serviceLocator()),
+    )
+    ..registerFactoryParam<PartialRefundProposalCubit, int, void>(
+      (complaintId, _) => PartialRefundProposalCubit(
+        complaintId: complaintId,
+        getProposal: serviceLocator(),
+        respond: serviceLocator(),
+      ),
     )
     ..registerLazySingleton<AuthRemoteDataSource>(
       () => AuthRemoteDataSourceImpl(serviceLocator()),

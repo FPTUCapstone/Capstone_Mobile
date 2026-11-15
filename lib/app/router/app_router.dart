@@ -56,6 +56,9 @@ import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/c
 import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/pages/emergency_decision_page.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/pages/operator_safety_review_detail_page.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/pages/operator_safety_reviews_page.dart';
+import 'package:trip_mate_mobile/features/partial_refund_proposal/presentation/cubit/partial_refund_proposal_cubit.dart';
+import 'package:trip_mate_mobile/features/partial_refund_proposal/presentation/pages/partial_refund_proposal_page.dart';
+import 'package:trip_mate_mobile/features/partial_refund_proposal/resources/partial_refund_proposal_en.dart';
 import 'package:trip_mate_mobile/features/payment/presentation/cubit/payment_cubit.dart';
 import 'package:trip_mate_mobile/features/payment/presentation/pages/payment_page.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
@@ -307,6 +310,28 @@ GoRouter createAppRouter(
           return BlocProvider(
             create: (_) => serviceLocator<BookingRefundProgressCubit>(),
             child: BookingRefundProgressPage(bookingId: bookingId),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.partialRefundProposalPattern,
+        name: AppRouteNames.partialRefundProposal,
+        builder: (_, state) {
+          final complaintId = int.tryParse(
+            state.pathParameters['complaintId'] ?? '',
+          );
+          if (complaintId == null || complaintId <= 0) {
+            return const Scaffold(
+              body: ErrorView(message: PartialRefundProposalStrings.notFound),
+            );
+          }
+          return BlocProvider(
+            // A new complaint id must get a new cubit, e.g. when a notification
+            // for another complaint is opened while this screen is showing.
+            key: ValueKey('partial-refund-proposal-$complaintId'),
+            create: (_) =>
+                serviceLocator<PartialRefundProposalCubit>(param1: complaintId),
+            child: const PartialRefundProposalPage(),
           );
         },
       ),
