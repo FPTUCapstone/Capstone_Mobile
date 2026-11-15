@@ -125,21 +125,8 @@ abstract final class AppRoutes {
   static String groupLocationSharingPath(int groupId) =>
       '/traveler/groups/$groupId/location-sharing';
   static String poiDetail(int id) => '/explore/poi/$id';
-  static String tourDetail(
-    String tourId, {
-    bool demo = false,
-    String? heroTag,
-  }) {
-    final query = <String, String>{};
-    if (demo) query['demo'] = 'true';
-    if (heroTag != null && heroTag.isNotEmpty) query['heroTag'] = heroTag;
-    if (query.isEmpty) return '/explore/tours/$tourId';
-    return Uri(
-      path: '/explore/tours/$tourId',
-      queryParameters: query,
-    ).toString();
-  }
-
+  static String tourDetail(String tourId, {bool demo = false}) =>
+      demo ? '/explore/tours/$tourId?demo=true' : '/explore/tours/$tourId';
   static String bookTour(String tourId, String scheduleId) => Uri(
     path: '/explore/tours/$tourId/book',
     queryParameters: {'scheduleId': scheduleId},
