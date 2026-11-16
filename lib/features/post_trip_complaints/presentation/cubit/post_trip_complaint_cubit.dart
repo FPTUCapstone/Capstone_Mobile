@@ -28,6 +28,7 @@ final class PostTripComplaintCubit extends Cubit<PostTripComplaintState> {
   final DownloadPostTripComplaintEvidence _download;
   String? _submitKey;
   String? _amendKey;
+  String? _amendFingerprint;
 
   Future<void> load() async {
     emit(
@@ -146,13 +147,21 @@ final class PostTripComplaintCubit extends Cubit<PostTripComplaintState> {
       ),
     );
     try {
-      _amendKey ??= const Uuid().v4();
+      // Reuse a key only while the retry payload is exactly the same. A
+      // changed evidence selection must receive a fresh key or the server
+      // correctly rejects it as an idempotency payload mismatch.
+      final fingerprint = _evidenceFingerprint(evidence);
+      if (_amendFingerprint != fingerprint) {
+        _amendFingerprint = fingerprint;
+        _amendKey = const Uuid().v4();
+      }
       await _amend(
         bookingId: _bookingId,
         idempotencyKey: _amendKey!,
         evidence: evidence,
       );
       _amendKey = null;
+      _amendFingerprint = null;
       await _loadFresh();
     } on Object catch (error) {
       if (!isClosed) {
@@ -194,6 +203,15 @@ final class PostTripComplaintCubit extends Cubit<PostTripComplaintState> {
       : context.canSubmit
       ? PostTripComplaintPhase.eligible
       : PostTripComplaintPhase.ineligible;
+
+  static String _evidenceFingerprint(
+    List<SelectedEvidence> evidence,
+  ) => evidence
+      .map(
+        (item) =>
+            '${item.name}\u0000${item.sizeBytes}\u0000${item.contentType}\u0000${Object.hashAll(item.bytes ?? const <int>[])}',
+      )
+      .join('\u0001');
   static String _message(Object error) => switch (error) {
     AuthenticationFailure() ||
     PermissionFailure() => 'You do not have access to this complaint.',

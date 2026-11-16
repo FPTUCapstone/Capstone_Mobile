@@ -9,6 +9,7 @@ import 'package:trip_mate_mobile/features/post_trip_complaints/domain/entities/s
 import 'package:trip_mate_mobile/features/post_trip_complaints/presentation/cubit/post_trip_complaint_cubit.dart';
 import 'package:trip_mate_mobile/features/post_trip_complaints/presentation/cubit/post_trip_complaint_state.dart';
 import 'package:trip_mate_mobile/features/post_trip_complaints/resources/post_trip_complaint_strings.dart';
+import 'package:trip_mate_mobile/features/post_trip_complaints/domain/validation/post_trip_complaint_validation.dart';
 
 final class PostTripComplaintPage extends StatefulWidget {
   const PostTripComplaintPage({super.key});
@@ -20,6 +21,7 @@ final class PostTripComplaintPage extends StatefulWidget {
 final class _PostTripComplaintPageState extends State<PostTripComplaintPage> {
   final _detail = TextEditingController();
   final _amendment = <SelectedEvidence>[];
+  String? _pickerError;
 
   @override
   void dispose() {
@@ -69,6 +71,16 @@ final class _PostTripComplaintPageState extends State<PostTripComplaintPage> {
                       ),
                     ),
                   ),
+                if (_pickerError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.sm),
+                    child: Text(
+                      _pickerError!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: AppSpacing.md),
                 if (state.phase == PostTripComplaintPhase.eligible ||
                     state.phase == PostTripComplaintPhase.submitting)
@@ -82,7 +94,7 @@ final class _PostTripComplaintPageState extends State<PostTripComplaintPage> {
                   _Existing(
                     context: complaintContext,
                     amendment: _amendment,
-                    onPick: _pickAmendment,
+                    onPick: () => _pickAmendment(complaintContext),
                     onAmend: () async {
                       await cubit.amend(_amendment);
                       if (mounted &&
@@ -110,7 +122,18 @@ final class _PostTripComplaintPageState extends State<PostTripComplaintPage> {
     PostTripComplaintState state,
   ) async {
     final files = await _pick();
-    if (files != null) cubit.setEvidence([...state.evidence, ...files]);
+    if (files == null) return;
+    final accepted = _acceptEvidence(
+      files,
+      existingCount: state.evidence.length,
+      existingBytes: state.evidence.fold(
+        0,
+        (sum, item) => sum + item.sizeBytes,
+      ),
+    );
+    if (accepted.isNotEmpty) {
+      cubit.setEvidence([...state.evidence, ...accepted]);
+    }
   }
 
   void _goBack(BuildContext context) {
@@ -121,10 +144,67 @@ final class _PostTripComplaintPageState extends State<PostTripComplaintPage> {
     context.go('/traveler/trips');
   }
 
-  Future<void> _pickAmendment() async {
+  Future<void> _pickAmendment(PostTripComplaintContext context) async {
     final files = await _pick();
-    if (files != null && mounted) setState(() => _amendment.addAll(files));
+    if (files == null) return;
+    final accepted = _acceptEvidence(
+      files,
+      existingCount: context.complaint!.evidence.length + _amendment.length,
+      existingBytes:
+          context.complaint!.evidence.fold(
+            0,
+            (sum, item) => sum + item.sizeBytes,
+          ) +
+          _amendment.fold(0, (sum, item) => sum + item.sizeBytes),
+    );
+    if (accepted.isNotEmpty && mounted) {
+      setState(() => _amendment.addAll(accepted));
+    }
   }
+
+  List<SelectedEvidence> _acceptEvidence(
+    List<SelectedEvidence> candidates, {
+    required int existingCount,
+    required int existingBytes,
+  }) {
+    final accepted = <SelectedEvidence>[];
+    PostTripComplaintValidationMessage? issue;
+    for (final candidate in candidates) {
+      final result = PostTripComplaintValidation.validateEvidence(
+        [candidate],
+        existingCount: existingCount + accepted.length,
+        existingBytes:
+            existingBytes +
+            accepted.fold(0, (sum, item) => sum + item.sizeBytes),
+        requireData: true,
+      );
+      if (result == null) {
+        accepted.add(candidate);
+      } else {
+        issue ??= result;
+      }
+    }
+    if (mounted) {
+      setState(
+        () => _pickerError = issue == null ? null : _pickerMessage(issue!),
+      );
+    }
+    return accepted;
+  }
+
+  String _pickerMessage(PostTripComplaintValidationMessage issue) =>
+      switch (issue) {
+        PostTripComplaintValidationMessage.unsupportedType =>
+          PostTripComplaintStrings.evidenceTypeInvalid,
+        PostTripComplaintValidationMessage.fileTooLarge ||
+        PostTripComplaintValidationMessage.totalTooLarge =>
+          PostTripComplaintStrings.evidenceTooLarge,
+        PostTripComplaintValidationMessage.tooManyFiles =>
+          PostTripComplaintStrings.tooManyEvidence,
+        PostTripComplaintValidationMessage.missingFileData =>
+          PostTripComplaintStrings.evidenceDataUnavailable,
+        _ => PostTripComplaintStrings.invalidEvidence,
+      };
 
   Future<List<SelectedEvidence>?> _pick() async {
     final result = await FilePicker.pickFiles(
@@ -149,17 +229,27 @@ final class _PostTripComplaintPageState extends State<PostTripComplaintPage> {
   Future<void> _download(PostTripComplaintCubit cubit, int evidenceId) async {
     final data = await cubit.downloadEvidence(evidenceId);
     if (data == null || !mounted) return;
-    await SharePlus.instance.share(
-      ShareParams(
-        files: [
-          XFile.fromData(
-            data.bytes,
-            name: data.fileName,
-            mimeType: data.contentType,
+    try {
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [
+            XFile.fromData(
+              data.bytes,
+              name: data.fileName,
+              mimeType: data.contentType,
+            ),
+          ],
+        ),
+      );
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(PostTripComplaintStrings.downloadUnavailable),
           ),
-        ],
-      ),
-    );
+        );
+      }
+    }
   }
 
   static String _contentType(String? extension) =>
@@ -253,7 +343,7 @@ class _Form extends StatelessWidget {
           items: PostTripComplaintReasonCategory.values
               .map(
                 (item) =>
-                    DropdownMenuItem(value: item, child: Text(item.wireValue)),
+                    DropdownMenuItem(value: item, child: Text(item.label)),
               )
               .toList(),
           onChanged: busy ? null : cubit.setCategory,

@@ -19,6 +19,15 @@ enum PostTripComplaintReasonCategory {
     other => 'Other',
   };
 
+  String get label => switch (this) {
+    itineraryNotAsAdvertised => 'Itinerary not as advertised',
+    serviceQuality => 'Service quality',
+    guideOrStaffConduct => 'Guide or staff conduct',
+    safetyIssue => 'Safety issue',
+    scheduleChangeOrDelay => 'Schedule change or delay',
+    other => 'Other',
+  };
+
   static PostTripComplaintReasonCategory? tryFromWire(String? value) {
     for (final item in values) {
       if (item.wireValue == value) return item;
