@@ -27,51 +27,57 @@ void main() {
   });
 
   group('amendEvidence (add evidence)', () {
-    test('sends evidence multipart request with idempotency key and parses response JSON', () async {
-      final adapter = _Adapter(
-        jsonEncode({
-          'complaintId': 101,
-          'evidenceAmendmentUsedAtUtc': '2026-11-16T12:00:00Z',
-          'evidenceCount': 3,
-          'evidenceTotalBytes': 1500000,
-          'isReplay': false,
-        }),
-      );
-      client.dio.httpClientAdapter = adapter;
+    test(
+      'sends evidence multipart request with idempotency key and parses response JSON',
+      () async {
+        final adapter = _Adapter(
+          jsonEncode({
+            'complaintId': 101,
+            'evidenceAmendmentUsedAtUtc': '2026-11-16T12:00:00Z',
+            'evidenceCount': 3,
+            'evidenceTotalBytes': 1500000,
+            'isReplay': false,
+          }),
+        );
+        client.dio.httpClientAdapter = adapter;
 
-      final result = await dataSource.amendEvidence(
-        bookingId: 42,
-        idempotencyKey: '00000000-0000-0000-0000-000000000001',
-        evidence: [
-          SelectedEvidence(
-            name: 'ticket.pdf',
-            sizeBytes: 500000,
-            contentType: 'application/pdf',
-            bytes: Uint8List.fromList([1, 2, 3]),
+        final result = await dataSource.amendEvidence(
+          bookingId: 42,
+          idempotencyKey: '00000000-0000-0000-0000-000000000001',
+          evidence: [
+            SelectedEvidence(
+              name: 'ticket.pdf',
+              sizeBytes: 500000,
+              contentType: 'application/pdf',
+              bytes: Uint8List.fromList([1, 2, 3]),
+            ),
+          ],
+        );
+
+        final request = adapter.requests.single;
+        expect(request.method, 'POST');
+        expect(
+          request.path,
+          '/api/v1/traveler/bookings/42/post-trip-complaint/evidence',
+        );
+        expect(
+          request.headers['Idempotency-Key'],
+          '00000000-0000-0000-0000-000000000001',
+        );
+        expect(request.data, isA<FormData>());
+
+        expect(
+          result,
+          PostTripComplaintEvidenceAmendment(
+            complaintId: 101,
+            evidenceAmendmentUsedAtUtc: DateTime.utc(2026, 11, 16, 12),
+            evidenceCount: 3,
+            evidenceTotalBytes: 1500000,
+            isReplay: false,
           ),
-        ],
-      );
-
-      final request = adapter.requests.single;
-      expect(request.method, 'POST');
-      expect(
-        request.path,
-        '/api/v1/traveler/bookings/42/post-trip-complaint/evidence',
-      );
-      expect(request.headers['Idempotency-Key'], '00000000-0000-0000-0000-000000000001');
-      expect(request.data, isA<FormData>());
-
-      expect(
-        result,
-        PostTripComplaintEvidenceAmendment(
-          complaintId: 101,
-          evidenceAmendmentUsedAtUtc: DateTime.utc(2026, 11, 16, 12),
-          evidenceCount: 3,
-          evidenceTotalBytes: 1500000,
-          isReplay: false,
-        ),
-      );
-    });
+        );
+      },
+    );
 
     test('correctly parses replayed response and envelope format', () async {
       final adapter = _Adapter(
@@ -107,60 +113,63 @@ void main() {
       expect(result.evidenceAmendmentUsedAtUtc, DateTime.utc(2026, 11, 16, 12));
     });
 
-    test('throws FormatException when response JSON is missing required fields', () async {
-      final invalidResponses = [
-        jsonEncode({
-          // missing complaintId
-          'evidenceAmendmentUsedAtUtc': '2026-11-16T12:00:00Z',
-          'evidenceCount': 3,
-          'evidenceTotalBytes': 1500000,
-          'isReplay': false,
-        }),
-        jsonEncode({
-          'complaintId': 101,
-          // invalid date
-          'evidenceAmendmentUsedAtUtc': 'not-a-date',
-          'evidenceCount': 3,
-          'evidenceTotalBytes': 1500000,
-          'isReplay': false,
-        }),
-        jsonEncode({
-          'complaintId': 101,
-          'evidenceAmendmentUsedAtUtc': '2026-11-16T12:00:00Z',
-          // missing evidenceCount
-          'evidenceTotalBytes': 1500000,
-          'isReplay': false,
-        }),
-        jsonEncode({
-          'complaintId': 101,
-          'evidenceAmendmentUsedAtUtc': '2026-11-16T12:00:00Z',
-          'evidenceCount': 3,
-          'evidenceTotalBytes': 1500000,
-          // isReplay is not bool
-          'isReplay': 'not-a-bool',
-        }),
-      ];
+    test(
+      'throws FormatException when response JSON is missing required fields',
+      () async {
+        final invalidResponses = [
+          jsonEncode({
+            // missing complaintId
+            'evidenceAmendmentUsedAtUtc': '2026-11-16T12:00:00Z',
+            'evidenceCount': 3,
+            'evidenceTotalBytes': 1500000,
+            'isReplay': false,
+          }),
+          jsonEncode({
+            'complaintId': 101,
+            // invalid date
+            'evidenceAmendmentUsedAtUtc': 'not-a-date',
+            'evidenceCount': 3,
+            'evidenceTotalBytes': 1500000,
+            'isReplay': false,
+          }),
+          jsonEncode({
+            'complaintId': 101,
+            'evidenceAmendmentUsedAtUtc': '2026-11-16T12:00:00Z',
+            // missing evidenceCount
+            'evidenceTotalBytes': 1500000,
+            'isReplay': false,
+          }),
+          jsonEncode({
+            'complaintId': 101,
+            'evidenceAmendmentUsedAtUtc': '2026-11-16T12:00:00Z',
+            'evidenceCount': 3,
+            'evidenceTotalBytes': 1500000,
+            // isReplay is not bool
+            'isReplay': 'not-a-bool',
+          }),
+        ];
 
-      for (final payload in invalidResponses) {
-        client.dio.httpClientAdapter = _Adapter(payload);
+        for (final payload in invalidResponses) {
+          client.dio.httpClientAdapter = _Adapter(payload);
 
-        await expectLater(
-          dataSource.amendEvidence(
-            bookingId: 42,
-            idempotencyKey: 'key',
-            evidence: [
-              SelectedEvidence(
-                name: 'a.png',
-                sizeBytes: 100,
-                contentType: 'image/png',
-                bytes: Uint8List.fromList([1]),
-              ),
-            ],
-          ),
-          throwsA(isA<FormatException>()),
-        );
-      }
-    });
+          await expectLater(
+            dataSource.amendEvidence(
+              bookingId: 42,
+              idempotencyKey: 'key',
+              evidence: [
+                SelectedEvidence(
+                  name: 'a.png',
+                  sizeBytes: 100,
+                  contentType: 'image/png',
+                  bytes: Uint8List.fromList([1]),
+                ),
+              ],
+            ),
+            throwsA(isA<FormatException>()),
+          );
+        }
+      },
+    );
 
     test('rejects non-positive bookingId before sending request', () async {
       final adapter = _Adapter('{}');
