@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/features/post_trip_complaints/presentation/widgets/post_trip_complaint_entry_action.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_record.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_record_detail.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_record_detail_cubit.dart';
@@ -265,6 +266,12 @@ class _BookingContent extends StatelessWidget {
               ),
             ],
           ),
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          child: PostTripComplaintEntryAction(
+            bookingId: detail.record.reviewableRecord.id,
+          ),
+        ),
       ],
     );
   }

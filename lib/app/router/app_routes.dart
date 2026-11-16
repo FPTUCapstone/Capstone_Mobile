@@ -33,6 +33,11 @@ abstract final class AppRoutes {
 
   static const partialRefundProposalPattern =
       '/traveler/complaints/:complaintId/partial-refund-proposal';
+  static const postTripComplaintPattern =
+      '/traveler/bookings/:bookingId/complaint';
+  static const myPostTripComplaints = '/traveler/complaints';
+  static String postTripComplaint(int bookingId) =>
+      '/traveler/bookings/$bookingId/complaint';
   static String partialRefundProposal(int complaintId) =>
       '/traveler/complaints/$complaintId/partial-refund-proposal';
 
@@ -173,6 +178,8 @@ abstract final class AppRouteNames {
   static const payment = 'payment';
   static const bookingRefund = 'booking-refund';
   static const partialRefundProposal = 'partial-refund-proposal';
+  static const postTripComplaint = 'post-trip-complaint';
+  static const myPostTripComplaints = 'my-post-trip-complaints';
   static const traveler = 'traveler';
   static const tourRecommendations = 'tour-recommendations';
   static const travelerSettings = 'traveler-settings';

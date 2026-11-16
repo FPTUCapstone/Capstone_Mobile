@@ -1,0 +1,361 @@
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/features/post_trip_complaints/domain/entities/post_trip_complaint.dart';
+import 'package:trip_mate_mobile/features/post_trip_complaints/domain/entities/selected_evidence.dart';
+import 'package:trip_mate_mobile/features/post_trip_complaints/presentation/cubit/post_trip_complaint_cubit.dart';
+import 'package:trip_mate_mobile/features/post_trip_complaints/presentation/cubit/post_trip_complaint_state.dart';
+import 'package:trip_mate_mobile/features/post_trip_complaints/resources/post_trip_complaint_strings.dart';
+
+final class PostTripComplaintPage extends StatefulWidget {
+  const PostTripComplaintPage({super.key});
+
+  @override
+  State<PostTripComplaintPage> createState() => _PostTripComplaintPageState();
+}
+
+final class _PostTripComplaintPageState extends State<PostTripComplaintPage> {
+  final _detail = TextEditingController();
+  final _amendment = <SelectedEvidence>[];
+
+  @override
+  void dispose() {
+    _detail.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          tooltip: 'Back',
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => _goBack(context),
+        ),
+        title: const Text(PostTripComplaintStrings.title),
+      ),
+      body: BlocBuilder<PostTripComplaintCubit, PostTripComplaintState>(
+        builder: (context, state) {
+          final cubit = context.read<PostTripComplaintCubit>();
+          if (state.phase == PostTripComplaintPhase.loading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (state.phase == PostTripComplaintPhase.failure) {
+            return _Failure(message: state.message, onRetry: cubit.load);
+          }
+          final complaintContext = state.context;
+          if (complaintContext == null) {
+            return _Failure(
+              message: PostTripComplaintStrings.systemError,
+              onRetry: cubit.load,
+            );
+          }
+          return SafeArea(
+            child: ListView(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              children: [
+                _Summary(context: complaintContext),
+                if (state.message != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.sm),
+                    child: Text(
+                      state.message!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: AppSpacing.md),
+                if (state.phase == PostTripComplaintPhase.eligible ||
+                    state.phase == PostTripComplaintPhase.submitting)
+                  _Form(
+                    state: state,
+                    detail: _detail,
+                    onPick: () => _pickInitial(cubit, state),
+                    onSubmit: cubit.submit,
+                  )
+                else if (complaintContext.complaint != null)
+                  _Existing(
+                    context: complaintContext,
+                    amendment: _amendment,
+                    onPick: _pickAmendment,
+                    onAmend: () async {
+                      await cubit.amend(_amendment);
+                      if (mounted &&
+                          cubit.state.context?.canAmendEvidence == false) {
+                        setState(_amendment.clear);
+                      }
+                    },
+                    onDownload: (id) => _download(cubit, id),
+                  )
+                else
+                  _Closed(
+                    reason: complaintContext.ineligibilityReason,
+                    onBack: () => context.go('/traveler/trips'),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _pickInitial(
+    PostTripComplaintCubit cubit,
+    PostTripComplaintState state,
+  ) async {
+    final files = await _pick();
+    if (files != null) cubit.setEvidence([...state.evidence, ...files]);
+  }
+
+  void _goBack(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+      return;
+    }
+    context.go('/traveler/trips');
+  }
+
+  Future<void> _pickAmendment() async {
+    final files = await _pick();
+    if (files != null && mounted) setState(() => _amendment.addAll(files));
+  }
+
+  Future<List<SelectedEvidence>?> _pick() async {
+    final result = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
+      allowMultiple: true,
+      withData: true,
+    );
+    if (result == null) return null;
+    return result.files
+        .map(
+          (file) => SelectedEvidence(
+            name: file.name,
+            sizeBytes: file.size,
+            contentType: _contentType(file.extension),
+            bytes: file.bytes,
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  Future<void> _download(PostTripComplaintCubit cubit, int evidenceId) async {
+    final data = await cubit.downloadEvidence(evidenceId);
+    if (data == null || !mounted) return;
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [
+          XFile.fromData(
+            data.bytes,
+            name: data.fileName,
+            mimeType: data.contentType,
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _contentType(String? extension) =>
+      switch (extension?.toLowerCase()) {
+        'jpg' || 'jpeg' => 'image/jpeg',
+        'png' => 'image/png',
+        'webp' => 'image/webp',
+        'pdf' => 'application/pdf',
+        _ => 'application/octet-stream',
+      };
+}
+
+class _Summary extends StatelessWidget {
+  const _Summary({required this.context});
+  final PostTripComplaintContext context;
+  @override
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            this.context.bookingCode ?? 'Booking',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          if (this.context.tourTitle != null) Text(this.context.tourTitle!),
+          const SizedBox(height: AppSpacing.xs),
+          Text('Submit by ${this.context.submissionDeadlineUtc.toLocal()}'),
+        ],
+      ),
+    ),
+  );
+}
+
+class _Failure extends StatelessWidget {
+  const _Failure({this.message, required this.onRetry});
+  final String? message;
+  final VoidCallback onRetry;
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(message ?? PostTripComplaintStrings.systemError),
+        const SizedBox(height: AppSpacing.sm),
+        FilledButton(
+          onPressed: onRetry,
+          child: const Text(PostTripComplaintStrings.retry),
+        ),
+      ],
+    ),
+  );
+}
+
+class _Closed extends StatelessWidget {
+  const _Closed({this.reason, required this.onBack});
+  final String? reason;
+  final VoidCallback onBack;
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      Text(reason ?? PostTripComplaintStrings.windowClosed),
+      const SizedBox(height: AppSpacing.sm),
+      OutlinedButton(onPressed: onBack, child: const Text('Back to trips')),
+    ],
+  );
+}
+
+class _Form extends StatelessWidget {
+  const _Form({
+    required this.state,
+    required this.detail,
+    required this.onPick,
+    required this.onSubmit,
+  });
+  final PostTripComplaintState state;
+  final TextEditingController detail;
+  final VoidCallback onPick;
+  final VoidCallback onSubmit;
+  @override
+  Widget build(BuildContext context) {
+    final busy = state.isBusy;
+    final cubit = context.read<PostTripComplaintCubit>();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DropdownButtonFormField<PostTripComplaintReasonCategory>(
+          initialValue: state.category,
+          decoration: const InputDecoration(labelText: 'Reason category'),
+          items: PostTripComplaintReasonCategory.values
+              .map(
+                (item) =>
+                    DropdownMenuItem(value: item, child: Text(item.wireValue)),
+              )
+              .toList(),
+          onChanged: busy ? null : cubit.setCategory,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        TextField(
+          controller: detail,
+          enabled: !busy,
+          maxLength: 2000,
+          minLines: 4,
+          maxLines: 8,
+          decoration: const InputDecoration(
+            labelText: 'Reason details',
+            border: OutlineInputBorder(),
+          ),
+          onChanged: cubit.setDetail,
+        ),
+        TextButton.icon(
+          onPressed: busy ? null : onPick,
+          icon: const Icon(Icons.attach_file),
+          label: const Text('Choose evidence'),
+        ),
+        ...state.evidence.asMap().entries.map(
+          (entry) => ListTile(
+            dense: true,
+            title: Text(entry.value.name),
+            subtitle: Text('${entry.value.sizeBytes} bytes'),
+            trailing: IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: busy
+                  ? null
+                  : () {
+                      final copied = [...state.evidence]..removeAt(entry.key);
+                      cubit.setEvidence(copied);
+                    },
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        FilledButton(
+          onPressed: busy ? null : onSubmit,
+          child: Text(busy ? 'Submitting...' : PostTripComplaintStrings.submit),
+        ),
+      ],
+    );
+  }
+}
+
+class _Existing extends StatelessWidget {
+  const _Existing({
+    required this.context,
+    required this.amendment,
+    required this.onPick,
+    required this.onAmend,
+    required this.onDownload,
+  });
+  final PostTripComplaintContext context;
+  final List<SelectedEvidence> amendment;
+  final VoidCallback onPick;
+  final VoidCallback onAmend;
+  final ValueChanged<int> onDownload;
+  @override
+  Widget build(BuildContext context) {
+    final complaint = this.context.complaint!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          PostTripComplaintStrings.existing,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        Text(complaint.reasonDetail),
+        const SizedBox(height: AppSpacing.sm),
+        ...complaint.evidence.map(
+          (item) => ListTile(
+            title: Text(item.fileName),
+            subtitle: Text('${item.sizeBytes} bytes'),
+            trailing: TextButton(
+              onPressed: () => onDownload(item.id),
+              child: const Text(PostTripComplaintStrings.download),
+            ),
+          ),
+        ),
+        if (this.context.canAmendEvidence) ...[
+          const Divider(),
+          TextButton.icon(
+            onPressed: onPick,
+            icon: const Icon(Icons.add),
+            label: const Text(PostTripComplaintStrings.amend),
+          ),
+          ...amendment.map(
+            (item) => ListTile(
+              title: Text(item.name),
+              subtitle: Text('${item.sizeBytes} bytes'),
+            ),
+          ),
+          FilledButton(
+            onPressed: amendment.isEmpty ? null : onAmend,
+            child: const Text(PostTripComplaintStrings.amend),
+          ),
+        ],
+      ],
+    );
+  }
+}

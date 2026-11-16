@@ -132,6 +132,13 @@ class _TripHistoryPageState extends State<TripHistoryPage>
     return Scaffold(
       appBar: AppBar(
         title: const Text(TripHistoryStringsEn.tripHistoryTitle),
+        actions: [
+          IconButton(
+            tooltip: 'My Complaints',
+            icon: const Icon(Icons.report_outlined),
+            onPressed: () => context.push(AppRoutes.myPostTripComplaints),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
