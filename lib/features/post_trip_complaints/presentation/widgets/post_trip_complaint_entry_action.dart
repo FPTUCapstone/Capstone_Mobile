@@ -9,15 +9,25 @@ import 'package:trip_mate_mobile/features/post_trip_complaints/presentation/cubi
 /// Shows the complaint entry point only after the server authoritatively
 /// confirms that this booking is eligible or already has a complaint to view.
 final class PostTripComplaintEntryAction extends StatelessWidget {
-  const PostTripComplaintEntryAction({required this.bookingId, super.key});
+  const PostTripComplaintEntryAction({
+    required this.bookingId,
+    this.cubit,
+    super.key,
+  });
 
   final int bookingId;
+  final PostTripComplaintCubit? cubit;
 
   @override
   Widget build(BuildContext context) {
+    if (cubit == null &&
+        !serviceLocator.isRegistered<PostTripComplaintCubit>()) {
+      return const SizedBox.shrink();
+    }
     return BlocProvider(
       create: (_) =>
-          serviceLocator<PostTripComplaintCubit>(param1: bookingId)..load(),
+          cubit ??
+          (serviceLocator<PostTripComplaintCubit>(param1: bookingId)..load()),
       child: BlocBuilder<PostTripComplaintCubit, PostTripComplaintState>(
         builder: (context, state) {
           final complaintContext = state.context;
