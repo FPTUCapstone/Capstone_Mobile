@@ -133,6 +133,12 @@ import 'package:trip_mate_mobile/features/poi/domain/usecases/set_poi_favorite_u
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_favorite_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
+import 'package:trip_mate_mobile/features/post_trip_complaints/data/datasources/post_trip_complaint_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/post_trip_complaints/data/repositories/post_trip_complaint_repository_impl.dart';
+import 'package:trip_mate_mobile/features/post_trip_complaints/domain/repositories/post_trip_complaint_repository.dart';
+import 'package:trip_mate_mobile/features/post_trip_complaints/domain/usecases/post_trip_complaint_use_cases.dart';
+import 'package:trip_mate_mobile/features/post_trip_complaints/presentation/cubit/my_post_trip_complaints_cubit.dart';
+import 'package:trip_mate_mobile/features/post_trip_complaints/presentation/cubit/post_trip_complaint_cubit.dart';
 import 'package:trip_mate_mobile/features/support_chat/data/datasources/support_chat_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/support_chat/data/repositories/support_chat_repository_impl.dart';
 import 'package:trip_mate_mobile/features/support_chat/domain/repositories/support_chat_repository.dart';
@@ -542,6 +548,39 @@ Future<void> configureDependencies({AppConfig? config}) async {
         getProposal: serviceLocator(),
         respond: serviceLocator(),
       ),
+    )
+    ..registerLazySingleton<PostTripComplaintRemoteDataSource>(
+      () => DioPostTripComplaintRemoteDataSource(serviceLocator()),
+    )
+    ..registerLazySingleton<PostTripComplaintRepository>(
+      () => PostTripComplaintRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<GetPostTripComplaintContext>(
+      () => GetPostTripComplaintContext(serviceLocator()),
+    )
+    ..registerFactory<SubmitPostTripComplaint>(
+      () => SubmitPostTripComplaint(serviceLocator()),
+    )
+    ..registerFactory<AmendPostTripComplaintEvidence>(
+      () => AmendPostTripComplaintEvidence(serviceLocator()),
+    )
+    ..registerFactory<DownloadPostTripComplaintEvidence>(
+      () => DownloadPostTripComplaintEvidence(serviceLocator()),
+    )
+    ..registerFactory<ListMyPostTripComplaints>(
+      () => ListMyPostTripComplaints(serviceLocator()),
+    )
+    ..registerFactoryParam<PostTripComplaintCubit, int, void>(
+      (bookingId, _) => PostTripComplaintCubit(
+        bookingId: bookingId,
+        getContext: serviceLocator(),
+        submit: serviceLocator(),
+        amend: serviceLocator(),
+        download: serviceLocator(),
+      ),
+    )
+    ..registerFactory<MyPostTripComplaintsCubit>(
+      () => MyPostTripComplaintsCubit(serviceLocator()),
     )
     ..registerLazySingleton<AuthRemoteDataSource>(
       () => AuthRemoteDataSourceImpl(serviceLocator()),
