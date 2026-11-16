@@ -6,10 +6,10 @@ import 'package:share_plus/share_plus.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/post_trip_complaints/domain/entities/post_trip_complaint.dart';
 import 'package:trip_mate_mobile/features/post_trip_complaints/domain/entities/selected_evidence.dart';
+import 'package:trip_mate_mobile/features/post_trip_complaints/domain/validation/post_trip_complaint_validation.dart';
 import 'package:trip_mate_mobile/features/post_trip_complaints/presentation/cubit/post_trip_complaint_cubit.dart';
 import 'package:trip_mate_mobile/features/post_trip_complaints/presentation/cubit/post_trip_complaint_state.dart';
 import 'package:trip_mate_mobile/features/post_trip_complaints/resources/post_trip_complaint_strings.dart';
-import 'package:trip_mate_mobile/features/post_trip_complaints/domain/validation/post_trip_complaint_validation.dart';
 
 final class PostTripComplaintPage extends StatefulWidget {
   const PostTripComplaintPage({super.key});
@@ -186,7 +186,7 @@ final class _PostTripComplaintPageState extends State<PostTripComplaintPage> {
     }
     if (mounted) {
       setState(
-        () => _pickerError = issue == null ? null : _pickerMessage(issue!),
+        () => _pickerError = issue == null ? null : _pickerMessage(issue),
       );
     }
     return accepted;
