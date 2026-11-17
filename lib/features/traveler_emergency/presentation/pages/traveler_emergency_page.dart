@@ -187,7 +187,7 @@ class _TravelerEmergencyPageState extends State<TravelerEmergencyPage>
                 ],
               ),
             ),
-            _refundAndRebooking(context, emergency),
+            _refundStatus(context, emergency),
             const Padding(
               padding: EdgeInsets.only(bottom: AppSpacing.sm),
               child: AppAlert(message: _Strings.companionReminder),
@@ -207,14 +207,12 @@ class _TravelerEmergencyPageState extends State<TravelerEmergencyPage>
     );
   }
 
-  /// The refund line, the existing refund-progress screen when a refund
-  /// request exists, and a normal new booking of the same tour after a
-  /// cancellation.
-  Widget _refundAndRebooking(
+  /// The refund line and the existing refund-progress screen when a refund
+  /// request exists.
+  Widget _refundStatus(
     BuildContext context,
     TravelerEmergencyStatus emergency,
   ) {
-    final tourId = emergency.rebookableTourId;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Column(
@@ -232,15 +230,6 @@ class _TravelerEmergencyPageState extends State<TravelerEmergencyPage>
               ),
               icon: const Icon(Icons.currency_exchange_rounded),
               label: const Text(_Strings.viewRefundProgress),
-            ),
-          ],
-          if (tourId != null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            OutlinedButton.icon(
-              key: const Key('emergency-rebook'),
-              onPressed: () => context.push(AppRoutes.tourDetail('$tourId')),
-              icon: const Icon(Icons.travel_explore_rounded),
-              label: const Text(_Strings.bookAnotherTrip),
             ),
           ],
         ],

@@ -234,21 +234,24 @@ void main() {
   });
 
   group('rebooking button', () {
-    testWidgets('a cancelled departure opens the same tour to book again', (
-      tester,
-    ) async {
-      repository.status = TravelerEmergencyFixture.build(
-        action: EmergencyAction.cancelBeforeDeparture,
-        refundHandling: RefundHandling.refundSubmitted,
-        tourId: 12,
-      );
-      await pump(tester);
+    testWidgets(
+      'a cancelled departure offers refund progress without rebooking even with a tour id',
+      (tester) async {
+        repository.status = TravelerEmergencyFixture.build(
+          action: EmergencyAction.cancelBeforeDeparture,
+          refundHandling: RefundHandling.refundSubmitted,
+          tourId: 12,
+        );
+        await pump(tester);
 
-      expect(find.text('Đặt chuyến khác'), findsOneWidget);
-      await tapVisible(tester, rebookButton);
+        expect(rebookButton, findsNothing);
+        expect(find.text('Đặt chuyến khác'), findsNothing);
+        expect(refundButton, findsOneWidget);
+        await tapVisible(tester, refundButton);
 
-      expect(find.text('Tour 12'), findsOneWidget);
-    });
+        expect(find.text('Refund progress 42'), findsOneWidget);
+      },
+    );
 
     testWidgets('an emergency stop offers no rebooking', (tester) async {
       repository.status = TravelerEmergencyFixture.build(tourId: 12);

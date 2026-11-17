@@ -102,11 +102,6 @@ final class TravelerEmergencyStatus extends Equatable {
 
   bool get hasRefundRequest => refundHandling == RefundHandling.refundSubmitted;
 
-  /// The tour to book again: only a departure cancelled before it started,
-  /// and only when the Backend names its tour.
-  int? get rebookableTourId =>
-      action == EmergencyAction.cancelBeforeDeparture ? tourId : null;
-
   /// The first phone number in the free-text contact, ready for a `tel:` link.
   String? get dialableContact {
     final match = _phone.firstMatch(emergencyContact ?? '');
