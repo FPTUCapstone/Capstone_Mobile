@@ -55,6 +55,27 @@ final class ItineraryDetail extends Equatable {
   /// The owner may change the plan only while nobody is navigating it.
   bool get canEdit => canManage && !isNavigationInProgress;
 
+  /// The same itinerary with other [items] (UC-10: AI sentences arriving).
+  ItineraryDetail withItems(List<ItineraryDetailItem> items) => ItineraryDetail(
+    itineraryId: itineraryId,
+    schedulingRequestId: schedulingRequestId,
+    title: title,
+    version: version,
+    status: status,
+    validFrom: validFrom,
+    validTo: validTo,
+    canManage: canManage,
+    totalEstimatedCost: totalEstimatedCost,
+    totalDurationMinutes: totalDurationMinutes,
+    items: items,
+    isNavigationInProgress: isNavigationInProgress,
+    transportMode: transportMode,
+    startLocation: startLocation,
+    endLocation: endLocation,
+    budgetVnd: budgetVnd,
+    provenance: provenance,
+  );
+
   List<ItineraryDetailItem> get visitItems => items
       .where(
         (item) =>
@@ -152,6 +173,7 @@ final class ItineraryDetailItem extends Equatable {
     required this.isMandatory,
     required this.recommendationReason,
     required this.isUnavailable,
+    this.friendlyExplanation,
     this.travelDistanceFromPreviousMeters,
     this.transportModeFromPrevious,
     this.costKind,
@@ -175,6 +197,10 @@ final class ItineraryDetailItem extends Equatable {
   final String? recommendationReason;
   final bool isUnavailable;
 
+  /// UC-10: the template sentence until the background explanation is saved,
+  /// then the AI sentence. Null on itineraries planned before it existed.
+  final String? friendlyExplanation;
+
   /// Road distance of the leg that reaches this stop; null for older plans.
   final int? travelDistanceFromPreviousMeters;
 
@@ -186,6 +212,32 @@ final class ItineraryDetailItem extends Equatable {
   final double? longitude;
 
   bool get isFood => costKind == CostKind.averageSpend;
+
+  /// The same stop with another AI sentence (UC-10).
+  ItineraryDetailItem withFriendlyExplanation(String? sentence) =>
+      ItineraryDetailItem(
+        itemId: itemId,
+        sequenceNo: sequenceNo,
+        poiId: poiId,
+        poiName: poiName,
+        category: category,
+        itemKind: itemKind,
+        plannedArrival: plannedArrival,
+        plannedDeparture: plannedDeparture,
+        travelDurationFromPreviousMinutes: travelDurationFromPreviousMinutes,
+        stayDurationMinutes: stayDurationMinutes,
+        estimatedCost: estimatedCost,
+        isMandatory: isMandatory,
+        recommendationReason: recommendationReason,
+        isUnavailable: isUnavailable,
+        friendlyExplanation: sentence,
+        travelDistanceFromPreviousMeters: travelDistanceFromPreviousMeters,
+        transportModeFromPrevious: transportModeFromPrevious,
+        costKind: costKind,
+        address: address,
+        latitude: latitude,
+        longitude: longitude,
+      );
 
   @override
   List<Object?> get props => [
@@ -203,6 +255,7 @@ final class ItineraryDetailItem extends Equatable {
     isMandatory,
     recommendationReason,
     isUnavailable,
+    friendlyExplanation,
     travelDistanceFromPreviousMeters,
     transportModeFromPrevious,
     costKind,

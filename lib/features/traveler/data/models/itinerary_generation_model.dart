@@ -25,6 +25,7 @@ final class ItineraryGenerationModel {
     status: _json['status'] as String,
     totalEstimatedCost: (_json['totalEstimatedCost'] as num).toDouble(),
     totalDurationMinutes: _json['totalDurationMinutes'] as int,
+    explanationPending: _json['explanationPending'] == true,
     items: (_json['items'] as List)
         .map((item) => _itemFromJson(item as Map<String, dynamic>))
         .toList(growable: false),
@@ -65,6 +66,7 @@ final class ItineraryGenerationModel {
       estimatedCost: (json['estimatedCost'] as num?)?.toDouble(),
       isMandatory: json['isMandatory'] as bool,
       recommendationReason: json['recommendationReason'] as String?,
+      friendlyExplanation: json['friendlyExplanation'] as String?,
     );
   }
 }

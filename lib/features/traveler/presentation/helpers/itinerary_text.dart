@@ -67,3 +67,17 @@ String unfitReasonText(
 /// Capitalises the first letter of a reason used on its own.
 String capitalized(String text) =>
     text.isEmpty ? text : '${text[0].toUpperCase()}${text.substring(1)}';
+
+/// UC-10: the sentence a visit stop shows. The AI sentence
+/// ([friendlyExplanation]) when it has text, else the recommendation reason;
+/// never both. Whitespace-only text counts as empty, so a blank AI sentence
+/// cannot hide the reason.
+String? stopExplanationText({
+  String? friendlyExplanation,
+  String? recommendationReason,
+}) {
+  final friendly = friendlyExplanation?.trim();
+  if (friendly != null && friendly.isNotEmpty) return friendly;
+  final reason = recommendationReason?.trim();
+  return reason == null || reason.isEmpty ? null : reason;
+}

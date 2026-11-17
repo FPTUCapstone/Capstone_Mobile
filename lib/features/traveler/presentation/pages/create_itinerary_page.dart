@@ -101,6 +101,8 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
                 pathParameters: {
                   'itineraryId': state.result!.itineraryId.toString(),
                 },
+                // UC-10: tells the detail page to refresh the AI sentences.
+                extra: state.result!.pendingExplanation(DateTime.now()),
               );
             }
           },

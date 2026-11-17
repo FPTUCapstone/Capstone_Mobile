@@ -64,4 +64,62 @@ void main() {
 
     expect(result.totalEstimatedCost, 0);
   });
+
+  group('UC-10 background explanation', () {
+    Map<String, dynamic> response({
+      Object? pending,
+      Object? friendly = 'Template sentence',
+      bool includeFriendly = true,
+    }) => {
+      'schedulingRequestId': 24,
+      'itineraryId': 91,
+      'title': 'Generated itinerary',
+      'status': 'Draft',
+      'totalEstimatedCost': 0,
+      'totalDurationMinutes': 60,
+      'explanationPending': ?pending,
+      'items': [
+        {
+          'sequenceNo': 1,
+          'poiId': 12,
+          'poiName': 'Marble Mountains',
+          'itemKind': 'Visit',
+          'plannedArrival': '2026-10-20T08:30:00Z',
+          'plannedDeparture': '2026-10-20T10:00:00Z',
+          'stayDurationMinutes': 90,
+          'isMandatory': false,
+          if (includeFriendly) 'friendlyExplanation': friendly,
+        },
+      ],
+    };
+
+    test('parses friendlyExplanation and explanationPending', () {
+      final result = ItineraryGenerationModel.fromJson(
+        response(pending: true),
+      ).toEntity();
+
+      expect(result.explanationPending, isTrue);
+      expect(result.items.single.friendlyExplanation, 'Template sentence');
+    });
+
+    test(
+      'treats a missing flag as not pending and a missing sentence as null',
+      () {
+        final result = ItineraryGenerationModel.fromJson(
+          response(includeFriendly: false),
+        ).toEntity();
+
+        expect(result.explanationPending, isFalse);
+        expect(result.items.single.friendlyExplanation, isNull);
+      },
+    );
+
+    test('accepts a null sentence', () {
+      final result = ItineraryGenerationModel.fromJson(
+        response(friendly: null),
+      ).toEntity();
+
+      expect(result.items.single.friendlyExplanation, isNull);
+    });
+  });
 }

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/pending_explanation.dart';
 
 const _planningTimeZoneOffset = Duration(hours: 7);
 
@@ -58,6 +59,7 @@ final class GeneratedItinerary extends Equatable {
     required this.totalEstimatedCost,
     required this.totalDurationMinutes,
     required this.items,
+    this.explanationPending = false,
   });
 
   final int schedulingRequestId;
@@ -68,6 +70,24 @@ final class GeneratedItinerary extends Equatable {
   final int totalDurationMinutes;
   final List<GeneratedItineraryItem> items;
 
+  /// UC-10: true when the items carry template sentences and the AI sentences
+  /// are written in the background.
+  final bool explanationPending;
+
+  /// What the detail page needs to refresh the sentences later; null unless
+  /// [explanationPending]. [createdAt] is when this response arrived.
+  PendingExplanation? pendingExplanation(DateTime createdAt) {
+    if (!explanationPending) return null;
+    return PendingExplanation(
+      itineraryId: itineraryId,
+      createdAt: createdAt,
+      template: {
+        for (final item in items)
+          item.sequenceNo: item.friendlyExplanation?.trim() ?? '',
+      },
+    );
+  }
+
   @override
   List<Object?> get props => [
     schedulingRequestId,
@@ -77,6 +97,7 @@ final class GeneratedItinerary extends Equatable {
     totalEstimatedCost,
     totalDurationMinutes,
     items,
+    explanationPending,
   ];
 }
 
@@ -93,6 +114,7 @@ final class GeneratedItineraryItem extends Equatable {
     this.travelDurationToNextMinutes,
     this.estimatedCost,
     this.recommendationReason,
+    this.friendlyExplanation,
   });
 
   final int sequenceNo;
@@ -107,6 +129,10 @@ final class GeneratedItineraryItem extends Equatable {
   final bool isMandatory;
   final String? recommendationReason;
 
+  /// UC-10: the template sentence at create time; the AI sentence once the
+  /// background explanation is saved.
+  final String? friendlyExplanation;
+
   @override
   List<Object?> get props => [
     sequenceNo,
@@ -120,6 +146,7 @@ final class GeneratedItineraryItem extends Equatable {
     estimatedCost,
     isMandatory,
     recommendationReason,
+    friendlyExplanation,
   ];
 }
 

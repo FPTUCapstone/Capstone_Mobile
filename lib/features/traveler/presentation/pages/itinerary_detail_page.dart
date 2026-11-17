@@ -12,6 +12,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_gen
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_stop.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_suggestion.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_route.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/pending_explanation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/external_review_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_suggestion_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/route_directions_repository.dart';
@@ -34,6 +35,7 @@ import 'package:trip_mate_mobile/shared/widgets/error_view.dart';
 final class ItineraryDetailPage extends StatefulWidget {
   const ItineraryDetailPage({
     required this.itineraryId,
+    this.pendingExplanation,
     this.suggestionRepository,
     this.reviewRepository,
     this.directionsRepository,
@@ -42,6 +44,11 @@ final class ItineraryDetailPage extends StatefulWidget {
   });
 
   final int itineraryId;
+
+  /// UC-10: set when this itinerary was just created and its AI sentences are
+  /// still being written; the page then refreshes them (see
+  /// [ItineraryDetailCubit.load]).
+  final PendingExplanation? pendingExplanation;
 
   /// Routes the map legs; defaults to the registered Mapbox Directions.
   final RouteDirectionsRepository? directionsRepository;
@@ -74,7 +81,10 @@ final class _ItineraryDetailPageState extends State<ItineraryDetailPage> {
   @override
   void initState() {
     super.initState();
-    context.read<ItineraryDetailCubit>().load(widget.itineraryId);
+    context.read<ItineraryDetailCubit>().load(
+      widget.itineraryId,
+      pendingExplanation: widget.pendingExplanation,
+    );
   }
 
   ScaffoldMessengerState? _messenger;
@@ -187,8 +197,10 @@ final class _ItineraryDetailPageState extends State<ItineraryDetailPage> {
           return Scaffold(
             body: ErrorView(
               message: state.message ?? 'Lịch trình không khả dụng.',
-              onRetry: () =>
-                  context.read<ItineraryDetailCubit>().load(widget.itineraryId),
+              onRetry: () => context.read<ItineraryDetailCubit>().load(
+                widget.itineraryId,
+                pendingExplanation: widget.pendingExplanation,
+              ),
             ),
           );
         }

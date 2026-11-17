@@ -41,6 +41,19 @@ final class ItineraryDetailState extends Equatable {
   /// Increases with every saved edit (lets the page offer undo once).
   final int editRevision;
 
+  /// The same state with another [detail]; everything else is kept (UC-10:
+  /// AI sentences arriving must not disturb an edit in progress).
+  ItineraryDetailState copyWithDetail(ItineraryDetail detail) =>
+      ItineraryDetailState(
+        status: status,
+        detail: detail,
+        message: message,
+        pendingStops: pendingStops,
+        shiftedArrivals: shiftedArrivals,
+        undoStops: undoStops,
+        editRevision: editRevision,
+      );
+
   bool get isBusy =>
       status == ItineraryDetailStatus.loading ||
       status == ItineraryDetailStatus.actionInProgress;
