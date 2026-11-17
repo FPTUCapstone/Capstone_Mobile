@@ -19,11 +19,13 @@ import 'package:trip_mate_mobile/features/tour_detail/presentation/widgets/depar
 import 'package:trip_mate_mobile/features/tour_detail/presentation/widgets/itinerary_stop_tile.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summary.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/theme/tour_search_palette.dart';
+import 'package:trip_mate_mobile/shared/widgets/motion/editorial_tour_hero.dart';
 
 class TourDetailPage extends StatelessWidget {
   const TourDetailPage({
     required this.tourId,
     this.initialSummary,
+    this.heroTag,
     this.isDemoMode = false,
     @visibleForTesting this.getTourDetail,
     super.key,
@@ -31,6 +33,7 @@ class TourDetailPage extends StatelessWidget {
 
   final String tourId;
   final TourSummary? initialSummary;
+  final String? heroTag;
   final bool isDemoMode;
   final GetTourDetail? getTourDetail;
 
@@ -42,15 +45,16 @@ class TourDetailPage extends StatelessWidget {
         initialSummary: initialSummary,
         isDemoMode: isDemoMode,
       )..load(tourId),
-      child: _TourDetailView(tourId: tourId),
+      child: _TourDetailView(tourId: tourId, heroTag: heroTag),
     );
   }
 }
 
 class _TourDetailView extends StatelessWidget {
-  const _TourDetailView({required this.tourId});
+  const _TourDetailView({required this.tourId, this.heroTag});
 
   final String tourId;
+  final String? heroTag;
 
   @override
   Widget build(BuildContext context) {
@@ -82,12 +86,19 @@ class _TourDetailView extends StatelessWidget {
       ),
       body: SafeArea(
         child: switch (state.status) {
-          TourDetailStatus.initial || TourDetailStatus.loading => const Center(
-            child: CircularProgressIndicator(
-              color: TourSearchPalette.teal,
-              semanticsLabel: TourDetailStrings.loadingLabel,
-            ),
-          ),
+          TourDetailStatus.initial || TourDetailStatus.loading =>
+            state.initialSummary != null
+                ? _TourDetailLoadingHeroView(
+                    summary: state.initialSummary!,
+                    tourId: tourId,
+                    heroTag: heroTag,
+                  )
+                : const Center(
+                    child: CircularProgressIndicator(
+                      color: TourSearchPalette.teal,
+                      semanticsLabel: TourDetailStrings.loadingLabel,
+                    ),
+                  ),
           TourDetailStatus.error => _TourDetailErrorView(
             message: state.errorMessage ?? TourDetailState.msg127,
             notFound: state.failureKind == TourDetailFailureKind.notFound,
@@ -100,12 +111,78 @@ class _TourDetailView extends StatelessWidget {
           TourDetailStatus.success => _TourDetailSuccessView(
             state: state,
             cubit: cubit,
+            heroTag: heroTag,
           ),
         },
       ),
       bottomNavigationBar: state.status == TourDetailStatus.success
           ? _TourDetailBottomBar(state: state)
           : null,
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Loading View with Frame-0 Hero Mount (Screen #65 / MOTION-04)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _TourDetailLoadingHeroView extends StatelessWidget {
+  const _TourDetailLoadingHeroView({
+    required this.summary,
+    required this.tourId,
+    this.heroTag,
+  });
+
+  final TourSummary summary;
+  final String tourId;
+  final String? heroTag;
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = summary.thumbnailUrl;
+    Widget imageWidget;
+    if (imageUrl != null && imageUrl.startsWith('assets/')) {
+      imageWidget = Image.asset(imageUrl, fit: BoxFit.cover);
+    } else if (imageUrl != null && imageUrl.isNotEmpty) {
+      imageWidget = Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => Container(
+          color: const Color(0xFFE2E8F0),
+          child: const Center(
+            child: Icon(Icons.broken_image, size: 40, color: Colors.grey),
+          ),
+        ),
+      );
+    } else {
+      imageWidget = Container(
+        color: const Color(0xFFE2E8F0),
+        child: const Center(
+          child: Icon(Icons.image_outlined, size: 48, color: Colors.grey),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 220,
+          width: double.infinity,
+          child: EditorialTourHero(
+            heroTag: heroTag,
+            borderRadius: BorderRadius.zero,
+            child: imageWidget,
+          ),
+        ),
+        const Expanded(
+          child: Center(
+            child: CircularProgressIndicator(
+              color: TourSearchPalette.teal,
+              semanticsLabel: TourDetailStrings.loadingLabel,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -333,10 +410,15 @@ class _TourDetailPendingView extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _TourDetailSuccessView extends StatelessWidget {
-  const _TourDetailSuccessView({required this.state, required this.cubit});
+  const _TourDetailSuccessView({
+    required this.state,
+    required this.cubit,
+    this.heroTag,
+  });
 
   final TourDetailState state;
   final TourDetailCubit cubit;
+  final String? heroTag;
 
   @override
   Widget build(BuildContext context) {
@@ -351,7 +433,7 @@ class _TourDetailSuccessView extends StatelessWidget {
             _DemoDetailControlsBar(cubit: cubit),
 
           // ── Image Gallery ──────────────────────────────────────────────
-          _TourImageGallery(images: detail.images),
+          _TourImageGallery(images: detail.images, heroTag: heroTag),
 
           // ── Summary & Operator Info ────────────────────────────────────
           Padding(
@@ -520,9 +602,10 @@ class _TourDetailSuccessView extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _TourImageGallery extends StatefulWidget {
-  const _TourImageGallery({required this.images});
+  const _TourImageGallery({required this.images, this.heroTag});
 
   final List<String> images;
+  final String? heroTag;
 
   @override
   State<_TourImageGallery> createState() => _TourImageGalleryState();
@@ -569,19 +652,29 @@ class _TourImageGalleryState extends State<_TourImageGallery> {
                 );
               }
 
+              final Widget imageWidget;
               if (imageSource.startsWith('assets/')) {
-                return Image.asset(
+                imageWidget = Image.asset(
+                  imageSource,
+                  fit: BoxFit.cover,
+                  errorBuilder: errorBuilder,
+                );
+              } else {
+                imageWidget = Image.network(
                   imageSource,
                   fit: BoxFit.cover,
                   errorBuilder: errorBuilder,
                 );
               }
 
-              return Image.network(
-                imageSource,
-                fit: BoxFit.cover,
-                errorBuilder: errorBuilder,
-              );
+              if (index == 0 && widget.heroTag != null) {
+                return EditorialTourHero(
+                  heroTag: widget.heroTag,
+                  borderRadius: BorderRadius.zero,
+                  child: imageWidget,
+                );
+              }
+              return imageWidget;
             },
           ),
           Positioned(
