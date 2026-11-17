@@ -99,7 +99,12 @@ final class ItineraryStopCard extends StatelessWidget {
                           ? (item.poiName ??
                                 item.recommendationReason ??
                                 'Thời gian nghỉ')
-                          : (item.recommendationReason ?? 'Địa điểm gợi ý'),
+                          : (stopExplanationText(
+                                  friendlyExplanation: item.friendlyExplanation,
+                                  recommendationReason:
+                                      item.recommendationReason,
+                                ) ??
+                                'Địa điểm gợi ý'),
                       style: theme.textTheme.bodySmall,
                     ),
                     if (item.isMandatory) const Text('Điểm bắt buộc'),

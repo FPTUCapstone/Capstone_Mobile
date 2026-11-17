@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/core/location/device_location_service.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/address_suggestion.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_stop.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/pending_explanation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_poi.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_poi_search_result.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/address_search_repository.dart';
@@ -393,6 +396,124 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.widget<TextField>(budgetFieldFinder).enabled, isTrue);
+  });
+
+  group('UC-10 pending explanation handoff', () {
+    GeneratedItinerary generated({required bool pending}) => GeneratedItinerary(
+      schedulingRequestId: 1,
+      itineraryId: 42,
+      title: 'Trip',
+      status: 'Draft',
+      totalEstimatedCost: 0,
+      totalDurationMinutes: 60,
+      explanationPending: pending,
+      items: [
+        GeneratedItineraryItem(
+          sequenceNo: 1,
+          itemKind: ItineraryItemKind.visit,
+          plannedArrival: DateTime.utc(2026, 9, 20, 1),
+          plannedDeparture: DateTime.utc(2026, 9, 20, 2),
+          stayDurationMinutes: 60,
+          isMandatory: false,
+          friendlyExplanation: ' Template ',
+        ),
+      ],
+    );
+
+    /// Generates an itinerary and returns the `extra` the detail route got.
+    Future<Object?> generateAndCaptureExtra(
+      WidgetTester tester,
+      GeneratedItinerary result,
+    ) async {
+      Object? extra;
+      final completer = Completer<GeneratedItinerary>();
+      final router = GoRouter(
+        routes: [
+          GoRoute(path: '/', builder: (_, _) => const CreateItineraryPage()),
+          GoRoute(
+            path: AppRoutes.itineraryDetail,
+            name: AppRouteNames.itineraryDetail,
+            builder: (_, state) {
+              extra = state.extra;
+              return const Scaffold(body: Text('detail page'));
+            },
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider(
+              create: (_) => CreateItineraryCubit(
+                repository: _DeferredItineraryRepository(completer),
+              ),
+            ),
+            BlocProvider(
+              create: (_) => PoiSearchCubit(
+                locationService: _LocationService(),
+                repository: _SinglePoiRepository(),
+              ),
+            ),
+          ],
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Use current location'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Explore around'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Search places'),
+        'Da Nang',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Da Nang Beach'));
+      await tester.pumpAndSettle();
+      final generateButton = find.widgetWithText(
+        FilledButton,
+        'Generate itinerary',
+      );
+      await tester.scrollUntilVisible(
+        generateButton,
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(generateButton);
+      await tester.pump();
+      completer.complete(result);
+      await tester.pumpAndSettle();
+      expect(find.text('detail page'), findsOneWidget);
+      return extra;
+    }
+
+    testWidgets('passes a pending explanation to the detail route', (
+      tester,
+    ) async {
+      final extra = await generateAndCaptureExtra(
+        tester,
+        generated(pending: true),
+      );
+
+      expect(extra, isA<PendingExplanation>());
+      final pending = extra! as PendingExplanation;
+      expect(pending.itineraryId, 42);
+      expect(pending.template, {1: 'Template'});
+    });
+
+    testWidgets('passes nothing when the explanation is not pending', (
+      tester,
+    ) async {
+      final extra = await generateAndCaptureExtra(
+        tester,
+        generated(pending: false),
+      );
+
+      expect(extra, isNull);
+    });
   });
 
   testWidgets(

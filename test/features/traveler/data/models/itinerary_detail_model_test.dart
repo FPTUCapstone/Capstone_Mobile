@@ -261,4 +261,45 @@ void main() {
     expect(detail.startLocation, isNull);
     expect(detail.endLocation, isNull);
   });
+
+  test('parses friendlyExplanation of an item and tolerates its absence', () {
+    Map<String, dynamic> item({Object? friendly, bool include = true}) => {
+      'itemId': 1,
+      'sequenceNo': 1,
+      'poiId': 99,
+      'poiName': 'Museum',
+      'category': 'Museum',
+      'kind': 'Visit',
+      'plannedArrival': '2026-09-20T05:00:00Z',
+      'plannedDeparture': '2026-09-20T06:00:00Z',
+      'stayDurationMinutes': 60,
+      'isMandatory': false,
+      'recommendationReason': 'Template reason',
+      'isUnavailable': false,
+      if (include) 'friendlyExplanation': friendly,
+    };
+    Map<String, dynamic> detail(Map<String, dynamic> item) => {
+      'itineraryId': 10,
+      'schedulingRequestId': 20,
+      'version': 1,
+      'status': 'Draft',
+      'canManage': true,
+      'totalDurationMinutes': 60,
+      'items': [item],
+    };
+
+    ItineraryDetailItem parse(Map<String, dynamic> json) =>
+        ItineraryDetailModel.fromJson(detail(json)).toEntity().items.single;
+
+    expect(
+      parse(item(friendly: 'AI sentence')).friendlyExplanation,
+      'AI sentence',
+    );
+    expect(parse(item(friendly: null)).friendlyExplanation, isNull);
+    expect(parse(item(include: false)).friendlyExplanation, isNull);
+    expect(
+      parse(item(friendly: 'AI sentence')),
+      isNot(equals(parse(item(friendly: 'Other')))),
+    );
+  });
 }

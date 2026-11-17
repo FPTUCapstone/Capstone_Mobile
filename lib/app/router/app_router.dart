@@ -80,6 +80,7 @@ import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_se
 import 'package:trip_mate_mobile/features/tour_search/presentation/pages/tour_search_page.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/pending_explanation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/address_search_cubit.dart';
@@ -433,7 +434,13 @@ GoRouter createAppRouter(
           }
           return BlocProvider(
             create: (_) => ItineraryDetailCubit(repository: serviceLocator()),
-            child: ItineraryDetailPage(itineraryId: itineraryId),
+            child: ItineraryDetailPage(
+              itineraryId: itineraryId,
+              pendingExplanation: PendingExplanation.forRoute(
+                state.extra,
+                itineraryId,
+              ),
+            ),
           );
         },
       ),

@@ -76,6 +76,7 @@ final class ItineraryDetailModel {
       estimatedCost: (json['estimatedCost'] as num?)?.toDouble(),
       isMandatory: json['isMandatory'] as bool,
       recommendationReason: json['recommendationReason'] as String?,
+      friendlyExplanation: json['friendlyExplanation'] as String?,
       isUnavailable: json['isUnavailable'] as bool,
       travelDistanceFromPreviousMeters: readInt(
         json['travelDistanceFromPreviousMeters'],

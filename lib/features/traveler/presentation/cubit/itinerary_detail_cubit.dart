@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -5,7 +6,9 @@ import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_stop.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/pending_explanation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/services/itinerary_explanation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/itinerary_stops.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/itinerary_detail_state.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/helpers/itinerary_text.dart';
@@ -14,17 +17,28 @@ final class ItineraryDetailCubit extends Cubit<ItineraryDetailState> {
   ItineraryDetailCubit({
     required ItineraryRepository repository,
     String Function()? operationKeyFactory,
+    DateTime Function()? now,
   }) : _repository = repository,
        _operationKeyFactory = operationKeyFactory ?? _createUuidV4,
+       _now = now ?? DateTime.now,
        super(const ItineraryDetailState.initial());
 
   final ItineraryRepository _repository;
   final String Function() _operationKeyFactory;
+  final DateTime Function() _now;
+  final _explanationTimers = <Timer>[];
   int? _itineraryId;
   String? _operationKey;
   String? _operationFingerprint;
 
-  Future<void> load(int itineraryId) async {
+  /// Loads the itinerary. With a [pendingExplanation] of this itinerary (a
+  /// create that answered `explanationPending: true`) it then loads again at
+  /// the scheduled times until the AI sentences arrive.
+  Future<void> load(
+    int itineraryId, {
+    PendingExplanation? pendingExplanation,
+  }) async {
+    _cancelExplanationRefresh();
     if (itineraryId <= 0) {
       emit(
         const ItineraryDetailState(
@@ -51,10 +65,62 @@ final class ItineraryDetailCubit extends Cubit<ItineraryDetailState> {
           detail: detail,
         ),
       );
+      if (pendingExplanation != null &&
+          pendingExplanation.itineraryId == itineraryId) {
+        _scheduleExplanationRefresh(pendingExplanation, detail);
+      }
     } catch (error) {
       if (isClosed) return;
       emit(_loadFailure(error));
     }
+  }
+
+  void _scheduleExplanationRefresh(
+    PendingExplanation pending,
+    ItineraryDetail initial,
+  ) {
+    if (hasNewExplanation(pending.template, initial.items)) return;
+    final now = _now();
+    for (final delay in explanationRefreshDelays) {
+      final wait = pending.createdAt.add(delay).difference(now);
+      if (wait > Duration.zero) {
+        _explanationTimers.add(Timer(wait, () => _refreshExplanation(pending)));
+      }
+    }
+  }
+
+  /// One scheduled attempt. A failure is ignored: the later attempts still run
+  /// and the page keeps what it shows.
+  Future<void> _refreshExplanation(PendingExplanation pending) async {
+    final itineraryId = pending.itineraryId;
+    final ItineraryDetail fresh;
+    try {
+      fresh = await _repository.getById(itineraryId);
+    } catch (_) {
+      return;
+    }
+    final current = state.detail;
+    if (isClosed ||
+        current == null ||
+        current.itineraryId != itineraryId ||
+        !hasNewExplanation(pending.template, fresh.items)) {
+      return;
+    }
+    _cancelExplanationRefresh();
+    emit(state.copyWithDetail(mergeExplanations(current, fresh)));
+  }
+
+  void _cancelExplanationRefresh() {
+    for (final timer in _explanationTimers) {
+      timer.cancel();
+    }
+    _explanationTimers.clear();
+  }
+
+  @override
+  Future<void> close() {
+    _cancelExplanationRefresh();
+    return super.close();
   }
 
   Future<void> accept() async {
@@ -74,6 +140,7 @@ final class ItineraryDetailCubit extends Cubit<ItineraryDetailState> {
       final detail = await _repository.accept(itineraryId);
       if (isClosed) return;
       _itineraryId = detail.itineraryId;
+      _cancelExplanationRefresh();
       _resetOperation();
       emit(
         ItineraryDetailState(
@@ -107,6 +174,7 @@ final class ItineraryDetailCubit extends Cubit<ItineraryDetailState> {
       );
       if (isClosed) return;
       _itineraryId = detail.itineraryId;
+      _cancelExplanationRefresh();
       _resetOperation();
       emit(
         ItineraryDetailState(
@@ -254,6 +322,7 @@ final class ItineraryDetailCubit extends Cubit<ItineraryDetailState> {
       );
       if (isClosed) return;
       _itineraryId = detail.itineraryId;
+      _cancelExplanationRefresh();
       _resetOperation();
       emit(
         ItineraryDetailState(
