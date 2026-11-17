@@ -35,7 +35,6 @@ abstract final class TravelerEmergencyStringsVi {
   static const refundUnknown =
       'TripMate sẽ thông báo cho bạn về việc hoàn tiền (nếu có).';
   static const viewRefundProgress = 'Xem tiến độ hoàn tiền';
-  static const bookAnotherTrip = 'Đặt chuyến khác';
   static const staleNotice =
       'Thông báo này có thể chưa được cập nhật. Nội dung sẽ tự làm mới khi có mạng trở lại.';
   static const companionReminder =
