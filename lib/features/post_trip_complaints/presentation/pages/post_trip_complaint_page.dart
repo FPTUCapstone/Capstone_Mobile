@@ -2,7 +2,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/post_trip_complaints/domain/entities/post_trip_complaint.dart';
@@ -11,6 +10,13 @@ import 'package:trip_mate_mobile/features/post_trip_complaints/domain/validation
 import 'package:trip_mate_mobile/features/post_trip_complaints/presentation/cubit/post_trip_complaint_cubit.dart';
 import 'package:trip_mate_mobile/features/post_trip_complaints/presentation/cubit/post_trip_complaint_state.dart';
 import 'package:trip_mate_mobile/features/post_trip_complaints/resources/post_trip_complaint_strings.dart';
+
+String _formatLocalDateTime(DateTime value) {
+  final local = value.toLocal();
+  String two(int number) => number.toString().padLeft(2, '0');
+  return '${two(local.day)}/${two(local.month)}/${local.year} '
+      '${two(local.hour)}:${two(local.minute)}';
+}
 
 final class PostTripComplaintPage extends StatefulWidget {
   const PostTripComplaintPage({super.key});
@@ -133,8 +139,9 @@ final class _PostTripComplaintPageState extends State<PostTripComplaintPage> {
 
   Future<void> _pickInitial(PostTripComplaintCubit cubit) async {
     final files = await _pick();
-    if (files == null || !mounted || cubit.isClosed || cubit.state.isBusy)
+    if (files == null || !mounted || cubit.isClosed || cubit.state.isBusy) {
       return;
+    }
     final current = cubit.state.evidence;
     final accepted = _acceptEvidence(
       files,
@@ -287,7 +294,7 @@ class _Summary extends StatelessWidget {
           if (this.context.tourTitle != null) Text(this.context.tourTitle!),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Submit by ${DateFormat('dd/MM/yyyy HH:mm').format(this.context.submissionDeadlineUtc.toLocal())}',
+            'Submit by ${_formatLocalDateTime(this.context.submissionDeadlineUtc)}',
           ),
         ],
       ),
@@ -450,7 +457,7 @@ class _Existing extends StatelessWidget {
           'Status: ${complaint.status.replaceAllMapped(RegExp(r'([a-z])([A-Z])'), (m) => '${m[1]} ${m[2]}')}',
         ),
         Text(
-          'Operator response deadline: ${DateFormat('dd/MM/yyyy HH:mm').format(complaint.responseDeadlineUtc.toLocal())}',
+          'Operator response deadline: ${_formatLocalDateTime(complaint.responseDeadlineUtc)}',
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(complaint.reasonDetail),
