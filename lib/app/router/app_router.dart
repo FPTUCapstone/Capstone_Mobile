@@ -65,6 +65,10 @@ import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_detail_cubi
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/poi_detail_page.dart';
+import 'package:trip_mate_mobile/features/post_trip_complaints/presentation/cubit/my_post_trip_complaints_cubit.dart';
+import 'package:trip_mate_mobile/features/post_trip_complaints/presentation/cubit/post_trip_complaint_cubit.dart';
+import 'package:trip_mate_mobile/features/post_trip_complaints/presentation/pages/my_post_trip_complaints_page.dart';
+import 'package:trip_mate_mobile/features/post_trip_complaints/presentation/pages/post_trip_complaint_page.dart';
 import 'package:trip_mate_mobile/features/support_chat/domain/entities/support_chat.dart';
 import 'package:trip_mate_mobile/features/support_chat/presentation/cubit/support_chat_cubit.dart';
 import 'package:trip_mate_mobile/features/support_chat/presentation/pages/support_chat_page.dart';
@@ -233,9 +237,11 @@ GoRouter createAppRouter(
           final summary = state.extra is TourSummary
               ? state.extra as TourSummary
               : null;
+          final heroTag = state.uri.queryParameters['heroTag'];
           return TourDetailPage(
             tourId: tourId,
             initialSummary: summary,
+            heroTag: heroTag,
             isDemoMode: isDemo,
           );
         },
@@ -663,6 +669,28 @@ GoRouter createAppRouter(
             ),
           );
         },
+      ),
+      GoRoute(
+        path: AppRoutes.postTripComplaintPattern,
+        name: AppRouteNames.postTripComplaint,
+        builder: (_, state) {
+          final bookingId = _positiveId(state.pathParameters['bookingId']);
+          if (bookingId == null) return const _RouteNotFound();
+          return BlocProvider<PostTripComplaintCubit>(
+            create: (_) =>
+                serviceLocator<PostTripComplaintCubit>(param1: bookingId)
+                  ..load(),
+            child: const PostTripComplaintPage(),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.myPostTripComplaints,
+        name: AppRouteNames.myPostTripComplaints,
+        builder: (_, _) => BlocProvider<MyPostTripComplaintsCubit>(
+          create: (_) => serviceLocator<MyPostTripComplaintsCubit>()..load(),
+          child: const MyPostTripComplaintsPage(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.tripHistory,

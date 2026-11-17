@@ -33,6 +33,11 @@ abstract final class AppRoutes {
 
   static const partialRefundProposalPattern =
       '/traveler/complaints/:complaintId/partial-refund-proposal';
+  static const postTripComplaintPattern =
+      '/traveler/bookings/:bookingId/complaint';
+  static const myPostTripComplaints = '/traveler/complaints';
+  static String postTripComplaint(int bookingId) =>
+      '/traveler/bookings/$bookingId/complaint';
   static String partialRefundProposal(int complaintId) =>
       '/traveler/complaints/$complaintId/partial-refund-proposal';
 
@@ -132,8 +137,21 @@ abstract final class AppRoutes {
   static String groupLocationSharingPath(int groupId) =>
       '/traveler/groups/$groupId/location-sharing';
   static String poiDetail(int id) => '/explore/poi/$id';
-  static String tourDetail(String tourId, {bool demo = false}) =>
-      demo ? '/explore/tours/$tourId?demo=true' : '/explore/tours/$tourId';
+  static String tourDetail(
+    String tourId, {
+    bool demo = false,
+    String? heroTag,
+  }) {
+    final query = <String, String>{};
+    if (demo) query['demo'] = 'true';
+    if (heroTag != null && heroTag.isNotEmpty) query['heroTag'] = heroTag;
+    if (query.isEmpty) return '/explore/tours/$tourId';
+    return Uri(
+      path: '/explore/tours/$tourId',
+      queryParameters: query,
+    ).toString();
+  }
+
   static String bookTour(
     String tourId,
     String scheduleId, {
@@ -173,6 +191,8 @@ abstract final class AppRouteNames {
   static const payment = 'payment';
   static const bookingRefund = 'booking-refund';
   static const partialRefundProposal = 'partial-refund-proposal';
+  static const postTripComplaint = 'post-trip-complaint';
+  static const myPostTripComplaints = 'my-post-trip-complaints';
   static const traveler = 'traveler';
   static const tourRecommendations = 'tour-recommendations';
   static const travelerSettings = 'traveler-settings';

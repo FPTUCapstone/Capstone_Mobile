@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -16,6 +17,8 @@ import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_r
 import 'package:trip_mate_mobile/features/trip_history/presentation/pages/trip_history_page.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/widgets/trip_record_detail_sheet.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
+
+import '../../../../support/post_trip_complaint_fixture.dart';
 
 /// The demo repository, watched, with a hook to replace one answer.
 final class _SpyRepository implements TripRecordsRepository {
@@ -35,6 +38,8 @@ final class _SpyRepository implements TripRecordsRepository {
 }
 
 void main() {
+  setUp(registerHistoryComplaintFixture);
+  tearDown(unregisterHistoryComplaintFixture);
   late _SpyRepository repository;
   late TripRecordsCubit cubit;
   late List<String> visited;
