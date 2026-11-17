@@ -31,6 +31,7 @@ final class PostTripComplaintCubit extends Cubit<PostTripComplaintState> {
   String? _amendFingerprint;
 
   Future<void> load() async {
+    if (isClosed || state.isBusy) return;
     emit(
       state.copyWith(phase: PostTripComplaintPhase.loading, clearMessage: true),
     );
@@ -51,21 +52,39 @@ final class PostTripComplaintCubit extends Cubit<PostTripComplaintState> {
   }
 
   void setCategory(PostTripComplaintReasonCategory? category) {
+    if (isClosed || state.isBusy) return;
     _submitKey = null;
     emit(state.copyWith(category: category, clearCategory: category == null));
   }
 
   void setDetail(String detail) {
+    if (isClosed || state.isBusy) return;
     _submitKey = null;
     emit(state.copyWith(detail: detail));
   }
 
   void setEvidence(List<SelectedEvidence> evidence) {
+    if (isClosed || state.isBusy) return;
+    final issue = PostTripComplaintValidation.validateEvidence(
+      evidence,
+      requireData: true,
+    );
+    if (issue != null) {
+      emit(
+        state.copyWith(
+          message: PostTripComplaintStrings.validationMessage(issue),
+        ),
+      );
+      return;
+    }
     _submitKey = null;
-    emit(state.copyWith(evidence: evidence));
+    emit(
+      state.copyWith(evidence: List.unmodifiable(evidence), clearMessage: true),
+    );
   }
 
   Future<void> submit() async {
+    if (isClosed || state.isBusy) return;
     final context = state.context;
     final category = state.category;
     final detailIssue = PostTripComplaintValidation.validateDetail(
@@ -84,9 +103,13 @@ final class PostTripComplaintCubit extends Cubit<PostTripComplaintState> {
       if (!state.isBusy) {
         emit(
           state.copyWith(
-            message: detailIssue != null
-                ? PostTripComplaintStrings.detailRequired
-                : PostTripComplaintStrings.invalidEvidence,
+            message: context == null || !context.canSubmit
+                ? PostTripComplaintStrings.windowClosed
+                : category == null
+                ? 'Choose a reason category.'
+                : detailIssue != null
+                ? PostTripComplaintStrings.validationMessage(detailIssue)
+                : PostTripComplaintStrings.validationMessage(evidenceIssue!),
           ),
         );
       }
@@ -107,8 +130,8 @@ final class PostTripComplaintCubit extends Cubit<PostTripComplaintState> {
         detail: state.detail.trim(),
         evidence: state.evidence,
       );
-      _submitKey = null;
       await _loadFresh();
+      _submitKey = null;
     } on Object catch (error) {
       if (!isClosed) {
         emit(
@@ -122,6 +145,7 @@ final class PostTripComplaintCubit extends Cubit<PostTripComplaintState> {
   }
 
   Future<void> amend(List<SelectedEvidence> evidence) async {
+    if (isClosed || state.isBusy) return;
     final context = state.context;
     final existing = context?.complaint?.evidence ?? const [];
     final issue = PostTripComplaintValidation.validateEvidence(
@@ -136,7 +160,13 @@ final class PostTripComplaintCubit extends Cubit<PostTripComplaintState> {
         issue != null ||
         state.isBusy) {
       if (!state.isBusy) {
-        emit(state.copyWith(message: PostTripComplaintStrings.invalidEvidence));
+        emit(
+          state.copyWith(
+            message: issue != null
+                ? PostTripComplaintStrings.validationMessage(issue)
+                : 'Select evidence files before submitting.',
+          ),
+        );
       }
       return;
     }
@@ -160,9 +190,9 @@ final class PostTripComplaintCubit extends Cubit<PostTripComplaintState> {
         idempotencyKey: _amendKey!,
         evidence: evidence,
       );
+      await _loadFresh(PostTripComplaintStrings.evidenceAdded);
       _amendKey = null;
       _amendFingerprint = null;
-      await _loadFresh();
     } on Object catch (error) {
       if (!isClosed) {
         emit(
@@ -184,14 +214,16 @@ final class PostTripComplaintCubit extends Cubit<PostTripComplaintState> {
     }
   }
 
-  Future<void> _loadFresh() async {
+  Future<void> _loadFresh([
+    String message = PostTripComplaintStrings.submitted,
+  ]) async {
     final context = await _getContext(_bookingId);
     if (!isClosed) {
       emit(
         PostTripComplaintState(
           context: context,
           phase: _phase(context),
-          message: PostTripComplaintStrings.submitted,
+          message: message,
         ),
       );
     }
@@ -213,8 +245,14 @@ final class PostTripComplaintCubit extends Cubit<PostTripComplaintState> {
       )
       .join('\u0001');
   static String _message(Object error) => switch (error) {
-    AuthenticationFailure() ||
+    AuthenticationFailure() =>
+      'Your session has expired. Please sign in again.',
     PermissionFailure() => 'You do not have access to this complaint.',
+    NetworkFailure() => 'Check your internet connection and try again.',
+    RateLimitFailure() =>
+      'Too many requests. Please wait a moment and try again.',
+    ValidationFailure() =>
+      'The complaint could not be validated. Check the reason and evidence limits, then try again.',
     NotFoundFailure() => 'This booking was not found.',
     ConflictFailure() => PostTripComplaintStrings.existing,
     _ => PostTripComplaintStrings.systemError,

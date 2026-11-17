@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/post_trip_complaints/domain/entities/post_trip_complaint.dart';
@@ -38,7 +39,11 @@ final class _PostTripComplaintPageState extends State<PostTripComplaintPage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => _goBack(context),
         ),
-        title: const Text(PostTripComplaintStrings.title),
+        title: const Text(
+          PostTripComplaintStrings.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
       body: BlocBuilder<PostTripComplaintCubit, PostTripComplaintState>(
         builder: (context, state) {
@@ -67,7 +72,13 @@ final class _PostTripComplaintPageState extends State<PostTripComplaintPage> {
                     child: Text(
                       state.message!,
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
+                        color:
+                            (state.message ==
+                                    PostTripComplaintStrings.submitted ||
+                                state.message ==
+                                    PostTripComplaintStrings.evidenceAdded)
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.error,
                       ),
                     ),
                   ),
@@ -87,14 +98,17 @@ final class _PostTripComplaintPageState extends State<PostTripComplaintPage> {
                   _Form(
                     state: state,
                     detail: _detail,
-                    onPick: () => _pickInitial(cubit, state),
+                    onPick: () => _pickInitial(cubit),
                     onSubmit: cubit.submit,
                   )
                 else if (complaintContext.complaint != null)
                   _Existing(
                     context: complaintContext,
                     amendment: _amendment,
-                    onPick: () => _pickAmendment(complaintContext),
+                    busy: state.isBusy,
+                    onRemove: (index) =>
+                        setState(() => _amendment.removeAt(index)),
+                    onPick: _pickAmendment,
                     onAmend: () async {
                       await cubit.amend(_amendment);
                       if (mounted &&
@@ -117,22 +131,18 @@ final class _PostTripComplaintPageState extends State<PostTripComplaintPage> {
     );
   }
 
-  Future<void> _pickInitial(
-    PostTripComplaintCubit cubit,
-    PostTripComplaintState state,
-  ) async {
+  Future<void> _pickInitial(PostTripComplaintCubit cubit) async {
     final files = await _pick();
-    if (files == null) return;
+    if (files == null || !mounted || cubit.isClosed || cubit.state.isBusy)
+      return;
+    final current = cubit.state.evidence;
     final accepted = _acceptEvidence(
       files,
-      existingCount: state.evidence.length,
-      existingBytes: state.evidence.fold(
-        0,
-        (sum, item) => sum + item.sizeBytes,
-      ),
+      existingCount: current.length,
+      existingBytes: current.fold(0, (sum, item) => sum + item.sizeBytes),
     );
     if (accepted.isNotEmpty) {
-      cubit.setEvidence([...state.evidence, ...accepted]);
+      cubit.setEvidence([...current, ...accepted]);
     }
   }
 
@@ -144,22 +154,20 @@ final class _PostTripComplaintPageState extends State<PostTripComplaintPage> {
     context.go('/traveler/trips');
   }
 
-  Future<void> _pickAmendment(PostTripComplaintContext context) async {
+  Future<void> _pickAmendment() async {
     final files = await _pick();
-    if (files == null) return;
+    if (files == null || !mounted) return;
+    final cubit = context.read<PostTripComplaintCubit>();
+    if (cubit.isClosed || cubit.state.isBusy) return;
+    final existing = cubit.state.context?.complaint?.evidence ?? const [];
     final accepted = _acceptEvidence(
       files,
-      existingCount: context.complaint!.evidence.length + _amendment.length,
+      existingCount: existing.length + _amendment.length,
       existingBytes:
-          context.complaint!.evidence.fold(
-            0,
-            (sum, item) => sum + item.sizeBytes,
-          ) +
+          existing.fold(0, (sum, item) => sum + item.sizeBytes) +
           _amendment.fold(0, (sum, item) => sum + item.sizeBytes),
     );
-    if (accepted.isNotEmpty && mounted) {
-      setState(() => _amendment.addAll(accepted));
-    }
+    if (accepted.isNotEmpty) setState(() => _amendment.addAll(accepted));
   }
 
   List<SelectedEvidence> _acceptEvidence(
@@ -278,7 +286,9 @@ class _Summary extends StatelessWidget {
           ),
           if (this.context.tourTitle != null) Text(this.context.tourTitle!),
           const SizedBox(height: AppSpacing.xs),
-          Text('Submit by ${this.context.submissionDeadlineUtc.toLocal()}'),
+          Text(
+            'Submit by ${DateFormat('dd/MM/yyyy HH:mm').format(this.context.submissionDeadlineUtc.toLocal())}',
+          ),
         ],
       ),
     ),
@@ -312,7 +322,13 @@ class _Closed extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
     children: [
-      Text(reason ?? PostTripComplaintStrings.windowClosed),
+      Text(switch (reason) {
+        'complaint.tour_not_ended' =>
+          'You can submit a complaint after the tour has ended.',
+        'complaint.booking_status_ineligible' =>
+          'Only confirmed or completed bookings are eligible for a post-trip complaint.',
+        _ => PostTripComplaintStrings.windowClosed,
+      }),
       const SizedBox(height: AppSpacing.sm),
       OutlinedButton(onPressed: onBack, child: const Text('Back to trips')),
     ],
@@ -338,12 +354,19 @@ class _Form extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DropdownButtonFormField<PostTripComplaintReasonCategory>(
+          isExpanded: true,
           initialValue: state.category,
           decoration: const InputDecoration(labelText: 'Reason category'),
           items: PostTripComplaintReasonCategory.values
               .map(
-                (item) =>
-                    DropdownMenuItem(value: item, child: Text(item.label)),
+                (item) => DropdownMenuItem(
+                  value: item,
+                  child: Text(
+                    item.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               )
               .toList(),
           onChanged: busy ? null : cubit.setCategory,
@@ -366,6 +389,9 @@ class _Form extends StatelessWidget {
           icon: const Icon(Icons.attach_file),
           label: const Text('Choose evidence'),
         ),
+        const Text(
+          'Optional: up to 5 JPG, PNG, WebP or PDF files. Maximum 10 MB per file and 30 MB total.',
+        ),
         ...state.evidence.asMap().entries.map(
           (entry) => ListTile(
             dense: true,
@@ -373,6 +399,7 @@ class _Form extends StatelessWidget {
             subtitle: Text('${entry.value.sizeBytes} bytes'),
             trailing: IconButton(
               icon: const Icon(Icons.close),
+              tooltip: 'Remove evidence',
               onPressed: busy
                   ? null
                   : () {
@@ -399,12 +426,16 @@ class _Existing extends StatelessWidget {
     required this.onPick,
     required this.onAmend,
     required this.onDownload,
+    required this.busy,
+    required this.onRemove,
   });
   final PostTripComplaintContext context;
   final List<SelectedEvidence> amendment;
   final VoidCallback onPick;
   final VoidCallback onAmend;
   final ValueChanged<int> onDownload;
+  final bool busy;
+  final ValueChanged<int> onRemove;
   @override
   Widget build(BuildContext context) {
     final complaint = this.context.complaint!;
@@ -412,37 +443,60 @@ class _Existing extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          PostTripComplaintStrings.existing,
+          'Complaint details',
           style: Theme.of(context).textTheme.titleMedium,
         ),
+        Text(
+          'Status: ${complaint.status.replaceAllMapped(RegExp(r'([a-z])([A-Z])'), (m) => '${m[1]} ${m[2]}')}',
+        ),
+        Text(
+          'Operator response deadline: ${DateFormat('dd/MM/yyyy HH:mm').format(complaint.responseDeadlineUtc.toLocal())}',
+        ),
+        const SizedBox(height: AppSpacing.sm),
         Text(complaint.reasonDetail),
         const SizedBox(height: AppSpacing.sm),
         ...complaint.evidence.map(
-          (item) => ListTile(
-            title: Text(item.fileName),
-            subtitle: Text('${item.sizeBytes} bytes'),
-            trailing: TextButton(
-              onPressed: () => onDownload(item.id),
-              child: const Text(PostTripComplaintStrings.download),
+          (item) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.fileName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text('${item.sizeBytes} bytes'),
+                TextButton.icon(
+                  onPressed: () => onDownload(item.id),
+                  icon: const Icon(Icons.download_outlined),
+                  label: const Text(PostTripComplaintStrings.download),
+                ),
+              ],
             ),
           ),
         ),
         if (this.context.canAmendEvidence) ...[
           const Divider(),
           TextButton.icon(
-            onPressed: onPick,
+            onPressed: busy ? null : onPick,
             icon: const Icon(Icons.add),
-            label: const Text(PostTripComplaintStrings.amend),
+            label: const Text('Choose additional files'),
           ),
-          ...amendment.map(
-            (item) => ListTile(
-              title: Text(item.name),
-              subtitle: Text('${item.sizeBytes} bytes'),
+          ...amendment.asMap().entries.map(
+            (entry) => ListTile(
+              title: Text(entry.value.name),
+              subtitle: Text('${entry.value.sizeBytes} bytes'),
+              trailing: IconButton(
+                tooltip: 'Remove evidence',
+                icon: const Icon(Icons.close),
+                onPressed: busy ? null : () => onRemove(entry.key),
+              ),
             ),
           ),
           FilledButton(
-            onPressed: amendment.isEmpty ? null : onAmend,
-            child: const Text(PostTripComplaintStrings.amend),
+            onPressed: busy || amendment.isEmpty ? null : onAmend,
+            child: Text(busy ? 'Uploading...' : 'Submit additional evidence'),
           ),
         ],
       ],
