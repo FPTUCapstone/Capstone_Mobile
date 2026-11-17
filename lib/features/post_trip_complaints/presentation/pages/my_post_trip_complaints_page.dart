@@ -16,9 +16,22 @@ final class MyPostTripComplaintsPage extends StatelessWidget {
           child: CircularProgressIndicator(),
         ),
         MyPostTripComplaintsPhase.failure => Center(
-          child: FilledButton(
-            onPressed: context.read<MyPostTripComplaintsCubit>().load,
-            child: const Text(PostTripComplaintStrings.retry),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  state.message ?? PostTripComplaintStrings.systemError,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: context.read<MyPostTripComplaintsCubit>().load,
+                  child: const Text(PostTripComplaintStrings.retry),
+                ),
+              ],
+            ),
           ),
         ),
         MyPostTripComplaintsPhase.ready when state.items.isEmpty =>
