@@ -19,6 +19,16 @@ class PoiImage extends StatelessWidget {
     final imageUrl = url?.trim();
     if (imageUrl == null || imageUrl.isEmpty) return const _Placeholder();
 
+    if (imageUrl.startsWith('assets/')) {
+      return Image.asset(
+        imageUrl,
+        fit: fit,
+        gaplessPlayback: true,
+        semanticLabel: semanticLabel,
+        errorBuilder: (_, _, _) => const _Placeholder(),
+      );
+    }
+
     return Image.network(
       imageUrl,
       fit: fit,

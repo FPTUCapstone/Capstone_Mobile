@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
+import 'package:trip_mate_mobile/features/tour_detail/domain/entities/tour_detail.dart';
+import 'package:trip_mate_mobile/features/tour_detail/domain/repositories/tour_detail_repository.dart';
+import 'package:trip_mate_mobile/features/tour_detail/domain/usecases/get_tour_detail.dart';
 import 'package:trip_mate_mobile/features/tour_detail/presentation/cubit/tour_detail_state.dart';
 import 'package:trip_mate_mobile/features/tour_detail/presentation/pages/tour_detail_page.dart';
 import 'package:trip_mate_mobile/features/tour_detail/presentation/resources/tour_detail_strings.dart';
@@ -13,6 +16,7 @@ Widget _buildTestWidget({
   TourSummary? initialSummary,
   bool isDemoMode = false,
   AuthSessionCubit? authCubit,
+  GetTourDetail? getTourDetail,
   double textScaleFactor = 1.0,
 }) {
   return BlocProvider<AuthSessionCubit>.value(
@@ -24,10 +28,32 @@ Widget _buildTestWidget({
           tourId: tourId,
           initialSummary: initialSummary,
           isDemoMode: isDemoMode,
+          getTourDetail: getTourDetail,
         ),
       ),
     ),
   );
+}
+
+final class _FakeNetworkImageRepository implements TourDetailRepository {
+  @override
+  Future<TourDetail?> getTourDetail(
+    String tourId, {
+    TourSummary? initialSummary,
+  }) async {
+    return TourDetail(
+      tourId: tourId,
+      title: 'Network Image Tour',
+      description: 'Verifies network gallery branch.',
+      destinations: const ['Da Nang'],
+      durationDays: 1,
+      operatorName: 'Central Vietnam Travel',
+      basePrice: 850000,
+      currency: 'VND',
+      images: const ['https://example.invalid/tour-banner.jpg'],
+      cancellationPolicy: 'Standard policy.',
+    );
+  }
 }
 
 void main() {
@@ -263,6 +289,48 @@ void main() {
         expect(tester.takeException(), isNull);
         expect(find.text(TourDetailStrings.appBarTitle), findsOneWidget);
       });
+    });
+
+    group('Decision A gallery asset and network image regression', () {
+      testWidgets(
+        'demo mode gallery renders verified local destination AssetImage cleanly',
+        (tester) async {
+          await tester.pumpWidget(
+            _buildTestWidget(tourId: 'demo-tour-1', isDemoMode: true),
+          );
+          await tester.pumpAndSettle();
+
+          expect(tester.takeException(), isNull);
+          final image = tester.widget<Image>(find.byType(Image).first);
+          expect(image.image, isA<AssetImage>());
+          expect(
+            (image.image as AssetImage).assetName,
+            'assets/images/destinations/son_tra_pagoda.jpg',
+          );
+          expect(find.byIcon(Icons.broken_image), findsNothing);
+        },
+      );
+
+      testWidgets(
+        'network URLs in _TourImageGallery retain Image.network branch cleanly',
+        (tester) async {
+          await tester.pumpWidget(
+            _buildTestWidget(
+              tourId: 'net-tour-1',
+              getTourDetail: GetTourDetail(_FakeNetworkImageRepository()),
+            ),
+          );
+          await tester.pump();
+          await tester.pump();
+
+          final image = tester.widget<Image>(find.byType(Image).first);
+          expect(image.image, isA<NetworkImage>());
+          expect(
+            (image.image as NetworkImage).url,
+            'https://example.invalid/tour-banner.jpg',
+          );
+        },
+      );
     });
   });
 }

@@ -639,8 +639,7 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
         'category': 'Biểu tượng',
         'location': 'Hải Châu, Đà Nẵng',
         'rating': '4.8',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=600',
+        'imageUrl': 'assets/images/destinations/danang_dragon_night.jpg',
       },
       {
         'id': 2,
@@ -648,8 +647,7 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
         'category': 'Di sản UNESCO',
         'location': 'Hội An, Quảng Nam',
         'rating': '4.9',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600',
+        'imageUrl': 'assets/images/destinations/hoian_ancient_town.jpg',
       },
       {
         'id': 3,
@@ -657,8 +655,7 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
         'category': 'Di tích Lịch sử',
         'location': 'Thành phố Huế',
         'rating': '4.8',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=600',
+        'imageUrl': 'assets/images/destinations/hue_ngo_mon.jpg',
       },
       {
         'id': 4,
@@ -666,8 +663,7 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
         'category': 'Danh thắng Kỳ vĩ',
         'location': 'Ngũ Hành Sơn, Đà Nẵng',
         'rating': '4.7',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1528127269322-539801943592?w=600',
+        'imageUrl': 'assets/images/destinations/marble_mountains.jpg',
       },
     ];
 
@@ -1189,8 +1185,7 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
         'duration': '1 Ngày',
         'price': 850000,
         'rating': '4.9',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=600',
+        'imageUrl': 'assets/images/destinations/hue_ngo_mon.jpg',
       },
       {
         'id': '2',
@@ -1198,8 +1193,7 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
         'duration': '1 Ngày',
         'price': 1250000,
         'rating': '4.8',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1528127269322-539801943592?w=600',
+        'imageUrl': 'assets/images/destinations/bana_golden_bridge.jpg',
       },
       {
         'id': '3',
@@ -1207,8 +1201,7 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
         'duration': 'Nửa ngày',
         'price': 650000,
         'rating': '4.9',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600',
+        'imageUrl': 'assets/images/destinations/hoian_ancient_town.jpg',
       },
     ];
 

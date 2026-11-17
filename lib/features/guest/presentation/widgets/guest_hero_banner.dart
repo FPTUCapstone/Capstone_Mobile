@@ -66,29 +66,25 @@ class GuestHeroBanner extends StatefulWidget {
       tag: '✦ ĐÀ NẴNG',
       title: 'Cầu Rồng & Biển Mỹ Khê',
       subtitle: 'Thành phố ánh sáng và cung đường biển quyến rũ',
-      imageUrl:
-          'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=1200',
+      imageUrl: 'assets/images/destinations/danang_dragon_bridge.jpg',
     ),
     HeroSlideData(
       tag: '✦ DI SẢN UNESCO',
       title: 'Phố Cổ Hội An Lung Linh',
       subtitle: 'Dạo bước qua ngàn năm hoài niệm và đèn lồng rực rỡ',
-      imageUrl:
-          'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200',
+      imageUrl: 'assets/images/destinations/hoian_lantern_night.jpg',
     ),
     HeroSlideData(
       tag: '✦ CỐ ĐÔ HUẾ',
       title: 'Đại Nội & Lăng Tẩm Cung Đình',
       subtitle: 'Dấu ấn vương triều bên dòng sông Hương thơ mộng',
-      imageUrl:
-          'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=1200',
+      imageUrl: 'assets/images/destinations/hue_ngo_mon.jpg',
     ),
     HeroSlideData(
       tag: '✦ KỲ QUAN THIÊN NHIÊN',
       title: 'Bà Nà Hills & Ngũ Hành Sơn',
       subtitle: 'Khám phá mây trời non nước và danh thắng kỳ vĩ',
-      imageUrl:
-          'https://images.unsplash.com/photo-1528127269322-539801943592?w=1200',
+      imageUrl: 'assets/images/destinations/marble_mountains.jpg',
     ),
   ];
 
@@ -120,7 +116,13 @@ class _GuestHeroBannerState extends State<GuestHeroBanner> {
     if (!_preloaded && !isTest) {
       _preloaded = true;
       for (final slide in _slides) {
-        if (slide.imageUrl.startsWith('http')) {
+        if (slide.imageUrl.startsWith('assets/')) {
+          precacheImage(
+            AssetImage(slide.imageUrl),
+            context,
+            onError: (_, _) {},
+          );
+        } else if (slide.imageUrl.startsWith('http')) {
           precacheImage(
             NetworkImage(slide.imageUrl),
             context,
@@ -233,21 +235,7 @@ class _GuestHeroBannerState extends State<GuestHeroBanner> {
           fit: StackFit.expand,
           children: [
             // Slide photographic background
-            Image.network(
-              slide.imageUrl,
-              fit: BoxFit.cover,
-              gaplessPlayback: true,
-              semanticLabel: 'Ảnh ${slide.title}',
-              frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                if (wasSynchronouslyLoaded || frame != null) return child;
-                return const _HeroPlaceholder(isShimmer: true);
-              },
-              errorBuilder: (_, _, _) => const _HeroPlaceholder(),
-              loadingBuilder: (_, child, progress) {
-                if (progress == null) return child;
-                return const _HeroPlaceholder(isShimmer: true);
-              },
-            ),
+            _buildSlideImage(slide),
 
             // Multi-stop gradient overlay for superior text contrast
             const DecoratedBox(
@@ -340,6 +328,34 @@ class _GuestHeroBannerState extends State<GuestHeroBanner> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSlideImage(HeroSlideData slide) {
+    if (slide.imageUrl.startsWith('assets/')) {
+      return Image.asset(
+        slide.imageUrl,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        semanticLabel: 'Ảnh ${slide.title}',
+        errorBuilder: (_, _, _) => const _HeroPlaceholder(),
+      );
+    }
+
+    return Image.network(
+      slide.imageUrl,
+      fit: BoxFit.cover,
+      gaplessPlayback: true,
+      semanticLabel: 'Ảnh ${slide.title}',
+      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+        if (wasSynchronouslyLoaded || frame != null) return child;
+        return const _HeroPlaceholder(isShimmer: true);
+      },
+      errorBuilder: (_, _, _) => const _HeroPlaceholder(),
+      loadingBuilder: (_, child, progress) {
+        if (progress == null) return child;
+        return const _HeroPlaceholder(isShimmer: true);
+      },
     );
   }
 
