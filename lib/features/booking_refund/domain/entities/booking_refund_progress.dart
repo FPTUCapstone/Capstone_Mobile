@@ -1,21 +1,35 @@
 import 'package:equatable/equatable.dart';
 
 enum BookingRefundStatus {
+  pendingOperatorConfirmation,
+  awaitingPartnerReturn,
+  returnReported,
+  returnReceived,
   pending,
   processing,
   retryPending,
   manualReview,
   processed,
   failed,
-  rejected;
+  rejected,
+  reconciliation,
+  escalated;
 
   static BookingRefundStatus? tryFromWire(String? value) => switch (value) {
+    'PendingOperatorConfirmation' =>
+      BookingRefundStatus.pendingOperatorConfirmation,
+    'AwaitingPartnerReturn' => BookingRefundStatus.awaitingPartnerReturn,
+    'ReturnReported' => BookingRefundStatus.returnReported,
+    'ReturnReceived' => BookingRefundStatus.returnReceived,
+    'Pending' => BookingRefundStatus.pending,
     'Processing' => BookingRefundStatus.processing,
     'RetryPending' => BookingRefundStatus.retryPending,
     'ManualReview' => BookingRefundStatus.manualReview,
     'Processed' => BookingRefundStatus.processed,
     'Failed' => BookingRefundStatus.failed,
     'Rejected' => BookingRefundStatus.rejected,
+    'Reconciliation' => BookingRefundStatus.reconciliation,
+    'Escalated' => BookingRefundStatus.escalated,
     _ => null,
   };
 }

@@ -261,6 +261,48 @@ final class _Failure extends StatelessWidget {
   Color background,
 })
 _presentation(BookingRefundStatus status) => switch (status) {
+  BookingRefundStatus.pendingOperatorConfirmation => (
+    label: 'Awaiting confirmation',
+    description:
+        'Your refund request is awaiting confirmation from the tour operator.',
+    badgeType: StatusBadgeType.info,
+    background: const Color(0xFFEFF6FF),
+  ),
+  BookingRefundStatus.awaitingPartnerReturn => (
+    label: 'Awaiting partner return',
+    description:
+        'We are waiting for the tour operator to return their share before your refund can be processed.',
+    badgeType: StatusBadgeType.info,
+    background: const Color(0xFFEFF6FF),
+  ),
+  BookingRefundStatus.returnReported => (
+    label: 'Partner return reported',
+    description:
+        'The tour operator has reported returning their share. Our team is verifying receipt before processing your refund.',
+    badgeType: StatusBadgeType.info,
+    background: const Color(0xFFEFF6FF),
+  ),
+  BookingRefundStatus.returnReceived => (
+    label: 'Partner return received',
+    description:
+        'Our team has confirmed receipt of the partner return. Your refund is awaiting payment processing.',
+    badgeType: StatusBadgeType.info,
+    background: const Color(0xFFEFF6FF),
+  ),
+  BookingRefundStatus.reconciliation => (
+    label: 'Under reconciliation',
+    description:
+        'Our team is checking the refund records. Your refund has not been confirmed as completed.',
+    badgeType: StatusBadgeType.warning,
+    background: const Color(0xFFFFF8E8),
+  ),
+  BookingRefundStatus.escalated => (
+    label: 'Escalated for review',
+    description:
+        'Your refund needs further review by our team. It has not been confirmed as completed.',
+    badgeType: StatusBadgeType.warning,
+    background: const Color(0xFFFFF8E8),
+  ),
   BookingRefundStatus.processed => (
     label: 'Refund completed',
     description:
