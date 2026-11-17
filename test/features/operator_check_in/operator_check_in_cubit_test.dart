@@ -289,6 +289,9 @@ void main() {
       expect(loaded.lastResult?.passengerName, 'Nguyen Van A');
       expect(loaded.lastFailure, isNull);
       expect(loaded.progress?.checkedInParticipants, 12);
+      expect(loaded.selectedDeparture?.checkedInParticipants, 12);
+      expect(loaded.departures.first.checkedInParticipants, 12);
+      expect(loaded.departures.first.waitingParticipants, 8);
       expect(loaded.recentScans.length, 1);
       expect(loaded.recentScans.first.status, CheckInScanStatus.valid);
       expect(loaded.recentScans.first.code, 'TK-0000000501');

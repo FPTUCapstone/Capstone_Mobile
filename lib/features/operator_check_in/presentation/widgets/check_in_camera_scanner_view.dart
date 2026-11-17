@@ -96,13 +96,18 @@ class _CheckInCameraScannerViewState extends State<CheckInCameraScannerView> {
                 }
               },
               errorBuilder: (context, error) {
+                final denied =
+                    error.errorCode == MobileScannerErrorCode.permissionDenied;
                 return Container(
                   color: Colors.black87,
                   alignment: Alignment.center,
                   padding: const EdgeInsets.all(AppSpacing.md),
-                  child: const Text(
-                    'Camera unavailable. Please use manual code entry.',
-                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  child: Text(
+                    denied
+                        ? 'Camera permission denied. Please enable camera '
+                              'access in Settings or use manual code entry.'
+                        : 'Camera unavailable. Please use manual code entry.',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
                     textAlign: TextAlign.center,
                   ),
                 );
