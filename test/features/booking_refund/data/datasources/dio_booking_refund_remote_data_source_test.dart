@@ -59,6 +59,40 @@ void main() {
     expect(adapter.requests, isEmpty);
   });
 
+  for (final entry in {
+    'PendingOperatorConfirmation': 'pendingOperatorConfirmation',
+    'AwaitingPartnerReturn': 'awaitingPartnerReturn',
+    'ReturnReported': 'returnReported',
+    'ReturnReceived': 'returnReceived',
+    'Pending': 'pending',
+    'Reconciliation': 'reconciliation',
+    'Escalated': 'escalated',
+  }.entries) {
+    test('parses direct HTTP 200 refund status ${entry.key}', () async {
+      client.dio.httpClientAdapter = _Adapter(
+        jsonEncode({
+          'bookingId': 1,
+          'bookingCode': 'BK-DN-001',
+          'refundAmount': 500000,
+          'status': entry.key,
+          'gatewayReference': null,
+          'attemptCount': 0,
+          'requestedAtUtc': '2026-11-16T11:22:38.0296232+00:00',
+          'processedAtUtc': null,
+          'nextAttemptAtUtc': null,
+          'lastErrorCode': null,
+        }),
+      );
+
+      final progress = await dataSource.getProgress('1');
+
+      expect(progress.status.name, entry.value);
+      expect(progress.refundAmount, 500000);
+      expect(progress.processedAtUtc, isNull);
+      expect(progress.gatewayReference, isNull);
+    });
+  }
+
   test(
     'rejects an unknown Backend refund status instead of showing Pending',
     () async {
