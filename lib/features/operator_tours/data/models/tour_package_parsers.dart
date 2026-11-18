@@ -128,6 +128,8 @@ TourPackageDetail parseTourPackageDetail(Object? payload) {
         ? (json['categoryId']! as num).toInt()
         : null,
     rejectionReason: _optString(json, 'rejectionReason'),
+    submissionNote: _optString(json, 'submissionNote'),
+    submittedAtUtc: _optDate(json, 'submittedAtUtc'),
     inclusions: _optString(json, 'inclusions'),
     exclusions: _optString(json, 'exclusions'),
     highlights: _optString(json, 'highlights'),
@@ -229,4 +231,15 @@ List<TourMediaItem> parseTourMediaList(Object? payload) {
   }).toList();
   items.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
   return [for (final item in items) item.media];
+}
+
+TourReviewSubmission parseTourReviewSubmission(Object? payload, int tourId) {
+  final json = _object(payload, 'Submission response');
+  if (_int(json, 'tourId') != tourId || _string(json, 'status') != 'Pending') {
+    throw const FormatException('Unexpected submission response.');
+  }
+  return TourReviewSubmission(
+    tourId: tourId,
+    submittedAtUtc: _optDate(json, 'submittedAtUtc'),
+  );
 }

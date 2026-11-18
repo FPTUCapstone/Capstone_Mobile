@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_detail.dart';
@@ -30,6 +32,163 @@ final _image = TourImageUpload(
 );
 
 void main() {
+  group('UC-37 regressions', () {
+    test(
+      'stale draft refresh cannot undo confirmed Pending or leave loading',
+      () async {
+        final repo = FakeOperatorTourRepository();
+        final cubit = _cubit(repo);
+        addTearDown(cubit.close);
+        await cubit.loadDetail(42);
+        await cubit.saveAndSubmitForReview(sampleDraft());
+        repo.detail = sampleDetail();
+        await cubit.loadDetail(42);
+        expect(cubit.state.detail!.status, TourPackageStatus.pending);
+        expect(cubit.state.detailStatus, TourPackageDetailStatus.ready);
+      },
+    );
+    test(
+      'duplicate submission and saves are ignored while confirmation is sending',
+      () async {
+        final repo = FakeOperatorTourRepository()
+          ..updateGate = Completer<void>();
+        final cubit = _cubit(repo);
+        addTearDown(cubit.close);
+        await cubit.loadDetail(42);
+        final sending = cubit.saveAndSubmitForReview(sampleDraft());
+        await cubit.saveAndSubmitForReview(sampleDraft());
+        await cubit.submit(sampleDraft());
+        expect(repo.updates, hasLength(1));
+        repo.updateGate!.complete();
+        await sending;
+        expect(repo.submitted, [42]);
+      },
+    );
+    test(
+      'open picker excludes save and review; disposal prevents upload',
+      () async {
+        final repo = FakeOperatorTourRepository();
+        final picker = FakeTourImagePicker()
+          ..pickGate = Completer<TourImageUpload?>();
+        final cubit = _cubit(repo, picker: picker);
+        await cubit.loadDetail(42);
+        final picking = cubit.addImage();
+        await cubit.submit(sampleDraft());
+        await cubit.saveAndSubmitForReview(sampleDraft());
+        expect(repo.updates, isEmpty);
+        await cubit.close();
+        picker.pickGate!.complete(_image);
+        await picking;
+        expect(repo.uploads, isEmpty);
+      },
+    );
+    test(
+      'unconfirmed outcome locks retries until authoritative reload',
+      () async {
+        final repo = FakeOperatorTourRepository(
+          failSubmitWith: const NetworkFailure(),
+        )..failReadsAfterSubmit = true;
+        final cubit = _cubit(repo);
+        addTearDown(cubit.close);
+        await cubit.loadDetail(42);
+        await cubit.saveAndSubmitForReview(sampleDraft());
+        expect(cubit.state.reviewStatus, TourReviewStatus.uncertain);
+        expect(cubit.state.locked, isTrue);
+        await cubit.saveAndSubmitForReview(sampleDraft());
+        await cubit.submit(sampleDraft());
+        expect(repo.submitted, [42]);
+        expect(repo.updates, hasLength(1));
+        repo.failReadsAfterSubmit = false;
+        await cubit.loadDetail(42);
+        expect(cubit.state.locked, isFalse);
+      },
+    );
+    test('successful save survives failed refresh', () async {
+      final repo = FakeOperatorTourRepository()..failReadsAfterSubmit = true;
+      final cubit = _cubit(repo);
+      addTearDown(cubit.close);
+      await cubit.loadDetail(42);
+      repo.submitted.add(999);
+      await cubit.submit(sampleDraft());
+      expect(cubit.state.status, CreateTourPackageStatus.success);
+    });
+    test('pending blocks every mutation', () async {
+      final repo = FakeOperatorTourRepository(
+        detail: sampleDetail(status: TourPackageStatus.pending),
+      );
+      final cubit = _cubit(repo);
+      addTearDown(cubit.close);
+      await cubit.loadDetail(42);
+      await cubit.submit(sampleDraft());
+      await cubit.saveAndSubmitForReview(sampleDraft());
+      await cubit.deleteImage(1);
+      expect(repo.updates, isEmpty);
+      expect(repo.submitted, isEmpty);
+      expect(repo.deleteCalls, isEmpty);
+    });
+    test(
+      'confirmed submission survives failed refresh and cannot repeat',
+      () async {
+        final repo = FakeOperatorTourRepository()..failReadsAfterSubmit = true;
+        final cubit = _cubit(repo);
+        addTearDown(cubit.close);
+        await cubit.loadDetail(42);
+        await cubit.saveAndSubmitForReview(sampleDraft());
+        expect(cubit.state.reviewStatus, TourReviewStatus.submitted);
+        expect(cubit.state.detail!.status, TourPackageStatus.pending);
+        await cubit.saveAndSubmitForReview(sampleDraft());
+        expect(repo.submitted, [42]);
+      },
+    );
+    test('save and submission cannot overlap', () async {
+      final repo = FakeOperatorTourRepository()..updateGate = Completer<void>();
+      final cubit = _cubit(repo);
+      addTearDown(cubit.close);
+      await cubit.loadDetail(42);
+      final save = cubit.submit(sampleDraft());
+      await cubit.saveAndSubmitForReview(sampleDraft());
+      await cubit.deleteImage(1);
+      expect(repo.submitted, isEmpty);
+      expect(repo.deleteCalls, isEmpty);
+      repo.updateGate!.complete();
+      await save;
+    });
+    test('note is trimmed and UTF16 limit checked before save', () async {
+      final repo = FakeOperatorTourRepository();
+      final cubit = _cubit(repo);
+      addTearDown(cubit.close);
+      await cubit.loadDetail(42);
+      await cubit.saveAndSubmitForReview(
+        sampleDraft(),
+        submissionNote: String.fromCharCodes([0xd83d, 0xde00]) * 2001,
+      );
+      expect(repo.updates, isEmpty);
+      expect(cubit.state.reviewFailure, isA<ValidationFailure>());
+      await cubit.saveAndSubmitForReview(
+        sampleDraft(),
+        submissionNote: '  For Staff  ',
+      );
+      expect(repo.submissionNotes, ['For Staff']);
+    });
+    test('lost response reconciles Pending as success', () async {
+      final repo = FakeOperatorTourRepository()..lostSubmitResponse = true;
+      final cubit = _cubit(repo);
+      addTearDown(cubit.close);
+      await cubit.loadDetail(42);
+      await cubit.saveAndSubmitForReview(sampleDraft());
+      expect(cubit.state.reviewStatus, TourReviewStatus.submitted);
+    });
+    test('disposal after save prevents submit', () async {
+      final repo = FakeOperatorTourRepository()..updateGate = Completer<void>();
+      final cubit = _cubit(repo);
+      await cubit.loadDetail(42);
+      final request = cubit.saveAndSubmitForReview(sampleDraft());
+      await cubit.close();
+      repo.updateGate!.complete();
+      await request;
+      expect(repo.submitted, isEmpty);
+    });
+  });
   group('create', () {
     test(
       'draft JSON carries destinations, policy and terms the backend needs',

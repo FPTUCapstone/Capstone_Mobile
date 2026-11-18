@@ -15,7 +15,10 @@ abstract interface class OperatorTourRemoteDataSource {
   });
   Future<TourPackageDetail> getTour(int tourId);
   Future<void> updateDraft(int tourId, TourPackageDraft draft);
-  Future<void> submitForReview(int tourId);
+  Future<TourReviewSubmission> submitForReview(
+    int tourId, {
+    String? submissionNote,
+  });
   Future<List<TourMediaItem>> listMedia(int tourId);
   Future<void> uploadMedia(
     int tourId,
@@ -87,8 +90,15 @@ final class DioOperatorTourRemoteDataSource
   }
 
   @override
-  Future<void> submitForReview(int tourId) async {
-    await _dio.post<Object?>('$_toursPath/$tourId/submit-review');
+  Future<TourReviewSubmission> submitForReview(
+    int tourId, {
+    String? submissionNote,
+  }) async {
+    final response = await _dio.post<Object?>(
+      '$_toursPath/$tourId/submit-review',
+      data: submissionNote == null ? null : {'submissionNote': submissionNote},
+    );
+    return parseTourReviewSubmission(response.data, tourId);
   }
 
   @override

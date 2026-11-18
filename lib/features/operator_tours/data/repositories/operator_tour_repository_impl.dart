@@ -1,4 +1,6 @@
+import 'package:dio/dio.dart';
 import 'package:trip_mate_mobile/core/error/error_mapper.dart';
+import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/operator_tours/data/datasources/operator_tour_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_detail.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_draft.dart';
@@ -13,6 +15,19 @@ final class OperatorTourRepositoryImpl implements OperatorTourRepository {
   Future<T> _guard<T>(Future<T> Function() action) async {
     try {
       return await action();
+    } on DioException catch (error) {
+      // Do not display arbitrary backend validation strings or internal field names.
+      if (error.response?.statusCode == 400) {
+        throw const ValidationFailure(
+          'Check the tour information and submission note, then try again.',
+        );
+      }
+      if (error.response?.statusCode == 422) {
+        throw const ConstraintFailure(
+          'Complete the required tour information, an itinerary for every day, a destination, a cover photo, a cancellation policy and a valid priced future departure before submitting.',
+        );
+      }
+      throw ErrorMapper.toFailure(error);
     } on Object catch (error) {
       throw ErrorMapper.toFailure(error);
     }
@@ -43,8 +58,12 @@ final class OperatorTourRepositoryImpl implements OperatorTourRepository {
       _guard(() => _remote.updateDraft(tourId, draft));
 
   @override
-  Future<void> submitForReview(int tourId) =>
-      _guard(() => _remote.submitForReview(tourId));
+  Future<TourReviewSubmission> submitForReview(
+    int tourId, {
+    String? submissionNote,
+  }) => _guard(
+    () => _remote.submitForReview(tourId, submissionNote: submissionNote),
+  );
 
   @override
   Future<List<TourMediaItem>> listMedia(int tourId) =>

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_detail.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_draft.dart';
@@ -86,6 +88,10 @@ final class FakeOperatorTourRepository implements OperatorTourRepository {
     this.failUploads = 0,
     TourPackageDetail? detail,
   }) : detail = detail ?? sampleDetail();
+  bool failReadsAfterSubmit = false;
+  bool lostSubmitResponse = false;
+  final submissionNotes = <String?>[];
+  Completer<void>? updateGate;
   int failCreates;
   int failOptionLoads;
   int failUploads;
@@ -148,22 +154,34 @@ final class FakeOperatorTourRepository implements OperatorTourRepository {
   }
 
   @override
-  Future<TourPackageDetail> getTour(int tourId) async => detail;
+  Future<TourPackageDetail> getTour(int tourId) async {
+    if (failReadsAfterSubmit && submitted.isNotEmpty) {
+      throw const NetworkFailure();
+    }
+    return detail;
+  }
 
   @override
   Future<void> updateDraft(int tourId, TourPackageDraft draft) async {
     updates.add((tourId, draft));
+    await updateGate?.future;
   }
 
   @override
-  Future<void> submitForReview(int tourId) async {
+  Future<TourReviewSubmission> submitForReview(
+    int tourId, {
+    String? submissionNote,
+  }) async {
     submitted.add(tourId);
+    submissionNotes.add(submissionNote);
     final failure = failSubmitWith;
     if (failure != null) throw failure;
     detail = sampleDetail(
       status: TourPackageStatus.pending,
       blockers: const [],
     );
+    if (lostSubmitResponse) throw const NetworkFailure();
+    return TourReviewSubmission(tourId: tourId);
   }
 
   @override
@@ -222,10 +240,12 @@ final class FakeTourImagePicker implements TourImagePicker {
   TourImageUpload? image;
   Object? failure;
   int picks = 0;
+  Completer<TourImageUpload?>? pickGate;
 
   @override
   Future<TourImageUpload?> pickImage() async {
     picks += 1;
+    if (pickGate != null) return pickGate!.future;
     if (failure != null) throw failure!;
     return image;
   }
