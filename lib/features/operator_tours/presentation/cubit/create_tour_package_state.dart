@@ -9,7 +9,7 @@ enum TourPackageOptionsStatus { loading, ready, failure }
 
 enum TourPackageDetailStatus { idle, loading, ready, failure }
 
-enum TourReviewStatus { idle, submitting, submitted, failure }
+enum TourReviewStatus { idle, submitting, submitted, failure, uncertain }
 
 const _keep = Object();
 
@@ -50,6 +50,17 @@ final class CreateTourPackageState extends Equatable {
 
   /// Display names for the POIs already in the loaded itinerary (best effort).
   final Map<int, String> poiNames;
+
+  bool get mutationBusy =>
+      detailStatus == TourPackageDetailStatus.loading ||
+      status == CreateTourPackageStatus.submitting ||
+      reviewStatus == TourReviewStatus.submitting ||
+      mediaBusy;
+  bool get locked =>
+      detail != null &&
+      (!detail!.status.isEditable ||
+          reviewStatus == TourReviewStatus.submitted ||
+          reviewStatus == TourReviewStatus.uncertain);
 
   /// Nullable fields use a sentinel so `null` can mean "clear" while omission means "keep".
   CreateTourPackageState copyWith({

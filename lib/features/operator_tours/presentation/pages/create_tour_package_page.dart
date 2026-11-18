@@ -9,6 +9,7 @@ import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_pa
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_state.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/operator_tours_page.dart';
+import 'package:trip_mate_mobile/features/operator_tours/presentation/widgets/submit_tour_dialog.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/widgets/tour_package_widgets.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_summary.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
@@ -46,7 +47,11 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
   bool get _isEditing => widget.initial != null;
 
   /// A package that is awaiting review, approved or published cannot be changed.
-  bool get _readOnly => _isEditing && !widget.initial!.status.isEditable;
+  bool _confirming = false;
+  bool get _readOnly =>
+      _isEditing &&
+      (context.read<CreateTourPackageCubit>().state.locked ||
+          !widget.initial!.status.isEditable);
 
   @override
   void initState() {
@@ -503,31 +508,18 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
   }
 
   Future<void> _submitForReview() async {
+    final cubit = context.read<CreateTourPackageCubit>();
+    if (_confirming || _readOnly || cubit.state.mutationBusy) return;
     final draft = _buildDraft();
     if (draft == null) return;
-    final confirmed = await showDialog<bool>(
+    _confirming = true;
+    final confirmed = await showDialog<({String? note})>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Submit for review?'),
-        content: const Text(
-          'Your current changes are saved first. After submission the package cannot be edited until an administrator reviews it.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Submit'),
-          ),
-        ],
-      ),
+      builder: (_) => SubmitTourDialog(title: draft.title),
     );
-    if (confirmed == true && mounted) {
-      await context.read<CreateTourPackageCubit>().saveAndSubmitForReview(
-        draft,
-      );
+    _confirming = false;
+    if (confirmed != null && mounted) {
+      await cubit.saveAndSubmitForReview(draft, submissionNote: confirmed.note);
     }
   }
 
@@ -559,13 +551,14 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
         listenWhen: (previous, current) =>
             previous.reviewStatus != current.reviewStatus,
         listener: (context, state) {
-          if (state.reviewStatus == TourReviewStatus.failure &&
+          if ((state.reviewStatus == TourReviewStatus.failure ||
+                  state.reviewStatus == TourReviewStatus.uncertain) &&
               state.reviewFailure != null) {
             _notice(state.reviewFailure!.message);
           }
           if (state.reviewStatus == TourReviewStatus.submitted) {
             _notice('Submitted for review.');
-            context.pop();
+            if (context.canPop()) context.pop();
           }
         },
       ),
@@ -595,7 +588,15 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
                 TourPackageBanner(
                   icon: Icons.lock_outline,
                   message:
-                      'This package is ${tourStatusLabel(widget.initial!.status).toLowerCase()} and cannot be edited.',
+                      'This package is ${tourStatusLabel(state.detail?.status ?? widget.initial!.status).toLowerCase()} and cannot be edited. Staff reviews submitted packages before approval and publication.',
+                ),
+              if (state.reviewStatus == TourReviewStatus.uncertain)
+                TextButton.icon(
+                  onPressed: () => context
+                      .read<CreateTourPackageCubit>()
+                      .loadDetail(state.detail!.id),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Reload submission status'),
                 ),
               Expanded(child: _stepper(context, state)),
             ],
@@ -608,7 +609,7 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
   Widget _stepper(BuildContext context, CreateTourPackageState state) {
     final saving = state.status == CreateTourPackageStatus.submitting;
     final submittingReview = state.reviewStatus == TourReviewStatus.submitting;
-    final busy = saving || submittingReview;
+    final busy = state.mutationBusy;
     return Stepper(
       currentStep: _step,
       onStepTapped: (value) {
@@ -678,7 +679,7 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
           content: _isEditing
               ? TourPhotosSection(
                   media: state.media,
-                  busy: state.mediaBusy,
+                  busy: busy,
                   readOnly: _readOnly,
                   onAdd: () =>
                       context.read<CreateTourPackageCubit>().addImage(),
@@ -898,7 +899,7 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
           ],
         ),
         const SizedBox(height: AppSpacing.md),
-        if (detail != null) ...[
+        if (detail != null && !_readOnly) ...[
           TourReadinessSection(
             blockers: detail.reviewBlockers,
             warnings: detail.warnings,
@@ -906,8 +907,16 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
           ),
           const SizedBox(height: AppSpacing.sm),
         ],
+        if (detail?.submissionNote != null)
+          Text('Submission note: ${detail!.submissionNote}'),
+        if (detail?.submittedAtUtc != null)
+          Text(
+            'Submitted at: ${detail!.submittedAtUtc!.toIso8601String()} (UTC)',
+          ),
         Text(
-          _isEditing
+          state.detail?.status == TourPackageStatus.pending
+              ? 'Pending tours remain unavailable for public discovery and bookings until Staff approval and publication.'
+              : _isEditing
               ? 'Readiness and warnings reflect the last saved version.'
               : 'This is saved as a Draft. Add a cover photo, then submit it for review.',
         ),

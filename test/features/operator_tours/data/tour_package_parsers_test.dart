@@ -61,6 +61,18 @@ Map<String, Object?> _detailJson() => {
 };
 
 void main() {
+  test('submission metadata is additive and UTC', () {
+    final legacy = parseTourPackageDetail(_detailJson());
+    expect(legacy.submissionNote, isNull);
+    expect(legacy.submittedAtUtc, isNull);
+    final detail = parseTourPackageDetail({
+      ..._detailJson(),
+      'submissionNote': 'Ready for Staff',
+      'submittedAtUtc': '2026-11-18T10:00:00Z',
+    });
+    expect(detail.submissionNote, 'Ready for Staff');
+    expect(detail.submittedAtUtc, DateTime.utc(2026, 11, 18, 10));
+  });
   test('parses the full detail including readiness, warnings and terms', () {
     final detail = parseTourPackageDetail(_detailJson());
 

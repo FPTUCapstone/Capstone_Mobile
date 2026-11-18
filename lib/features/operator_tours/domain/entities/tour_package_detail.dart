@@ -185,6 +185,8 @@ final class TourPackageDetail extends Equatable {
     required this.mediaCount,
     this.categoryId,
     this.rejectionReason,
+    this.submissionNote,
+    this.submittedAtUtc,
     this.inclusions,
     this.exclusions,
     this.highlights,
@@ -201,6 +203,8 @@ final class TourPackageDetail extends Equatable {
   final int durationDays;
   final int? categoryId;
   final String? rejectionReason;
+  final String? submissionNote;
+  final DateTime? submittedAtUtc;
   final String? inclusions;
   final String? exclusions;
   final String? highlights;
@@ -220,6 +224,35 @@ final class TourPackageDetail extends Equatable {
   final bool hasPrimaryImage;
   final int mediaCount;
 
+  TourPackageDetail submitted({String? note, DateTime? atUtc}) =>
+      TourPackageDetail(
+        id: id,
+        title: title,
+        description: description,
+        basePrice: basePrice,
+        durationDays: durationDays,
+        categoryId: categoryId,
+        inclusions: inclusions,
+        exclusions: exclusions,
+        highlights: highlights,
+        travellerRequirements: travellerRequirements,
+        timeZoneId: timeZoneId,
+        destinationIds: destinationIds,
+        destinationNames: destinationNames,
+        cancellationPolicyTemplateId: cancellationPolicyTemplateId,
+        cancellationFeeRules: cancellationFeeRules,
+        itineraryItems: itineraryItems,
+        departures: departures,
+        warnings: warnings,
+        hasPrimaryImage: hasPrimaryImage,
+        mediaCount: mediaCount,
+        status: TourPackageStatus.pending,
+        submissionNote: note,
+        submittedAtUtc: atUtc,
+        canSubmitForReview: false,
+        reviewBlockers: const [],
+      );
+
   @override
   List<Object?> get props => [
     id,
@@ -230,6 +263,8 @@ final class TourPackageDetail extends Equatable {
     durationDays,
     categoryId,
     rejectionReason,
+    submissionNote,
+    submittedAtUtc,
     inclusions,
     exclusions,
     highlights,
@@ -259,4 +294,15 @@ final class TourImageUpload {
   final String fileName;
   final String contentType;
   final List<int> bytes;
+}
+
+final class TourReviewSubmission {
+  const TourReviewSubmission({required this.tourId, this.submittedAtUtc});
+  final int tourId;
+  final DateTime? submittedAtUtc;
+}
+
+String? normalizeSubmissionNote(String? value) {
+  final note = value?.trim();
+  return note == null || note.isEmpty ? null : note;
 }

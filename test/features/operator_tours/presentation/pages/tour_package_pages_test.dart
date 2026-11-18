@@ -61,6 +61,27 @@ Future<void> _pumpEditor(
 
 void main() {
   group('editor', () {
+    testWidgets('confirmation identifies tour and cancelling sends nothing', (
+      tester,
+    ) async {
+      final repo = FakeOperatorTourRepository();
+      final cubit = await _loadedCubit(repo);
+      addTearDown(cubit.close);
+      await _pumpEditor(tester, cubit);
+      await tester.tap(find.text('Preview & save'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Submit for review'));
+      await tester.pumpAndSettle();
+      expect(
+        find.widgetWithText(TextFormField, 'Submission note (optional)'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Staff'), findsWidgets);
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel').last);
+      await tester.pumpAndSettle();
+      expect(repo.updates, isEmpty);
+      expect(repo.submitted, isEmpty);
+    });
     testWidgets('prefills an existing draft and offers save and submit', (
       tester,
     ) async {
@@ -103,6 +124,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('cannot be edited'), findsOneWidget);
+      expect(find.text('Ready to submit for review.'), findsNothing);
+      expect(find.textContaining('Staff'), findsWidgets);
       expect(find.text('Save draft'), findsNothing);
       expect(find.text('Submit for review'), findsNothing);
       expect(
@@ -111,9 +134,7 @@ void main() {
       );
     });
 
-    testWidgets('a rejected package shows the administrator reason', (
-      tester,
-    ) async {
+    testWidgets('a rejected package shows the Staff reason', (tester) async {
       final cubit = await _loadedCubit(
         FakeOperatorTourRepository(
           detail: sampleDetail(
@@ -153,6 +174,10 @@ void main() {
 
       await tester.tap(find.text('Submit for review'));
       await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Submission note (optional)'),
+        '  Context for Staff  ',
+      );
       await tester.tap(find.widgetWithText(FilledButton, 'Submit'));
       await tester.pumpAndSettle();
 
@@ -161,6 +186,7 @@ void main() {
       expect(repository.updates.single.$2.timeZoneId, 'Asia/Bangkok');
       expect(repository.updates.single.$2.categoryId, 3);
       expect(repository.submitted, [42]);
+      expect(repository.submissionNotes, ['Context for Staff']);
     });
 
     testWidgets(
