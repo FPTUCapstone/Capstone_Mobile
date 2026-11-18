@@ -79,6 +79,25 @@ class OperatorDepartureSummary extends Equatable {
       totalEligibleParticipants > 0 &&
       checkedInParticipants >= totalEligibleParticipants;
 
+  OperatorDepartureSummary copyWith({
+    int? checkedInParticipants,
+    int? totalEligibleParticipants,
+    int? waitingParticipants,
+    String? status,
+  }) => OperatorDepartureSummary(
+    scheduleId: scheduleId,
+    tourId: tourId,
+    tourTitle: tourTitle,
+    startAtUtc: startAtUtc,
+    endAtUtc: endAtUtc,
+    meetingPoint: meetingPoint,
+    status: status ?? this.status,
+    checkedInParticipants: checkedInParticipants ?? this.checkedInParticipants,
+    totalEligibleParticipants:
+        totalEligibleParticipants ?? this.totalEligibleParticipants,
+    waitingParticipants: waitingParticipants ?? this.waitingParticipants,
+  );
+
   @override
   List<Object?> get props => [
     scheduleId,

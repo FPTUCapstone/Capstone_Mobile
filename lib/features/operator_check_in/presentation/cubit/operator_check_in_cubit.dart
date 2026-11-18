@@ -146,7 +146,18 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
       final latest = state;
       if (latest is OperatorCheckInLoaded &&
           latest.selectedDeparture?.scheduleId == scheduleId) {
-        emit(latest.copyWith(progress: progress));
+        final syncedDepartures = _syncDepartures(latest.departures, progress);
+        final syncedSelected = _syncDeparture(
+          latest.selectedDeparture!,
+          progress,
+        );
+        emit(
+          latest.copyWith(
+            departures: syncedDepartures,
+            selectedDeparture: syncedSelected,
+            progress: progress,
+          ),
+        );
       }
     } catch (_) {
       // Keep the newly selected departure's own snapshot on a read failure.
@@ -200,12 +211,21 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
       );
 
       final updatedScans = _prependRecentScan(scanItem, latest.recentScans);
+      final syncedDepartures = _syncDepartures(
+        latest.departures,
+        result.departure,
+      );
+      final syncedSelected = latest.selectedDeparture != null
+          ? _syncDeparture(latest.selectedDeparture!, result.departure)
+          : null;
 
       emit(
         latest.copyWith(
           isSubmittingScan: false,
           lastResult: result,
           clearLastFailure: true,
+          departures: syncedDepartures,
+          selectedDeparture: syncedSelected,
           progress: result.departure,
           recentScans: updatedScans,
         ),
@@ -338,6 +358,25 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
         totalEligibleParticipants: departure.totalEligibleParticipants,
         waitingParticipants: departure.waitingParticipants,
       );
+
+  List<OperatorDepartureSummary> _syncDepartures(
+    List<OperatorDepartureSummary> departures,
+    DepartureProgress progress,
+  ) => departures
+      .map((departure) => _syncDeparture(departure, progress))
+      .toList();
+
+  OperatorDepartureSummary _syncDeparture(
+    OperatorDepartureSummary departure,
+    DepartureProgress progress,
+  ) {
+    if (departure.scheduleId != progress.scheduleId) return departure;
+    return departure.copyWith(
+      checkedInParticipants: progress.checkedInParticipants,
+      totalEligibleParticipants: progress.totalEligibleParticipants,
+      waitingParticipants: progress.waitingParticipants,
+    );
+  }
 
   String _reasonFromKind(CheckInFailureKind kind) => switch (kind) {
     CheckInFailureKind.alreadyUsed => 'Ticket already checked in',

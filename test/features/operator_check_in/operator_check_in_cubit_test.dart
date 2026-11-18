@@ -270,6 +270,250 @@ void main() {
         expect(repository.lastProgressScheduleId, 102);
       },
     );
+
+    test(
+      'selectDeparture Case A: successful progress refresh syncs departures, selectedDeparture, and progress',
+      () async {
+        repository.departuresToReturn = [
+          OperatorDepartureSummary(
+            scheduleId: 101,
+            tourId: 1,
+            tourTitle: 'Hanoi Morning Tour',
+            startAtUtc: DateTime.utc(2026, 10, 30, 8, 0),
+            endAtUtc: DateTime.utc(2026, 10, 30, 12, 0),
+            meetingPoint: 'Opera House',
+            status: 'Open',
+            checkedInParticipants: 5,
+            totalEligibleParticipants: 10,
+            waitingParticipants: 5,
+          ),
+          OperatorDepartureSummary(
+            scheduleId: 102,
+            tourId: 2,
+            tourTitle: 'Hanoi Afternoon Tour',
+            startAtUtc: DateTime.utc(2026, 10, 30, 13, 0),
+            endAtUtc: DateTime.utc(2026, 10, 30, 17, 0),
+            meetingPoint: 'Old Quarter',
+            status: 'Open',
+            checkedInParticipants: 0,
+            totalEligibleParticipants: 15,
+            waitingParticipants: 15,
+          ),
+        ];
+
+        await cubit.loadInitial();
+
+        repository.progressToReturn = DepartureProgress(
+          scheduleId: 102,
+          tourTitle: 'Hanoi Afternoon Tour',
+          startAtUtc: DateTime.utc(2026, 10, 30, 13, 0),
+          endAtUtc: DateTime.utc(2026, 10, 30, 17, 0),
+          meetingPoint: 'Old Quarter',
+          checkedInParticipants: 9,
+          totalEligibleParticipants: 15,
+          waitingParticipants: 6,
+        );
+
+        await cubit.selectDeparture(102);
+
+        final loaded = cubit.state as OperatorCheckInLoaded;
+        expect(loaded.progress?.checkedInParticipants, 9);
+        expect(loaded.progress?.waitingParticipants, 6);
+        expect(loaded.selectedDeparture?.checkedInParticipants, 9);
+        expect(loaded.selectedDeparture?.waitingParticipants, 6);
+        final listItem = loaded.departures.firstWhere(
+          (d) => d.scheduleId == 102,
+        );
+        expect(listItem.checkedInParticipants, 9);
+        expect(listItem.totalEligibleParticipants, 15);
+        expect(listItem.waitingParticipants, 6);
+      },
+    );
+
+    test(
+      'selectDeparture Case B: failed progress refresh keeps newly selected departure and snapshot without crashing',
+      () async {
+        repository.departuresToReturn = [
+          OperatorDepartureSummary(
+            scheduleId: 101,
+            tourId: 1,
+            tourTitle: 'Hanoi Morning Tour',
+            startAtUtc: DateTime.utc(2026, 10, 30, 8, 0),
+            endAtUtc: DateTime.utc(2026, 10, 30, 12, 0),
+            meetingPoint: 'Opera House',
+            status: 'Open',
+            checkedInParticipants: 5,
+            totalEligibleParticipants: 10,
+            waitingParticipants: 5,
+          ),
+          OperatorDepartureSummary(
+            scheduleId: 102,
+            tourId: 2,
+            tourTitle: 'Hanoi Afternoon Tour',
+            startAtUtc: DateTime.utc(2026, 10, 30, 13, 0),
+            endAtUtc: DateTime.utc(2026, 10, 30, 17, 0),
+            meetingPoint: 'Old Quarter',
+            status: 'Open',
+            checkedInParticipants: 3,
+            totalEligibleParticipants: 15,
+            waitingParticipants: 12,
+          ),
+        ];
+
+        await cubit.loadInitial();
+        repository.failureToThrow = const CheckInFailure(
+          kind: CheckInFailureKind.invalidInput,
+          message: 'Invalid schedule filter.',
+        );
+
+        await cubit.selectDeparture(102);
+
+        final loaded = cubit.state as OperatorCheckInLoaded;
+        expect(loaded.selectedDeparture?.scheduleId, 102);
+        expect(loaded.selectedDeparture?.checkedInParticipants, 3);
+        expect(loaded.progress?.scheduleId, 102);
+        expect(loaded.progress?.checkedInParticipants, 3);
+        expect(loaded.progress?.waitingParticipants, 12);
+        expect(loaded.lastFailure, isNull);
+      },
+    );
+
+    test(
+      'selectDeparture Case C (A -> B -> A): preserves latest fetched authoritative counter even if return fetch fails',
+      () async {
+        repository.departuresToReturn = [
+          OperatorDepartureSummary(
+            scheduleId: 101,
+            tourId: 1,
+            tourTitle: 'Hanoi Morning Tour',
+            startAtUtc: DateTime.utc(2026, 10, 30, 8, 0),
+            endAtUtc: DateTime.utc(2026, 10, 30, 12, 0),
+            meetingPoint: 'Opera House',
+            status: 'Open',
+            checkedInParticipants: 5,
+            totalEligibleParticipants: 10,
+            waitingParticipants: 5,
+          ),
+          OperatorDepartureSummary(
+            scheduleId: 102,
+            tourId: 2,
+            tourTitle: 'Hanoi Afternoon Tour',
+            startAtUtc: DateTime.utc(2026, 10, 30, 13, 0),
+            endAtUtc: DateTime.utc(2026, 10, 30, 17, 0),
+            meetingPoint: 'Old Quarter',
+            status: 'Open',
+            checkedInParticipants: 0,
+            totalEligibleParticipants: 15,
+            waitingParticipants: 15,
+          ),
+        ];
+
+        await cubit.loadInitial();
+
+        // Update A via successful check-in (5 -> 7)
+        repository.resultToReturn = CheckInResult(
+          ticketCode: 'TK-A',
+          bookingCode: 'BK-A',
+          passengerName: 'Pax A',
+          participantCount: 2,
+          checkedInAtUtc: DateTime.utc(2026, 10, 30, 8, 10),
+          departure: DepartureProgress(
+            scheduleId: 101,
+            tourTitle: 'Hanoi Morning Tour',
+            startAtUtc: DateTime.utc(2026, 10, 30, 8, 0),
+            endAtUtc: DateTime.utc(2026, 10, 30, 12, 0),
+            meetingPoint: 'Opera House',
+            checkedInParticipants: 7,
+            totalEligibleParticipants: 10,
+            waitingParticipants: 3,
+          ),
+        );
+        await cubit.submitScan(qrContent: 'QR-A');
+
+        // Switch A -> B with authoritative progress fetch (0 -> 6)
+        repository.progressToReturn = DepartureProgress(
+          scheduleId: 102,
+          tourTitle: 'Hanoi Afternoon Tour',
+          startAtUtc: DateTime.utc(2026, 10, 30, 13, 0),
+          endAtUtc: DateTime.utc(2026, 10, 30, 17, 0),
+          meetingPoint: 'Old Quarter',
+          checkedInParticipants: 6,
+          totalEligibleParticipants: 15,
+          waitingParticipants: 9,
+        );
+        await cubit.selectDeparture(102);
+
+        // Switch B -> A while progress read fails: must keep A's synced 7/10, not stale 5/10
+        repository.failureToThrow = const CheckInFailure(
+          kind: CheckInFailureKind.network,
+        );
+        await cubit.selectDeparture(101);
+        final backAtA = cubit.state as OperatorCheckInLoaded;
+        expect(backAtA.selectedDeparture?.scheduleId, 101);
+        expect(backAtA.selectedDeparture?.checkedInParticipants, 7);
+        expect(backAtA.progress?.checkedInParticipants, 7);
+        expect(backAtA.progress?.waitingParticipants, 3);
+
+        // Switch A -> B again while progress read still fails: must keep B's synced 6/15, not stale 0/15
+        await cubit.selectDeparture(102);
+        final backAtB = cubit.state as OperatorCheckInLoaded;
+        expect(backAtB.selectedDeparture?.scheduleId, 102);
+        expect(backAtB.selectedDeparture?.checkedInParticipants, 6);
+        expect(backAtB.progress?.checkedInParticipants, 6);
+        expect(backAtB.progress?.waitingParticipants, 9);
+      },
+    );
+
+    test(
+      'loadInitial emits context-appropriate error on 400 invalidInput without QR/booking-code prompt',
+      () async {
+        repository.failureToThrow = const CheckInFailure(
+          kind: CheckInFailureKind.invalidInput,
+        );
+
+        await cubit.loadInitial();
+
+        expect(cubit.state, isA<OperatorCheckInError>());
+        final error = cubit.state as OperatorCheckInError;
+        expect(error.message, 'Failed to load departures');
+        expect(error.message.toLowerCase(), isNot(contains('qr')));
+        expect(error.message.toLowerCase(), isNot(contains('booking code')));
+      },
+    );
+
+    test(
+      'OperatorDepartureSummary.copyWith updates counters while preserving all other fields',
+      () {
+        final original = OperatorDepartureSummary(
+          scheduleId: 101,
+          tourId: 7,
+          tourTitle: 'Hanoi Heritage Tour',
+          startAtUtc: DateTime.utc(2026, 10, 30, 8, 0),
+          endAtUtc: DateTime.utc(2026, 10, 30, 17, 0),
+          meetingPoint: 'Opera House',
+          status: 'Scheduled',
+          checkedInParticipants: 2,
+          totalEligibleParticipants: 10,
+          waitingParticipants: 8,
+        );
+
+        final updated = original.copyWith(
+          checkedInParticipants: 5,
+          waitingParticipants: 5,
+        );
+
+        expect(updated.scheduleId, original.scheduleId);
+        expect(updated.tourId, original.tourId);
+        expect(updated.tourTitle, original.tourTitle);
+        expect(updated.startAtUtc, original.startAtUtc);
+        expect(updated.endAtUtc, original.endAtUtc);
+        expect(updated.meetingPoint, original.meetingPoint);
+        expect(updated.status, original.status);
+        expect(updated.checkedInParticipants, 5);
+        expect(updated.totalEligibleParticipants, 10);
+        expect(updated.waitingParticipants, 5);
+      },
+    );
   });
 
   group('OperatorCheckInCubit - Scan & Verification', () {
@@ -289,6 +533,9 @@ void main() {
       expect(loaded.lastResult?.passengerName, 'Nguyen Van A');
       expect(loaded.lastFailure, isNull);
       expect(loaded.progress?.checkedInParticipants, 12);
+      expect(loaded.selectedDeparture?.checkedInParticipants, 12);
+      expect(loaded.departures.first.checkedInParticipants, 12);
+      expect(loaded.departures.first.waitingParticipants, 8);
       expect(loaded.recentScans.length, 1);
       expect(loaded.recentScans.first.status, CheckInScanStatus.valid);
       expect(loaded.recentScans.first.code, 'TK-0000000501');

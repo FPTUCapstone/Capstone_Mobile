@@ -126,6 +126,7 @@ final class OperatorCheckInRepositoryImpl implements OperatorCheckInRepository {
       'checkin.already_used' => CheckInFailureKind.alreadyUsed,
       'checkin.ticket_invalid' => CheckInFailureKind.ticketInvalid,
       'checkin.invalid_input' => CheckInFailureKind.invalidInput,
+      'MSG127' => CheckInFailureKind.system,
       _ => _kindFromStatus(error.response?.statusCode),
     };
 
@@ -140,6 +141,7 @@ final class OperatorCheckInRepositoryImpl implements OperatorCheckInRepository {
   }
 
   CheckInFailureKind _kindFromStatus(int? statusCode) => switch (statusCode) {
+    400 => CheckInFailureKind.invalidInput,
     401 => CheckInFailureKind.unauthorized,
     403 => CheckInFailureKind.forbidden,
     404 => CheckInFailureKind.scheduleNotFound,

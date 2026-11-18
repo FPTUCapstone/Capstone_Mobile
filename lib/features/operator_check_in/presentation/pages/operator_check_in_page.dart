@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/domain/entities/operator_check_in_models.dart';
@@ -19,11 +20,13 @@ import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
 class OperatorCheckInPage extends StatefulWidget {
   const OperatorCheckInPage({
     this.initialScheduleId,
+    this.scannerController,
     this.scannerBuilder,
     super.key,
   });
 
   final int? initialScheduleId;
+  final MobileScannerController? scannerController;
   final Widget Function(
     BuildContext context, {
     required ValueChanged<String> onDetect,
@@ -240,6 +243,7 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
                   ],
                   CheckInCameraScannerView(
                     key: const ValueKey('check-in-camera'),
+                    controller: widget.scannerController,
                     scannerBuilder: widget.scannerBuilder,
                     scanSession: state.scanSession,
                     canScan: () =>
