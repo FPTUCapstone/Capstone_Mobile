@@ -8,6 +8,7 @@ class CheckInCameraScannerView extends StatefulWidget {
     this.isPaused = false,
     this.canScan,
     this.scanSession = 0,
+    this.controller,
     this.scannerBuilder,
     super.key,
   });
@@ -16,6 +17,7 @@ class CheckInCameraScannerView extends StatefulWidget {
   final bool isPaused;
   final bool Function()? canScan;
   final int scanSession;
+  final MobileScannerController? controller;
   final Widget Function(
     BuildContext context, {
     required ValueChanged<String> onDetect,
@@ -29,20 +31,26 @@ class CheckInCameraScannerView extends StatefulWidget {
 
 class _CheckInCameraScannerViewState extends State<CheckInCameraScannerView> {
   late final MobileScannerController _controller;
+  late final bool _ownsController;
   bool _hasDetected = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = MobileScannerController(
-      detectionSpeed: DetectionSpeed.normal,
-      facing: CameraFacing.back,
-    );
+    _ownsController = widget.controller == null;
+    _controller =
+        widget.controller ??
+        MobileScannerController(
+          detectionSpeed: DetectionSpeed.normal,
+          facing: CameraFacing.back,
+        );
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    if (_ownsController) {
+      _controller.dispose();
+    }
     super.dispose();
   }
 

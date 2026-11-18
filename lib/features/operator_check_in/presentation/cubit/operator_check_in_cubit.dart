@@ -371,14 +371,7 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
     DepartureProgress progress,
   ) {
     if (departure.scheduleId != progress.scheduleId) return departure;
-    return OperatorDepartureSummary(
-      scheduleId: departure.scheduleId,
-      tourId: departure.tourId,
-      tourTitle: departure.tourTitle,
-      startAtUtc: departure.startAtUtc,
-      endAtUtc: departure.endAtUtc,
-      meetingPoint: departure.meetingPoint,
-      status: departure.status,
+    return departure.copyWith(
       checkedInParticipants: progress.checkedInParticipants,
       totalEligibleParticipants: progress.totalEligibleParticipants,
       waitingParticipants: progress.waitingParticipants,

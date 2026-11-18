@@ -294,5 +294,36 @@ void main() {
         );
       });
     }
+
+    test(
+      'maps 400 validation error on read endpoints without injecting QR/manual-code message',
+      () async {
+        final departuresRepo = buildRepo(400, {
+          'title': 'Invalid targetDate format.',
+        });
+        await expectLater(
+          departuresRepo.getTodayDepartures(targetDate: DateTime(2026, 10, 30)),
+          throwsA(
+            isA<CheckInFailure>()
+                .having((f) => f.kind, 'kind', CheckInFailureKind.invalidInput)
+                .having(
+                  (f) => f.message,
+                  'message',
+                  'Invalid targetDate format.',
+                ),
+          ),
+        );
+
+        final progressRepo = buildRepo(400, const {});
+        await expectLater(
+          progressRepo.getDepartureProgress(101),
+          throwsA(
+            isA<CheckInFailure>()
+                .having((f) => f.kind, 'kind', CheckInFailureKind.invalidInput)
+                .having((f) => f.message, 'message', isNull),
+          ),
+        );
+      },
+    );
   });
 }

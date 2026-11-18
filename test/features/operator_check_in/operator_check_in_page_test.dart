@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/domain/entities/operator_check_in_models.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/domain/repositories/operator_check_in_repository.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/domain/usecases/operator_check_in_use_cases.dart';
@@ -81,6 +83,7 @@ void main() {
   Widget buildTestableWidget({
     _FakeCheckInRepository? repo,
     int? initialScheduleId,
+    MobileScannerController? scannerController,
     Widget Function(BuildContext, {required ValueChanged<String> onDetect})?
     scannerBuilder,
   }) {
@@ -94,6 +97,7 @@ void main() {
         ),
         child: OperatorCheckInPage(
           initialScheduleId: initialScheduleId,
+          scannerController: scannerController,
           scannerBuilder: scannerBuilder,
         ),
       ),
@@ -282,4 +286,124 @@ void main() {
 
     expect(repository.lastScannedBookingCode, 'BK-20261030-999');
   });
+
+  MobileScannerController buildErrorScannerController(
+    MobileScannerErrorCode errorCode,
+  ) {
+    final controller = MobileScannerController(autoStart: false);
+    controller.value = MobileScannerState(
+      availableCameras: 1,
+      cameraDirection: CameraFacing.back,
+      cameraLensType: CameraLensType.any,
+      isInitialized: true,
+      isStarting: false,
+      isRunning: false,
+      size: Size.zero,
+      torchState: TorchState.unavailable,
+      zoomScale: 1,
+      deviceOrientation: DeviceOrientation.portraitUp,
+      error: MobileScannerException(errorCode: errorCode),
+    );
+    return controller;
+  }
+
+  testWidgets(
+    'real MobileScanner errorBuilder renders permissionDenied guidance and keeps manual fallback usable',
+    (tester) async {
+      repository.departures = [
+        OperatorDepartureSummary(
+          scheduleId: 101,
+          tourId: 1,
+          tourTitle: 'Hanoi Heritage Tour',
+          startAtUtc: DateTime.utc(2026, 10, 30, 8, 0),
+          endAtUtc: DateTime.utc(2026, 10, 30, 17, 0),
+          meetingPoint: 'Hanoi Opera House',
+          status: 'Open',
+          checkedInParticipants: 18,
+          totalEligibleParticipants: 31,
+          waitingParticipants: 13,
+        ),
+      ];
+      final controller = buildErrorScannerController(
+        MobileScannerErrorCode.permissionDenied,
+      );
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        buildTestableWidget(scannerController: controller),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(tester.takeException(), isNull);
+      expect(
+        find.text(
+          'Camera permission denied. Please enable camera access in Settings or use manual code entry.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Camera unavailable. Please use manual code entry.'),
+        findsNothing,
+      );
+
+      // Manual fallback remains visible and functional (SRS Abnormal Case 2.a1).
+      expect(find.text('Manual code'), findsOneWidget);
+      await tester.tap(find.text('Manual code'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField), 'BK-PERM-DENIED-1');
+      await tester.tap(find.text('Check In'));
+      await tester.pumpAndSettle();
+
+      expect(repository.lastScannedBookingCode, 'BK-PERM-DENIED-1');
+      expect(find.text('TK-0000000088 accepted'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'real MobileScanner errorBuilder renders generic camera unavailable fallback and keeps manual fallback usable',
+    (tester) async {
+      repository.departures = [
+        OperatorDepartureSummary(
+          scheduleId: 101,
+          tourId: 1,
+          tourTitle: 'Hanoi Heritage Tour',
+          startAtUtc: DateTime.utc(2026, 10, 30, 8, 0),
+          endAtUtc: DateTime.utc(2026, 10, 30, 17, 0),
+          meetingPoint: 'Hanoi Opera House',
+          status: 'Open',
+          checkedInParticipants: 18,
+          totalEligibleParticipants: 31,
+          waitingParticipants: 13,
+        ),
+      ];
+      final controller = buildErrorScannerController(
+        MobileScannerErrorCode.genericError,
+      );
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        buildTestableWidget(scannerController: controller),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(tester.takeException(), isNull);
+      expect(
+        find.text('Camera unavailable. Please use manual code entry.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Camera permission denied'), findsNothing);
+
+      expect(find.text('Manual code'), findsOneWidget);
+      await tester.tap(find.text('Manual code'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField), 'BK-CAM-UNAVAIL-1');
+      await tester.tap(find.text('Check In'));
+      await tester.pumpAndSettle();
+
+      expect(repository.lastScannedBookingCode, 'BK-CAM-UNAVAIL-1');
+      expect(find.text('TK-0000000088 accepted'), findsOneWidget);
+    },
+  );
 }
