@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -23,6 +24,8 @@ import 'package:trip_mate_mobile/features/poi/domain/repositories/poi_repository
 import 'package:trip_mate_mobile/features/poi/domain/usecases/get_pois_use_case.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/traveler_profile_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/traveler_profile_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_shell_page.dart';
 import 'package:trip_mate_mobile/features/traveler_emergency/domain/entities/traveler_emergency_status.dart';
 import 'package:trip_mate_mobile/features/traveler_emergency/domain/repositories/traveler_emergency_repository.dart';
@@ -33,6 +36,28 @@ import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 
 import '../../../operator_weather_safety/support/fake_operator_weather_safety_repository.dart';
 import '../cubit/my_trips_cubit_test.dart';
+
+class _ProfileRepository implements TravelerProfileRepository {
+  @override
+  Future<TravelerProfile> load() async => const TravelerProfile(
+    fullName: 'Traveler',
+    email: 'traveler@example.com',
+  );
+
+  @override
+  Future<TravelerProfile> save({
+    required String fullName,
+    required String phoneNumber,
+    String? dateOfBirth,
+    Uint8List? avatar,
+    String? avatarName,
+    String? avatarMime,
+  }) async => TravelerProfile(
+    fullName: fullName,
+    email: 'traveler@example.com',
+    phoneNumber: phoneNumber,
+  );
+}
 
 Future<AuthSessionCubit> _authenticatedCubit({
   _RecordingAuthRepository? repository,
@@ -74,6 +99,9 @@ void main() {
       1: tripPage([tripSummary(60014, openSessionId: 11)]),
     });
     serviceLocator
+      ..registerFactory<TravelerProfileCubit>(
+        () => TravelerProfileCubit(_ProfileRepository()),
+      )
       ..registerFactory<PoiListCubit>(
         () => PoiListCubit(getPois: GetPoisUseCase(_EmptyPoiRepository())),
       )
