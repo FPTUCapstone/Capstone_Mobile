@@ -1,3 +1,4 @@
+import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_detail.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_draft.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/repositories/operator_tour_repository.dart';
@@ -25,7 +26,15 @@ final class UpdateTourPackageUseCase {
 final class SubmitTourForReviewUseCase {
   const SubmitTourForReviewUseCase(this._repository);
   final OperatorTourRepository _repository;
-  Future<void> call(int tourId) => _repository.submitForReview(tourId);
+  Future<TourReviewSubmission> call(int tourId, {String? submissionNote}) {
+    final note = normalizeSubmissionNote(submissionNote);
+    if (note != null && note.length > 4000) {
+      throw const ValidationFailure(
+        'Shorten the submission note to 4,000 characters.',
+      );
+    }
+    return _repository.submitForReview(tourId, submissionNote: note);
+  }
 }
 
 /// Cover-photo operations share one use case: they are thin and always travel together.

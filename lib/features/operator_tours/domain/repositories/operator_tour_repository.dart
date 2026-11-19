@@ -14,7 +14,10 @@ abstract interface class OperatorTourRepository {
   });
   Future<TourPackageDetail> getTour(int tourId);
   Future<void> updateDraft(int tourId, TourPackageDraft draft);
-  Future<void> submitForReview(int tourId);
+  Future<TourReviewSubmission> submitForReview(
+    int tourId, {
+    String? submissionNote,
+  });
 
   Future<List<TourMediaItem>> listMedia(int tourId);
   Future<void> uploadMedia(
