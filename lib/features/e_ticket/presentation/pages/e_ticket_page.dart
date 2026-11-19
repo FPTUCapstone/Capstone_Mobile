@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/booking_cancellation/presentation/widgets/booking_cancel_sheet.dart';
@@ -18,7 +20,20 @@ class ETicketPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text(ETicketStrings.title)),
+      appBar: AppBar(
+        title: const Text(ETicketStrings.title),
+        leading: IconButton(
+          tooltip: 'Back',
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(AppRoutes.tripHistory);
+            }
+          },
+        ),
+      ),
       body: SafeArea(
         child: BlocBuilder<ETicketCubit, ETicketState>(
           builder: (context, state) => switch (state.phase) {
