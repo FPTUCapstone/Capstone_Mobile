@@ -12,9 +12,10 @@ import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_c
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
+import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
+import 'package:trip_mate_mobile/features/tour_search/presentation/pages/tour_search_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/my_trips_page.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/widgets/traveler_bookings_view.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/traveler_home_dashboard_view.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/traveler_profile_view.dart';
 import 'package:trip_mate_mobile/features/traveler_emergency/presentation/cubit/traveler_emergency_notices_cubit.dart';
@@ -26,7 +27,12 @@ import 'package:trip_mate_mobile/shared/widgets/notification_permission_notice.d
 enum TravelerSectionId { home, trips, explore, bookings, profile }
 
 class TravelerShellPage extends StatefulWidget {
-  const TravelerShellPage({super.key});
+  const TravelerShellPage({
+    this.initialSection = TravelerSectionId.home,
+    super.key,
+  });
+
+  final TravelerSectionId initialSection;
 
   @override
   State<TravelerShellPage> createState() => _TravelerShellPageState();
@@ -71,6 +77,7 @@ class _TravelerShellPageState extends State<TravelerShellPage>
   late final PoiListCubit _exploreCubit;
   late final MyTripsCubit _myTripsCubit;
   var _exploreLoaded = false;
+  var _toursOpened = false;
   final TravelerEmergencyNoticesCubit? _notices =
       locateOptional<TravelerEmergencyNoticesCubit>();
   late final AuthSessionCubit _session = context.read<AuthSessionCubit>();
@@ -95,6 +102,29 @@ class _TravelerShellPageState extends State<TravelerShellPage>
     unawaited(_notices?.refresh());
     _exploreCubit = serviceLocator<PoiListCubit>();
     _myTripsCubit = serviceLocator<MyTripsCubit>();
+    _selectedIndex = widget.initialSection.index;
+    _toursOpened = widget.initialSection == TravelerSectionId.bookings;
+    if (widget.initialSection == TravelerSectionId.explore) {
+      _exploreLoaded = true;
+      unawaited(_exploreCubit.loadInitial());
+    } else if (widget.initialSection == TravelerSectionId.trips) {
+      unawaited(_myTripsCubit.load());
+    }
+  }
+
+  void _selectSection(int index) {
+    if (index == 1) {
+      // Reloaded on every visit: trips change in pushed routes.
+      unawaited(_myTripsCubit.load());
+    }
+    if (index == 2 && !_exploreLoaded) {
+      _exploreLoaded = true;
+      unawaited(_exploreCubit.loadInitial());
+    }
+    setState(() {
+      _selectedIndex = index;
+      if (index == 3) _toursOpened = true;
+    });
   }
 
   @override
@@ -119,7 +149,7 @@ class _TravelerShellPageState extends State<TravelerShellPage>
             AuthSessionCubit.signOutLocalCleanupFailureMessage;
 
     return Scaffold(
-      appBar: _selectedIndex == 2
+      appBar: _selectedIndex == 2 || _selectedIndex == 3
           ? null
           : AppBar(
               title: _buildAppBarTitle(_selectedIndex),
@@ -177,7 +207,11 @@ class _TravelerShellPageState extends State<TravelerShellPage>
               children: [
                 BlocProvider.value(
                   value: _myTripsCubit,
-                  child: const TravelerHomeDashboardView(),
+                  child: TravelerHomeDashboardView(
+                    isActive: _selectedIndex == 0,
+                    onOpenTours: () => _selectSection(3),
+                    onOpenExplore: () => _selectSection(2),
+                  ),
                 ),
                 BlocProvider.value(
                   value: _myTripsCubit,
@@ -185,9 +219,22 @@ class _TravelerShellPageState extends State<TravelerShellPage>
                 ),
                 BlocProvider.value(
                   value: _exploreCubit,
-                  child: const ExplorePoiPage(isTraveler: true),
+                  child: ExplorePoiPage(
+                    isTraveler: true,
+                    onOpenTours: () => _selectSection(3),
+                  ),
                 ),
-                const TravelerBookingsView(),
+                if (_toursOpened)
+                  BlocProvider<TourSearchCubit>(
+                    create: (_) =>
+                        serviceLocator<TourSearchCubit>()..loadInitial(),
+                    child: const TourSearchPage(
+                      isTraveler: true,
+                      showBackButton: false,
+                    ),
+                  )
+                else
+                  const SizedBox.shrink(),
                 const TravelerProfileView(),
               ],
             ),
@@ -196,17 +243,7 @@ class _TravelerShellPageState extends State<TravelerShellPage>
       ),
       bottomNavigationBar: AppSlidingBottomNav(
         selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          if (index == 1) {
-            // Reloaded on every visit: trips change in pushed routes.
-            _myTripsCubit.load();
-          }
-          if (index == 2 && !_exploreLoaded) {
-            _exploreLoaded = true;
-            _exploreCubit.loadInitial();
-          }
-          setState(() => _selectedIndex = index);
-        },
+        onDestinationSelected: _selectSection,
         destinations: _destinations
             .map(
               (destination) => AppNavDestination(

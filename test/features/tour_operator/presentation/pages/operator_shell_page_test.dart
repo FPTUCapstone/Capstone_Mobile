@@ -20,15 +20,34 @@ import 'package:trip_mate_mobile/features/operator_bookings/domain/repositories/
 import 'package:trip_mate_mobile/features/operator_bookings/domain/usecases/operator_bookings_use_cases.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/operator_bookings_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/resources/operator_bookings_en.dart';
+import 'package:trip_mate_mobile/features/operator_finance/data/repositories/demo_operator_finance_repository.dart';
+import 'package:trip_mate_mobile/features/operator_finance/presentation/cubit/operator_revenue_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_finance/presentation/cubit/operator_settlement_history_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/domain/entities/weather_safety_review.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/domain/repositories/operator_weather_safety_realtime.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/domain/usecases/operator_weather_safety_use_cases.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/cubit/operator_safety_reviews_cubit.dart';
+import 'package:trip_mate_mobile/features/tour_operator/domain/entities/operator_dashboard_metrics.dart';
+import 'package:trip_mate_mobile/features/tour_operator/domain/repositories/operator_dashboard_repository.dart';
+import 'package:trip_mate_mobile/features/tour_operator/presentation/cubit/operator_dashboard_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 
 import '../../../operator_bookings/operator_bookings_fixtures.dart';
 import '../../../operator_weather_safety/support/fake_operator_weather_safety_repository.dart';
+
+final class _DashboardRepository implements OperatorDashboardRepository {
+  @override
+  Future<OperatorDashboardMetrics> load() async => OperatorDashboardMetrics(
+    activeTourCount: 2,
+    monthlyBookingCount: 3,
+    monthlyNetAmount: 10000,
+    activeCouponCount: 1,
+    asOfUtc: DateTime.utc(2026, 11, 19),
+    monthStart: DateTime(2026, 11),
+    monthEndExclusive: DateTime(2026, 12),
+  );
+}
 
 final class _CountingRealtime implements OperatorWeatherSafetyRealtime {
   int starts = 0;
@@ -107,6 +126,18 @@ void main() {
 
   setUp(() {
     bookings = _SpyBookingsRepository();
+    serviceLocator.registerFactoryParam<OperatorRevenueCubit, bool, void>(
+      (demo, _) => OperatorRevenueCubit(const DemoOperatorFinanceRepository()),
+    );
+    serviceLocator
+        .registerFactoryParam<OperatorSettlementHistoryCubit, bool, void>(
+          (demo, _) => OperatorSettlementHistoryCubit(
+            const DemoOperatorFinanceRepository(),
+          ),
+        );
+    serviceLocator.registerFactory<OperatorDashboardCubit>(
+      () => OperatorDashboardCubit(_DashboardRepository()),
+    );
     requestedDemoFlags = [];
     serviceLocator.registerFactoryParam<OperatorBookingsCubit, bool, void>((
       isDemoMode,
@@ -341,18 +372,23 @@ void main() {
   );
 
   testWidgets(
-    'operator shell in production mode shows truthful pending status without hardcoded finance or bookings',
+    'operator shell uses live metrics while other sections preserve their existing behavior',
     (tester) async {
       final cubit = await _authenticatedCubit();
       addTearDown(cubit.close);
       await _pumpShell(tester, cubit, isDemoMode: false);
+      await tester.pumpAndSettle();
 
       // On Dashboard in production:
       // Hardcoded fake revenue or fake bookings must NOT appear as real data
-      expect(find.text('38.500.000 đ'), findsNothing);
+      expect(find.text('38.500.000 VNĐ'), findsNothing);
       expect(find.text('Nguyễn Văn An'), findsNothing);
       expect(find.text('BK-2026-901'), findsNothing);
-      expect(find.text('Chờ kết nối API'), findsWidgets);
+      expect(find.text('2 gói'), findsOneWidget);
+      expect(find.text('3 đơn'), findsOneWidget);
+      expect(find.text('10.000 VNĐ'), findsOneWidget);
+      expect(find.text('1 mã'), findsOneWidget);
+      expect(find.text('Chờ kết nối API'), findsNothing);
 
       // The Bookings tab loads only when it is first selected.
       expect(bookings.pageQueries, isEmpty);
@@ -373,16 +409,15 @@ void main() {
       expect(find.text('Nguyễn Văn An'), findsNothing);
 
       // Navigate to Revenue tab
-      await tester.tap(find.text('Revenue'));
+      await tester.tap(find.text('Tài chính'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Báo cáo doanh thu & Quyết toán'), findsOneWidget);
-      expect(
-        find.text(
-          'Dữ liệu doanh thu, số dư tài khoản và lịch sử quyết toán đối tác đang chờ kết nối cổng thanh toán máy chủ (PENDING_BE_INTEGRATION).',
-        ),
-        findsOneWidget,
-      );
+      expect(find.text('Tổng quan tài chính'), findsOneWidget);
+      expect(find.text('Quyết toán gần đây'), findsOneWidget);
+      expect(find.byKey(const Key('finance-section-revenue')), findsNothing);
+      expect(find.text('Bộ lọc'), findsNothing);
+      expect(find.textContaining('PENDING_BE_INTEGRATION'), findsNothing);
+      expect(find.text('Rút tiền / Payout'), findsNothing);
 
       // Navigate to Coupons tab
       await tester.tap(find.text('Coupons'));
@@ -406,7 +441,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('38.500.000 đ'), findsOneWidget);
+      expect(find.text('38.500.000 VNĐ'), findsOneWidget);
 
       // Navigate to Bookings tab in demo mode
       await tester.tap(find.text('Bookings'));
@@ -425,15 +460,10 @@ void main() {
       expect(find.textContaining('hoàn tiền'), findsNothing);
 
       // Navigate to Revenue tab in demo mode
-      await tester.tap(find.text('Revenue'));
+      await tester.tap(find.text('Tài chính'));
       await tester.pumpAndSettle();
 
-      expect(
-        find.text(
-          '[DỮ LIỆU THỬ NGHIỆM - DEMO] Số dư khả dụng và lịch sử giao dịch dưới đây là dữ liệu mẫu.',
-        ),
-        findsOneWidget,
-      );
+      expect(find.textContaining('DỮ LIỆU DEMO'), findsOneWidget);
 
       // Navigate to Coupons tab in demo mode
       await tester.tap(find.text('Coupons'));

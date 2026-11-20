@@ -85,6 +85,12 @@ import 'package:trip_mate_mobile/features/operator_check_in/data/repositories/op
 import 'package:trip_mate_mobile/features/operator_check_in/domain/repositories/operator_check_in_repository.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/domain/usecases/operator_check_in_use_cases.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/presentation/cubit/operator_check_in_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_finance/data/datasources/operator_finance_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/operator_finance/data/repositories/demo_operator_finance_repository.dart';
+import 'package:trip_mate_mobile/features/operator_finance/data/repositories/operator_finance_repository_impl.dart';
+import 'package:trip_mate_mobile/features/operator_finance/domain/repositories/operator_finance_repository.dart';
+import 'package:trip_mate_mobile/features/operator_finance/presentation/cubit/operator_revenue_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_finance/presentation/cubit/operator_settlement_history_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/data/datasources/operator_tour_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/operator_tours/data/repositories/operator_tour_repository_impl.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/repositories/operator_tour_repository.dart';
@@ -149,6 +155,9 @@ import 'package:trip_mate_mobile/features/tour_detail/data/repositories/tour_det
 import 'package:trip_mate_mobile/features/tour_detail/domain/repositories/tour_detail_repository.dart';
 import 'package:trip_mate_mobile/features/tour_detail/domain/usecases/get_tour_detail.dart';
 import 'package:trip_mate_mobile/features/tour_detail/presentation/cubit/tour_detail_cubit.dart';
+import 'package:trip_mate_mobile/features/tour_operator/data/repositories/operator_dashboard_repository_impl.dart';
+import 'package:trip_mate_mobile/features/tour_operator/domain/repositories/operator_dashboard_repository.dart';
+import 'package:trip_mate_mobile/features/tour_operator/presentation/cubit/operator_dashboard_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/data/datasources/tour_recommendations_data_source.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/data/repositories/tour_recommendations_repository_impl.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/domain/repositories/tour_recommendations_repository.dart';
@@ -171,6 +180,7 @@ import 'package:trip_mate_mobile/features/traveler/data/repositories/navigation_
 import 'package:trip_mate_mobile/features/traveler/data/repositories/point_of_interest_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_group_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_preferences_repository_impl.dart';
+import 'package:trip_mate_mobile/features/traveler/data/repositories/traveler_profile_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/services/geolocator_navigation_location_tracker.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/address_search_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/external_review_repository.dart';
@@ -185,6 +195,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/repositories/recommend
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/route_directions_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_preferences_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/traveler_profile_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/trip_alert_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/navigation_location_tracker.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/weather_advisory_session_store.dart';
@@ -193,6 +204,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/in_app_inb
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_preferences_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/traveler_profile_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler_emergency/data/datasources/traveler_emergency_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/traveler_emergency/data/repositories/traveler_emergency_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler_emergency/domain/repositories/traveler_emergency_repository.dart';
@@ -268,6 +280,12 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerLazySingleton<PushDeviceRepository>(
       () => DioPushDeviceRepository(serviceLocator()),
+    )
+    ..registerLazySingleton<TravelerProfileRepository>(
+      () => TravelerProfileRepositoryImpl(serviceLocator<DioClient>().dio),
+    )
+    ..registerFactory<TravelerProfileCubit>(
+      () => TravelerProfileCubit(serviceLocator()),
     )
     ..registerLazySingleton<PoiRemoteDataSource>(
       () => DioPoiRemoteDataSource(serviceLocator()),
@@ -369,6 +387,33 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerLazySingleton<OperatorTourRepository>(
       () => OperatorTourRepositoryImpl(serviceLocator()),
+    )
+    ..registerLazySingleton<OperatorDashboardRepository>(
+      () => OperatorDashboardRepositoryImpl(serviceLocator<DioClient>().dio),
+    )
+    ..registerFactory<OperatorDashboardCubit>(
+      () => OperatorDashboardCubit(serviceLocator()),
+    )
+    ..registerLazySingleton<OperatorFinanceRemoteDataSource>(
+      () => DioOperatorFinanceRemoteDataSource(serviceLocator()),
+    )
+    ..registerLazySingleton<OperatorFinanceRepository>(
+      () => OperatorFinanceRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactoryParam<OperatorRevenueCubit, bool, void>(
+      (demo, _) => OperatorRevenueCubit(
+        demo
+            ? const DemoOperatorFinanceRepository()
+            : serviceLocator<OperatorFinanceRepository>(),
+        includeTourOptions: false,
+      ),
+    )
+    ..registerFactoryParam<OperatorSettlementHistoryCubit, bool, void>(
+      (demo, _) => OperatorSettlementHistoryCubit(
+        demo
+            ? const DemoOperatorFinanceRepository()
+            : serviceLocator<OperatorFinanceRepository>(),
+      ),
     )
     ..registerFactory<CreateTourPackageUseCase>(
       () => CreateTourPackageUseCase(serviceLocator()),

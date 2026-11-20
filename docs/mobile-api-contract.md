@@ -148,10 +148,46 @@ The current BE source does not expose verified endpoints for:
 - Password reset or change password.
 - Traveler profile or travel preferences.
 - Explore/POI, itinerary, map, weather, tours, booking, payment, or review (trip history is documented above; the review contract is in `docs/TM-79-independent-review.md`).
-- Tour operator registration/application, uploads, tours, revenue, booking cancellation, booking refunds or QR check-in (the read-only customer bookings list and detail are documented above).
+- Tour operator registration/application, uploads, tours, booking cancellation, booking refunds or QR check-in (the read-only customer bookings list/detail are documented above; UC44 revenue and daily settlement history are documented below).
 - Administrator authentication or admin operations.
 
 Mobile must not call guessed paths for these features. Existing screens for them remain demo/placeholder scope until BE contracts are implemented and documented.
+
+## Operator Finance — UC44 and daily settlement history
+
+The live Mobile screen now uses the compact overview design: month-only report,
+Net/Gross/Refund values, booking/participant counts and the first three recent
+settlements. It calls report + first history page, not tour options. Full history
+opens `/operator/finance/settlements` with its own Cubit. No chart, advanced filters
+or Web-report link is exposed. The tour-options contract below remains documented
+for existing repository compatibility, not an extra overview request.
+
+Mobile reads the existing authenticated BE endpoints directly through DioClient.
+No client-supplied operator ID, financial calculations or mutation endpoints.
+
+- `GET /api/v1/operator/revenue/report`: `startDate`, `endDate` inclusive ISO
+  Vietnam dates; `granularity=daily|weekly|monthly`, optional `tourId`, `page`,
+  `pageSize` (Mobile10). Response contains `summary`, `chartData`, `tourDetails`,
+  `totalToursCount`, `page`, `pageSize`, `totalPages`. Only tourDetails are paged.
+  Commit the entire response atomically even on page changes, as BE reaggregates
+  each request and does not expose a fixed report snapshot/version.
+- `GET /api/v1/operator/revenue/tours`: array of `{id,code,title,isActive}`.
+  Historical/inactive owned tours remain available as report filters.
+- `GET /api/v1/operator/payout-settlements`: query `page`,`pageSize`; response
+  `pageNumber`,`pageSize`,`totalCount`,`items`. Row fields: `settlementId?`,
+  `batchId?`,`bookingId`,`tourOperatorUserId`,`runDate?`,`kind`,`payoutAmount`,
+  `status`,`transferReference?`. No TO detail/date-filter endpoint is assumed.
+
+`summary.netAmount` is settled payouts less Staff-confirmed received operator
+returns, using the report's successful-payment cohort in Vietnam time. It is
+not an available withdrawal balance or a Mobile calculation from sales/fees.
+Settlement history uses run dates and has independent paging, not the report
+period. It supports Advance/Final/Cancellation and Scheduled/Processing/Settled/
+SettlementFailed/Resolved; Resolved does not mean money was transferred.
+
+The Mobile feature is `operator_finance`; the approved scope and test plan are
+in `docs/superpowers/specs/2026-11-19-uc44-mobile-finance-spec.md` and its matching
+plan. Export, payout requests, bank editing and admin transfer actions are excluded.
 
 ## Cross-cutting Mobile Rules
 

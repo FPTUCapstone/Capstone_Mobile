@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/traveler_profile_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
 
@@ -14,11 +16,21 @@ class TravelerProfileView extends StatelessWidget {
   const TravelerProfileView({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => BlocProvider(
+    create: (_) => serviceLocator<TravelerProfileCubit>()..load(),
+    child: BlocBuilder<TravelerProfileCubit, TravelerProfileState>(
+      builder: (context, profileState) => _buildProfile(context, profileState),
+    ),
+  );
+
+  Widget _buildProfile(
+    BuildContext context,
+    TravelerProfileState profileState,
+  ) {
     final session = context.watch<AuthSessionCubit>();
     final state = session.state;
-    const email = 'traveler@tripmate.vn';
-    const name = 'Nguyen Minh Phuc';
+    final email = profileState.profile?.email ?? '';
+    final name = profileState.profile?.fullName ?? '';
     final initials = name.isNotEmpty ? name[0].toUpperCase() : 'T';
 
     return ListView(
@@ -51,15 +63,20 @@ class TravelerProfileView extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 36,
+                backgroundImage: profileState.profile?.avatarUrl == null
+                    ? null
+                    : NetworkImage(profileState.profile!.avatarUrl!),
                 backgroundColor: AppColors.primarySoft,
-                child: Text(
-                  initials,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.secondary,
-                  ),
-                ),
+                child: profileState.profile?.avatarUrl != null
+                    ? null
+                    : Text(
+                        initials,
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.secondary,
+                        ),
+                      ),
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
@@ -118,7 +135,11 @@ class TravelerProfileView extends StatelessWidget {
                 icon: Icons.person_outline,
                 title: 'Hồ sơ người dùng',
                 subtitle: 'Cập nhật thông tin cá nhân',
-                onTap: () => context.push(AppRoutes.travelerProfile),
+                onTap: () async {
+                  final profileCubit = context.read<TravelerProfileCubit>();
+                  await context.push(AppRoutes.travelerProfile);
+                  if (!profileCubit.isClosed) await profileCubit.load();
+                },
               ),
               const Divider(height: 1, indent: 56),
               _ProfileTile(

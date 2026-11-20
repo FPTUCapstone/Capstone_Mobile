@@ -21,9 +21,22 @@ import 'package:trip_mate_mobile/features/tour_search/domain/usecases/search_tou
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_summary.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_list_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/traveler_profile_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/traveler_profile_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/traveler_home_dashboard_view.dart';
 import 'package:trip_mate_mobile/shared/widgets/motion/editorial_tour_hero.dart';
+
+final class _ProfileRepository implements TravelerProfileRepository {
+  @override
+  Future<TravelerProfile> load() async => const TravelerProfile(
+    fullName: 'Test Traveler',
+    email: 'traveler@example.com',
+  );
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 final class _FakeItineraryListRepository implements ItineraryListRepository {
   @override
@@ -125,6 +138,9 @@ Widget _buildHarness({required Widget child, MyTripsCubit? tripsCubit}) {
 void main() {
   setUp(() async {
     await serviceLocator.reset();
+    serviceLocator.registerFactory<TravelerProfileCubit>(
+      () => TravelerProfileCubit(_ProfileRepository()),
+    );
   });
 
   tearDown(serviceLocator.reset);

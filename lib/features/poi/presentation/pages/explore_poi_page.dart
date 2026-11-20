@@ -17,11 +17,13 @@ class ExplorePoiPage extends StatefulWidget {
   const ExplorePoiPage({
     this.isTraveler = false,
     this.showCategoryPreview,
+    this.onOpenTours,
     super.key,
   });
 
   final bool isTraveler;
   final bool? showCategoryPreview;
+  final VoidCallback? onOpenTours;
 
   @override
   State<ExplorePoiPage> createState() => _ExplorePoiPageState();
@@ -62,6 +64,7 @@ class _ExplorePoiPageState extends State<ExplorePoiPage> {
                 _ExploreControls(
                   state: state,
                   cubit: cubit,
+                  onOpenTours: widget.onOpenTours,
                   showCategoryPreview:
                       widget.showCategoryPreview ?? _categoryPreviewEnabled(),
                 ),
@@ -234,11 +237,13 @@ class _ExploreControls extends StatelessWidget {
     required this.state,
     required this.cubit,
     required this.showCategoryPreview,
+    this.onOpenTours,
   });
 
   final PoiListState state;
   final PoiListCubit cubit;
   final bool showCategoryPreview;
+  final VoidCallback? onOpenTours;
 
   @override
   Widget build(BuildContext context) {
@@ -300,7 +305,8 @@ class _ExploreControls extends StatelessWidget {
                 ActionChip(
                   avatar: const Icon(Icons.tour_outlined, size: 18),
                   label: const Text('Tìm tour'),
-                  onPressed: () => context.push(AppRoutes.tourSearch),
+                  onPressed:
+                      onOpenTours ?? () => context.push(AppRoutes.tourSearch),
                   materialTapTargetSize: MaterialTapTargetSize.padded,
                 ),
                 const SizedBox(width: 8),

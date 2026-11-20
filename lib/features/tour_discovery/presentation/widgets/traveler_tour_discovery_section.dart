@@ -22,6 +22,7 @@ class TravelerTourDiscoverySection extends StatelessWidget {
     this.reduceMotion = false,
     this.onTapTour,
     this.onRetryFeed,
+    this.onOpenSearch,
     TourRevealCoordinator? revealCoordinator,
   }) : _revealCoordinator = revealCoordinator;
 
@@ -31,6 +32,7 @@ class TravelerTourDiscoverySection extends StatelessWidget {
   final bool reduceMotion;
   final void Function(TourDiscoveryItem tour)? onTapTour;
   final VoidCallback? onRetryFeed;
+  final VoidCallback? onOpenSearch;
   final TourRevealCoordinator? _revealCoordinator;
 
   static final TourRevealCoordinator _fallbackCoordinator =
@@ -74,7 +76,8 @@ class TravelerTourDiscoverySection extends StatelessWidget {
         stateBody = KeyedSubtree(
           key: const ValueKey('tour_feed_empty'),
           child: TourDiscoveryEmptyView(
-            onTapSearch: () => context.push(AppRoutes.tourSearch),
+            onTapSearch:
+                onOpenSearch ?? () => context.push(AppRoutes.tourSearch),
           ),
         );
       case TourDiscoveryFeedState.error:
@@ -82,7 +85,8 @@ class TravelerTourDiscoverySection extends StatelessWidget {
           key: const ValueKey('tour_feed_error'),
           child: TourDiscoveryErrorView(
             onRetry: onRetryFeed,
-            onTapSearch: () => context.push(AppRoutes.tourSearch),
+            onTapSearch:
+                onOpenSearch ?? () => context.push(AppRoutes.tourSearch),
           ),
         );
       case TourDiscoveryFeedState.content:
@@ -90,7 +94,8 @@ class TravelerTourDiscoverySection extends StatelessWidget {
           stateBody = KeyedSubtree(
             key: const ValueKey('tour_feed_empty_list'),
             child: TourDiscoveryEmptyView(
-              onTapSearch: () => context.push(AppRoutes.tourSearch),
+              onTapSearch:
+                  onOpenSearch ?? () => context.push(AppRoutes.tourSearch),
             ),
           );
           break;
@@ -157,7 +162,8 @@ class TravelerTourDiscoverySection extends StatelessWidget {
                 staggerIndex: subsequent.length + 1,
                 child: SearchContinuationStrip(
                   enlargedText: enlargedText,
-                  onTap: () => context.push(AppRoutes.tourSearch),
+                  onTap:
+                      onOpenSearch ?? () => context.push(AppRoutes.tourSearch),
                 ),
               ),
             ],
@@ -181,7 +187,8 @@ class TravelerTourDiscoverySection extends StatelessWidget {
               ),
             ),
             TextButton(
-              onPressed: () => context.push(AppRoutes.tourSearch),
+              onPressed:
+                  onOpenSearch ?? () => context.push(AppRoutes.tourSearch),
               style: TextButton.styleFrom(
                 foregroundColor: c.brandTeal,
                 padding: const EdgeInsets.symmetric(horizontal: 8),
