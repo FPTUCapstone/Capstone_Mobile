@@ -7,6 +7,7 @@ import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/booking/domain/entities/booking_quote.dart';
 import 'package:trip_mate_mobile/features/booking/domain/entities/participant_type.dart';
+import 'package:trip_mate_mobile/features/booking/presentation/booking_contact_validation.dart';
 import 'package:trip_mate_mobile/features/booking/presentation/cubit/book_tour_cubit.dart';
 import 'package:trip_mate_mobile/features/booking/presentation/cubit/book_tour_state.dart';
 
@@ -98,6 +99,7 @@ final class _BookingFormView extends StatefulWidget {
 }
 
 final class _BookingFormViewState extends State<_BookingFormView> {
+  bool _showContactErrors = false;
   final _fullNameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
@@ -261,6 +263,9 @@ final class _BookingFormViewState extends State<_BookingFormView> {
                   textInputAction: TextInputAction.next,
                   decoration: InputDecoration(
                     labelText: 'Full name *',
+                    errorText: _showContactErrors
+                        ? BookingContactValidation.fullName(state.leadFullName)
+                        : null,
                     hintText: 'e.g. Nguyen Van A',
                     prefixIcon: const Icon(
                       Icons.person_outline_rounded,
@@ -288,9 +293,16 @@ final class _BookingFormViewState extends State<_BookingFormView> {
                   key: const Key('booking-lead-phone'),
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
                   textInputAction: TextInputAction.next,
                   decoration: InputDecoration(
                     labelText: 'Phone number *',
+                    errorText: _showContactErrors
+                        ? BookingContactValidation.phone(state.leadPhone)
+                        : null,
                     hintText: 'e.g. 0912345678',
                     prefixIcon: const Icon(Icons.phone_outlined, size: 20),
                     filled: true,
@@ -318,6 +330,9 @@ final class _BookingFormViewState extends State<_BookingFormView> {
                   textInputAction: TextInputAction.done,
                   decoration: InputDecoration(
                     labelText: 'Email',
+                    errorText: _showContactErrors
+                        ? BookingContactValidation.email(state.leadEmail)
+                        : null,
                     hintText: 'e.g. traveler@example.com',
                     prefixIcon: const Icon(
                       Icons.mail_outline_rounded,
@@ -483,7 +498,12 @@ final class _BookingFormViewState extends State<_BookingFormView> {
 
           // ── Submit Primary Action ────────────────────────────────────────
           FilledButton(
-            onPressed: state.canSubmit ? cubit.submit : null,
+            onPressed: state.canAttemptSubmit
+                ? () {
+                    setState(() => _showContactErrors = true);
+                    if (state.canSubmit) cubit.submit();
+                  }
+                : null,
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.primary,
               disabledBackgroundColor: const Color(0xFFCBD5E1),
@@ -491,7 +511,7 @@ final class _BookingFormViewState extends State<_BookingFormView> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
               ),
-              elevation: state.canSubmit ? 2 : 0,
+              elevation: state.canAttemptSubmit ? 2 : 0,
             ),
             child: state.submitStatus == SubmitStatus.submitting
                 ? const SizedBox(

@@ -14,13 +14,24 @@ import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_se
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_state.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_state.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/traveler_profile_cubit.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_shimmer.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
 /// Traveler Home / Dashboard screen implementing SRS #44.
 class TravelerHomeDashboardView extends StatefulWidget {
-  const TravelerHomeDashboardView({super.key, this.tourSearchCubit});
+  const TravelerHomeDashboardView({
+    super.key,
+    this.tourSearchCubit,
+    this.isActive = true,
+    this.onOpenTours,
+    this.onOpenExplore,
+  });
+
+  final bool isActive;
+  final VoidCallback? onOpenTours;
+  final VoidCallback? onOpenExplore;
 
   final TourSearchCubit? tourSearchCubit;
 
@@ -32,10 +43,13 @@ class TravelerHomeDashboardView extends StatefulWidget {
 class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
   TourSearchCubit? _tourCubit;
   bool _ownsCubit = false;
+  late final TravelerProfileCubit _profileCubit;
 
   @override
   void initState() {
     super.initState();
+    _profileCubit = serviceLocator<TravelerProfileCubit>();
+    unawaited(_profileCubit.load());
     if (widget.tourSearchCubit != null) {
       _tourCubit = widget.tourSearchCubit;
       _ownsCubit = false;
@@ -47,7 +61,16 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
   }
 
   @override
+  void didUpdateWidget(covariant TravelerHomeDashboardView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      unawaited(_profileCubit.load());
+    }
+  }
+
+  @override
   void dispose() {
+    _profileCubit.close();
     if (_ownsCubit) {
       _tourCubit?.close();
     }
@@ -56,12 +79,11 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
 
   @override
   Widget build(BuildContext context) {
-    const name = 'Nguyen Minh Phuc';
-
     return RefreshIndicator(
       color: AppColors.secondary,
       onRefresh: () async {
         await Future.wait([
+          _profileCubit.load(),
           context.read<MyTripsCubit>().load(),
           if (_tourCubit != null) _tourCubit!.refresh(),
         ]);
@@ -71,7 +93,14 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
         children: [
           const SizedBox(height: AppSpacing.sm),
           // User Greeting & Search Entry
-          _buildGreetingHeader(context, name),
+          BlocBuilder<TravelerProfileCubit, TravelerProfileState>(
+            bloc: _profileCubit,
+            builder: (context, state) => _buildGreetingHeader(
+              context,
+              state.profile?.fullName.trim() ?? '',
+              state.profile?.avatarUrl,
+            ),
+          ),
           const SizedBox(height: AppSpacing.md),
 
           // Hero Smart Itinerary Banner (SRS #47)
@@ -100,9 +129,10 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
   Widget _buildTourDiscoverySection(BuildContext context) {
     final cubit = _tourCubit;
     if (cubit == null) {
-      return const TravelerTourDiscoverySection(
+      return TravelerTourDiscoverySection(
         feedState: TourDiscoveryFeedState.empty,
         tours: [],
+        onOpenSearch: () => _openTours(context),
       );
     }
 
@@ -135,6 +165,7 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
         }
 
         return TravelerTourDiscoverySection(
+          onOpenSearch: () => _openTours(context),
           feedState: feedState,
           tours: tours,
           onRetryFeed: onRetry,
@@ -143,42 +174,81 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
     );
   }
 
-  Widget _buildGreetingHeader(BuildContext context, String name) {
+  void _openTours(BuildContext context) {
+    if (widget.onOpenTours case final callback?) {
+      callback();
+    } else {
+      context.push(AppRoutes.tourSearch);
+    }
+  }
+
+  void _openExplore(BuildContext context) {
+    if (widget.onOpenExplore case final callback?) {
+      callback();
+    } else {
+      context.push(AppRoutes.explore);
+    }
+  }
+
+  Widget _buildGreetingHeader(
+    BuildContext context,
+    String name,
+    String? avatarUrl,
+  ) {
+    final fallback = Text(
+      name.isNotEmpty ? name[0].toUpperCase() : 'T',
+      key: const Key('traveler-home-avatar-fallback'),
+      style: const TextStyle(
+        fontWeight: FontWeight.bold,
+        color: AppColors.secondary,
+      ),
+    );
+    final imageUrl = avatarUrl?.trim();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Xin chào, $name 👋',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.ink,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name.isEmpty ? 'Xin chào 👋' : 'Xin chào, $name 👋',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Bạn muốn khám phá địa điểm nào hôm nay?',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    'Bạn muốn khám phá địa điểm nào hôm nay?',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                  ),
+                ],
+              ),
             ),
             CircleAvatar(
               radius: 20,
               backgroundColor: AppColors.primarySoft,
-              child: Text(
-                name.isNotEmpty ? name[0].toUpperCase() : 'T',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.secondary,
-                ),
-              ),
+              child: imageUrl == null || imageUrl.isEmpty
+                  ? fallback
+                  : ClipOval(
+                      child: Image.network(
+                        imageUrl,
+                        key: const Key('traveler-home-avatar-image'),
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
+                        semanticLabel: 'Ảnh đại diện của $name',
+                        frameBuilder: (_, child, frame, _) =>
+                            frame == null ? fallback : child,
+                        errorBuilder: (_, _, _) => fallback,
+                      ),
+                    ),
             ),
           ],
         ),
@@ -186,7 +256,7 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
         // Search bar launcher
         InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => context.push(AppRoutes.tourSearch),
+          onTap: () => _openTours(context),
           child: Container(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.md,
@@ -472,7 +542,13 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
-                  onTap: () => context.push(action.route),
+                  onTap: () {
+                    if (action.route == AppRoutes.tourSearch) {
+                      _openTours(context);
+                    } else {
+                      context.push(action.route);
+                    }
+                  },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
@@ -535,7 +611,7 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
               ),
             ),
             TextButton(
-              onPressed: () => context.push(AppRoutes.explore),
+              onPressed: () => _openExplore(context),
               child: const Text('Khám phá'),
             ),
           ],
@@ -554,7 +630,7 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
             final poi = pois[index];
             return AppCard(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              onTap: () => context.push(AppRoutes.explore),
+              onTap: () => _openExplore(context),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,

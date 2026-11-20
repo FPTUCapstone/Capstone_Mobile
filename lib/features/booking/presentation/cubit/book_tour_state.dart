@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/booking/domain/entities/booking_participant.dart';
 import 'package:trip_mate_mobile/features/booking/domain/entities/booking_quote.dart';
+import 'package:trip_mate_mobile/features/booking/presentation/booking_contact_validation.dart';
 
 enum QuoteStatus { idle, loading, ready, failure }
 
@@ -43,11 +44,14 @@ final class BookTourState extends Equatable {
       quote != null &&
       quote!.participantCounts == participantCounts;
 
+  bool get canAttemptSubmit =>
+      hasValidQuote && agreedToTerms && submitStatus != SubmitStatus.submitting;
+
   bool get canSubmit =>
-      hasValidQuote &&
-      agreedToTerms &&
-      leadPhone.trim().isNotEmpty &&
-      submitStatus != SubmitStatus.submitting;
+      canAttemptSubmit &&
+      BookingContactValidation.fullName(leadFullName) == null &&
+      BookingContactValidation.phone(leadPhone) == null &&
+      BookingContactValidation.email(leadEmail) == null;
 
   BookTourState copyWith({
     ParticipantCounts? participantCounts,

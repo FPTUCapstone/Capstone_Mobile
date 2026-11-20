@@ -77,6 +77,7 @@ abstract final class AppRoutes {
   static const tripReviewPattern = '/traveler/trips/:tripId/review';
   static const canonicalTripReviewPattern = '/traveler/reviews/:kind/:id';
   static const operator = '/operator';
+  static const operatorSettlementHistory = '/operator/finance/settlements';
   static const operatorApplication = '/operator/application';
   static const operatorApplicationResubmit = '/operator/application/resubmit';
   static const createCoupon = '/operator/coupons/create';

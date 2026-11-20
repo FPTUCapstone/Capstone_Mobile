@@ -1,10 +1,57 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/traveler_profile_repository_impl.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/traveler_profile_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/traveler_profile_cubit.dart';
 
+class _ControlledProfileRepository implements TravelerProfileRepository {
+  final requests = <Completer<TravelerProfile>>[];
+  @override
+  Future<TravelerProfile> load() {
+    final request = Completer<TravelerProfile>();
+    requests.add(request);
+    return request.future;
+  }
+
+  @override
+  Future<TravelerProfile> save({
+    required String fullName,
+    required String phoneNumber,
+    String? dateOfBirth,
+    Uint8List? avatar,
+    String? avatarName,
+    String? avatarMime,
+  }) => throw UnimplementedError();
+}
+
 void main() {
+  test('an older profile request cannot restore the previous avatar', () async {
+    final repository = _ControlledProfileRepository();
+    final cubit = TravelerProfileCubit(repository);
+    final older = cubit.load();
+    final newer = cubit.load();
+    repository.requests[1].complete(
+      const TravelerProfile(
+        fullName: 'Updated',
+        email: 'test@example.com',
+        avatarUrl: 'https://example.com/new.png',
+      ),
+    );
+    await newer;
+    repository.requests[0].complete(
+      const TravelerProfile(
+        fullName: 'Old',
+        email: 'test@example.com',
+        avatarUrl: 'https://example.com/old.png',
+      ),
+    );
+    await older;
+    expect(cubit.state.profile?.fullName, 'Updated');
+    expect(cubit.state.profile?.avatarUrl, 'https://example.com/new.png');
+    await cubit.close();
+  });
   const profile = {
     'fullName': 'Updated name',
     'email': 'test@example.com',

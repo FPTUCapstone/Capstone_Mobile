@@ -18,13 +18,18 @@ class TravelerProfileState {
 class TravelerProfileCubit extends Cubit<TravelerProfileState> {
   TravelerProfileCubit(this.repository) : super(const TravelerProfileState());
   final TravelerProfileRepository repository;
+  int _loadGeneration = 0;
   Future<void> load() async {
+    if (isClosed) return;
+    final generation = ++_loadGeneration;
     emit(const TravelerProfileState(busy: true));
     try {
       final profile = await repository.load();
-      if (!isClosed) emit(TravelerProfileState(profile: profile));
+      if (!isClosed && generation == _loadGeneration) {
+        emit(TravelerProfileState(profile: profile));
+      }
     } catch (_) {
-      if (!isClosed) {
+      if (!isClosed && generation == _loadGeneration) {
         emit(
           const TravelerProfileState(
             error: 'Unable to load your profile. Please retry.',

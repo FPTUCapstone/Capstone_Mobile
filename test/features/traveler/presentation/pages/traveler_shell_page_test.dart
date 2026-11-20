@@ -23,9 +23,16 @@ import 'package:trip_mate_mobile/features/poi/domain/entities/poi_query.dart';
 import 'package:trip_mate_mobile/features/poi/domain/repositories/poi_repository.dart';
 import 'package:trip_mate_mobile/features/poi/domain/usecases/get_pois_use_case.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
+import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
+import 'package:trip_mate_mobile/features/tour_search/domain/entities/paged_tour_result.dart';
+import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_search_query.dart';
+import 'package:trip_mate_mobile/features/tour_search/domain/repositories/tour_search_repository.dart';
+import 'package:trip_mate_mobile/features/tour_search/domain/usecases/search_tours_use_case.dart';
+import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
+import 'package:trip_mate_mobile/features/tour_search/presentation/pages/tour_search_page.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/traveler_profile_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/traveler_profile_cubit.dart';
-import 'package:trip_mate_mobile/features/traveler/domain/repositories/traveler_profile_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_shell_page.dart';
 import 'package:trip_mate_mobile/features/traveler_emergency/domain/entities/traveler_emergency_status.dart';
 import 'package:trip_mate_mobile/features/traveler_emergency/domain/repositories/traveler_emergency_repository.dart';
@@ -33,6 +40,7 @@ import 'package:trip_mate_mobile/features/traveler_emergency/domain/usecases/tra
 import 'package:trip_mate_mobile/features/traveler_emergency/presentation/cubit/traveler_emergency_notices_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_sliding_bottom_nav.dart';
 
 import '../../../operator_weather_safety/support/fake_operator_weather_safety_repository.dart';
 import '../cubit/my_trips_cubit_test.dart';
@@ -107,6 +115,11 @@ void main() {
       )
       ..registerFactory<MyTripsCubit>(
         () => MyTripsCubit(repository: tripRepository),
+      )
+      ..registerFactory<TourSearchCubit>(
+        () => TourSearchCubit(
+          searchTours: SearchToursUseCase(_EmptyTourRepository()),
+        ),
       );
   });
 
@@ -246,6 +259,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Search Tours'), findsOneWidget);
+      expect(find.text('Xin chào, Traveler 👋'), findsOneWidget);
+      expect(find.textContaining('Nguyen Minh Phuc'), findsNothing);
       expect(find.text('Tour Recommendations'), findsOneWidget);
     },
   );
@@ -336,7 +351,7 @@ void main() {
   );
 
   testWidgets(
-    'F-05: shell routes to sections and renders Trip History button in trips, bookings, and profile sections',
+    'explore and tours keep bottom navigation, filters and no root back button',
     (tester) async {
       final cubit = await _authenticatedCubit();
       addTearDown(cubit.close);
@@ -364,17 +379,45 @@ void main() {
         findsOneWidget,
       );
 
-      // Switch to bookings tab (index 3): Trip History button is displayed
+      await tester.tap(find.byIcon(Icons.explore_outlined));
+      await tester.pumpAndSettle();
+      expect(find.byType(ExplorePoiPage), findsOneWidget);
+      expect(find.byType(AppSlidingBottomNav), findsOneWidget);
+      // Explore's Find Tours shortcut selects the same shell tab.
+      await tester.tap(find.text('Tìm tour'));
+      await tester.pumpAndSettle();
+      expect(find.byType(TourSearchPage), findsOneWidget);
+      expect(find.byType(AppSlidingBottomNav), findsOneWidget);
+      expect(
+        tester
+            .widget<AppSlidingBottomNav>(find.byType(AppSlidingBottomNav))
+            .selectedIndex,
+        3,
+      );
+      expect(find.byIcon(Icons.arrow_back), findsNothing);
+      final tours = tester
+          .element(find.byType(TourSearchPage))
+          .read<TourSearchCubit>();
+      await tours.applyFilters(destination: 'Đà Nẵng');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.home_outlined));
+      await tester.pumpAndSettle();
+      expect(find.text('Xin chào, Traveler 👋'), findsOneWidget);
+      // Bookings returns to the retained tour-list tab, without a new route.
       await tester.tap(find.byIcon(Icons.confirmation_number_outlined));
       await tester.pumpAndSettle();
-      expect(find.text('Traveler Đặt chỗ'), findsOneWidget);
+      expect(find.byType(TourSearchPage), findsOneWidget);
       expect(
-        find.widgetWithText(
-          OutlinedButton,
-          TripHistoryStringsEn.tripHistoryTitle,
-        ),
-        findsOneWidget,
+        tester.element(find.byType(TourSearchPage)).read<TourSearchCubit>(),
+        same(tours),
       );
+      expect(tours.state.query.destination, 'Đà Nẵng');
+      expect(find.text('Traveler Đặt chỗ'), findsNothing);
+      expect(find.text('Sắp tới'), findsNothing);
+      expect(find.text('Hoàn thành'), findsNothing);
+      expect(find.text('Đã hủy'), findsNothing);
+      expect(find.text('Chưa có đặt chỗ sắp tới'), findsNothing);
 
       // Switch to profile tab (index 4): Trip History button is displayed
       await tester.tap(find.byIcon(Icons.person_outline));
@@ -389,6 +432,18 @@ void main() {
       );
     },
   );
+}
+
+final class _EmptyTourRepository implements TourSearchRepository {
+  @override
+  Future<PagedTourResult> searchTours(TourSearchQuery query) async =>
+      PagedTourResult(
+        page: query.page,
+        pageSize: query.pageSize,
+        totalCount: 0,
+        totalPages: 0,
+        items: const [],
+      );
 }
 
 final class _EmptyPoiRepository implements PoiRepository {

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/operator_dashboard_metrics_panel.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
@@ -11,11 +12,13 @@ class OperatorDashboardView extends StatelessWidget {
   const OperatorDashboardView({
     required this.onNavigateToTab,
     this.isDemoMode = false,
+    this.isActive = true,
     super.key,
   });
 
   final void Function(int index) onNavigateToTab;
   final bool isDemoMode;
+  final bool isActive;
 
   @override
   Widget build(BuildContext context) {
@@ -217,72 +220,12 @@ class OperatorDashboardView extends StatelessWidget {
     );
   }
 
-  Widget _buildMetricsGrid(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Chỉ số hoạt động',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: AppColors.ink,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Row(
-          children: [
-            Expanded(
-              child: _MetricCard(
-                title: 'Tour hoạt động',
-                value: isDemoMode ? '4 gói' : '--',
-                subtitle: isDemoMode ? '2 bản nháp' : 'Chờ kết nối API',
-                icon: Icons.tour_outlined,
-                color: const Color(0xFF0284C7),
-                onTap: () => onNavigateToTab(1), // Tours tab
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: _MetricCard(
-                title: 'Đơn đặt chỗ',
-                value: isDemoMode ? '18 lượt' : '--',
-                subtitle: isDemoMode ? '5 chờ check-in' : 'Chờ kết nối API',
-                icon: Icons.confirmation_number_outlined,
-                color: const Color(0xFF0D9488),
-                onTap: () => onNavigateToTab(2), // Bookings tab
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Row(
-          children: [
-            Expanded(
-              child: _MetricCard(
-                title: 'Doanh thu tháng',
-                value: isDemoMode ? '38.500.000 đ' : '-- đ',
-                subtitle: isDemoMode ? 'Đã sẵn sàng rút' : 'Chờ kết nối API',
-                icon: Icons.payments_outlined,
-                color: const Color(0xFF059669),
-                onTap: () => onNavigateToTab(3), // Revenue tab
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: _MetricCard(
-                title: 'Mã giảm giá',
-                value: isDemoMode ? '3 mã' : '--',
-                subtitle: isDemoMode ? 'Đang áp dụng' : 'Chờ kết nối API',
-                icon: Icons.local_offer_outlined,
-                color: const Color(0xFFD97706),
-                onTap: () => onNavigateToTab(4), // Coupons tab
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
+  Widget _buildMetricsGrid(BuildContext context) =>
+      OperatorDashboardMetricsPanel(
+        isDemoMode: isDemoMode,
+        isActive: isActive,
+        onNavigateToTab: onNavigateToTab,
+      );
 
   Widget _buildTodayDeparturesCard(BuildContext context) {
     if (!isDemoMode) {
@@ -541,68 +484,5 @@ class OperatorDashboardView extends StatelessWidget {
 
   void _openQrScanner(BuildContext context) {
     context.push(AppRoutes.operatorCheckInPath(isDemo: isDemoMode));
-  }
-}
-
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({
-    required this.title,
-    required this.value,
-    required this.subtitle,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
-
-  final String title;
-  final String value;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.muted,
-                ),
-              ),
-              Icon(icon, size: 18, color: color),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: AppColors.ink,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

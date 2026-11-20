@@ -14,9 +14,14 @@ import 'package:trip_mate_mobile/features/tour_search/presentation/widgets/publi
 import 'package:trip_mate_mobile/features/tour_search/presentation/widgets/tour_list_card.dart';
 
 class TourSearchPage extends StatefulWidget {
-  const TourSearchPage({this.isTraveler = false, super.key});
+  const TourSearchPage({
+    this.isTraveler = false,
+    this.showBackButton = true,
+    super.key,
+  });
 
   final bool isTraveler;
+  final bool showBackButton;
 
   @override
   State<TourSearchPage> createState() => _TourSearchPageState();
@@ -56,6 +61,7 @@ class _TourSearchPageState extends State<TourSearchPage> {
               children: [
                 _TourSearchHeader(
                   isTraveler: widget.isTraveler,
+                  showBackButton: widget.showBackButton,
                   useEnglish: useEnglish,
                   onFilterTap: () => _openFilterSheet(context, cubit, locale),
                 ),
@@ -159,11 +165,13 @@ class _TourSearchHeader extends StatelessWidget {
     required this.isTraveler,
     required this.onFilterTap,
     required this.useEnglish,
+    required this.showBackButton,
   });
 
   final bool isTraveler;
   final VoidCallback onFilterTap;
   final bool useEnglish;
+  final bool showBackButton;
 
   @override
   Widget build(BuildContext context) {
@@ -181,6 +189,21 @@ class _TourSearchHeader extends StatelessWidget {
             Row(
               children: [
                 // Brand
+                if (showBackButton)
+                  IconButton(
+                    tooltip: useEnglish ? 'Back' : 'Quay lại',
+                    color: Colors.white,
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () {
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go(
+                          isTraveler ? AppRoutes.traveler : AppRoutes.guestHome,
+                        );
+                      }
+                    },
+                  ),
                 Container(
                   width: 40,
                   height: 40,

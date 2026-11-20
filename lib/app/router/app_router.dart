@@ -44,6 +44,8 @@ import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/o
 import 'package:trip_mate_mobile/features/operator_bookings/presentation/pages/operator_booking_detail_page.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/presentation/cubit/operator_check_in_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/presentation/pages/operator_check_in_page.dart';
+import 'package:trip_mate_mobile/features/operator_finance/presentation/cubit/operator_settlement_history_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_finance/presentation/pages/operator_settlement_history_page.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/operator_tours_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/create_tour_package_page.dart';
@@ -194,12 +196,16 @@ GoRouter createAppRouter(
       GoRoute(
         path: AppRoutes.explore,
         name: AppRouteNames.explore,
-        builder: (_, _) => BlocProvider(
-          create: (_) => serviceLocator<PoiListCubit>()..loadInitial(),
-          child: ExplorePoiPage(
-            isTraveler: sessionCubit.state.role == UserRole.traveler,
-          ),
-        ),
+        builder: (_, _) =>
+            sessionCubit.state.isAuthenticated &&
+                sessionCubit.state.role == UserRole.traveler
+            ? const TravelerShellPage(initialSection: TravelerSectionId.explore)
+            : BlocProvider(
+                create: (_) => serviceLocator<PoiListCubit>()..loadInitial(),
+                child: ExplorePoiPage(
+                  isTraveler: sessionCubit.state.role == UserRole.traveler,
+                ),
+              ),
       ),
       GoRoute(
         path: AppRoutes.guestHome,
@@ -221,12 +227,18 @@ GoRouter createAppRouter(
       GoRoute(
         path: AppRoutes.tourSearch,
         name: AppRouteNames.tourSearch,
-        builder: (_, _) => BlocProvider(
-          create: (_) => serviceLocator<TourSearchCubit>()..loadInitial(),
-          child: TourSearchPage(
-            isTraveler: sessionCubit.state.role == UserRole.traveler,
-          ),
-        ),
+        builder: (_, _) =>
+            sessionCubit.state.isAuthenticated &&
+                sessionCubit.state.role == UserRole.traveler
+            ? const TravelerShellPage(
+                initialSection: TravelerSectionId.bookings,
+              )
+            : BlocProvider(
+                create: (_) => serviceLocator<TourSearchCubit>()..loadInitial(),
+                child: TourSearchPage(
+                  isTraveler: sessionCubit.state.role == UserRole.traveler,
+                ),
+              ),
       ),
       GoRoute(
         path: AppRoutes.tourDetailPattern,
@@ -787,6 +799,18 @@ GoRouter createAppRouter(
           final isDemo =
               kDebugMode && state.uri.queryParameters['demo'] == 'true';
           return OperatorShellPage(isDemoMode: isDemo);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.operatorSettlementHistory,
+        builder: (_, state) {
+          final demo = isDebug && state.uri.queryParameters['demo'] == 'true';
+          return BlocProvider<OperatorSettlementHistoryCubit>(
+            create: (_) =>
+                serviceLocator<OperatorSettlementHistoryCubit>(param1: demo)
+                  ..ensureLoaded(),
+            child: OperatorSettlementHistoryPage(isDemoMode: demo),
+          );
         },
       ),
       GoRoute(

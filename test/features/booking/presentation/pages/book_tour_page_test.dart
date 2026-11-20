@@ -11,6 +11,64 @@ import 'package:trip_mate_mobile/features/booking/presentation/pages/book_tour_p
 import '../../booking_fakes.dart';
 
 void main() {
+  testWidgets('invalid contact shows inline errors before booking submission', (
+    tester,
+  ) async {
+    final repository = FakeBookingRepository();
+    final cubit = BookTourCubit(
+      tourScheduleId: '123',
+      quoteBooking: QuoteBookingUseCase(repository),
+      createBooking: CreateBookingUseCase(repository),
+      getBookingContact: GetBookingContactUseCase(repository),
+    );
+    addTearDown(cubit.close);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: BlocProvider.value(value: cubit, child: const BookTourPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    for (final entry in {
+      'booking-lead-full-name': '',
+      'booking-lead-phone': '123',
+      'booking-lead-email': 'wrong-email',
+    }.entries) {
+      final field = find.byKey(Key(entry.key));
+      await tester.ensureVisible(field);
+      await tester.enterText(field, entry.value);
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    cubit.setAgreedToTerms(true);
+    await tester.pumpAndSettle();
+    expect(cubit.state.canAttemptSubmit, isTrue);
+    final submit = find.widgetWithText(FilledButton, 'Confirm booking');
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    expect(tester.widget<FilledButton>(submit).onPressed, isNotNull);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+    for (final entry in {
+      'booking-lead-full-name': 'Full name is required.',
+      'booking-lead-phone': 'Phone number must be 10 digits starting with 0.',
+      'booking-lead-email': 'Enter a valid email address.',
+    }.entries) {
+      expect(
+        tester
+            .widget<TextField>(find.byKey(Key(entry.key)))
+            .decoration!
+            .errorText,
+        entry.value,
+      );
+    }
+    expect(repository.createCalls, isEmpty);
+    final phone = find.byKey(const Key('booking-lead-phone'));
+    await tester.ensureVisible(phone);
+    await tester.enterText(phone, '09 123456789');
+    expect(cubit.state.leadPhone, '0912345678');
+    await tester.pump();
+    expect(tester.widget<TextField>(phone).decoration!.errorText, isNull);
+  });
   testWidgets(
     'renders the booking form without an unbounded-width layout error',
     (tester) async {
