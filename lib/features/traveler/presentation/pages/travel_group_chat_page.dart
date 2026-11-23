@@ -1008,6 +1008,7 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                       meta['readByCount'] = readByCount + 1;
                     }
                   });
+                  ScaffoldMessenger.of(context).clearSnackBars();
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Bạn đã xác nhận đã đọc thông báo này.'),
@@ -1105,6 +1106,7 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                       meta['presentCount'] = presentCount + 1;
                     }
                   });
+                  ScaffoldMessenger.of(context).clearSnackBars();
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Xác nhận điểm danh thành công!'),
