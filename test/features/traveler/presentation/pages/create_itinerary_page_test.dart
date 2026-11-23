@@ -156,7 +156,7 @@ void main() {
     expect(find.byKey(const Key('wide_radius_warning')), findsOneWidget);
   });
 
-  testWidgets('must-see picker leaves restaurants out, end picker does not', (
+  testWidgets('must-see picker allows restaurants (Food Tour support)', (
     tester,
   ) async {
     final repository = _RecordingPoiRepository();
@@ -195,7 +195,7 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
 
-    expect(repository.excludeFoodAndDrink, [true]);
+    expect(repository.excludeFoodAndDrink, [false]);
   });
 
   testWidgets('generate button is always visible as the footer', (
