@@ -406,7 +406,6 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
           radiusKm: target == _PoiTarget.mandatory
               ? _searchRadiusKm.round()
               : null,
-          excludeFoodAndDrink: target == _PoiTarget.mandatory,
           isExploration: target == _PoiTarget.exploration,
         ),
       ),
@@ -840,18 +839,10 @@ final class _MandatoryPois extends StatelessWidget {
 }
 
 final class _PoiPickerSheet extends StatefulWidget {
-  const _PoiPickerSheet({
-    this.near,
-    this.radiusKm,
-    this.excludeFoodAndDrink = false,
-    this.isExploration = false,
-  });
+  const _PoiPickerSheet({this.near, this.radiusKm, this.isExploration = false});
 
   final DeviceLocation? near;
   final int? radiusKm;
-
-  /// Must-see places cannot be restaurants (they are added after generation).
-  final bool excludeFoodAndDrink;
   final bool isExploration;
 
   @override
@@ -878,7 +869,6 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
     context.read<PoiSearchCubit>().prepareScope(
       near: widget.near,
       radiusKm: widget.radiusKm,
-      excludeFoodAndDrink: widget.excludeFoodAndDrink,
     );
     if (widget.isExploration) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -965,7 +955,6 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
                   final activeScope = PoiSearchScope.fromLocation(
                     near: widget.near,
                     radiusKm: widget.radiusKm,
-                    excludeFoodAndDrink: widget.excludeFoodAndDrink,
                   );
                   if (state.scope != activeScope &&
                       state.status != PoiSearchStatus.searching) {
@@ -1022,7 +1011,6 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
     query: _queryController.text,
     near: widget.near,
     radiusKm: widget.radiusKm,
-    excludeFoodAndDrink: widget.excludeFoodAndDrink,
   );
 
   void _loadMoreWhenNearEnd() {
