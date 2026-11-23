@@ -34,6 +34,39 @@ void main() {
     expect(alert.reroutingProposalId, 99);
   });
 
+  test('maps a stop overstay alert with plannedDepartureUtc', () {
+    final alert = TripAlertModel.fromJson({
+      'incidentId': 43,
+      'type': 'ScheduleDelay',
+      'severity': 'Warning',
+      'messageCode': 'trip_alert.stop_overstay',
+      'description': null,
+      'affectedItem': {
+        'itemId': 7,
+        'poiId': 11,
+        'name': 'Cham Museum',
+        'plannedArrivalUtc': '2026-10-23T02:00:00Z',
+        'plannedDepartureUtc': '2026-10-23T03:00:00Z',
+      },
+      'detectedAtUtc': '2026-10-23T03:16:00Z',
+      'resolvedAtUtc': null,
+      'isRead': false,
+      'reroutingProposalId': null,
+    });
+
+    expect(alert.id, '43');
+    expect(alert.type, TripAlertType.delay);
+    expect(alert.severity, AlertSeverity.warning);
+    expect(alert.messageCode, TripAlert.stopOverstayMessageCode);
+    expect(alert.affectedItemId, 7);
+    expect(alert.affectedStopName, 'Cham Museum');
+    expect(alert.plannedDeparture, DateTime.utc(2026, 10, 23, 3));
+    expect(alert.isOverstay, isTrue);
+    expect(alert.title, 'Stay time exceeded');
+    expect(alert.description, contains('Cham Museum'));
+    expect(alert.description, contains('planned departure'));
+  });
+
   test('rejects unknown alert taxonomy instead of showing wrong copy', () {
     expect(
       () => TripAlertModel.fromJson({

@@ -6,6 +6,7 @@ import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/core/network/network_info.dart';
 import 'package:trip_mate_mobile/core/push/emergency_push_hint.dart';
 import 'package:trip_mate_mobile/core/push/trip_push_messaging.dart';
+import 'package:trip_mate_mobile/features/traveler/data/models/trip_alert_model.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/active_trip_maneuver.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_route.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_session.dart';
@@ -44,11 +45,13 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
     Stream<TripPushHint>? pushHints,
     Stream<EmergencyPushHint>? emergencyHints,
     WeatherAdvisorySessionStore? weatherAdvisoryStore,
+    Duration overstayThreshold = defaultOverstayThreshold,
   }) : _sessionRepository = sessionRepository,
        _networkInfo = networkInfo,
        _alertRepository = alertRepository,
        _weatherAdvisoryStore =
            weatherAdvisoryStore ?? WeatherAdvisorySessionStore(),
+       _overstayThreshold = overstayThreshold,
        _locationTracker = locationTracker,
        _directionsRepository = directionsRepository,
        _itineraryRepository = itineraryRepository,
@@ -80,6 +83,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
   static const maxAccuracyAllowanceMeters = 30.0;
   static const routeRequestCooldown = Duration(seconds: 30);
   static const arrivalReevaluationInterval = Duration(seconds: 5);
+  static const defaultOverstayThreshold = Duration(minutes: 15);
 
   final NavigationSessionRepository _sessionRepository;
   final NavigationLocationTracker? _locationTracker;
@@ -87,6 +91,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
   final ItineraryRepository? _itineraryRepository;
   final ArrivalDetector _arrivalDetector;
   final DateTime Function() _clock;
+  final Duration _overstayThreshold;
   final NetworkInfo? _networkInfo;
   final TripAlertRepository? _alertRepository;
   final WeatherAdvisorySessionStore _weatherAdvisoryStore;
@@ -109,6 +114,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
 
   StreamSubscription<NavigationPosition>? _positionSubscription;
   Timer? _arrivalTimer;
+  Timer? _overstayTimer;
   NavigationPosition? _lastPosition;
   RouteProgressTracker? _routeTracker;
   int? _routeTargetItemId;
@@ -794,6 +800,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
       ),
     );
     if (completed) {
+      _syncOverstayMonitor(session);
       unawaited(_stopTracking(invalidate: true));
       _routeTracker = null;
       _routeTargetItemId = null;
@@ -808,6 +815,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
       );
       return;
     }
+    _syncOverstayMonitor(session);
     _setTarget(targetId);
   }
 
@@ -840,6 +848,8 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
 
   @override
   Future<void> close() async {
+    _overstayTimer?.cancel();
+    _overstayTimer = null;
     await _connectivitySubscription?.cancel();
     await _pushHintSubscription?.cancel();
     await _emergencyHintSubscription?.cancel();
@@ -917,20 +927,44 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
       return;
     }
 
-    final alerts = (loadedAlerts ?? state.alerts).toList()
-      ..sort((left, right) => right.timestamp.compareTo(left.timestamp));
+    final serverAlerts = (loadedAlerts ?? state.alerts)
+        .where((alert) => !alert.isLocalOverstay)
+        .toList();
     final previousById = {for (final alert in state.alerts) alert.id: alert};
-    final merged = alerts
-        .map((alert) {
-          final previous = previousById[alert.id];
-          return alert.copyWith(
-            isRead: alert.isRead || (previous?.isRead ?? false),
-            isDismissedFromBanner:
-                alert.isDismissedFromBanner ||
-                (previous?.isDismissedFromBanner ?? false),
-          );
-        })
+    final persistedOverstayItemIds = serverAlerts
+        .where((alert) => alert.isOverstay && alert.affectedItemId != null)
+        .map((alert) => alert.affectedItemId!)
+        .toSet();
+    final exploringItemId = state.session?.isExploring == true
+        ? state.session?.exploringItemId
+        : null;
+    final retainedLocalOverstays = state.alerts
+        .where(
+          (alert) =>
+              alert.isLocalOverstay &&
+              alert.affectedItemId != null &&
+              alert.affectedItemId == exploringItemId &&
+              !persistedOverstayItemIds.contains(alert.affectedItemId),
+        )
         .toList(growable: false);
+    final mergedServer = serverAlerts.map((alert) {
+      final previous = previousById[alert.id];
+      final previousLocal = alert.isOverstay && alert.affectedItemId != null
+          ? previousById['${TripAlert.localOverstayIdPrefix}${alert.affectedItemId}']
+          : null;
+      return alert.copyWith(
+        isRead:
+            alert.isRead ||
+            (previous?.isRead ?? false) ||
+            (previousLocal?.isRead ?? false),
+        isDismissedFromBanner:
+            alert.isDismissedFromBanner ||
+            (previous?.isDismissedFromBanner ?? false) ||
+            (previousLocal?.isDismissedFromBanner ?? false),
+      );
+    });
+    final merged = [...retainedLocalOverstays, ...mergedServer]
+      ..sort((left, right) => right.timestamp.compareTo(left.timestamp));
     final banner = merged.cast<TripAlert?>().firstWhere(
       (alert) =>
           alert != null &&
@@ -976,7 +1010,115 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
     );
   }
 
+  void _syncOverstayMonitor(NavigationSession session) {
+    _overstayTimer?.cancel();
+    _overstayTimer = null;
+    final exploringItem = session.isCompleted || !session.isExploring
+        ? null
+        : session.exploringItem;
+    if (exploringItem == null) {
+      _clearLocalOverstayAlerts();
+      return;
+    }
+    _clearLocalOverstayAlerts(exceptItemId: exploringItem.itemId);
+    final deadline = exploringItem.plannedDeparture.add(_overstayThreshold);
+    final now = _clock();
+    if (now.isAfter(deadline)) {
+      _raiseLocalOverstayAlert(exploringItem);
+      return;
+    }
+    _overstayTimer = Timer(deadline.difference(now), () {
+      if (isClosed) return;
+      final active = state.session;
+      if (active == null ||
+          active.isCompleted ||
+          !active.isExploring ||
+          active.exploringItemId != exploringItem.itemId) {
+        return;
+      }
+      _raiseLocalOverstayAlert(exploringItem);
+    });
+  }
+
+  void _clearLocalOverstayAlerts({int? exceptItemId}) {
+    final hadRemoved = state.alerts.any(
+      (alert) => alert.isLocalOverstay && alert.affectedItemId != exceptItemId,
+    );
+    if (!hadRemoved) return;
+    final remaining = state.alerts
+        .where(
+          (alert) =>
+              !alert.isLocalOverstay || alert.affectedItemId == exceptItemId,
+        )
+        .toList(growable: false);
+    final currentBanner = state.activeBannerAlert;
+    final clearBanner =
+        currentBanner != null &&
+        currentBanner.isLocalOverstay &&
+        currentBanner.affectedItemId != exceptItemId;
+    final nextBanner = clearBanner
+        ? remaining.cast<TripAlert?>().firstWhere(
+            (alert) =>
+                alert != null &&
+                !alert.isRead &&
+                !alert.isResolved &&
+                !alert.isDismissedFromBanner,
+            orElse: () => null,
+          )
+        : currentBanner;
+    _emit(
+      state.copyWith(
+        alerts: remaining,
+        activeBannerAlert: nextBanner,
+        clearBannerAlert: nextBanner == null,
+      ),
+    );
+  }
+
+  void _raiseLocalOverstayAlert(NavigationSessionItem item) {
+    final alreadyExists = state.alerts.any(
+      (alert) =>
+          alert.isOverstay &&
+          !alert.isResolved &&
+          alert.affectedItemId == item.itemId,
+    );
+    if (alreadyExists) return;
+    addAlert(
+      TripAlert(
+        id: '${TripAlert.localOverstayIdPrefix}${item.itemId}',
+        title: 'Stay time exceeded',
+        description: TripAlertModel.overstayDescription(
+          item.poiName,
+          item.plannedDeparture,
+        ),
+        severity: AlertSeverity.warning,
+        type: TripAlertType.delay,
+        affectedStopName: item.poiName,
+        timestamp: _clock().toUtc(),
+        messageCode: TripAlert.stopOverstayMessageCode,
+        affectedItemId: item.itemId,
+        plannedDeparture: item.plannedDeparture,
+      ),
+    );
+  }
+
   Future<void> acknowledgeAlert(TripAlert alert) async {
+    if (alert.isLocalOverstay) {
+      final updated = state.alerts
+          .map(
+            (item) => item.id == alert.id
+                ? item.copyWith(isRead: true, isDismissedFromBanner: true)
+                : item,
+          )
+          .toList(growable: false);
+      _emit(
+        state.copyWith(
+          alerts: updated,
+          clearBannerAlert: state.activeBannerAlert?.id == alert.id,
+        ),
+      );
+      return;
+    }
     final repository = _alertRepository;
     final sessionId = state.session?.sessionId;
     final incidentId = int.tryParse(alert.id);
