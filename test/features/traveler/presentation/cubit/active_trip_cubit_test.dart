@@ -1035,6 +1035,101 @@ void main() {
       expect(cubit.state.alerts.single.isRead, isTrue);
       await cubit.close();
     });
+
+    test(
+      'surfaces local stop overstay alert when exploring past plannedDeparture + 15m and clears on depart',
+      () async {
+        final alerts = FakeAlertRepository()..persisted.clear();
+        final cubit = createCubit(alertRepository: alerts);
+        await cubit.start();
+        await pumpEventQueue();
+
+        final firstStop = cubit.state.items.first;
+        // Move clock to 16 minutes past firstStop.plannedDeparture before reaching.
+        now = firstStop.plannedDeparture.add(const Duration(minutes: 16));
+        await cubit.reachItem(firstStop.itemId);
+        await pumpEventQueue();
+
+        expect(cubit.state.isExploring, isTrue);
+        expect(cubit.state.activeBannerAlert, isNotNull);
+        expect(
+          cubit.state.activeBannerAlert!.messageCode,
+          TripAlert.stopOverstayMessageCode,
+        );
+        expect(cubit.state.activeBannerAlert!.affectedItemId, firstStop.itemId);
+        expect(cubit.state.activeBannerAlert!.isLocalOverstay, isTrue);
+
+        await cubit.depart();
+        await pumpEventQueue();
+
+        expect(cubit.state.isExploring, isFalse);
+        expect(cubit.state.activeBannerAlert, isNull);
+        expect(cubit.state.alerts.where((a) => a.isLocalOverstay), isEmpty);
+        await cubit.close();
+      },
+    );
+
+    test(
+      'deduplicates local overstay alert with persisted Backend alert and preserves dismissed state',
+      () async {
+        final alerts = FakeAlertRepository()..persisted.clear();
+        final cubit = createCubit(alertRepository: alerts);
+        await cubit.start();
+        await pumpEventQueue();
+
+        final firstStop = cubit.state.items.first;
+        now = firstStop.plannedDeparture.add(const Duration(minutes: 16));
+        await cubit.reachItem(firstStop.itemId);
+        await pumpEventQueue();
+
+        final localId = cubit.state.activeBannerAlert!.id;
+        cubit.dismissBannerAlert(localId);
+        expect(cubit.state.activeBannerAlert, isNull);
+
+        // Backend later scans and returns persisted overstay alert for the same stop.
+        alerts.persisted.add(
+          TripAlert(
+            id: '777',
+            title: 'Stay time exceeded',
+            description: 'You have stayed past the planned departure time.',
+            severity: AlertSeverity.warning,
+            type: TripAlertType.delay,
+            affectedStopName: firstStop.poiName,
+            timestamp: now,
+            messageCode: TripAlert.stopOverstayMessageCode,
+            affectedItemId: firstStop.itemId,
+            plannedDeparture: firstStop.plannedDeparture,
+          ),
+        );
+        await cubit.refreshAlerts();
+
+        expect(cubit.state.alerts, hasLength(1));
+        expect(cubit.state.alerts.single.id, '777');
+        expect(cubit.state.alerts.single.isDismissedFromBanner, isTrue);
+        expect(cubit.state.activeBannerAlert, isNull);
+        await cubit.close();
+      },
+    );
+
+    test(
+      'does not trigger stop overstay alert while within plannedDeparture + 15m',
+      () async {
+        final alerts = FakeAlertRepository()..persisted.clear();
+        final cubit = createCubit(alertRepository: alerts);
+        await cubit.start();
+        await pumpEventQueue();
+
+        final firstStop = cubit.state.items.first;
+        now = firstStop.plannedDeparture.add(const Duration(minutes: 10));
+        await cubit.reachItem(firstStop.itemId);
+        await pumpEventQueue();
+
+        expect(cubit.state.isExploring, isTrue);
+        expect(cubit.state.activeBannerAlert, isNull);
+        expect(cubit.state.alerts.where((a) => a.isOverstay), isEmpty);
+        await cubit.close();
+      },
+    );
   });
 }
 
