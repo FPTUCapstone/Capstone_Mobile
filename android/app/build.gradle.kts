@@ -43,3 +43,9 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Same native SDK version as mapbox_maps_flutter_mobile 3.33.0.
+    implementation("com.mapbox.maps:android-ndk27:11.33.0")
+    testImplementation("junit:junit:4.13.2")
+}

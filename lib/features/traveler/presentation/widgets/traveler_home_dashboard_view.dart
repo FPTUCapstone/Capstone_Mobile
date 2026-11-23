@@ -527,8 +527,8 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
       ),
       _QuickActionItem(
         icon: Icons.download_for_offline_outlined,
-        label: 'Bản đồ Offline',
-        route: AppRoutes.offlinePackage(1),
+        label: 'Dữ liệu offline',
+        route: AppRoutes.offlinePackages,
         color: const Color(0xFFD97706),
       ),
     ];

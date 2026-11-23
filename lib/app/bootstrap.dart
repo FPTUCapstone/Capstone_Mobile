@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -6,6 +7,7 @@ import 'package:trip_mate_mobile/app/app.dart';
 import 'package:trip_mate_mobile/app/config/app_config.dart';
 import 'package:trip_mate_mobile/app/config/app_initialization_status.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/features/traveler/data/datasources/offline_map_data_source.dart';
 import 'package:trip_mate_mobile/firebase_options.dart';
 
 Future<AppInitializationStatus> bootstrap({
@@ -45,6 +47,17 @@ Future<AppInitializationStatus> bootstrap({
     try {
       MapboxOptions.setAccessToken(mapboxAccessToken);
       isMapboxAvailable = true;
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+        try {
+          // Must precede every MapWidget: SDK store/style options are global.
+          await serviceLocator<OfflineMapDataSource>().initialize();
+        } catch (error) {
+          // Existing online maps still work; offline operations retry safely.
+          debugPrint(
+            '[Bootstrap] Offline map storage unavailable: ${error.runtimeType}',
+          );
+        }
+      }
     } catch (e) {
       mapboxError = 'Mapbox token configuration unavailable: ${e.runtimeType}';
       debugPrint('[Bootstrap] $mapboxError');

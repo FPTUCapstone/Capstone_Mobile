@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -23,6 +26,7 @@ import 'package:trip_mate_mobile/features/auth/change_password/data/repositories
 import 'package:trip_mate_mobile/features/auth/change_password/domain/repositories/change_password_repository.dart';
 import 'package:trip_mate_mobile/features/auth/change_password/presentation/cubit/change_password_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/data/datasources/auth_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/auth/data/datasources/offline_trip_identity_source.dart';
 import 'package:trip_mate_mobile/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:trip_mate_mobile/features/auth/data/repositories/operator_application_repository_impl.dart';
 import 'package:trip_mate_mobile/features/auth/data/repositories/tour_operator_registration_repository_impl.dart';
@@ -32,6 +36,7 @@ import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_reposito
 import 'package:trip_mate_mobile/features/auth/domain/repositories/operator_application_repository.dart';
 import 'package:trip_mate_mobile/features/auth/domain/repositories/tour_operator_registration_repository.dart';
 import 'package:trip_mate_mobile/features/auth/domain/services/auth_identity_service.dart';
+import 'package:trip_mate_mobile/features/auth/domain/services/offline_access_identity.dart';
 import 'package:trip_mate_mobile/features/auth/domain/services/operator_registration_identity_service.dart';
 import 'package:trip_mate_mobile/features/auth/domain/usecases/fetch_operator_application.dart';
 import 'package:trip_mate_mobile/features/auth/domain/usecases/register_tour_operator.dart';
@@ -170,6 +175,9 @@ import 'package:trip_mate_mobile/features/tour_search/domain/repositories/tour_s
 import 'package:trip_mate_mobile/features/tour_search/domain/usecases/load_tour_categories_use_case.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/usecases/search_tours_use_case.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/data/datasources/offline_map_data_source.dart';
+import 'package:trip_mate_mobile/features/traveler/data/datasources/offline_trip_local_data_source.dart';
+import 'package:trip_mate_mobile/features/traveler/data/datasources/offline_trip_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/traveler/data/datasources/travel_preferences_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/external_review_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/in_app_notification_repository_impl.dart';
@@ -177,6 +185,7 @@ import 'package:trip_mate_mobile/features/traveler/data/repositories/itinerary_r
 import 'package:trip_mate_mobile/features/traveler/data/repositories/mapbox_directions_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/mapbox_search_box_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/navigation_session_repository_impl.dart';
+import 'package:trip_mate_mobile/features/traveler/data/repositories/offline_trip_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/point_of_interest_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_group_repository_impl.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_preferences_repository_impl.dart';
@@ -190,6 +199,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_suggestion_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/leave_travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigation_session_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/offline_trip_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/recommendation_feedback_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/route_directions_repository.dart';
@@ -252,6 +262,42 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerLazySingleton<SecureStorageService>(
       () => const FlutterSecureStorageService(FlutterSecureStorage()),
     )
+    ..registerLazySingleton<OfflineTripIdentitySource>(
+      () => OfflineTripIdentitySource(serviceLocator()),
+    )
+    ..registerLazySingleton<OfflineAccessIdentity>(
+      () => serviceLocator<OfflineTripIdentitySource>(),
+    )
+    ..registerLazySingleton<OfflineMapDataSource>(OfflineMapDataSource.new)
+    ..registerLazySingleton<OfflineTripRepository>(() {
+      final maps = serviceLocator<OfflineMapDataSource>();
+      final identity = serviceLocator<OfflineAccessIdentity>();
+      return OfflineTripRepositoryImpl(
+        local: () async {
+          final storage = await maps.storage();
+          final path = storage['path'];
+          if (path is! String || path.isEmpty) {
+            throw const FormatException('Offline storage path is unavailable.');
+          }
+          return OfflineTripLocalDataSource(Directory(path));
+        },
+        maps: maps,
+        remote: OfflineTripRemoteDataSource(
+          serviceLocator(),
+          serviceLocator(),
+          serviceLocator(),
+          client: serviceLocator<DioClient>(),
+          mapboxAccessToken: serviceLocator<AppConfig>().mapboxAccessToken,
+        ),
+        ownerId: identity.currentOwnerId,
+        onlineOwnerId: identity.currentOnlineOwnerId,
+        sessionKey: identity.currentSessionKey,
+        isMapConfigured: () =>
+            !kIsWeb &&
+            defaultTargetPlatform == TargetPlatform.android &&
+            serviceLocator<AppConfig>().mapboxAccessToken != null,
+      );
+    })
     ..registerLazySingleton<Connectivity>(Connectivity.new)
     ..registerLazySingleton<GoogleSignIn>(() => GoogleSignIn.instance)
     ..registerLazySingleton<AuthIdentityService>(
@@ -779,6 +825,8 @@ Future<void> configureDependencies({AppConfig? config}) async {
         serviceLocator.isRegistered<PushDeviceLifecycle>()
             ? serviceLocator<PushDeviceLifecycle>()
             : null,
+        serviceLocator<OfflineAccessIdentity>(),
+        serviceLocator<NetworkInfo>(),
       ),
     )
     ..registerFactory<RegisterCubit>(
