@@ -201,10 +201,14 @@ final class _MembersContent extends StatelessWidget {
               vertical: AppSpacing.sm,
             ),
             decoration: BoxDecoration(
-              color: isSuccess ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2),
+              color: isSuccess
+                  ? const Color(0xFFF0FDF4)
+                  : const Color(0xFFFEF2F2),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isSuccess ? const Color(0xFFBBF7D0) : const Color(0xFFFECACA),
+                color: isSuccess
+                    ? const Color(0xFFBBF7D0)
+                    : const Color(0xFFFECACA),
               ),
             ),
             child: Row(
@@ -232,7 +236,10 @@ final class _MembersContent extends StatelessWidget {
                 if (onRetry != null)
                   TextButton(onPressed: onRetry, child: const Text('Retry')),
                 if (onRefresh != null)
-                  TextButton(onPressed: onRefresh, child: const Text('Refresh')),
+                  TextButton(
+                    onPressed: onRefresh,
+                    child: const Text('Refresh'),
+                  ),
               ],
             ),
           );

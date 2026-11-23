@@ -11,7 +11,11 @@ void main() {
     itineraryId: 101,
   );
 
-  Widget createChatWidget({TravelGroup? group, int userId = 1, String userName = 'Bạn'}) {
+  Widget createChatWidget({
+    TravelGroup? group,
+    int userId = 1,
+    String userName = 'Bạn',
+  }) {
     return MaterialApp(
       home: TravelGroupChatPage(
         groupId: 99,
@@ -29,50 +33,66 @@ void main() {
   }
 
   group('Travel Group Mobile - End-to-End Workflow & Exception Safety Tests', () {
-    testWidgets('Workflow 1: Tour Guide Announcement & Roll Call Full Lifecycle', (
-      tester,
-    ) async {
-      configureViewport(tester);
-      await tester.pumpWidget(createChatWidget());
-      await tester.pumpAndSettle();
+    testWidgets(
+      'Workflow 1: Tour Guide Announcement & Roll Call Full Lifecycle',
+      (tester) async {
+        configureViewport(tester);
+        await tester.pumpWidget(createChatWidget());
+        await tester.pumpAndSettle();
 
-      // Verify Header & Pinned announcement
-      expect(find.text('Đoàn Du Lịch Đà Nẵng - Hội An 2026'), findsOneWidget);
-      expect(find.textContaining('Ghim: Tập trung lúc 07:30'), findsOneWidget);
+        // Verify Header & Pinned announcement
+        expect(find.text('Đoàn Du Lịch Đà Nẵng - Hội An 2026'), findsOneWidget);
+        expect(
+          find.textContaining('Ghim: Tập trung lúc 07:30'),
+          findsOneWidget,
+        );
 
-      // 1. Dismiss pinned announcement
-      expect(find.byKey(const Key('dismiss_pinned_button')), findsOneWidget);
-      await tester.tap(find.byKey(const Key('dismiss_pinned_button')));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('dismiss_pinned_button')), findsNothing);
+        // 1. Dismiss pinned announcement
+        expect(find.byKey(const Key('dismiss_pinned_button')), findsOneWidget);
+        await tester.tap(find.byKey(const Key('dismiss_pinned_button')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('dismiss_pinned_button')), findsNothing);
 
-      // 2. Tour Guide Broadcast Card acknowledgment
-      expect(find.text('THÔNG BÁO TẬP TRUNG SÁNG MAI'), findsOneWidget);
-      expect(find.text('QUAN TRỌNG'), findsOneWidget);
-      expect(find.text('3/4 đã đọc'), findsOneWidget);
+        // 2. Tour Guide Broadcast Card acknowledgment
+        expect(find.text('THÔNG BÁO TẬP TRUNG SÁNG MAI'), findsOneWidget);
+        expect(find.text('QUAN TRỌNG'), findsOneWidget);
+        expect(find.text('3/4 đã đọc'), findsOneWidget);
 
-      final ackBtn = find.byKey(const Key('broadcast_ack_msg-2'));
-      expect(ackBtn, findsOneWidget);
-      await tester.tap(ackBtn);
-      await tester.pumpAndSettle();
+        final ackBtn = find.byKey(const Key('broadcast_ack_msg-2'));
+        expect(ackBtn, findsOneWidget);
+        await tester.tap(ackBtn);
+        await tester.pumpAndSettle();
 
-      expect(find.text('4/4 đã đọc'), findsOneWidget);
-      expect(find.text('Đã đọc'), findsOneWidget);
-      expect(find.text('Bạn đã xác nhận đã đọc thông báo này.'), findsOneWidget);
+        expect(find.text('4/4 đã đọc'), findsOneWidget);
+        expect(find.text('Đã đọc'), findsOneWidget);
+        expect(
+          find.text('Bạn đã xác nhận đã đọc thông báo này.'),
+          findsOneWidget,
+        );
 
-      // 3. Roll Call attendance check-in
-      expect(find.text('Điểm danh: Tập trung xe buýt số 1'), findsOneWidget);
-      expect(find.text('Có mặt: 3/4 thành viên'), findsOneWidget);
+        // 3. Roll Call attendance check-in
+        expect(find.text('Điểm danh: Tập trung xe buýt số 1'), findsOneWidget);
+        expect(find.text('Có mặt: 3/4 thành viên'), findsOneWidget);
 
-      final rollCallBtn = find.byKey(const Key('roll_call_button_msg-3'));
-      expect(rollCallBtn, findsOneWidget);
-      await tester.tap(rollCallBtn);
-      await tester.pumpAndSettle();
+        final rollCallBtn = find.byKey(const Key('roll_call_button_msg-3'));
+        expect(rollCallBtn, findsOneWidget);
+        await tester.tap(rollCallBtn);
+        await tester.pumpAndSettle();
 
-      expect(find.text('Có mặt: 4/4 thành viên'), findsOneWidget);
-      expect(find.text('Đã có mặt'), findsOneWidget);
-      expect(find.text('Xác nhận điểm danh thành công!'), findsOneWidget);
-    });
+        expect(find.text('Có mặt: 4/4 thành viên'), findsOneWidget);
+        expect(find.text('Đã có mặt'), findsOneWidget);
+        expect(find.text('Xác nhận điểm danh thành công!'), findsOneWidget);
+
+        // 4. Idempotent double-tap check on Broadcast & Roll Call (never increments to 5/4)
+        await tester.tap(ackBtn);
+        await tester.pumpAndSettle();
+        expect(find.text('4/4 đã đọc'), findsOneWidget);
+
+        await tester.tap(rollCallBtn);
+        await tester.pumpAndSettle();
+        expect(find.text('Có mặt: 4/4 thành viên'), findsOneWidget);
+      },
+    );
 
     testWidgets('Workflow 2: Expense Splitting, VietQR Modal & Payment Toggle', (
       tester,
@@ -247,6 +267,20 @@ void main() {
         find.text('Xe sẽ đón lúc 07:00 thay vì 07:30 để tránh kẹt cáp treo.'),
         findsOneWidget,
       );
+
+      // Create a Roll Call via Action Drawer
+      await tester.tap(find.byKey(const Key('open_action_drawer_button')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('action_create_roll_call')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tạo điểm danh đoàn'), findsOneWidget);
+      await tester.tap(find.text('Bắt đầu điểm danh'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Điểm danh xe di chuyển'), findsOneWidget);
+      expect(find.text('Có mặt: 1/4 thành viên'), findsOneWidget);
     });
 
     testWidgets('Workflow 5: Search & Exception Boundary Testing', (
@@ -268,7 +302,10 @@ void main() {
       await tester.enterText(searchInput, 'Bánh tráng cuốn');
       await tester.pumpAndSettle();
 
-      expect(find.text('Tiền ăn trưa Bánh tráng cuốn thịt heo Đại Lộc'), findsOneWidget);
+      expect(
+        find.text('Tiền ăn trưa Bánh tráng cuốn thịt heo Đại Lộc'),
+        findsOneWidget,
+      );
       expect(find.text('THÔNG BÁO TẬP TRUNG SÁNG MAI'), findsNothing);
 
       // Search non-existent keyword (Exception safety test)
@@ -292,9 +329,7 @@ void main() {
 
       // Verify no blank message was added to the chat bubbles
       expect(
-        find.byWidgetPredicate(
-          (w) => w is Text && w.data == '    ',
-        ),
+        find.byWidgetPredicate((w) => w is Text && w.data == '    '),
         findsNothing,
       );
     });

@@ -210,20 +210,22 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
                   children: [
                     Text(
                       groupName,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold, fontSize: 20),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     if (currentGroup != null) ...[
                       const SizedBox(height: 2),
                       Text(
-                        _isHost ? 'You are the Group Host.' : 'You are a Group Member.',
+                        _isHost
+                            ? 'You are the Group Host.'
+                            : 'You are a Group Member.',
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: _isHost ? FontWeight.w600 : FontWeight.normal,
+                          fontWeight: _isHost
+                              ? FontWeight.w600
+                              : FontWeight.normal,
                           color: _isHost ? AppColors.primary : AppColors.muted,
                         ),
                       ),
@@ -257,9 +259,7 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
           const SizedBox(height: 12),
           FilledButton.icon(
             key: const Key('open_group_chat_button'),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.secondary,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.secondary),
             onPressed: () => context.pushNamed(
               AppRouteNames.travelGroupChat,
               pathParameters: {'groupId': widget.groupId.toString()},
@@ -272,7 +272,10 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
             if (currentGroup.inviteCode?.isNotEmpty ?? false) ...[
               const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(8),

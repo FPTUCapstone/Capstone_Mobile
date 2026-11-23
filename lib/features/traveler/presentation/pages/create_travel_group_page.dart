@@ -135,7 +135,8 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
         final isSuccess = state.status == CreateTravelGroupStatus.success;
         final isDisabled = isSubmitting || isSuccess;
 
-        final hasMeta = (widget.destination != null && widget.destination!.isNotEmpty) ||
+        final hasMeta =
+            (widget.destination != null && widget.destination!.isNotEmpty) ||
             (widget.dateRange != null && widget.dateRange!.isNotEmpty);
 
         return Stack(
@@ -192,7 +193,8 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
                             ),
                           ],
                         ),
-                        if (widget.destination != null && widget.destination!.isNotEmpty) ...[
+                        if (widget.destination != null &&
+                            widget.destination!.isNotEmpty) ...[
                           const SizedBox(height: AppSpacing.xs),
                           Row(
                             children: [
@@ -216,7 +218,8 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
                             ],
                           ),
                         ],
-                        if (widget.dateRange != null && widget.dateRange!.isNotEmpty) ...[
+                        if (widget.dateRange != null &&
+                            widget.dateRange!.isNotEmpty) ...[
                           const SizedBox(height: 4),
                           Row(
                             children: [

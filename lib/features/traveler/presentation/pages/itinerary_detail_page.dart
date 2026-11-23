@@ -492,13 +492,13 @@ final class _DetailContent extends StatelessWidget {
                 : () {
                     final destination = detail.items.isNotEmpty
                         ? detail.items
-                            .firstWhere(
-                              (item) =>
-                                  item.poiName != null &&
-                                  item.poiName!.isNotEmpty,
-                              orElse: () => detail.items.first,
-                            )
-                            .poiName
+                              .firstWhere(
+                                (item) =>
+                                    item.poiName != null &&
+                                    item.poiName!.isNotEmpty,
+                                orElse: () => detail.items.first,
+                              )
+                              .poiName
                         : null;
                     final dateRange = tripSchedule(
                       detail.validFrom,
@@ -509,8 +509,7 @@ final class _DetailContent extends StatelessWidget {
                       extra: CreateTravelGroupRouteArgs(
                         itineraryId: detail.itineraryId,
                         itineraryTitle:
-                            detail.title ??
-                            'Lịch trình #${detail.itineraryId}',
+                            detail.title ?? 'Lịch trình #${detail.itineraryId}',
                         destination: destination,
                         dateRange: dateRange,
                       ),

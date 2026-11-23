@@ -88,7 +88,8 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
         senderName: 'Nguyễn Tuấn (HDV)',
         senderRole: 'guide',
         isCurrentUser: false,
-        text: 'Chào mừng cả đoàn đến với hành trình Đà Nẵng - Hội An! Mọi người có mặt đầy đủ vui lòng đọc thông báo bên dưới nhé.',
+        text:
+            'Chào mừng cả đoàn đến với hành trình Đà Nẵng - Hội An! Mọi người có mặt đầy đủ vui lòng đọc thông báo bên dưới nhé.',
         timestamp: now.subtract(const Duration(hours: 3)),
         type: ChatMessageType.text,
       ),
@@ -103,7 +104,8 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
         type: ChatMessageType.broadcast,
         metadata: {
           'title': 'THÔNG BÁO TẬP TRUNG SÁNG MAI',
-          'content': 'Xe đón đoàn lúc 07:30 tại sảnh Khách sạn Mường Thanh. Xin vui lòng ăn sáng sớm và mang theo mũ, kem chống nắng.',
+          'content':
+              'Xe đón đoàn lúc 07:30 tại sảnh Khách sạn Mường Thanh. Xin vui lòng ăn sáng sớm và mang theo mũ, kem chống nắng.',
           'urgent': true,
           'readByCount': 3,
           'totalMembers': 4,
@@ -262,8 +264,8 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                 Text(
                   'Tiện ích nhóm du lịch',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 ListTile(
@@ -273,7 +275,9 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                     child: Icon(Icons.poll_rounded, color: Color(0xFF4338CA)),
                   ),
                   title: const Text('Tạo bình chọn (Voting)'),
-                  subtitle: const Text('Bình chọn điểm đến, quán ăn, lịch trình'),
+                  subtitle: const Text(
+                    'Bình chọn điểm đến, quán ăn, lịch trình',
+                  ),
                   onTap: () {
                     Navigator.pop(sheetContext);
                     _showCreatePollDialog();
@@ -283,10 +287,15 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                   key: const Key('action_create_expense'),
                   leading: const CircleAvatar(
                     backgroundColor: Color(0xFFDCFCE7),
-                    child: Icon(Icons.receipt_long_rounded, color: Color(0xFF15803D)),
+                    child: Icon(
+                      Icons.receipt_long_rounded,
+                      color: Color(0xFF15803D),
+                    ),
                   ),
                   title: const Text('Chia tiền hóa đơn (VietQR)'),
-                  subtitle: const Text('Tự động chia đều và tạo mã thanh toán VietQR'),
+                  subtitle: const Text(
+                    'Tự động chia đều và tạo mã thanh toán VietQR',
+                  ),
                   onTap: () {
                     Navigator.pop(sheetContext);
                     _showCreateExpenseDialog();
@@ -296,10 +305,15 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                   key: const Key('action_create_broadcast'),
                   leading: const CircleAvatar(
                     backgroundColor: Color(0xFFFEE2E2),
-                    child: Icon(Icons.campaign_rounded, color: Color(0xFFB91C1C)),
+                    child: Icon(
+                      Icons.campaign_rounded,
+                      color: Color(0xFFB91C1C),
+                    ),
                   ),
                   title: const Text('Thông báo khẩn (Dành cho HDV)'),
-                  subtitle: const Text('Gửi thông báo có xác nhận "Tôi đã đọc"'),
+                  subtitle: const Text(
+                    'Gửi thông báo có xác nhận "Tôi đã đọc"',
+                  ),
                   onTap: () {
                     Navigator.pop(sheetContext);
                     _showCreateBroadcastDialog();
@@ -309,7 +323,10 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                   key: const Key('action_create_roll_call'),
                   leading: const CircleAvatar(
                     backgroundColor: Color(0xFFE6F4F1),
-                    child: Icon(Icons.how_to_reg_rounded, color: AppColors.secondary),
+                    child: Icon(
+                      Icons.how_to_reg_rounded,
+                      color: AppColors.secondary,
+                    ),
                   ),
                   title: const Text('Điểm danh đoàn (Dành cho HDV)'),
                   subtitle: const Text('Kiểm tra danh sách thành viên có mặt'),
@@ -352,17 +369,13 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
               TextField(
                 key: const Key('poll_option_1_input'),
                 controller: option1Controller,
-                decoration: const InputDecoration(
-                  labelText: 'Lựa chọn 1 *',
-                ),
+                decoration: const InputDecoration(labelText: 'Lựa chọn 1 *'),
               ),
               const SizedBox(height: 8),
               TextField(
                 key: const Key('poll_option_2_input'),
                 controller: option2Controller,
-                decoration: const InputDecoration(
-                  labelText: 'Lựa chọn 2 *',
-                ),
+                decoration: const InputDecoration(labelText: 'Lựa chọn 2 *'),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -377,7 +390,10 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
+            onPressed: () {
+              ScaffoldMessenger.of(context).clearSnackBars();
+              Navigator.pop(dialogCtx);
+            },
             child: const Text('Hủy'),
           ),
           FilledButton(
@@ -389,9 +405,12 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
               final opt3 = option3Controller.text.trim();
 
               if (question.isEmpty || opt1.isEmpty || opt2.isEmpty) {
+                ScaffoldMessenger.of(context).clearSnackBars();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Vui lòng nhập câu hỏi và ít nhất 2 lựa chọn.'),
+                    content: Text(
+                      'Vui lòng nhập câu hỏi và ít nhất 2 lựa chọn.',
+                    ),
                     backgroundColor: AppColors.error,
                   ),
                 );
@@ -425,6 +444,7 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                 );
               });
 
+              ScaffoldMessenger.of(context).clearSnackBars();
               Navigator.pop(dialogCtx);
               _scrollToBottom();
             },
@@ -440,7 +460,9 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
     final amountController = TextEditingController();
     final bankController = TextEditingController(text: 'MB Bank');
     final accountController = TextEditingController(text: '0987654321');
-    final nameController = TextEditingController(text: widget.currentUserName.toUpperCase());
+    final nameController = TextEditingController(
+      text: widget.currentUserName.toUpperCase(),
+    );
 
     showDialog<void>(
       context: context,
@@ -471,7 +493,9 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
               const SizedBox(height: 12),
               TextField(
                 controller: bankController,
-                decoration: const InputDecoration(labelText: 'Ngân hàng nhận tiền'),
+                decoration: const InputDecoration(
+                  labelText: 'Ngân hàng nhận tiền',
+                ),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -483,7 +507,10 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
+            onPressed: () {
+              ScaffoldMessenger.of(context).clearSnackBars();
+              Navigator.pop(dialogCtx);
+            },
             child: const Text('Hủy'),
           ),
           FilledButton(
@@ -493,9 +520,12 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
               final amount = int.tryParse(amountController.text.trim()) ?? 0;
 
               if (title.isEmpty || amount <= 0) {
+                ScaffoldMessenger.of(context).clearSnackBars();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Vui lòng nhập nội dung và số tiền hợp lệ (> 0).'),
+                    content: Text(
+                      'Vui lòng nhập nội dung và số tiền hợp lệ (> 0).',
+                    ),
                     backgroundColor: AppColors.error,
                   ),
                 );
@@ -531,6 +561,7 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                 );
               });
 
+              ScaffoldMessenger.of(context).clearSnackBars();
               Navigator.pop(dialogCtx);
               _scrollToBottom();
             },
@@ -576,7 +607,10 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
+            onPressed: () {
+              ScaffoldMessenger.of(context).clearSnackBars();
+              Navigator.pop(dialogCtx);
+            },
             child: const Text('Hủy'),
           ),
           FilledButton(
@@ -586,9 +620,12 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
               final content = contentController.text.trim();
 
               if (title.isEmpty || content.isEmpty) {
+                ScaffoldMessenger.of(context).clearSnackBars();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Vui lòng nhập đầy đủ tiêu đề và nội dung thông báo.'),
+                    content: Text(
+                      'Vui lòng nhập đầy đủ tiêu đề và nội dung thông báo.',
+                    ),
                     backgroundColor: AppColors.error,
                   ),
                 );
@@ -618,6 +655,7 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                 );
               });
 
+              ScaffoldMessenger.of(context).clearSnackBars();
               Navigator.pop(dialogCtx);
               _scrollToBottom();
             },
@@ -629,7 +667,9 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
   }
 
   void _showCreateRollCallDialog() {
-    final titleController = TextEditingController(text: 'Điểm danh xe di chuyển');
+    final titleController = TextEditingController(
+      text: 'Điểm danh xe di chuyển',
+    );
     final deadlineController = TextEditingController(text: '15 phút nữa');
 
     showDialog<void>(
@@ -641,18 +681,25 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
           children: [
             TextField(
               controller: titleController,
-              decoration: const InputDecoration(labelText: 'Mục đích điểm danh'),
+              decoration: const InputDecoration(
+                labelText: 'Mục đích điểm danh',
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: deadlineController,
-              decoration: const InputDecoration(labelText: 'Thời hạn điểm danh'),
+              decoration: const InputDecoration(
+                labelText: 'Thời hạn điểm danh',
+              ),
             ),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
+            onPressed: () {
+              ScaffoldMessenger.of(context).clearSnackBars();
+              Navigator.pop(dialogCtx);
+            },
             child: const Text('Hủy'),
           ),
           FilledButton(
@@ -678,6 +725,7 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                   ),
                 );
               });
+              ScaffoldMessenger.of(context).clearSnackBars();
               Navigator.pop(dialogCtx);
               _scrollToBottom();
             },
@@ -698,7 +746,8 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
     // VietQR URL format: https://img.vietqr.io/image/<BANK>-<ACCOUNT>-compact2.png?amount=<AMOUNT>&addInfo=<INFO>&accountName=<NAME>
     final safeInfo = Uri.encodeComponent(title);
     final safeName = Uri.encodeComponent(accountName);
-    final qrUrl = 'https://img.vietqr.io/image/MB-$accountNumber-compact2.png?amount=$amount&addInfo=$safeInfo&accountName=$safeName';
+    final qrUrl =
+        'https://img.vietqr.io/image/MB-$accountNumber-compact2.png?amount=$amount&addInfo=$safeInfo&accountName=$safeName';
 
     showModalBottomSheet<void>(
       context: context,
@@ -712,7 +761,10 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
             final currentPaid = metadata['isPaidByMe'] as bool? ?? false;
             return SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -730,9 +782,8 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                       children: [
                         Text(
                           'Thanh toán qua VietQR',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         IconButton(
                           icon: const Icon(Icons.close),
@@ -776,11 +827,18 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                                   child: const Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(Icons.qr_code_2, size: 64, color: AppColors.primary),
+                                      Icon(
+                                        Icons.qr_code_2,
+                                        size: 64,
+                                        color: AppColors.primary,
+                                      ),
                                       SizedBox(height: 4),
                                       Text(
                                         'Mã VietQR Chuẩn NAPAS',
-                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -821,30 +879,56 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Ngân hàng:', style: TextStyle(color: AppColors.muted)),
-                              Text(bankName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              const Text(
+                                'Ngân hàng:',
+                                style: TextStyle(color: AppColors.muted),
+                              ),
+                              Text(
+                                bankName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 6),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Số tài khoản:', style: TextStyle(color: AppColors.muted)),
+                              const Text(
+                                'Số tài khoản:',
+                                style: TextStyle(color: AppColors.muted),
+                              ),
                               Row(
                                 children: [
-                                  Text(accountNumber, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  Text(
+                                    accountNumber,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                   const SizedBox(width: 6),
                                   InkWell(
                                     onTap: () {
-                                      Clipboard.setData(ClipboardData(text: accountNumber));
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      Clipboard.setData(
+                                        ClipboardData(text: accountNumber),
+                                      );
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         SnackBar(
-                                          content: Text('Đã sao chép STK: $accountNumber'),
+                                          content: Text(
+                                            'Đã sao chép STK: $accountNumber',
+                                          ),
                                           duration: const Duration(seconds: 2),
                                         ),
                                       );
                                     },
-                                    child: const Icon(Icons.copy_rounded, size: 16, color: AppColors.primary),
+                                    child: const Icon(
+                                      Icons.copy_rounded,
+                                      size: 16,
+                                      color: AppColors.primary,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -854,8 +938,16 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Chủ tài khoản:', style: TextStyle(color: AppColors.muted)),
-                              Text(accountName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              const Text(
+                                'Chủ tài khoản:',
+                                style: TextStyle(color: AppColors.muted),
+                              ),
+                              Text(
+                                accountName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -867,16 +959,20 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                       child: FilledButton.icon(
                         key: const Key('toggle_paid_button'),
                         style: FilledButton.styleFrom(
-                          backgroundColor: currentPaid ? AppColors.success : AppColors.primary,
+                          backgroundColor: currentPaid
+                              ? AppColors.success
+                              : AppColors.primary,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
                         onPressed: () {
                           setState(() {
                             metadata['isPaidByMe'] = !currentPaid;
                             if (!currentPaid) {
-                              metadata['paidCount'] = ((metadata['paidCount'] as int? ?? 0) + 1);
+                              metadata['paidCount'] =
+                                  ((metadata['paidCount'] as int? ?? 0) + 1);
                             } else {
-                              metadata['paidCount'] = ((metadata['paidCount'] as int? ?? 1) - 1);
+                              metadata['paidCount'] =
+                                  ((metadata['paidCount'] as int? ?? 1) - 1);
                             }
                           });
                           setSheetState(() {});
@@ -887,14 +983,22 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                                     ? 'Đã đánh dấu đã chuyển khoản thành công!'
                                     : 'Đã hủy đánh dấu thanh toán.',
                               ),
-                              backgroundColor: !currentPaid ? AppColors.success : AppColors.muted,
+                              backgroundColor: !currentPaid
+                                  ? AppColors.success
+                                  : AppColors.muted,
                             ),
                           );
                           Navigator.pop(sheetCtx);
                         },
-                        icon: Icon(currentPaid ? Icons.check_circle : Icons.payment_rounded),
+                        icon: Icon(
+                          currentPaid
+                              ? Icons.check_circle
+                              : Icons.payment_rounded,
+                        ),
                         label: Text(
-                          currentPaid ? 'Đã thanh toán (Chạm để đổi)' : 'Xác nhận tôi đã chuyển khoản',
+                          currentPaid
+                              ? 'Đã thanh toán (Chạm để đổi)'
+                              : 'Xác nhận tôi đã chuyển khoản',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -944,10 +1048,16 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: urgent ? const Color(0xFFEF4444) : const Color(0xFF3B82F6),
+                  color: urgent
+                      ? const Color(0xFFEF4444)
+                      : const Color(0xFF3B82F6),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.campaign_rounded, color: Colors.white, size: 16),
+                child: const Icon(
+                  Icons.campaign_rounded,
+                  color: Colors.white,
+                  size: 16,
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -956,20 +1066,29 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: urgent ? const Color(0xFF991B1B) : const Color(0xFF1E40AF),
+                    color: urgent
+                        ? const Color(0xFF991B1B)
+                        : const Color(0xFF1E40AF),
                   ),
                 ),
               ),
               if (urgent)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFEE2E2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Text(
                     'QUAN TRỌNG',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFDC2626)),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFDC2626),
+                    ),
                   ),
                 ),
             ],
@@ -977,7 +1096,11 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
           const SizedBox(height: 10),
           Text(
             content,
-            style: const TextStyle(fontSize: 14, height: 1.4, color: Color(0xFF1F2937)),
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.4,
+              color: Color(0xFF1F2937),
+            ),
           ),
           const SizedBox(height: 12),
           Row(
@@ -985,20 +1108,35 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.visibility_outlined, size: 14, color: AppColors.muted),
+                  const Icon(
+                    Icons.visibility_outlined,
+                    size: 14,
+                    color: AppColors.muted,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     '$readByCount/$totalMembers đã đọc',
-                    style: const TextStyle(fontSize: 12, color: AppColors.muted),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.muted,
+                    ),
                   ),
                 ],
               ),
               OutlinedButton.icon(
                 key: Key('broadcast_ack_${msg.id}'),
                 style: OutlinedButton.styleFrom(
-                  backgroundColor: isReadByMe ? const Color(0xFFDCFCE7) : Colors.white,
-                  foregroundColor: isReadByMe ? const Color(0xFF15803D) : AppColors.primary,
-                  side: BorderSide(color: isReadByMe ? const Color(0xFF86EFAC) : AppColors.line),
+                  backgroundColor: isReadByMe
+                      ? const Color(0xFFDCFCE7)
+                      : Colors.white,
+                  foregroundColor: isReadByMe
+                      ? const Color(0xFF15803D)
+                      : AppColors.primary,
+                  side: BorderSide(
+                    color: isReadByMe
+                        ? const Color(0xFF86EFAC)
+                        : AppColors.line,
+                  ),
                   visualDensity: VisualDensity.compact,
                 ),
                 onPressed: () {
@@ -1016,7 +1154,12 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                     ),
                   );
                 },
-                icon: Icon(isReadByMe ? Icons.check_circle_rounded : Icons.mark_email_read_rounded, size: 16),
+                icon: Icon(
+                  isReadByMe
+                      ? Icons.check_circle_rounded
+                      : Icons.mark_email_read_rounded,
+                  size: 16,
+                ),
                 label: Text(isReadByMe ? 'Đã đọc' : 'Tôi đã đọc'),
               ),
             ],
@@ -1053,7 +1196,11 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                   color: Color(0xFF16A34A),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.how_to_reg_rounded, color: Colors.white, size: 16),
+                child: const Icon(
+                  Icons.how_to_reg_rounded,
+                  color: Colors.white,
+                  size: 16,
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -1091,12 +1238,18 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
             children: [
               Text(
                 'Có mặt: $presentCount/$totalMembers thành viên',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF166534)),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF166534),
+                ),
               ),
               FilledButton.icon(
                 key: Key('roll_call_button_${msg.id}'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: isPresent ? const Color(0xFF15803D) : const Color(0xFF16A34A),
+                  backgroundColor: isPresent
+                      ? const Color(0xFF15803D)
+                      : const Color(0xFF16A34A),
                   visualDensity: VisualDensity.compact,
                 ),
                 onPressed: () {
@@ -1114,7 +1267,10 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                     ),
                   );
                 },
-                icon: Icon(isPresent ? Icons.check_circle : Icons.check, size: 16),
+                icon: Icon(
+                  isPresent ? Icons.check_circle : Icons.check,
+                  size: 16,
+                ),
                 label: Text(isPresent ? 'Đã có mặt' : 'Xác nhận có mặt'),
               ),
             ],
@@ -1159,7 +1315,11 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                   color: Color(0xFF0284C7),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 16),
+                child: const Icon(
+                  Icons.receipt_long_rounded,
+                  color: Colors.white,
+                  size: 16,
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -1178,10 +1338,17 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Tổng chi phí:', style: TextStyle(fontSize: 13, color: AppColors.muted)),
+              const Text(
+                'Tổng chi phí:',
+                style: TextStyle(fontSize: 13, color: AppColors.muted),
+              ),
               Text(
                 _formatCurrency(totalAmount),
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
               ),
             ],
           ),
@@ -1189,10 +1356,17 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Mỗi người:', style: TextStyle(fontSize: 13, color: AppColors.muted)),
+              const Text(
+                'Mỗi người:',
+                style: TextStyle(fontSize: 13, color: AppColors.muted),
+              ),
               Text(
                 _formatCurrency(perPersonAmount),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0284C7)),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0284C7),
+                ),
               ),
             ],
           ),
@@ -1217,11 +1391,18 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
               FilledButton.icon(
                 key: Key('open_vietqr_button_${msg.id}'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: isPaidByMe ? AppColors.success : AppColors.secondary,
+                  backgroundColor: isPaidByMe
+                      ? AppColors.success
+                      : AppColors.secondary,
                   visualDensity: VisualDensity.compact,
                 ),
                 onPressed: () => _showVietQrModal(meta),
-                icon: Icon(isPaidByMe ? Icons.check_circle : Icons.qr_code_scanner_rounded, size: 16),
+                icon: Icon(
+                  isPaidByMe
+                      ? Icons.check_circle
+                      : Icons.qr_code_scanner_rounded,
+                  size: 16,
+                ),
                 label: Text(isPaidByMe ? 'Đã trả • VietQR' : 'Xem VietQR'),
               ),
             ],
@@ -1234,7 +1415,8 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
   Widget _buildPollCard(ChatMessage msg) {
     final meta = msg.metadata;
     final question = meta['question'] as String? ?? 'Bình chọn';
-    final options = (meta['options'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+    final options =
+        (meta['options'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
     final myVoteIndex = meta['myVoteIndex'] as int? ?? -1;
 
     int totalVotes = 0;
@@ -1261,7 +1443,11 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                   color: Color(0xFF7E22CE),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.poll_rounded, color: Colors.white, size: 16),
+                child: const Icon(
+                  Icons.poll_rounded,
+                  color: Colors.white,
+                  size: 16,
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -1296,7 +1482,8 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                     meta['myVoteIndex'] = -1;
                   } else {
                     if (myVoteIndex >= 0 && myVoteIndex < options.length) {
-                      options[myVoteIndex]['votes'] = (options[myVoteIndex]['votes'] as int) - 1;
+                      options[myVoteIndex]['votes'] =
+                          (options[myVoteIndex]['votes'] as int) - 1;
                     }
                     opt['votes'] = votes + 1;
                     meta['myVoteIndex'] = idx;
@@ -1305,12 +1492,17 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
               },
               child: Container(
                 margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: isMyVote ? const Color(0xFFF3E8FF) : Colors.white,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: isMyVote ? const Color(0xFFA855F7) : const Color(0xFFE2E8F0),
+                    color: isMyVote
+                        ? const Color(0xFFA855F7)
+                        : const Color(0xFFE2E8F0),
                     width: isMyVote ? 1.5 : 1.0,
                   ),
                 ),
@@ -1320,9 +1512,13 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                     Row(
                       children: [
                         Icon(
-                          isMyVote ? Icons.radio_button_checked : Icons.radio_button_off,
+                          isMyVote
+                              ? Icons.radio_button_checked
+                              : Icons.radio_button_off,
                           size: 16,
-                          color: isMyVote ? const Color(0xFF7E22CE) : AppColors.muted,
+                          color: isMyVote
+                              ? const Color(0xFF7E22CE)
+                              : AppColors.muted,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -1330,14 +1526,21 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                             text,
                             style: TextStyle(
                               fontSize: 13,
-                              fontWeight: isMyVote ? FontWeight.bold : FontWeight.normal,
-                              color: isMyVote ? const Color(0xFF581C87) : Colors.black87,
+                              fontWeight: isMyVote
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: isMyVote
+                                  ? const Color(0xFF581C87)
+                                  : Colors.black87,
                             ),
                           ),
                         ),
                         Text(
                           '$votes phiếu',
-                          style: const TextStyle(fontSize: 12, color: AppColors.muted),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.muted,
+                          ),
                         ),
                       ],
                     ),
@@ -1389,7 +1592,9 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Column(
-        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: isMe
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           if (!isMe)
             Padding(
@@ -1402,13 +1607,18 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: msg.senderRole == 'guide' ? AppColors.secondary : AppColors.ink,
+                      color: msg.senderRole == 'guide'
+                          ? AppColors.secondary
+                          : AppColors.ink,
                     ),
                   ),
                   if (msg.senderRole == 'guide') ...[
                     const SizedBox(width: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 1,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primarySoft,
                         borderRadius: BorderRadius.circular(4),
@@ -1485,7 +1695,9 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
             final title = (meta['title'] as String? ?? '').toLowerCase();
             final content = (meta['content'] as String? ?? '').toLowerCase();
             final question = (meta['question'] as String? ?? '').toLowerCase();
-            return title.contains(query) || content.contains(query) || question.contains(query);
+            return title.contains(query) ||
+                content.contains(query) ||
+                question.contains(query);
           }).toList();
 
     return Scaffold(
@@ -1499,7 +1711,11 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
             CircleAvatar(
               radius: 18,
               backgroundColor: AppColors.primarySoft,
-              child: const Icon(Icons.groups_rounded, color: AppColors.secondary, size: 20),
+              child: const Icon(
+                Icons.groups_rounded,
+                color: AppColors.secondary,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -1589,12 +1805,20 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
               color: const Color(0xFFFEF3C7),
               child: Row(
                 children: [
-                  const Icon(Icons.push_pin_rounded, color: Color(0xFFD97706), size: 16),
+                  const Icon(
+                    Icons.push_pin_rounded,
+                    color: Color(0xFFD97706),
+                    size: 16,
+                  ),
                   const SizedBox(width: 8),
                   const Expanded(
                     child: Text(
                       'Ghim: Tập trung lúc 07:30 sáng mai tại sảnh KS Mường Thanh.',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF92400E)),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF92400E),
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1606,7 +1830,11 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                         _isPinnedDismissed = true;
                       });
                     },
-                    child: const Icon(Icons.close, size: 16, color: Color(0xFF92400E)),
+                    child: const Icon(
+                      Icons.close,
+                      size: 16,
+                      color: Color(0xFF92400E),
+                    ),
                   ),
                 ],
               ),
@@ -1639,7 +1867,11 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                 children: [
                   IconButton(
                     key: const Key('open_action_drawer_button'),
-                    icon: const Icon(Icons.add_circle_rounded, color: AppColors.primary, size: 28),
+                    icon: const Icon(
+                      Icons.add_circle_rounded,
+                      color: AppColors.primary,
+                      size: 28,
+                    ),
                     onPressed: _openActionDrawer,
                   ),
                   Expanded(
@@ -1652,7 +1884,10 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                         hintText: 'Nhập tin nhắn...',
                         filled: true,
                         fillColor: const Color(0xFFF8FAFC),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
                           borderSide: BorderSide.none,
@@ -1663,7 +1898,10 @@ class _TravelGroupChatPageState extends State<TravelGroupChatPage> {
                   const SizedBox(width: 8),
                   IconButton(
                     key: const Key('send_message_button'),
-                    icon: const Icon(Icons.send_rounded, color: AppColors.secondary),
+                    icon: const Icon(
+                      Icons.send_rounded,
+                      color: AppColors.secondary,
+                    ),
                     onPressed: _sendMessage,
                   ),
                 ],

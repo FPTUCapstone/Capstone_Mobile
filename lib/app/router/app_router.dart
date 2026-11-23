@@ -560,10 +560,7 @@ GoRouter createAppRouter(
           }
           final extra = state.extra;
           final group = extra is TravelGroup ? extra : null;
-          return TravelGroupChatPage(
-            groupId: groupId,
-            group: group,
-          );
+          return TravelGroupChatPage(groupId: groupId, group: group);
         },
       ),
       GoRoute(

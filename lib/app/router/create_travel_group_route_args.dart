@@ -14,5 +14,10 @@ final class CreateTravelGroupRouteArgs extends Equatable {
   final String? dateRange;
 
   @override
-  List<Object?> get props => [itineraryId, itineraryTitle, destination, dateRange];
+  List<Object?> get props => [
+    itineraryId,
+    itineraryTitle,
+    destination,
+    dateRange,
+  ];
 }

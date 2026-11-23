@@ -29,17 +29,21 @@ void main() {
   }
 
   group('TravelGroupChatPage Widget Tests', () {
-    testWidgets('renders group name, active members count, and pinned announcement', (
-      tester,
-    ) async {
-      configureViewport(tester);
-      await tester.pumpWidget(createChatWidget());
-      await tester.pumpAndSettle();
+    testWidgets(
+      'renders group name, active members count, and pinned announcement',
+      (tester) async {
+        configureViewport(tester);
+        await tester.pumpWidget(createChatWidget());
+        await tester.pumpAndSettle();
 
-      expect(find.text('Đoàn Khám Phá Đà Nẵng - Hội An'), findsOneWidget);
-      expect(find.text('4 thành viên • Đang hoạt động'), findsOneWidget);
-      expect(find.textContaining('Ghim: Tập trung lúc 07:30'), findsOneWidget);
-    });
+        expect(find.text('Đoàn Khám Phá Đà Nẵng - Hội An'), findsOneWidget);
+        expect(find.text('4 thành viên • Đang hoạt động'), findsOneWidget);
+        expect(
+          find.textContaining('Ghim: Tập trung lúc 07:30'),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets('user can dismiss pinned announcement', (tester) async {
       configureViewport(tester);
@@ -53,25 +57,26 @@ void main() {
       expect(find.byKey(const Key('dismiss_pinned_button')), findsNothing);
     });
 
-    testWidgets('displays Tour Guide broadcast card and allows acknowledgment', (
-      tester,
-    ) async {
-      configureViewport(tester);
-      await tester.pumpWidget(createChatWidget());
-      await tester.pumpAndSettle();
+    testWidgets(
+      'displays Tour Guide broadcast card and allows acknowledgment',
+      (tester) async {
+        configureViewport(tester);
+        await tester.pumpWidget(createChatWidget());
+        await tester.pumpAndSettle();
 
-      expect(find.text('THÔNG BÁO TẬP TRUNG SÁNG MAI'), findsOneWidget);
-      expect(find.text('QUAN TRỌNG'), findsOneWidget);
-      expect(find.text('3/4 đã đọc'), findsOneWidget);
+        expect(find.text('THÔNG BÁO TẬP TRUNG SÁNG MAI'), findsOneWidget);
+        expect(find.text('QUAN TRỌNG'), findsOneWidget);
+        expect(find.text('3/4 đã đọc'), findsOneWidget);
 
-      final ackBtn = find.byKey(const Key('broadcast_ack_msg-2'));
-      expect(ackBtn, findsOneWidget);
-      await tester.tap(ackBtn);
-      await tester.pumpAndSettle();
+        final ackBtn = find.byKey(const Key('broadcast_ack_msg-2'));
+        expect(ackBtn, findsOneWidget);
+        await tester.tap(ackBtn);
+        await tester.pumpAndSettle();
 
-      expect(find.text('4/4 đã đọc'), findsOneWidget);
-      expect(find.text('Đã đọc'), findsOneWidget);
-    });
+        expect(find.text('4/4 đã đọc'), findsOneWidget);
+        expect(find.text('Đã đọc'), findsOneWidget);
+      },
+    );
 
     testWidgets('displays Roll Call card and allows check-in', (tester) async {
       configureViewport(tester);
@@ -146,35 +151,36 @@ void main() {
       expect(find.text('THÔNG BÁO TẬP TRUNG SÁNG MAI'), findsNothing);
     });
 
-    testWidgets('opens VietQR modal from Split Bill card and toggles paid status', (
-      tester,
-    ) async {
-      configureViewport(tester);
-      await tester.pumpWidget(createChatWidget());
-      await tester.pumpAndSettle();
+    testWidgets(
+      'opens VietQR modal from Split Bill card and toggles paid status',
+      (tester) async {
+        configureViewport(tester);
+        await tester.pumpWidget(createChatWidget());
+        await tester.pumpAndSettle();
 
-      final openQrBtn = find.byKey(const Key('open_vietqr_button_msg-6'));
-      expect(openQrBtn, findsOneWidget);
+        final openQrBtn = find.byKey(const Key('open_vietqr_button_msg-6'));
+        expect(openQrBtn, findsOneWidget);
 
-      await tester.tap(openQrBtn);
-      await tester.pumpAndSettle();
+        await tester.tap(openQrBtn);
+        await tester.pumpAndSettle();
 
-      expect(find.text('Thanh toán qua VietQR'), findsOneWidget);
-      expect(find.text('MB Bank'), findsOneWidget);
-      expect(find.text('0987654321'), findsOneWidget);
-      expect(find.text('LE THI HUONG'), findsOneWidget);
-      expect(find.text('150.000 đ'), findsNWidgets(2));
+        expect(find.text('Thanh toán qua VietQR'), findsOneWidget);
+        expect(find.text('MB Bank'), findsOneWidget);
+        expect(find.text('0987654321'), findsOneWidget);
+        expect(find.text('LE THI HUONG'), findsOneWidget);
+        expect(find.text('150.000 đ'), findsNWidgets(2));
 
-      // Toggle paid status
-      final togglePaidBtn = find.byKey(const Key('toggle_paid_button'));
-      expect(togglePaidBtn, findsOneWidget);
-      await tester.tap(togglePaidBtn);
-      await tester.pumpAndSettle();
+        // Toggle paid status
+        final togglePaidBtn = find.byKey(const Key('toggle_paid_button'));
+        expect(togglePaidBtn, findsOneWidget);
+        await tester.tap(togglePaidBtn);
+        await tester.pumpAndSettle();
 
-      // Modal closed and status updated
-      expect(find.text('Đã trả • VietQR'), findsOneWidget);
-      expect(find.text('Đã thanh toán: 3/4'), findsOneWidget);
-    });
+        // Modal closed and status updated
+        expect(find.text('Đã trả • VietQR'), findsOneWidget);
+        expect(find.text('Đã thanh toán: 3/4'), findsOneWidget);
+      },
+    );
 
     testWidgets('opens action drawer and creates a new poll with validation', (
       tester,
@@ -224,10 +230,7 @@ void main() {
       await tester.tap(find.byKey(const Key('submit_poll_button')));
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Chọn phương tiện đi Bà Nà Hills?'),
-        findsOneWidget,
-      );
+      expect(find.text('Chọn phương tiện đi Bà Nà Hills?'), findsOneWidget);
       expect(find.text('Thuê xe du lịch 7 chỗ'), findsOneWidget);
     });
   });
