@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/core/constants/app_constants.dart';
 import 'package:trip_mate_mobile/core/error/exceptions.dart';
+import 'package:trip_mate_mobile/core/network/network_info.dart';
 import 'package:trip_mate_mobile/core/push/push_device_coordinator.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/auth_credentials.dart';
@@ -11,6 +12,7 @@ import 'package:trip_mate_mobile/features/auth/domain/entities/tour_operator_app
 import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
 import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:trip_mate_mobile/features/auth/domain/services/auth_identity_service.dart';
+import 'package:trip_mate_mobile/features/auth/domain/services/offline_access_identity.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
 
 enum _MobileRoleSupport { supported, administratorUnsupported, unknown }
@@ -21,12 +23,34 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     this._secureStorage,
     this._firebaseAuthService,
     this._pushDeviceLifecycle,
-  ]) : super(const AuthSessionState.unauthenticated());
+    this._offlineIdentity,
+    this._networkInfo,
+  ]) : super(const AuthSessionState.unauthenticated()) {
+    _networkSubscription = _networkInfo?.onConnectivityChanged.listen(
+      (connected) {
+        if (connected &&
+            state.isOfflineReadOnly &&
+            !isClosed &&
+            state.operation != AuthSessionOperation.signOut) {
+          unawaited(_restoreAfterReconnect());
+        }
+      },
+      onError: (Object error) {
+        // Connectivity observation cannot revoke the local read capability.
+        // Keep the current safe state; explicit sign-in remains available.
+      },
+    );
+  }
 
   final AuthRepository? _authRepository;
   final SecureStorageService? _secureStorage;
   final AuthIdentityService? _firebaseAuthService;
   final PushDeviceLifecycle? _pushDeviceLifecycle;
+  final OfflineAccessIdentity? _offlineIdentity;
+  final NetworkInfo? _networkInfo;
+  StreamSubscription<bool>? _networkSubscription;
+  int _sessionRevision = 0;
+  bool _restoreInProgress = false;
   bool _verificationActionInProgress = false;
 
   Future<String?> get currentFirebaseUserEmail async =>
@@ -37,19 +61,27 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
   /// never redirects early. A remote failure is recorded but never prevents
   /// the M7 local invalidation pipeline from running.
   Future<void> signOut() async {
-    if (!state.isAuthenticated) return;
+    if (!state.isAuthenticated && !state.isOfflineReadOnly) return;
     // The state's own operation marker is the duplicate guard: it is set
     // synchronously, before the first await, so a second intent cannot start.
     if (state.operation == AuthSessionOperation.signOut) return;
+    _sessionRevision++;
 
     final role = state.role!;
     final applicationStatus = state.applicationStatus;
+    final offlineOwnerId = state.offlineOwnerId;
+    final offlineOnly = state.isOfflineReadOnly;
     emit(
-      AuthSessionState.authenticated(
-        role,
-        applicationStatus: applicationStatus,
-        operation: AuthSessionOperation.signOut,
-      ),
+      offlineOnly
+          ? AuthSessionState.offlineReadOnly(
+              offlineOwnerId!,
+              operation: AuthSessionOperation.signOut,
+            )
+          : AuthSessionState.authenticated(
+              role,
+              applicationStatus: applicationStatus,
+              operation: AuthSessionOperation.signOut,
+            ),
     );
 
     await _pushDeviceLifecycle?.onBeforeLogout();
@@ -60,8 +92,8 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
         ? null
         : await _readRefreshTokenQuietly(storage);
 
-    var remoteFailed = repository == null;
-    if (repository != null) {
+    var remoteFailed = !offlineOnly && repository == null;
+    if (repository != null && !offlineOnly) {
       try {
         await repository.logout(refreshToken);
       } on NetworkException {
@@ -92,13 +124,18 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
       // false in this state, so only the local-cleanup copy is emitted and the
       // user may retry; no storage or remote detail is exposed.
       emit(
-        AuthSessionState.authenticated(
-          role,
-          applicationStatus: applicationStatus,
-          errorMessage: signOutLocalCleanupFailureMessage,
-        ),
+        offlineOnly
+            ? AuthSessionState.offlineReadOnly(
+                offlineOwnerId!,
+                errorMessage: signOutLocalCleanupFailureMessage,
+              )
+            : AuthSessionState.authenticated(
+                role,
+                applicationStatus: applicationStatus,
+                errorMessage: signOutLocalCleanupFailureMessage,
+              ),
       );
-      unawaited(_pushDeviceLifecycle?.onAuthenticated());
+      if (!offlineOnly) unawaited(_pushDeviceLifecycle?.onAuthenticated());
       return;
     }
 
@@ -134,9 +171,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     if (storage == null) return false;
 
     for (var attempt = 0; attempt < 2; attempt++) {
-      await _attemptLocalInvalidation(storage);
+      final offlineGateDisabled = await _attemptLocalInvalidation(storage);
       final restorable = await _isPersistedSessionRestorable(storage);
-      if (restorable == false) return true;
+      if (restorable == false && offlineGateDisabled) return true;
     }
     return false;
   }
@@ -144,9 +181,11 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
   /// One invalidation attempt: invalidate the restore gate first, then clean
   /// every session key independently — a failing key must never stop the
   /// remaining best-effort deletions.
-  Future<void> _attemptLocalInvalidation(
+  Future<bool> _attemptLocalInvalidation(
     SecureStorageService storage,
   ) => storage.withSessionLock(() async {
+    final offlineGateDisabled =
+        await _offlineIdentity?.disableForLogout() ?? true;
     await _invalidateRestoreGate(storage);
     for (final key in [
       AppConstants.accessTokenKey,
@@ -161,6 +200,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
         // Continue with the remaining keys; verification decides fail-closed.
       }
     }
+    return offlineGateDisabled;
   });
 
   /// Makes `keep_signed_in == 'true'` unsatisfiable using the existing storage
@@ -196,7 +236,8 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
         refreshToken: refreshToken,
         storedRole: await storage.read(AppConstants.sessionRoleKey),
       );
-      return role != null;
+      final offlineOwner = await _offlineIdentity?.currentOwnerId();
+      return role != null || offlineOwner != null;
     } catch (_) {
       return null;
     }
@@ -225,6 +266,33 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
   }
 
   Future<void> restoreSession() async {
+    if (_restoreInProgress ||
+        isClosed ||
+        state.operation == AuthSessionOperation.signOut) {
+      return;
+    }
+    _restoreInProgress = true;
+    final revision = _sessionRevision;
+    try {
+      await _restoreSession(revision);
+    } finally {
+      _restoreInProgress = false;
+    }
+  }
+
+  bool _currentRestore(int revision) =>
+      !isClosed && revision == _sessionRevision;
+
+  Future<void> _restoreAfterReconnect() async {
+    try {
+      await restoreSession();
+    } catch (_) {
+      // A background restoration failure preserves read-only local access;
+      // the explicit Sign In action remains available for recovery.
+    }
+  }
+
+  Future<void> _restoreSession(int revision) async {
     final storage = _secureStorage;
     if (storage == null) return;
 
@@ -232,12 +300,61 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     final accessToken = await storage.read(AppConstants.accessTokenKey);
     final refreshToken = await storage.read(AppConstants.refreshTokenKey);
     final storedRole = await storage.read(AppConstants.sessionRoleKey);
+    if (!_currentRestore(revision)) return;
     final role = _restorableRole(
       keepSignedIn: keepSignedIn,
       accessToken: accessToken,
       refreshToken: refreshToken,
       storedRole: storedRole,
     );
+
+    final offlineIdentity = _offlineIdentity;
+    final tokenOwner = offlineIdentity?.tokenOwnerId(accessToken);
+    if (role == UserRole.traveler &&
+        tokenOwner != null &&
+        await offlineIdentity!.currentOwnerId() == null) {
+      await storage.withSessionLock(() async {
+        if (!_currentRestore(revision) ||
+            await storage.read(AppConstants.accessTokenKey) != accessToken) {
+          return;
+        }
+        await offlineIdentity.enableForSession(
+          userId: tokenOwner,
+          accessToken: accessToken!,
+          isTraveler: true,
+        );
+      });
+    }
+    final offlineOwner = await offlineIdentity?.currentOwnerId();
+    if (!_currentRestore(revision)) return;
+    if (offlineOwner != null) {
+      if (role == null) {
+        // Keep-signed-in=false does not become a renewable online session.
+        await storage.withSessionLock(() async {
+          if (!_currentRestore(revision)) return;
+          await _clearSessionKeysBestEffort(storage);
+          if (_currentRestore(revision)) {
+            emit(AuthSessionState.offlineReadOnly(offlineOwner));
+          }
+        });
+        return;
+      }
+      if (offlineIdentity!.tokenHasExpired(accessToken)) {
+        var connected = false;
+        try {
+          connected = await _networkInfo?.isConnected ?? false;
+        } catch (_) {
+          /* Local read remains available. */
+        }
+        if (!_currentRestore(revision)) return;
+        if (!connected) {
+          // Expiry while offline does not invalidate a valid refresh token.
+          // The normal interceptor may renew it after connectivity returns.
+          emit(AuthSessionState.offlineReadOnly(offlineOwner));
+          return;
+        }
+      }
+    }
 
     if (role != null) {
       // Provisional restore: replays the backend-issued identity persisted at
@@ -246,6 +363,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
       final storedApplicationStatus = await storage.read(
         AppConstants.sessionApplicationStatusKey,
       );
+      if (!_currentRestore(revision)) return;
       emit(
         AuthSessionState.authenticated(
           role,
@@ -258,7 +376,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
       return;
     }
 
-    await _clearStoredSessionBestEffort(storage);
+    await storage.withSessionLock(() async {
+      if (_currentRestore(revision)) await _clearSessionKeysBestEffort(storage);
+    });
   }
 
   /// Session-expiry hook for the network layer: an authenticated (non-auth-
@@ -272,8 +392,14 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     if (storage != null) {
       await storage.withSessionLock(() async {
         if (isCurrent != null && !await isCurrent()) return;
-        emit(const AuthSessionState.unauthenticated());
+        _sessionRevision++;
         await _clearSessionKeysBestEffort(storage);
+        final owner = await _offlineIdentity?.ownerWhileSessionLocked();
+        emit(
+          owner == null
+              ? const AuthSessionState.unauthenticated()
+              : AuthSessionState.offlineReadOnly(owner),
+        );
         invalidated = true;
       });
     } else if (isCurrent == null || await isCurrent()) {
@@ -323,6 +449,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     required String password,
     bool keepSignedIn = true,
   }) async {
+    _sessionRevision++;
     emit(const AuthSessionState.loading());
     final repository = _authRepository;
     final storage = _secureStorage;
@@ -345,7 +472,14 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     } on ServerException catch (error) {
       if (error.statusCode == 403 &&
           error.code == 'auth.admin_mobile_sign_in_disabled') {
-        await _clearStoredSessionBestEffort(storage);
+        if (!await _clearStoredSession(storage)) {
+          emit(
+            const AuthSessionState.failure(
+              previousSessionCleanupFailureMessage,
+            ),
+          );
+          return;
+        }
         emit(const AuthSessionState.failure(administratorWebOnlyMessage));
         await _bestEffortProviderSignOut();
         return;
@@ -371,6 +505,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
       return;
     }
 
+    _sessionRevision++;
     emit(const AuthSessionState.loading());
     try {
       final firebaseIdToken = await firebaseAuth.signInWithGoogle();
@@ -387,7 +522,14 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     } on AppException catch (error) {
       if (error is ServerException &&
           error.code == 'auth.admin_google_sign_in_disabled') {
-        await _clearStoredSession(storage);
+        if (!await _clearStoredSession(storage)) {
+          emit(
+            const AuthSessionState.failure(
+              previousSessionCleanupFailureMessage,
+            ),
+          );
+          return;
+        }
         emit(const AuthSessionState.failure(administratorWebOnlyMessage));
         await _bestEffortProviderSignOut();
         return;
@@ -457,6 +599,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     }
 
     _verificationActionInProgress = true;
+    _sessionRevision++;
     emit(
       const AuthSessionState.loading(
         operation: AuthSessionOperation.verifyEmail,
@@ -504,7 +647,14 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
   }) async {
     switch (_classifyRole(response.role)) {
       case _MobileRoleSupport.administratorUnsupported:
-        await _clearStoredSession(storage);
+        if (!await _clearStoredSession(storage)) {
+          emit(
+            const AuthSessionState.failure(
+              previousSessionCleanupFailureMessage,
+            ),
+          );
+          return false;
+        }
         emit(const AuthSessionState.failure(administratorWebOnlyMessage));
         await _bestEffortProviderSignOut();
         return false;
@@ -545,6 +695,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
   static const administratorWebOnlyMessage =
       'Administrator accounts are supported on Web only.';
 
+  static const previousSessionCleanupFailureMessage =
+      'Unable to clear the previous account. Please sign out before switching accounts.';
+
   static const signOutRemoteFailureMessage =
       'You\'re signed out on this device, but we couldn\'t complete '
       'server-side sign-out.';
@@ -569,6 +722,13 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     required UserRole role,
     bool keepSignedIn = true,
   }) => storage.withSessionLock(() async {
+    // A new accepted session replaces the local capability before credentials
+    // become observable, so a different account can never inherit cached data.
+    await _offlineIdentity?.enableForSession(
+      userId: response.userId,
+      accessToken: response.accessToken,
+      isTraveler: role == UserRole.traveler,
+    );
     await storage.write(AppConstants.accessTokenKey, response.accessToken);
     await storage.write(AppConstants.refreshTokenKey, response.refreshToken);
     await storage.write(AppConstants.sessionRoleKey, role.name);
@@ -586,17 +746,20 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     await storage.write(AppConstants.keepSignedInKey, keepSignedIn.toString());
   });
 
-  Future<void> _clearStoredSession(SecureStorageService storage) =>
+  Future<bool> _clearStoredSession(SecureStorageService storage) =>
       storage.withSessionLock(() async {
-        await storage.delete(AppConstants.accessTokenKey);
-        await storage.delete(AppConstants.refreshTokenKey);
-        await storage.delete(AppConstants.sessionRoleKey);
-        await storage.delete(AppConstants.sessionApplicationStatusKey);
-        await storage.delete(AppConstants.keepSignedInKey);
+        if (!(await _offlineIdentity?.disableForLogout() ?? true)) return false;
+        try {
+          await storage.delete(AppConstants.accessTokenKey);
+          await storage.delete(AppConstants.refreshTokenKey);
+          await storage.delete(AppConstants.sessionRoleKey);
+          await storage.delete(AppConstants.sessionApplicationStatusKey);
+          await storage.delete(AppConstants.keepSignedInKey);
+          return true;
+        } catch (_) {
+          return false;
+        }
       });
-
-  Future<void> _clearStoredSessionBestEffort(SecureStorageService storage) =>
-      storage.withSessionLock(() => _clearSessionKeysBestEffort(storage));
 
   Future<void> _clearSessionKeysBestEffort(SecureStorageService storage) async {
     for (final key in [
@@ -617,6 +780,13 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
 
   // Role classification is handled by _establishSession/_classifyRole; there is
   // intentionally no fallback that maps an unknown role to Traveler.
+
+  @override
+  Future<void> close() async {
+    _sessionRevision++;
+    await _networkSubscription?.cancel();
+    await super.close();
+  }
 
   String _identityVerificationMessage(
     AuthIdentityFailure failure, {

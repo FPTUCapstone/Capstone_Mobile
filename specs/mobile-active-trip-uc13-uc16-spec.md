@@ -1,6 +1,12 @@
 # Specification: Mobile-Only Active Trip Experience
 ## UC-13 / UC-14 / UC-15 / UC-16
 
+> UC-16 update (2026-11-22): the UC-16 inventory, integration assumptions and
+> section 10 below are historical. The approved current contract is
+> [UC-16-download-offline-map-itinerary-spec.md](UC-16-download-offline-map-itinerary-spec.md),
+> with actual implementation/verification results in its companion plan. This
+> supersession does not change the scope or status of UC-13, UC-14 or UC-15.
+
 ---
 
 ### 1. Scope
@@ -44,7 +50,7 @@ The current mobile repository contains the following baseline use cases:
 - **UC-12 (Explore Points of Interest)**: Implemented (`ExplorePoiPage`, `PoiDetailPage`, `PoiMapPreview`).
 - **UC-17 to UC-19, UC-23 (Travel Groups)**: Implemented for group creation, QR/code invitation, read-only member lists, and group joining.
 - **UC-13, UC-14, UC-15**: **NOT_STARTED** across Presentation, Domain, and Data layers.
-- **UC-16**: **PLACEHOLDER** visual row in `TravelerSettingsPage` (`Offline downloads: 248 MB`), but underlying business logic, download management, and trip-level packaging are **NOT_STARTED**.
+- **UC-16**: This historical placeholder inventory is superseded by the dedicated UC-16 spec and plan linked above; it must not be used as the current implementation status.
 
 ---
 

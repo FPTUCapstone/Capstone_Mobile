@@ -19,6 +19,12 @@ abstract final class RouteGuards {
         isBookingRefundRoute;
 
     if (!session.isAuthenticated) {
+      if (session.isOfflineReadOnly) {
+        if (_isOfflineReadRoute(location)) return null;
+        if (location == AppRoutes.splash || location == AppRoutes.guestHome) {
+          return AppRoutes.offlinePackages;
+        }
+      }
       if (isProtectedRoute) {
         return Uri(
           path: AppRoutes.login,
@@ -78,6 +84,12 @@ abstract final class RouteGuards {
 
   static bool _isInScope(String path, String prefix) =>
       path == prefix || path.startsWith('$prefix/');
+
+  static bool _isOfflineReadRoute(String location) =>
+      location == AppRoutes.offlinePackages ||
+      RegExp(
+        r'^/traveler/trips/[1-9]\d*/offline(?:/view|/map)?$',
+      ).hasMatch(location);
 
   static bool _isBookTourRoute(String path) =>
       RegExp(r'^/explore/tours/[^/]+/book$').hasMatch(path);

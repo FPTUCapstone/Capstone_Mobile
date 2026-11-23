@@ -104,6 +104,9 @@ import 'package:trip_mate_mobile/features/traveler/presentation/pages/invite_gro
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_detail_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_result_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/join_travel_group_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/offline_itinerary_map_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/offline_itinerary_page.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/offline_packages_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/offline_trip_package_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_details_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_members_page.dart';
@@ -656,6 +659,31 @@ GoRouter createAppRouter(
             title: title,
             isDemoMode: isDemo,
           );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.offlinePackages,
+        name: AppRouteNames.offlinePackages,
+        builder: (_, _) => const OfflinePackagesPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.offlineItineraryPattern,
+        name: AppRouteNames.offlineItinerary,
+        builder: (_, state) {
+          final id = _positiveId(state.pathParameters['itineraryId']);
+          return id == null
+              ? const ErrorView(message: 'Page not found.')
+              : OfflineItineraryPage(itineraryId: id);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.offlineMapPattern,
+        name: AppRouteNames.offlineMap,
+        builder: (_, state) {
+          final id = _positiveId(state.pathParameters['itineraryId']);
+          return id == null
+              ? const ErrorView(message: 'Page not found.')
+              : OfflineItineraryMapPage(itineraryId: id);
         },
       ),
       GoRoute(

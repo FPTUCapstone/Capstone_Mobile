@@ -259,6 +259,14 @@ final class _DetailContent extends StatelessWidget {
       title: detail.title ?? 'Lịch trình của bạn',
       actions: [
         IconButton(
+          tooltip: 'Tải để dùng offline',
+          icon: const Icon(Icons.download_for_offline_outlined),
+          onPressed: () => context.push(
+            AppRoutes.offlinePackage(detail.itineraryId),
+            extra: detail.title,
+          ),
+        ),
+        IconButton(
           tooltip: 'Ask about this itinerary',
           icon: const Icon(Icons.support_agent),
           onPressed: () => context.push(

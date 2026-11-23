@@ -6,6 +6,7 @@ enum AuthSessionStatus {
   unauthenticated,
   loading,
   authenticated,
+  offlineReadOnly,
   verificationEmailSent,
   failure,
 }
@@ -26,6 +27,7 @@ final class AuthSessionState extends Equatable {
     this.operation = AuthSessionOperation.none,
     this.startResendCooldown = false,
     this.successMessage,
+    this.offlineOwnerId,
   });
 
   const AuthSessionState.authenticated(
@@ -71,7 +73,20 @@ final class AuthSessionState extends Equatable {
         errorMessage: errorMessage,
       );
 
+  const AuthSessionState.offlineReadOnly(
+    int ownerId, {
+    String? errorMessage,
+    AuthSessionOperation operation = AuthSessionOperation.none,
+  }) : this._(
+         status: AuthSessionStatus.offlineReadOnly,
+         role: UserRole.traveler,
+         offlineOwnerId: ownerId,
+         errorMessage: errorMessage,
+         operation: operation,
+       );
+
   final String? errorMessage;
+  final int? offlineOwnerId;
   final AuthSessionOperation operation;
   final UserRole? role;
 
@@ -83,6 +98,8 @@ final class AuthSessionState extends Equatable {
   final String? successMessage;
 
   bool get isAuthenticated => status == AuthSessionStatus.authenticated;
+  bool get isOfflineReadOnly =>
+      status == AuthSessionStatus.offlineReadOnly && (offlineOwnerId ?? 0) > 0;
   bool get isLoading => status == AuthSessionStatus.loading;
   bool get isResendingVerificationEmail =>
       isLoading && operation == AuthSessionOperation.resendVerificationEmail;
@@ -96,5 +113,6 @@ final class AuthSessionState extends Equatable {
     operation,
     startResendCooldown,
     successMessage,
+    offlineOwnerId,
   ];
 }

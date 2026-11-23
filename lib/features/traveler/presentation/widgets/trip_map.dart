@@ -72,6 +72,7 @@ class TripMap extends StatefulWidget {
     this.camera = TripMapCamera.followPuck,
     this.initialFocus,
     this.showUserLocation = true,
+    this.styleUri,
     this.onMarkerTap,
     this.mapWidgetKey = const ValueKey('mapbox-navigation-map'),
   });
@@ -83,6 +84,7 @@ class TripMap extends StatefulWidget {
   /// Where the camera starts before the first fit or follow.
   final NavigationCoordinate? initialFocus;
   final bool showUserLocation;
+  final String? styleUri;
   final ValueChanged<int>? onMarkerTap;
 
   /// Key of the native map view; each kind of map uses its own.
@@ -175,6 +177,7 @@ class TripMapState extends State<TripMap> {
         (widget.markers.isEmpty ? null : widget.markers.first.coordinate);
     return MapWidget(
       key: widget.mapWidgetKey,
+      styleUri: widget.styleUri ?? MapboxStyles.STANDARD,
       viewport: CameraViewportState(
         center: focus == null ? null : _point(focus),
         zoom: widget.camera == TripMapCamera.followPuck ? 14 : 12,
