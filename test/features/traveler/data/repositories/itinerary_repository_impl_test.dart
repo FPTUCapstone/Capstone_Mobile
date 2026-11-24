@@ -222,6 +222,84 @@ void main() {
       ),
     );
   });
+
+  group('getWeatherTips', () {
+    final tipsBody = {
+      'weatherTips': {
+        'date': '2026-11-25',
+        'timeZoneId': 'Asia/Ho_Chi_Minh',
+        'forecastAtUtc': '2026-11-24T03:00:00Z',
+        'summary': {
+          'minTempC': 22,
+          'maxTempC': 31,
+          'maxRainProbabilityPercent': 60,
+          'maxUvIndex': 8,
+        },
+        'tips': [
+          {
+            'code': 'weather_tip.rain',
+            'severity': 'Info',
+            'text': 'Mang ô hoặc áo mưa',
+          },
+        ],
+      },
+    };
+
+    test(
+      'calls GET /api/v1/itineraries/42/weather-tips and returns tips',
+      () async {
+        final adapter = respond(tipsBody);
+
+        final tips = await repository.getWeatherTips(42);
+
+        expect(adapter.request?.method, 'GET');
+        expect(adapter.request?.path, '/api/v1/itineraries/42/weather-tips');
+        expect(tips?.dayAndMonth, '25/11');
+        expect(tips?.tips.single.text, 'Mang ô hoặc áo mưa');
+      },
+    );
+
+    test('returns null when the backend has no tips', () async {
+      respond({'weatherTips': null});
+
+      expect(await repository.getWeatherTips(42), isNull);
+    });
+
+    for (final status in [401, 403, 404, 500]) {
+      test('returns null for HTTP $status without throwing', () async {
+        respond({'title': 'no'}, statusCode: status);
+
+        expect(await repository.getWeatherTips(42), isNull);
+      });
+    }
+
+    test('returns null when the connection fails', () async {
+      dioClient.dio.httpClientAdapter = _FailingAdapter();
+
+      expect(await repository.getWeatherTips(42), isNull);
+    });
+
+    test('returns null for a malformed body', () async {
+      respond({
+        'weatherTips': {'date': '2026-11-25'},
+      });
+
+      expect(await repository.getWeatherTips(42), isNull);
+    });
+
+    test('returns null for a body that is not an object', () async {
+      respond(<Object>[]);
+
+      expect(await repository.getWeatherTips(42), isNull);
+    });
+
+    test('returns null for a non-positive id without a request', () async {
+      final adapter = respond(tipsBody);
+
+      expect(await repository.getWeatherTips(0), isNull);
+      expect(adapter.request, isNull);
+    });
+  });
 }
 
 Map<String, Object?> _detailJson({int itineraryId = 10, int version = 1}) => {
@@ -260,6 +338,21 @@ final class _RecordingAdapter implements HttpClientAdapter {
       },
     );
   }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+final class _FailingAdapter implements HttpClientAdapter {
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async => throw DioException.connectionError(
+    requestOptions: options,
+    reason: 'offline',
+  );
 
   @override
   void close({bool force = false}) {}

@@ -201,6 +201,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/repositories/in_app_no
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_list_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_suggestion_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_weather_tips_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/leave_travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigation_session_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/offline_trip_repository.dart';
@@ -774,6 +775,9 @@ Future<void> configureDependencies({AppConfig? config}) async {
       () => ItineraryRepositoryImpl(dioClient: serviceLocator()),
     )
     ..registerLazySingleton<ItineraryListRepository>(
+      () => ItineraryRepositoryImpl(dioClient: serviceLocator()),
+    )
+    ..registerLazySingleton<ItineraryWeatherTipsRepository>(
       () => ItineraryRepositoryImpl(dioClient: serviceLocator()),
     )
     ..registerLazySingleton<ItinerarySuggestionRepository>(

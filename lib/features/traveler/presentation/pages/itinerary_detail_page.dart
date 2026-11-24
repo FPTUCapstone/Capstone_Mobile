@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -15,11 +17,14 @@ import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_ro
 import 'package:trip_mate_mobile/features/traveler/domain/entities/pending_explanation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/external_review_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_suggestion_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_weather_tips_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/route_directions_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/itinerary_stops.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/itinerary_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/itinerary_detail_state.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/itinerary_route_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/itinerary_weather_tips_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/itinerary_weather_tips_state.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/helpers/itinerary_map_data.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/external_reviews_sheet.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/itinerary_cost_summary.dart';
@@ -27,6 +32,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/widgets/itinerar
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/itinerary_map.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/itinerary_stop_card.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/itinerary_suggestions_sheet.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/widgets/itinerary_weather_tips_card.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_map.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
@@ -38,6 +44,7 @@ final class ItineraryDetailPage extends StatefulWidget {
     this.pendingExplanation,
     this.suggestionRepository,
     this.reviewRepository,
+    this.weatherTipsRepository,
     this.directionsRepository,
     this.useMapbox,
     super.key,
@@ -61,6 +68,10 @@ final class ItineraryDetailPage extends StatefulWidget {
   final ItinerarySuggestionRepository? suggestionRepository;
   final ExternalReviewRepository? reviewRepository;
 
+  /// UC-10: where the weather tips come from; defaults to the registered one.
+  /// Without a repository the weather card is never shown.
+  final ItineraryWeatherTipsRepository? weatherTipsRepository;
+
   @override
   State<ItineraryDetailPage> createState() => _ItineraryDetailPageState();
 }
@@ -74,6 +85,11 @@ final class _ItineraryDetailPageState extends State<ItineraryDetailPage> {
   late final bool _useMapbox =
       widget.useMapbox ??
       (locateOptional<AppConfig>()?.mapboxAccessToken != null);
+  late final _weatherCubit = ItineraryWeatherTipsCubit(
+    repository:
+        widget.weatherTipsRepository ??
+        locateOptional<ItineraryWeatherTipsRepository>(),
+  );
   final _mapKey = GlobalKey<TripMapState>();
   final _rowKeys = <int, GlobalKey>{};
   int? _highlightedItemId;
@@ -100,6 +116,7 @@ final class _ItineraryDetailPageState extends State<ItineraryDetailPage> {
     // The undo snackbar must not outlive the page (its cubit closes with it).
     _messenger?.hideCurrentSnackBar();
     _routeCubit.close();
+    _weatherCubit.close();
     super.dispose();
   }
 
@@ -159,6 +176,9 @@ final class _ItineraryDetailPageState extends State<ItineraryDetailPage> {
           // Redraw the route for the new version (only changed legs are
           // routed again).
           _routeCubit.load(ItineraryMapData.fromDetail(detail).legs);
+          // UC-10: weather tips, asked for once the itinerary has loaded
+          // (the cubit ignores an id it already asked for).
+          unawaited(_weatherCubit.load(detail.itineraryId));
         }
         final messenger = ScaffoldMessenger.of(context);
         if (state.status == ItineraryDetailStatus.failure &&
@@ -213,6 +233,7 @@ final class _ItineraryDetailPageState extends State<ItineraryDetailPage> {
               widget.reviewRepository ??
               locateOptional<ExternalReviewRepository>(),
           map: _buildMap(state.detail!),
+          weatherCubit: _weatherCubit,
           highlightedItemId: _highlightedItemId,
           rowKeyOf: (itemId) => _rowKeys.putIfAbsent(itemId, GlobalKey.new),
           onSelectItem: _selectItem,
@@ -227,6 +248,7 @@ final class _DetailContent extends StatelessWidget {
     required this.state,
     required this.rowKeyOf,
     required this.onSelectItem,
+    required this.weatherCubit,
     this.suggestionRepository,
     this.reviewRepository,
     this.map,
@@ -237,6 +259,7 @@ final class _DetailContent extends StatelessWidget {
   final ItinerarySuggestionRepository? suggestionRepository;
   final ExternalReviewRepository? reviewRepository;
   final Widget? map;
+  final ItineraryWeatherTipsCubit weatherCubit;
   final int? highlightedItemId;
   final GlobalKey Function(int itemId) rowKeyOf;
   final ValueChanged<ItineraryDetailItem> onSelectItem;
@@ -325,6 +348,17 @@ final class _DetailContent extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
         ],
         ItineraryCostSummary(detail: detail),
+        BlocBuilder<ItineraryWeatherTipsCubit, ItineraryWeatherTipsState>(
+          bloc: weatherCubit,
+          builder: (context, weather) {
+            final tips = weather.tips;
+            if (tips == null) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.sm),
+              child: ItineraryWeatherTipsCard(tips: tips),
+            );
+          },
+        ),
         if (detail.items
                 .where((item) => item.itemKind == ItineraryItemKind.visit)
                 .length <=
