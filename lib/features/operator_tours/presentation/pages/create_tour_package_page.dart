@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/core/utils/calendar_date_format.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_detail.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_draft.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
@@ -911,7 +912,7 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
           Text('Submission note: ${detail!.submissionNote}'),
         if (detail?.submittedAtUtc != null)
           Text(
-            'Submitted at: ${detail!.submittedAtUtc!.toIso8601String()} (UTC)',
+            'Submitted at: ${formatCalendarDateTime(detail!.submittedAtUtc!.toUtc())} (UTC)',
           ),
         Text(
           state.detail?.status == TourPackageStatus.pending

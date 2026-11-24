@@ -1294,9 +1294,20 @@ void main() {
       expect(storage.values, isEmpty);
       expect(cubit.state, const AuthSessionState.unauthenticated());
       expect(firebase.signOutCalls, 1);
-      // A single attempt suffices: five distinct keys, no retry, no gate
-      // fallback write.
-      expect(storage.deleteCalls.length, 5);
+      // Each credential/routing field is removed once, including contract onboarding metadata.
+      expect(
+        storage.deleteCalls.keys,
+        unorderedEquals([
+          AppConstants.accessTokenKey,
+          AppConstants.refreshTokenKey,
+          AppConstants.sessionRoleKey,
+          AppConstants.sessionApplicationStatusKey,
+          AppConstants.keepSignedInKey,
+          AppConstants.sessionOnboardingStateKey,
+          AppConstants.sessionContractStatusKey,
+          AppConstants.sessionCurrentContractIdKey,
+        ]),
+      );
       expect(storage.writeCalls, isEmpty);
       await expectNoRestore(storage);
     });

@@ -8,6 +8,9 @@ final class SessionResponseDto extends Equatable {
     required this.refreshToken,
     this.role,
     this.applicationStatus,
+    this.onboardingState,
+    this.contractStatus,
+    this.currentContractId,
     this.email,
     this.fullName,
     this.accessTokenExpiresAtUtc,
@@ -39,6 +42,13 @@ final class SessionResponseDto extends Equatable {
       applicationStatus: json['applicationStatus'] is String
           ? json['applicationStatus'] as String
           : null,
+      onboardingState: json.containsKey('onboardingState')
+          ? (json['onboardingState'] is String
+                ? json['onboardingState'] as String
+                : 'Unresolved')
+          : null,
+      contractStatus: json['contractStatus'] as String?,
+      currentContractId: json['currentContractId'] as String?,
       accessToken: accessToken,
       refreshToken: refreshToken,
       email: json['email'] as String?,
@@ -51,6 +61,9 @@ final class SessionResponseDto extends Equatable {
   final String status;
   final String? role;
   final String? applicationStatus;
+  final String? onboardingState;
+  final String? contractStatus;
+  final String? currentContractId;
   final String accessToken;
   final String refreshToken;
   final String? email;
@@ -63,6 +76,9 @@ final class SessionResponseDto extends Equatable {
     status,
     role,
     applicationStatus,
+    onboardingState,
+    contractStatus,
+    currentContractId,
     accessToken,
     refreshToken,
     email,

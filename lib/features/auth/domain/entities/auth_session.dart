@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/operator_onboarding_state.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/tour_operator_application_status.dart';
 
 final class AuthSession extends Equatable {
@@ -9,6 +10,9 @@ final class AuthSession extends Equatable {
     required this.refreshToken,
     this.role,
     this.applicationStatus = TourOperatorApplicationStatus.unresolved,
+    this.onboardingState,
+    this.contractStatus,
+    this.currentContractId,
     this.email,
     this.fullName,
     this.accessTokenExpiresAtUtc,
@@ -18,6 +22,9 @@ final class AuthSession extends Equatable {
   final String status;
   final String? role;
   final TourOperatorApplicationStatus applicationStatus;
+  final OperatorOnboardingState? onboardingState;
+  final String? contractStatus;
+  final String? currentContractId;
   final String accessToken;
   final String refreshToken;
   final String? email;
@@ -30,6 +37,9 @@ final class AuthSession extends Equatable {
     status,
     role,
     applicationStatus,
+    onboardingState,
+    contractStatus,
+    currentContractId,
     accessToken,
     refreshToken,
     email,

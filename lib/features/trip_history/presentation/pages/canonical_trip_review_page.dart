@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/core/utils/calendar_date_format.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/canonical_trip_review.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/canonical_trip_review_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/canonical_trip_review_cubit.dart';
@@ -159,7 +160,7 @@ final class _CanonicalTripReviewPageState
                           child: ListTile(
                             title: Text(data.name),
                             subtitle: Text(
-                              '${data.bookingReference}\n${data.departureAtUtc.toLocal()}',
+                              '${data.bookingReference}\n${formatCalendarDateTime(data.departureAtUtc.toLocal())}',
                             ),
                           ),
                         ),
