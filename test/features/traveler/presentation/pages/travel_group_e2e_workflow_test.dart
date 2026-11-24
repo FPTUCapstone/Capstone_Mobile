@@ -1,337 +1,370 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_chat_page.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
+import 'package:trip_mate_mobile/features/messaging/domain/messaging.dart';
+import 'package:trip_mate_mobile/features/messaging/presentation/cubit/messenger_cubit.dart';
+import 'package:trip_mate_mobile/features/messaging/presentation/pages/messenger_page.dart';
 
 void main() {
-  const testGroup = TravelGroup(
-    id: 99,
-    name: 'Đoàn Du Lịch Đà Nẵng - Hội An 2026',
-    inviteCode: 'VIETQR88',
-    itineraryId: 101,
-  );
-
-  Widget createChatWidget({
-    TravelGroup? group,
-    int userId = 1,
-    String userName = 'Bạn',
+  Widget buildWorkflowPage({
+    required _WorkflowRepository repo,
+    required int userId,
+    UserRole role = UserRole.traveler,
+    int? initialGroupId,
   }) {
     return MaterialApp(
-      home: TravelGroupChatPage(
-        groupId: 99,
-        group: group ?? testGroup,
-        currentUserId: userId,
-        currentUserName: userName,
+      home: BlocProvider<MessengerCubit>(
+        create: (_) =>
+            MessengerCubit(MessagingUseCases(repo), _IdleRealtime(), userId)
+              ..initialize(initialGroupId: initialGroupId),
+        child: MessengerPage(
+          userId: userId,
+          userRole: role,
+          displayName: userId == 41 ? 'Host QA' : 'Member QA',
+          initialGroupId: initialGroupId,
+        ),
       ),
     );
   }
 
-  void configureViewport(WidgetTester tester) {
-    tester.view.physicalSize = const Size(800, 2000);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-  }
-
-  group('Travel Group Mobile - End-to-End Workflow & Exception Safety Tests', () {
+  group('Real Messenger Workflows (No Seed Data)', () {
     testWidgets(
-      'Workflow 1: Tour Guide Announcement & Roll Call Full Lifecycle',
+      'Broadcast ack, Roll call checkin, Poll vote/cancel, and Split bill payment persist through repository',
       (tester) async {
-        configureViewport(tester);
-        await tester.pumpWidget(createChatWidget());
-        await tester.pumpAndSettle();
+        tester.view.physicalSize = const Size(900, 1800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-        // Verify Header & Pinned announcement
-        expect(find.text('Đoàn Du Lịch Đà Nẵng - Hội An 2026'), findsOneWidget);
-        expect(
-          find.textContaining('Ghim: Tập trung lúc 07:30'),
-          findsOneWidget,
+        final repo = _WorkflowRepository();
+        await tester.pumpWidget(
+          buildWorkflowPage(repo: repo, userId: 42, initialGroupId: 10),
         );
-
-        // 1. Dismiss pinned announcement
-        expect(find.byKey(const Key('dismiss_pinned_button')), findsOneWidget);
-        await tester.tap(find.byKey(const Key('dismiss_pinned_button')));
-        await tester.pumpAndSettle();
-        expect(find.byKey(const Key('dismiss_pinned_button')), findsNothing);
-
-        // 2. Tour Guide Broadcast Card acknowledgment
-        expect(find.text('THÔNG BÁO TẬP TRUNG SÁNG MAI'), findsOneWidget);
-        expect(find.text('QUAN TRỌNG'), findsOneWidget);
-        expect(find.text('3/4 đã đọc'), findsOneWidget);
-
-        final ackBtn = find.byKey(const Key('broadcast_ack_msg-2'));
-        expect(ackBtn, findsOneWidget);
-        await tester.tap(ackBtn);
         await tester.pumpAndSettle();
 
-        expect(find.text('4/4 đã đọc'), findsOneWidget);
-        expect(find.text('Đã đọc'), findsOneWidget);
-        expect(
-          find.text('Bạn đã xác nhận đã đọc thông báo này.'),
-          findsOneWidget,
-        );
-
-        // 3. Roll Call attendance check-in
-        expect(find.text('Điểm danh: Tập trung xe buýt số 1'), findsOneWidget);
-        expect(find.text('Có mặt: 3/4 thành viên'), findsOneWidget);
-
-        final rollCallBtn = find.byKey(const Key('roll_call_button_msg-3'));
-        expect(rollCallBtn, findsOneWidget);
-        await tester.tap(rollCallBtn);
+        // Broadcast ack
+        await tester.tap(find.byKey(const Key('ack_101')));
         await tester.pumpAndSettle();
+        expect(find.text('Đã xác nhận đã đọc'), findsOneWidget);
+        expect(find.text('1 người đã xác nhận'), findsOneWidget);
 
-        expect(find.text('Có mặt: 4/4 thành viên'), findsOneWidget);
+        // Roll call checkin
+        await tester.tap(find.byKey(const Key('checkin_102')));
+        await tester.pumpAndSettle();
         expect(find.text('Đã có mặt'), findsOneWidget);
-        expect(find.text('Xác nhận điểm danh thành công!'), findsOneWidget);
+        expect(find.text('1 người đã có mặt'), findsOneWidget);
 
-        // 4. Idempotent double-tap check on Broadcast & Roll Call (never increments to 5/4)
-        await tester.tap(ackBtn);
+        // Poll vote option 0 and cancel
+        await tester.tap(find.byKey(const Key('vote_103_0')));
         await tester.pumpAndSettle();
-        expect(find.text('4/4 đã đọc'), findsOneWidget);
+        expect(find.text('1 phiếu'), findsOneWidget);
+        await tester.tap(find.byKey(const Key('vote_103_0')));
+        await tester.pumpAndSettle();
+        expect(find.text('0 phiếu'), findsNWidgets(2));
 
-        await tester.tap(rollCallBtn);
+        // Split bill payment confirmation
+        await tester.tap(find.byKey(const Key('mark_paid_104')));
         await tester.pumpAndSettle();
-        expect(find.text('Có mặt: 4/4 thành viên'), findsOneWidget);
+        expect(find.text('Đã chuyển tiền'), findsOneWidget);
       },
     );
 
-    testWidgets('Workflow 2: Expense Splitting, VietQR Modal & Payment Toggle', (
+    testWidgets('Direct message user search and send persists to repository', (
       tester,
     ) async {
-      configureViewport(tester);
-      await tester.pumpWidget(createChatWidget());
+      final repo = _WorkflowRepository();
+      await tester.pumpWidget(buildWorkflowPage(repo: repo, userId: 42));
       await tester.pumpAndSettle();
 
-      // Open Action Drawer
-      final drawerBtn = find.byKey(const Key('open_action_drawer_button'));
-      await tester.tap(drawerBtn);
+      await tester.tap(find.byKey(const Key('new_dm_button')));
       await tester.pumpAndSettle();
 
-      // Tap "Chia tiền hóa đơn (VietQR)"
-      final expenseAction = find.byKey(const Key('action_create_expense'));
-      expect(expenseAction, findsOneWidget);
-      await tester.tap(expenseAction);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Chia tiền chi tiêu (VietQR)'), findsOneWidget);
-
-      // Boundary validation test: Submit empty form
-      final submitExpenseBtn = find.byKey(const Key('submit_expense_button'));
-      await tester.tap(submitExpenseBtn);
-      await tester.pumpAndSettle();
-
-      expect(
-        find.text('Vui lòng nhập nội dung và số tiền hợp lệ (> 0).'),
-        findsOneWidget,
-      );
-
-      // Fill in valid expense
       await tester.enterText(
-        find.byKey(const Key('expense_title_input')),
-        'Tiền thuê tàu cano đi Cù Lao Chàm',
+        find.byKey(const Key('dm_user_search_input')),
+        'Host QA',
       );
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('dm_user_41')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tin nhắn riêng 1–1'), findsOneWidget);
       await tester.enterText(
-        find.byKey(const Key('expense_amount_input')),
-        '800000',
+        find.byKey(const Key('chat_draft_input')),
+        'Chào Host qua DM!',
       );
-      await tester.tap(submitExpenseBtn);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('chat_send_button')));
       await tester.pumpAndSettle();
 
-      // Verify Split Bill Card is rendered in chat
-      expect(find.text('Tiền thuê tàu cano đi Cù Lao Chàm'), findsOneWidget);
-      expect(find.text('800.000 đ'), findsOneWidget);
-      expect(find.text('200.000 đ'), findsOneWidget); // 800k / 4 = 200k
-
-      // Open VietQR modal for existing bill msg-6
-      final openQrBtn = find.byKey(const Key('open_vietqr_button_msg-6'));
-      await tester.tap(openQrBtn);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Thanh toán qua VietQR'), findsOneWidget);
-      expect(find.text('MB Bank'), findsOneWidget);
-      expect(find.text('0987654321'), findsOneWidget);
-      expect(find.text('LE THI HUONG'), findsOneWidget);
-
-      // Toggle paid status
-      final togglePaidBtn = find.byKey(const Key('toggle_paid_button'));
-      await tester.tap(togglePaidBtn);
-      await tester.pumpAndSettle();
-
-      // Modal closed and status updated (both new bill and msg-6 are now paid by user 1)
-      expect(find.text('Đã trả • VietQR'), findsNWidgets(2));
-    });
-
-    testWidgets('Workflow 3: Poll Creation, Multi-Option Voting & Retraction', (
-      tester,
-    ) async {
-      configureViewport(tester);
-      await tester.pumpWidget(createChatWidget());
-      await tester.pumpAndSettle();
-
-      // Open Action Drawer
-      await tester.tap(find.byKey(const Key('open_action_drawer_button')));
-      await tester.pumpAndSettle();
-
-      // Tap "Tạo bình chọn"
-      await tester.tap(find.byKey(const Key('action_create_poll')));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Tạo bình chọn mới'), findsOneWidget);
-
-      // Boundary validation test: Empty question
-      await tester.tap(find.byKey(const Key('submit_poll_button')));
-      await tester.pumpAndSettle();
-      expect(
-        find.text('Vui lòng nhập câu hỏi và ít nhất 2 lựa chọn.'),
-        findsOneWidget,
-      );
-
-      // Fill in valid poll
-      await tester.enterText(
-        find.byKey(const Key('poll_question_input')),
-        'Chọn điểm ngắm hoàng hôn Hội An?',
-      );
-      await tester.enterText(
-        find.byKey(const Key('poll_option_1_input')),
-        'Cà phê Roving Chillhouse',
-      );
-      await tester.enterText(
-        find.byKey(const Key('poll_option_2_input')),
-        'Chèo SUP trên sông Thu Bồn',
-      );
-      await tester.enterText(
-        find.byKey(const Key('poll_option_3_input')),
-        'Bãi biển An Bàng',
-      );
-
-      await tester.tap(find.byKey(const Key('submit_poll_button')));
-      await tester.pumpAndSettle();
-
-      // Verify poll is rendered
-      expect(find.text('Chọn điểm ngắm hoàng hôn Hội An?'), findsOneWidget);
-      expect(find.text('Cà phê Roving Chillhouse'), findsOneWidget);
-      expect(find.text('Chèo SUP trên sông Thu Bồn'), findsOneWidget);
-      expect(find.text('Bãi biển An Bàng'), findsOneWidget);
-
-      // Vote on option 0 of poll msg-7
-      final pollOpt0 = find.byKey(const Key('poll_option_msg-7_0'));
-      await tester.tap(pollOpt0);
-      await tester.pumpAndSettle();
-      expect(find.text('3 phiếu'), findsOneWidget);
-
-      // Retract vote by tapping again
-      await tester.tap(pollOpt0);
-      await tester.pumpAndSettle();
-      expect(find.text('2 phiếu'), findsOneWidget);
-    });
-
-    testWidgets('Workflow 4: Tour Guide Broadcast Creation via Drawer', (
-      tester,
-    ) async {
-      configureViewport(tester);
-      await tester.pumpWidget(createChatWidget());
-      await tester.pumpAndSettle();
-
-      // Open Action Drawer
-      await tester.tap(find.byKey(const Key('open_action_drawer_button')));
-      await tester.pumpAndSettle();
-
-      // Tap Broadcast option
-      await tester.tap(find.byKey(const Key('action_create_broadcast')));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Gửi thông báo khẩn (HDV)'), findsOneWidget);
-
-      // Boundary validation: Submit empty
-      await tester.tap(find.byKey(const Key('submit_broadcast_button')));
-      await tester.pumpAndSettle();
-      expect(
-        find.text('Vui lòng nhập đầy đủ tiêu đề và nội dung thông báo.'),
-        findsOneWidget,
-      );
-
-      // Fill in broadcast
-      await tester.enterText(
-        find.byKey(const Key('broadcast_title_input')),
-        'ĐỔI GIỜ XUẤT PHÁT ĐI BÀ NÀ',
-      );
-      await tester.enterText(
-        find.byKey(const Key('broadcast_content_input')),
-        'Xe sẽ đón lúc 07:00 thay vì 07:30 để tránh kẹt cáp treo.',
-      );
-      await tester.tap(find.byKey(const Key('submit_broadcast_button')));
-      await tester.pumpAndSettle();
-
-      // Verify new broadcast card appears
-      expect(find.text('ĐỔI GIỜ XUẤT PHÁT ĐI BÀ NÀ'), findsOneWidget);
-      expect(
-        find.text('Xe sẽ đón lúc 07:00 thay vì 07:30 để tránh kẹt cáp treo.'),
-        findsOneWidget,
-      );
-
-      // Create a Roll Call via Action Drawer
-      await tester.tap(find.byKey(const Key('open_action_drawer_button')));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byKey(const Key('action_create_roll_call')));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Tạo điểm danh đoàn'), findsOneWidget);
-      await tester.tap(find.text('Bắt đầu điểm danh'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Điểm danh xe di chuyển'), findsOneWidget);
-      expect(find.text('Có mặt: 1/4 thành viên'), findsOneWidget);
-    });
-
-    testWidgets('Workflow 5: Search & Exception Boundary Testing', (
-      tester,
-    ) async {
-      configureViewport(tester);
-      await tester.pumpWidget(createChatWidget());
-      await tester.pumpAndSettle();
-
-      // 1. Toggle Search
-      final toggleSearchBtn = find.byKey(const Key('toggle_search_button'));
-      await tester.tap(toggleSearchBtn);
-      await tester.pumpAndSettle();
-
-      final searchInput = find.byKey(const Key('chat_search_input'));
-      expect(searchInput, findsOneWidget);
-
-      // Search matching keyword
-      await tester.enterText(searchInput, 'Bánh tráng cuốn');
-      await tester.pumpAndSettle();
-
-      expect(
-        find.text('Tiền ăn trưa Bánh tráng cuốn thịt heo Đại Lộc'),
-        findsOneWidget,
-      );
-      expect(find.text('THÔNG BÁO TẬP TRUNG SÁNG MAI'), findsNothing);
-
-      // Search non-existent keyword (Exception safety test)
-      await tester.enterText(searchInput, 'tu_khoa_khong_ton_tai_999');
-      await tester.pumpAndSettle();
-
-      expect(find.text('Không tìm thấy tin nhắn nào'), findsOneWidget);
-
-      // Clear search
-      await tester.tap(toggleSearchBtn);
-      await tester.pumpAndSettle();
-      expect(find.text('THÔNG BÁO TẬP TRUNG SÁNG MAI'), findsOneWidget);
-
-      // 2. Empty text input submission (Exception safety test)
-      final textInput = find.byKey(const Key('chat_message_input'));
-      final sendBtn = find.byKey(const Key('send_message_button'));
-
-      await tester.enterText(textInput, '    ');
-      await tester.tap(sendBtn);
-      await tester.pumpAndSettle();
-
-      // Verify no blank message was added to the chat bubbles
-      expect(
-        find.byWidgetPredicate((w) => w is Text && w.data == '    '),
-        findsNothing,
-      );
+      expect(find.text('Chào Host qua DM!'), findsWidgets);
+      expect(repo._directMessages.last.content, 'Chào Host qua DM!');
     });
   });
+}
+
+class _IdleRealtime implements ChatRealtime {
+  @override
+  Stream<ChatInvalidation> get invalidations => const Stream.empty();
+  @override
+  Future<void> start() async {}
+  @override
+  Future<void> watchThread(ChatThreadRef? thread) async {}
+  @override
+  Future<void> stop() async {}
+  @override
+  Future<void> dispose() async {}
+}
+
+class _WorkflowRepository implements MessagingRepository {
+  static const _groupRef = ChatThreadRef(kind: ChatKind.group, id: 10);
+  static const _directRef = ChatThreadRef(kind: ChatKind.direct, id: 77);
+
+  final List<ChatMessage> _groupMessages = [
+    ChatMessage(
+      id: 101,
+      thread: _groupRef,
+      senderUserId: 41,
+      senderName: 'Host QA',
+      type: ChatMessageType.broadcast,
+      content: 'Tập trung 07:00',
+      createdAtUtc: DateTime.utc(2026, 11, 24, 7),
+      metadata: ChatMetadata(title: 'Thông báo sáng', content: 'Sảnh chính'),
+      groupState: ChatGroupState(
+        readByCount: 0,
+        isReadByMe: false,
+        presentCount: 0,
+        isPresentByMe: false,
+        paidUserIds: const [],
+        pollVoteCounts: const {},
+      ),
+    ),
+    ChatMessage(
+      id: 102,
+      thread: _groupRef,
+      senderUserId: 41,
+      senderName: 'Host QA',
+      type: ChatMessageType.rollCall,
+      content: 'Điểm danh xe 1',
+      createdAtUtc: DateTime.utc(2026, 11, 24, 7, 5),
+      metadata: ChatMetadata(title: 'Điểm danh xe 1'),
+      groupState: ChatGroupState(
+        readByCount: 0,
+        isReadByMe: false,
+        presentCount: 0,
+        isPresentByMe: false,
+        paidUserIds: const [],
+        pollVoteCounts: const {},
+      ),
+    ),
+    ChatMessage(
+      id: 103,
+      thread: _groupRef,
+      senderUserId: 41,
+      senderName: 'Host QA',
+      type: ChatMessageType.poll,
+      content: 'Ăn trưa ở đâu?',
+      createdAtUtc: DateTime.utc(2026, 11, 24, 7, 10),
+      metadata: ChatMetadata(pollOptions: const ['Bún chả', 'Mì Quảng']),
+      groupState: ChatGroupState(
+        readByCount: 0,
+        isReadByMe: false,
+        presentCount: 0,
+        isPresentByMe: false,
+        paidUserIds: const [],
+        pollVoteCounts: const {},
+      ),
+    ),
+    ChatMessage(
+      id: 104,
+      thread: _groupRef,
+      senderUserId: 41,
+      senderName: 'Host QA',
+      type: ChatMessageType.splitBill,
+      content: 'Vé tham quan',
+      createdAtUtc: DateTime.utc(2026, 11, 24, 7, 15),
+      metadata: ChatMetadata(
+        title: 'Vé tham quan',
+        totalAmountVnd: 200000,
+        bankCode: 'MBBank',
+        accountNumber: '1122334455',
+        accountName: 'HOST QA',
+        shares: const [
+          ChatExpenseShare(
+            userId: 41,
+            displayName: 'Host QA',
+            amountVnd: 100000,
+          ),
+          ChatExpenseShare(
+            userId: 42,
+            displayName: 'Member QA',
+            amountVnd: 100000,
+          ),
+        ],
+      ),
+      groupState: ChatGroupState(
+        readByCount: 0,
+        isReadByMe: false,
+        presentCount: 0,
+        isPresentByMe: false,
+        paidUserIds: const [41],
+        pollVoteCounts: const {},
+      ),
+    ),
+  ];
+
+  final List<ChatMessage> _directMessages = [];
+  int _nextId = 200;
+
+  @override
+  Future<ChatPage<ChatThread>> listThreads(
+    ChatKind kind, {
+    int? beforeId,
+  }) async {
+    if (kind == ChatKind.group) {
+      return ChatPage(
+        items: const [
+          ChatThread(
+            ref: _groupRef,
+            title: 'Nhóm QA Test',
+            unreadCount: 0,
+            hostUserId: 41,
+            memberCount: 2,
+          ),
+        ],
+        nextBeforeId: null,
+      );
+    }
+    return ChatPage(items: const [], nextBeforeId: null);
+  }
+
+  @override
+  Future<ChatPage<ChatMessage>> history(
+    ChatThreadRef thread, {
+    int? beforeMessageId,
+  }) async => ChatPage(
+    items: thread == _groupRef ? _groupMessages : _directMessages,
+    nextBeforeId: null,
+  );
+
+  @override
+  Future<List<ChatMember>> members(ChatThreadRef thread) async => [
+    ChatMember(
+      userId: 41,
+      displayName: 'Host QA',
+      isHost: true,
+      joinedAtUtc: DateTime.utc(2026, 11, 24),
+      locationSharingEnabled: false,
+    ),
+    ChatMember(
+      userId: 42,
+      displayName: 'Member QA',
+      isHost: false,
+      joinedAtUtc: DateTime.utc(2026, 11, 24),
+      locationSharingEnabled: false,
+    ),
+  ];
+
+  @override
+  Future<void> markRead(ChatThreadRef thread, int throughMessageId) async {}
+
+  @override
+  Future<List<ChatUser>> searchUsers(String query) async => const [
+    ChatUser(userId: 41, displayName: 'Host QA'),
+  ];
+
+  @override
+  Future<ChatThread> startDirect(int otherUserId) async => const ChatThread(
+    ref: _directRef,
+    title: 'Host QA',
+    unreadCount: 0,
+    otherUserId: 41,
+  );
+
+  @override
+  Future<ChatMessage> send({
+    required ChatThreadRef thread,
+    required String content,
+    required String clientMessageId,
+    required ChatMessageType type,
+    ChatMetadata? metadata,
+  }) async {
+    final msg = ChatMessage(
+      id: ++_nextId,
+      thread: thread,
+      senderUserId: 42,
+      senderName: 'Member QA',
+      type: type,
+      content: content,
+      createdAtUtc: DateTime.utc(2026, 11, 24, 9),
+      clientMessageId: clientMessageId,
+      metadata: metadata,
+    );
+    if (thread == _directRef) {
+      _directMessages.add(msg);
+    } else {
+      _groupMessages.add(msg);
+    }
+    return msg;
+  }
+
+  @override
+  Future<ChatMessage> interact({
+    required ChatMessage message,
+    required ChatInteraction action,
+    int? optionIndex,
+    bool? isPaid,
+  }) async {
+    final old = message.groupState!;
+    final nextState = switch (action) {
+      ChatInteraction.acknowledge => ChatGroupState(
+        readByCount: 1,
+        isReadByMe: true,
+        presentCount: old.presentCount,
+        isPresentByMe: old.isPresentByMe,
+        paidUserIds: old.paidUserIds,
+        pollVoteCounts: old.pollVoteCounts,
+        myPollVoteOption: old.myPollVoteOption,
+      ),
+      ChatInteraction.checkin => ChatGroupState(
+        readByCount: old.readByCount,
+        isReadByMe: old.isReadByMe,
+        presentCount: 1,
+        isPresentByMe: true,
+        paidUserIds: old.paidUserIds,
+        pollVoteCounts: old.pollVoteCounts,
+        myPollVoteOption: old.myPollVoteOption,
+      ),
+      ChatInteraction.togglePayment => ChatGroupState(
+        readByCount: old.readByCount,
+        isReadByMe: old.isReadByMe,
+        presentCount: old.presentCount,
+        isPresentByMe: old.isPresentByMe,
+        paidUserIds: const [41, 42],
+        pollVoteCounts: old.pollVoteCounts,
+        myPollVoteOption: old.myPollVoteOption,
+      ),
+      ChatInteraction.vote => ChatGroupState(
+        readByCount: old.readByCount,
+        isReadByMe: old.isReadByMe,
+        presentCount: old.presentCount,
+        isPresentByMe: old.isPresentByMe,
+        paidUserIds: old.paidUserIds,
+        pollVoteCounts: optionIndex == -1 ? const {} : {optionIndex!: 1},
+        myPollVoteOption: optionIndex == -1 ? null : optionIndex,
+      ),
+    };
+    return ChatMessage(
+      id: message.id,
+      thread: message.thread,
+      senderUserId: message.senderUserId,
+      senderName: message.senderName,
+      type: message.type,
+      content: message.content,
+      createdAtUtc: message.createdAtUtc,
+      metadata: message.metadata,
+      groupState: nextState,
+    );
+  }
 }

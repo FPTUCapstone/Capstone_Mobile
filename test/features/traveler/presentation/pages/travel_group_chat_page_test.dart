@@ -1,237 +1,257 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_chat_page.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
+import 'package:trip_mate_mobile/features/messaging/domain/messaging.dart';
+import 'package:trip_mate_mobile/features/messaging/presentation/cubit/messenger_cubit.dart';
+import 'package:trip_mate_mobile/features/messaging/presentation/pages/messenger_page.dart';
 
 void main() {
-  const testGroup = TravelGroup(
-    id: 10,
-    name: 'Đoàn Khám Phá Đà Nẵng - Hội An',
-    inviteCode: 'DNHA2026',
-    itineraryId: 5,
-  );
-
-  Widget createChatWidget({TravelGroup? group}) {
+  Widget buildPage({
+    required _FakeMessagingRepository repo,
+    required int userId,
+    UserRole role = UserRole.traveler,
+    int? initialGroupId,
+  }) {
     return MaterialApp(
-      home: TravelGroupChatPage(
-        groupId: 10,
-        group: group ?? testGroup,
-        currentUserId: 1,
-        currentUserName: 'Bạn',
+      home: BlocProvider<MessengerCubit>(
+        create: (_) =>
+            MessengerCubit(MessagingUseCases(repo), _IdleRealtime(), userId)
+              ..initialize(initialGroupId: initialGroupId),
+        child: MessengerPage(
+          userId: userId,
+          userRole: role,
+          displayName: userId == 41 ? 'Trưởng nhóm QA' : 'Thành viên QA',
+          initialGroupId: initialGroupId,
+        ),
       ),
     );
   }
 
-  void configureViewport(WidgetTester tester) {
-    tester.view.physicalSize = const Size(800, 1800);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-  }
-
-  group('TravelGroupChatPage Widget Tests', () {
+  group('MessengerPage Widget Tests (Real Messaging Contract)', () {
     testWidgets(
-      'renders group name, active members count, and pinned announcement',
+      'displays empty state instead of hardcoded seed data when no conversations exist',
       (tester) async {
-        configureViewport(tester);
-        await tester.pumpWidget(createChatWidget());
-        await tester.pumpAndSettle();
-
-        expect(find.text('Đoàn Khám Phá Đà Nẵng - Hội An'), findsOneWidget);
-        expect(find.text('4 thành viên • Đang hoạt động'), findsOneWidget);
-        expect(
-          find.textContaining('Ghim: Tập trung lúc 07:30'),
-          findsOneWidget,
+        final repo = _FakeMessagingRepository(
+          groups: const [],
+          directs: const [],
         );
+        await tester.pumpWidget(buildPage(repo: repo, userId: 42));
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining('Chưa có cuộc trò chuyện'), findsOneWidget);
+        expect(find.textContaining('Nguyễn Tuấn'), findsNothing);
+        expect(find.textContaining('0987654321'), findsNothing);
       },
     );
-
-    testWidgets('user can dismiss pinned announcement', (tester) async {
-      configureViewport(tester);
-      await tester.pumpWidget(createChatWidget());
-      await tester.pumpAndSettle();
-
-      expect(find.byKey(const Key('dismiss_pinned_button')), findsOneWidget);
-      await tester.tap(find.byKey(const Key('dismiss_pinned_button')));
-      await tester.pumpAndSettle();
-
-      expect(find.byKey(const Key('dismiss_pinned_button')), findsNothing);
-    });
 
     testWidgets(
-      'displays Tour Guide broadcast card and allows acknowledgment',
+      'hides broadcast and roll call tools for regular Traveler member (TG-E2E-002)',
       (tester) async {
-        configureViewport(tester);
-        await tester.pumpWidget(createChatWidget());
+        final repo = _FakeMessagingRepository.withDefaultData();
+        await tester.pumpWidget(
+          buildPage(repo: repo, userId: 42, initialGroupId: 10),
+        );
         await tester.pumpAndSettle();
 
-        expect(find.text('THÔNG BÁO TẬP TRUNG SÁNG MAI'), findsOneWidget);
-        expect(find.text('QUAN TRỌNG'), findsOneWidget);
-        expect(find.text('3/4 đã đọc'), findsOneWidget);
-
-        final ackBtn = find.byKey(const Key('broadcast_ack_msg-2'));
-        expect(ackBtn, findsOneWidget);
-        await tester.tap(ackBtn);
+        await tester.tap(find.byKey(const Key('chat_tools_button')));
         await tester.pumpAndSettle();
 
-        expect(find.text('4/4 đã đọc'), findsOneWidget);
-        expect(find.text('Đã đọc'), findsOneWidget);
+        expect(find.byKey(const Key('tool_create_poll')), findsOneWidget);
+        expect(find.byKey(const Key('tool_create_expense')), findsOneWidget);
+        expect(find.byKey(const Key('tool_create_broadcast')), findsNothing);
+        expect(find.byKey(const Key('tool_create_roll_call')), findsNothing);
       },
     );
-
-    testWidgets('displays Roll Call card and allows check-in', (tester) async {
-      configureViewport(tester);
-      await tester.pumpWidget(createChatWidget());
-      await tester.pumpAndSettle();
-
-      expect(find.text('Điểm danh: Tập trung xe buýt số 1'), findsOneWidget);
-      expect(find.text('Có mặt: 3/4 thành viên'), findsOneWidget);
-
-      final rollCallBtn = find.byKey(const Key('roll_call_button_msg-3'));
-      expect(rollCallBtn, findsOneWidget);
-      await tester.tap(rollCallBtn);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Có mặt: 4/4 thành viên'), findsOneWidget);
-      expect(find.text('Đã có mặt'), findsOneWidget);
-    });
-
-    testWidgets('displays Poll card and allows voting', (tester) async {
-      configureViewport(tester);
-      await tester.pumpWidget(createChatWidget());
-      await tester.pumpAndSettle();
-
-      expect(
-        find.text('Tối nay cả nhóm mình đi ăn gì ở Phố cổ Hội An?'),
-        findsOneWidget,
-      );
-
-      final option0 = find.byKey(const Key('poll_option_msg-7_0'));
-      expect(option0, findsOneWidget);
-      expect(find.text('2 phiếu'), findsOneWidget);
-
-      // Tap to vote for option 0
-      await tester.tap(option0);
-      await tester.pumpAndSettle();
-
-      expect(find.text('3 phiếu'), findsOneWidget);
-    });
-
-    testWidgets('user can send a new text message', (tester) async {
-      configureViewport(tester);
-      await tester.pumpWidget(createChatWidget());
-      await tester.pumpAndSettle();
-
-      final input = find.byKey(const Key('chat_message_input'));
-      final sendBtn = find.byKey(const Key('send_message_button'));
-
-      await tester.enterText(input, 'Xin chào mọi người!');
-      await tester.tap(sendBtn);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Xin chào mọi người!'), findsOneWidget);
-      expect(find.text('Nhập tin nhắn...'), findsOneWidget);
-    });
-
-    testWidgets('search feature filters messages in real time', (tester) async {
-      configureViewport(tester);
-      await tester.pumpWidget(createChatWidget());
-      await tester.pumpAndSettle();
-
-      final toggleSearchBtn = find.byKey(const Key('toggle_search_button'));
-      await tester.tap(toggleSearchBtn);
-      await tester.pumpAndSettle();
-
-      final searchInput = find.byKey(const Key('chat_search_input'));
-      expect(searchInput, findsOneWidget);
-
-      await tester.enterText(searchInput, 'Bánh mì Phượng');
-      await tester.pumpAndSettle();
-
-      expect(find.textContaining('Bánh mì Phượng'), findsOneWidget);
-      expect(find.text('THÔNG BÁO TẬP TRUNG SÁNG MAI'), findsNothing);
-    });
 
     testWidgets(
-      'opens VietQR modal from Split Bill card and toggles paid status',
+      'shows broadcast and roll call tools to group Host and TourOperator',
       (tester) async {
-        configureViewport(tester);
-        await tester.pumpWidget(createChatWidget());
+        final repo = _FakeMessagingRepository.withDefaultData();
+        await tester.pumpWidget(
+          buildPage(repo: repo, userId: 41, initialGroupId: 10),
+        );
         await tester.pumpAndSettle();
 
-        final openQrBtn = find.byKey(const Key('open_vietqr_button_msg-6'));
-        expect(openQrBtn, findsOneWidget);
-
-        await tester.tap(openQrBtn);
+        await tester.tap(find.byKey(const Key('chat_tools_button')));
         await tester.pumpAndSettle();
 
-        expect(find.text('Thanh toán qua VietQR'), findsOneWidget);
-        expect(find.text('MB Bank'), findsOneWidget);
-        expect(find.text('0987654321'), findsOneWidget);
-        expect(find.text('LE THI HUONG'), findsOneWidget);
-        expect(find.text('150.000 đ'), findsNWidgets(2));
-
-        // Toggle paid status
-        final togglePaidBtn = find.byKey(const Key('toggle_paid_button'));
-        expect(togglePaidBtn, findsOneWidget);
-        await tester.tap(togglePaidBtn);
-        await tester.pumpAndSettle();
-
-        // Modal closed and status updated
-        expect(find.text('Đã trả • VietQR'), findsOneWidget);
-        expect(find.text('Đã thanh toán: 3/4'), findsOneWidget);
+        expect(find.byKey(const Key('tool_create_broadcast')), findsOneWidget);
+        expect(find.byKey(const Key('tool_create_roll_call')), findsOneWidget);
       },
     );
 
-    testWidgets('opens action drawer and creates a new poll with validation', (
+    testWidgets('closed group renders read-only banner and disables composer', (
       tester,
     ) async {
-      configureViewport(tester);
-      await tester.pumpWidget(createChatWidget());
+      final repo = _FakeMessagingRepository(
+        groups: [
+          const ChatThread(
+            ref: ChatThreadRef(kind: ChatKind.group, id: 15),
+            title: 'Nhóm đã đóng QA',
+            unreadCount: 0,
+            hostUserId: 41,
+            memberCount: 2,
+            status: ChatThreadStatus.closed,
+          ),
+        ],
+        directs: const [],
+      );
+      await tester.pumpWidget(
+        buildPage(repo: repo, userId: 42, initialGroupId: 15),
+      );
       await tester.pumpAndSettle();
 
-      final drawerBtn = find.byKey(const Key('open_action_drawer_button'));
-      await tester.tap(drawerBtn);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Tiện ích nhóm du lịch'), findsOneWidget);
-      expect(find.text('Tạo bình chọn (Voting)'), findsOneWidget);
-      expect(find.text('Chia tiền hóa đơn (VietQR)'), findsOneWidget);
-      expect(find.text('Thông báo khẩn (Dành cho HDV)'), findsOneWidget);
-      expect(find.text('Điểm danh đoàn (Dành cho HDV)'), findsOneWidget);
-
-      // Tap create poll
-      await tester.tap(find.byKey(const Key('action_create_poll')));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Tạo bình chọn mới'), findsOneWidget);
-
-      // Submit empty should show validation error
-      await tester.tap(find.byKey(const Key('submit_poll_button')));
-      await tester.pumpAndSettle();
       expect(
-        find.text('Vui lòng nhập câu hỏi và ít nhất 2 lựa chọn.'),
+        find.text('Nhóm đã đóng. Bạn chỉ có thể xem lịch sử.'),
         findsOneWidget,
       );
-
-      // Fill in valid poll data
-      await tester.enterText(
-        find.byKey(const Key('poll_question_input')),
-        'Chọn phương tiện đi Bà Nà Hills?',
+      final input = tester.widget<TextField>(
+        find.byKey(const Key('chat_draft_input')),
       );
-      await tester.enterText(
-        find.byKey(const Key('poll_option_1_input')),
-        'Thuê xe du lịch 7 chỗ',
-      );
-      await tester.enterText(
-        find.byKey(const Key('poll_option_2_input')),
-        'Đi xe buýt đưa đón',
-      );
-
-      await tester.tap(find.byKey(const Key('submit_poll_button')));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Chọn phương tiện đi Bà Nà Hills?'), findsOneWidget);
-      expect(find.text('Thuê xe du lịch 7 chỗ'), findsOneWidget);
+      expect(input.enabled, isFalse);
+      expect(repo.membersCalls, 0);
     });
   });
+}
+
+class _IdleRealtime implements ChatRealtime {
+  @override
+  Stream<ChatInvalidation> get invalidations => const Stream.empty();
+  @override
+  Future<void> start() async {}
+  @override
+  Future<void> watchThread(ChatThreadRef? thread) async {}
+  @override
+  Future<void> stop() async {}
+  @override
+  Future<void> dispose() async {}
+}
+
+class _FakeMessagingRepository implements MessagingRepository {
+  _FakeMessagingRepository({
+    required this.groups,
+    required this.directs,
+    List<ChatMessage>? initialMessages,
+  }) : messages = List.of(initialMessages ?? const []);
+
+  factory _FakeMessagingRepository.withDefaultData() {
+    const ref = ChatThreadRef(kind: ChatKind.group, id: 10);
+    return _FakeMessagingRepository(
+      groups: const [
+        ChatThread(
+          ref: ref,
+          title: 'Đoàn QA Đà Nẵng',
+          unreadCount: 0,
+          hostUserId: 41,
+          memberCount: 2,
+        ),
+      ],
+      directs: const [],
+      initialMessages: [
+        ChatMessage(
+          id: 1,
+          thread: ref,
+          senderUserId: 41,
+          senderName: 'Trưởng nhóm QA',
+          type: ChatMessageType.text,
+          content: 'Chào cả đoàn!',
+          createdAtUtc: DateTime.utc(2026, 11, 24, 8),
+        ),
+      ],
+    );
+  }
+
+  final List<ChatThread> groups;
+  final List<ChatThread> directs;
+  final List<ChatMessage> messages;
+  int membersCalls = 0;
+
+  @override
+  Future<ChatPage<ChatThread>> listThreads(
+    ChatKind kind, {
+    int? beforeId,
+  }) async => ChatPage(
+    items: kind == ChatKind.group ? groups : directs,
+    nextBeforeId: null,
+  );
+
+  @override
+  Future<ChatPage<ChatMessage>> history(
+    ChatThreadRef thread, {
+    int? beforeMessageId,
+  }) async => ChatPage(
+    items: messages.where((m) => m.thread == thread).toList(),
+    nextBeforeId: null,
+  );
+
+  @override
+  Future<List<ChatMember>> members(ChatThreadRef thread) async {
+    membersCalls++;
+    return [
+      ChatMember(
+        userId: 41,
+        displayName: 'Trưởng nhóm QA',
+        isHost: true,
+        joinedAtUtc: DateTime.utc(2026, 11, 24),
+        locationSharingEnabled: false,
+      ),
+      ChatMember(
+        userId: 42,
+        displayName: 'Thành viên QA',
+        isHost: false,
+        joinedAtUtc: DateTime.utc(2026, 11, 24),
+        locationSharingEnabled: false,
+      ),
+    ];
+  }
+
+  @override
+  Future<void> markRead(ChatThreadRef thread, int throughMessageId) async {}
+
+  @override
+  Future<List<ChatUser>> searchUsers(String query) async => const [];
+
+  @override
+  Future<ChatThread> startDirect(int otherUserId) => throw UnimplementedError();
+
+  @override
+  Future<ChatMessage> send({
+    required ChatThreadRef thread,
+    required String content,
+    required String clientMessageId,
+    required ChatMessageType type,
+    ChatMetadata? metadata,
+  }) async {
+    final nextId = messages.length + 1;
+    final created = ChatMessage(
+      id: nextId,
+      thread: thread,
+      senderUserId: 41,
+      senderName: 'Trưởng nhóm QA',
+      type: type,
+      content: content,
+      createdAtUtc: DateTime.utc(2026, 11, 24, 9),
+      clientMessageId: clientMessageId,
+      metadata: metadata,
+      groupState: ChatGroupState(
+        readByCount: 0,
+        isReadByMe: false,
+        presentCount: 0,
+        isPresentByMe: false,
+        paidUserIds: const [],
+        pollVoteCounts: const {},
+      ),
+    );
+    messages.add(created);
+    return created;
+  }
+
+  @override
+  Future<ChatMessage> interact({
+    required ChatMessage message,
+    required ChatInteraction action,
+    int? optionIndex,
+    bool? isPaid,
+  }) async => message;
 }

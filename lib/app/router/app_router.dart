@@ -39,6 +39,7 @@ import 'package:trip_mate_mobile/features/e_ticket/presentation/cubit/e_ticket_c
 import 'package:trip_mate_mobile/features/e_ticket/presentation/pages/e_ticket_page.dart';
 import 'package:trip_mate_mobile/features/e_ticket/resources/e_ticket_en.dart';
 import 'package:trip_mate_mobile/features/guest/presentation/pages/guest_landing_page.dart';
+import 'package:trip_mate_mobile/features/messaging/presentation/pages/messenger_page.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/domain/entities/operator_booking.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/operator_booking_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/presentation/pages/operator_booking_detail_page.dart';
@@ -103,7 +104,6 @@ import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_result_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/join_travel_group_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/offline_trip_package_page.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_chat_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_details_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_members_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_preferences_page.dart';
@@ -558,10 +558,18 @@ GoRouter createAppRouter(
           if (groupId == null || groupId <= 0) {
             return const ErrorView(message: 'Page not found.');
           }
-          final extra = state.extra;
-          final group = extra is TravelGroup ? extra : null;
-          return TravelGroupChatPage(groupId: groupId, group: group);
+          return MessengerRoutePage(initialGroupId: groupId);
         },
+      ),
+      GoRoute(
+        path: AppRoutes.travelerMessages,
+        name: AppRouteNames.travelerMessages,
+        builder: (_, _) => const MessengerRoutePage(),
+      ),
+      GoRoute(
+        path: AppRoutes.operatorMessages,
+        name: AppRouteNames.operatorMessages,
+        builder: (_, _) => const MessengerRoutePage(),
       ),
       GoRoute(
         path: AppRoutes.groupLocationSharing,

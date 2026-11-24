@@ -74,6 +74,11 @@ import 'package:trip_mate_mobile/features/e_ticket/domain/repositories/e_ticket_
 import 'package:trip_mate_mobile/features/e_ticket/domain/usecases/get_e_ticket_use_case.dart';
 import 'package:trip_mate_mobile/features/e_ticket/domain/usecases/refresh_e_ticket_qr_use_case.dart';
 import 'package:trip_mate_mobile/features/e_ticket/presentation/cubit/e_ticket_cubit.dart';
+import 'package:trip_mate_mobile/features/messaging/data/datasources/messaging_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/messaging/data/realtime/signalr_chat_realtime.dart';
+import 'package:trip_mate_mobile/features/messaging/data/repositories/messaging_repository_impl.dart';
+import 'package:trip_mate_mobile/features/messaging/domain/messaging.dart';
+import 'package:trip_mate_mobile/features/messaging/presentation/cubit/messenger_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/data/repositories/demo_operator_bookings_repository.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/data/repositories/operator_bookings_repository_impl.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/domain/repositories/operator_bookings_repository.dart';
@@ -725,6 +730,24 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerFactory<TravelGroupMembersCubit>(
       () => TravelGroupMembersCubit(repository: serviceLocator()),
+    )
+    ..registerLazySingleton<MessagingRemoteDataSource>(
+      () => MessagingRemoteDataSource(serviceLocator()),
+    )
+    ..registerLazySingleton<MessagingRepository>(
+      () => MessagingRepositoryImpl(serviceLocator()),
+    )
+    ..registerLazySingleton<MessagingUseCases>(
+      () => MessagingUseCases(serviceLocator()),
+    )
+    ..registerFactory<ChatRealtime>(
+      () => SignalRChatRealtime(
+        apiBaseUrl: serviceLocator<AppConfig>().apiBaseUrl,
+        storage: serviceLocator(),
+      ),
+    )
+    ..registerFactoryParam<MessengerCubit, int, void>(
+      (userId, _) => MessengerCubit(serviceLocator(), serviceLocator(), userId),
     )
     ..registerFactory<AuthSessionCubit>(
       () => AuthSessionCubit(

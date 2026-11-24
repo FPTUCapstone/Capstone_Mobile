@@ -63,6 +63,8 @@ abstract final class AppRoutes {
   static const inviteGroupMembers = '/traveler/groups/:groupId/invitation';
   static const travelGroupMembers = '/traveler/groups/:groupId/members';
   static const travelGroupChat = '/traveler/groups/:groupId/chat';
+  static const travelerMessages = '/traveler/messages';
+  static const operatorMessages = '/operator/messages';
   static const groupLocationSharing =
       '/traveler/groups/:groupId/location-sharing';
   static const activeTripLivePattern = '/traveler/trips/:itineraryId/live';
@@ -212,6 +214,8 @@ abstract final class AppRouteNames {
   static const inviteGroupMembers = 'invite-group-members';
   static const travelGroupMembers = 'travel-group-members';
   static const travelGroupChat = 'travel-group-chat';
+  static const travelerMessages = 'traveler-messages';
+  static const operatorMessages = 'operator-messages';
   static const groupLocationSharing = 'group-location-sharing';
   static const activeTripLive = 'active-trip-live';
   static const tripAlerts = 'trip-alerts';
