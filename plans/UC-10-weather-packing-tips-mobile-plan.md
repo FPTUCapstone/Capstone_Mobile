@@ -53,13 +53,14 @@
 ### Task 2: Repository
 
 **Files:**
-- Modify: `lib/features/traveler/domain/repositories/itinerary_repository.dart`
+- Create: `lib/features/traveler/domain/repositories/itinerary_weather_tips_repository.dart`
+- Modify: `lib/core/di/service_locator.dart` (register next to `ItineraryListRepository`)
 - Modify: `lib/features/traveler/data/repositories/itinerary_repository_impl.dart`
 - Test: `test/features/traveler/data/repositories/itinerary_repository_impl_test.dart` (add a `group('getWeatherTips', ...)`, reusing its `respond`, `_RecordingAdapter`)
 
 **Interfaces:**
 - Consumes: `ItineraryWeatherTipsModel.tryParse`.
-- Produces: in `ItineraryRepository`: `Future<ItineraryWeatherTips?> getWeatherTips(int itineraryId) async => null;` (doc: "null = not available"); in `ItineraryRepositoryImpl`: override doing `GET '$_itineraryPath/$itineraryId/weather-tips'` through `_dioClient.dio`, returning `tryParse(response.data)` for status 200; returns `null` for any `DioException`, non-200 status, `FormatException`, or other error; never rethrows. A non-positive id returns `null` without a request.
+- Produces: `abstract interface class ItineraryWeatherTipsRepository { Future<ItineraryWeatherTips?> getWeatherTips(int itineraryId); }` (doc: "null = not available"; a separate interface because 16 test fakes `implements ItineraryRepository`, and adding a member there would break them all; the repo already splits `ItineraryListRepository` and others the same way); `ItineraryRepositoryImpl` also `implements ItineraryWeatherTipsRepository` and overrides it, doing `GET '$_itineraryPath/$itineraryId/weather-tips'` through `_dioClient.dio`, returning `tryParse(response.data)` for status 200; returns `null` for any `DioException`, non-200 status, `FormatException`, or other error; never rethrows. A non-positive id returns `null` without a request.
 
 - [ ] **Step 1: Write failing tests**: `getWeatherTips calls GET /api/v1/itineraries/42/weather-tips and returns the tips`; `returns null for weatherTips null`; `returns null for 401, 403, 404 and 500` (adapter with that status; Dio throws for >=400 by default); `returns null when the connection fails` (adapter throws `DioException.connectionError`); `returns null for a malformed body`; `returns null for id 0 without a request` (`adapter.request` stays null).
 - [ ] **Step 2:** `flutter test test/features/traveler/data/repositories/itinerary_repository_impl_test.dart` — Expected: FAIL.
@@ -75,8 +76,8 @@
 - Test: `test/features/traveler/presentation/cubit/itinerary_weather_tips_cubit_test.dart`
 
 **Interfaces:**
-- Consumes: `ItineraryRepository.getWeatherTips`, `ItineraryWeatherTips`.
-- Produces: `final class ItineraryWeatherTipsState extends Equatable { const ItineraryWeatherTipsState({this.tips}); final ItineraryWeatherTips? tips; }`; `final class ItineraryWeatherTipsCubit extends Cubit<ItineraryWeatherTipsState> { ItineraryWeatherTipsCubit({required ItineraryRepository? repository}); Future<void> load(int itineraryId); }` — `load` is a no-op when the repository is null or this id was already requested (even if the first answer is still pending or was `null`); a different id replaces the stored tips with a new request and ignores a late answer for the old id; a thrown error is treated as `null`; nothing is emitted after `close`.
+- Consumes: `ItineraryWeatherTipsRepository.getWeatherTips`, `ItineraryWeatherTips`.
+- Produces: `final class ItineraryWeatherTipsState extends Equatable { const ItineraryWeatherTipsState({this.tips}); final ItineraryWeatherTips? tips; }`; `final class ItineraryWeatherTipsCubit extends Cubit<ItineraryWeatherTipsState> { ItineraryWeatherTipsCubit({required ItineraryWeatherTipsRepository? repository}); Future<void> load(int itineraryId); }` — `load` is a no-op when the repository is null or this id was already requested (even if the first answer is still pending or was `null`); a different id replaces the stored tips with a new request and ignores a late answer for the old id; a thrown error is treated as `null`; nothing is emitted after `close`.
 
 - [ ] **Step 1: Write failing tests** (`bloc_test`, hand-written fake repository with a `Completer`): `emits the tips when the repository answers`; `emits nothing when the answer is null` (state stays initial); `emits nothing when the repository throws`; `asks once per id: a second load(10) makes no second call, also while the first is pending`; `does not ask when the repository is null`; `a late answer for the previous id is ignored after load(11)`; `does not emit after close`.
 - [ ] **Step 2:** `flutter test test/features/traveler/presentation/cubit/itinerary_weather_tips_cubit_test.dart` — Expected: FAIL.
@@ -108,7 +109,7 @@
 
 **Interfaces:**
 - Consumes: `ItineraryWeatherTipsCubit`, `ItineraryWeatherTipsCard`.
-- Produces: new optional constructor parameter `ItineraryRepository? weatherTipsRepository` on `ItineraryDetailPage`; the state creates `late final _weatherCubit = ItineraryWeatherTipsCubit(repository: widget.weatherTipsRepository ?? locateOptional<ItineraryRepository>())` and closes it in `dispose`; the existing listener calls `_weatherCubit.load(detail.itineraryId)` whenever the detail cubit state is `loaded` with a detail (the cubit ignores repeats); `_DetailContent` receives the cubit like it receives `routeCubit` and renders `BlocBuilder<ItineraryWeatherTipsCubit, ItineraryWeatherTipsState>(bloc: weatherCubit, ...)` with `SizedBox.shrink()` when `tips == null`, otherwise `const SizedBox(height: AppSpacing.sm)` + the card, right after `ItineraryCostSummary`.
+- Produces: new optional constructor parameter `ItineraryWeatherTipsRepository? weatherTipsRepository` on `ItineraryDetailPage`; the state creates `late final _weatherCubit = ItineraryWeatherTipsCubit(repository: widget.weatherTipsRepository ?? locateOptional<ItineraryWeatherTipsRepository>())` and closes it in `dispose`; the existing listener calls `_weatherCubit.load(detail.itineraryId)` whenever the detail cubit state is `loaded` with a detail (the cubit ignores repeats); `_DetailContent` receives the cubit like it receives `routeCubit` and renders `BlocBuilder<ItineraryWeatherTipsCubit, ItineraryWeatherTipsState>(bloc: weatherCubit, ...)` with `SizedBox.shrink()` when `tips == null`, otherwise `const SizedBox(height: AppSpacing.sm)` + the card, right after `ItineraryCostSummary`.
 
 - [ ] **Step 1: Write failing tests**: `shows the weather card after the cost summary and above the first stop` (compare `tester.getTopLeft` y of the card against `ItineraryCostSummary` and the first stop's name); `shows no card when the repository answers null`; `shows no card and still lists the stops when the repository throws`; `shows no card while the weather answer is pending`; `asks for the weather once, with the itinerary id`; `does not ask again after the detail is reloaded` (trigger a second `ItineraryDetailCubit.load(10)` and assert the fake's call count stays 1); `an owner can still open the edit action when the weather failed` (detail with `canManage: true`; the page's existing edit control is present).
 - [ ] **Step 2:** `flutter test test/features/traveler/presentation/pages/itinerary_detail_page_weather_test.dart` — Expected: FAIL.

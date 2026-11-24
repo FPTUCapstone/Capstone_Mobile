@@ -16,6 +16,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_wea
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_list_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_suggestion_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_weather_tips_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/recommendation_feedback_repository.dart';
 
 final class ItineraryRepositoryImpl
@@ -23,6 +24,7 @@ final class ItineraryRepositoryImpl
         ItineraryRepository,
         ItineraryListRepository,
         ItinerarySuggestionRepository,
+        ItineraryWeatherTipsRepository,
         RecommendationFeedbackRepository {
   const ItineraryRepositoryImpl({required DioClient dioClient})
     : _dioClient = dioClient;
