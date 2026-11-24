@@ -1,6 +1,7 @@
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_stop.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_weather_tips.dart';
 
 abstract interface class ItineraryRepository {
   Future<GeneratedItinerary> generate({
@@ -33,4 +34,9 @@ abstract interface class ItineraryRepository {
   }) => throw UnimplementedError(
     'Persisted itinerary adjustment is not available.',
   );
+
+  /// UC-10: what to bring because of that day's weather, as the backend worked
+  /// it out. `null` means "not available" (too far ahead, service off, any
+  /// failure); callers hide the card and never guess.
+  Future<ItineraryWeatherTips?> getWeatherTips(int itineraryId) async => null;
 }

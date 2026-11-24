@@ -6,11 +6,13 @@ import 'package:trip_mate_mobile/features/traveler/data/models/itinerary_detail_
 import 'package:trip_mate_mobile/features/traveler/data/models/itinerary_generation_model.dart';
 import 'package:trip_mate_mobile/features/traveler/data/models/itinerary_suggestions_model.dart';
 import 'package:trip_mate_mobile/features/traveler/data/models/itinerary_summary_model.dart';
+import 'package:trip_mate_mobile/features/traveler/data/models/itinerary_weather_tips_model.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_detail.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_stop.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_suggestion.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_summary.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_weather_tips.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_list_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_suggestion_repository.dart';
@@ -82,6 +84,23 @@ final class ItineraryRepositoryImpl
       return _detail(response.data);
     } catch (error) {
       throw ErrorMapper.toFailure(error);
+    }
+  }
+
+  @override
+  Future<ItineraryWeatherTips?> getWeatherTips(int itineraryId) async {
+    if (itineraryId <= 0) return null;
+    try {
+      final response = await _dioClient.dio.get<Object?>(
+        '$_itineraryPath/$itineraryId/weather-tips',
+      );
+      return response.statusCode == 200
+          ? ItineraryWeatherTipsModel.tryParse(response.data)
+          : null;
+    } catch (_) {
+      // UC-10: whatever goes wrong the card is simply not shown; no message,
+      // no HTTP detail reaches the traveler.
+      return null;
     }
   }
 
