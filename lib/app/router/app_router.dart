@@ -985,8 +985,8 @@ GoRouter createAppRouter(
         builder: (_, state) => BlocProvider(
           create: (_) => serviceLocator<OperatorApplicationCubit>(),
           child: OperatorApplicationPage(
-            renewSession:
-                serviceLocator<OperatorContractRepository>().renewSession,
+            renewSession: () =>
+                serviceLocator<OperatorContractRepository>().renewSession(),
           ),
         ),
       ),

@@ -47,6 +47,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(tester.takeException(), isNull);
       expect(find.text('Application status unavailable'), findsOneWidget);
       expect(find.text('Rejected'), findsNothing);
       expect(find.text('Resubmit application'), findsNothing);

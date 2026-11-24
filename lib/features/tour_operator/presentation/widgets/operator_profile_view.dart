@@ -88,12 +88,17 @@ class OperatorProfileView extends StatelessWidget {
 
         AppCard(
           padding: EdgeInsets.zero,
-          child: ListTile(
-            leading: const Icon(Icons.description_outlined),
-            title: const Text('Hợp đồng đối tác'),
-            subtitle: const Text('Xem và tải bản hợp đồng của doanh nghiệp'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push(AppRoutes.operatorContract),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            clipBehavior: Clip.antiAlias,
+            child: ListTile(
+              leading: const Icon(Icons.description_outlined),
+              title: const Text('Hợp đồng đối tác'),
+              subtitle: const Text('Xem và tải bản hợp đồng của doanh nghiệp'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push(AppRoutes.operatorContract),
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
