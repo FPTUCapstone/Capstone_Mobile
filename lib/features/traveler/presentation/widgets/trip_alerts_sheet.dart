@@ -13,6 +13,7 @@ class TripAlertsSheet extends StatelessWidget {
     this.onReviewReroute,
     this.onOpenAlert,
     this.onConfirmArrival,
+    this.onDepartStop,
     this.isLoading = false,
     this.errorMessage,
     this.onRetry,
@@ -22,6 +23,7 @@ class TripAlertsSheet extends StatelessWidget {
   final VoidCallback? onReviewReroute;
   final ValueChanged<TripAlert>? onOpenAlert;
   final ValueChanged<TripAlert>? onConfirmArrival;
+  final ValueChanged<TripAlert>? onDepartStop;
   final bool isLoading;
   final String? errorMessage;
   final VoidCallback? onRetry;
@@ -32,6 +34,7 @@ class TripAlertsSheet extends StatelessWidget {
     String? firstAlertId,
     ValueChanged<TripAlert>? onOpenAlert,
     ValueChanged<TripAlert>? onConfirmArrival,
+    ValueChanged<TripAlert>? onDepartStop,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -53,6 +56,9 @@ class TripAlertsSheet extends StatelessWidget {
                 : cubit.openRerouteProposal,
             onOpenAlert: onOpenAlert,
             onConfirmArrival: onConfirmArrival,
+            onDepartStop: state.session?.isExploring == true
+                ? onDepartStop
+                : null,
             isLoading: state.alertRefreshStatus == AlertRefreshStatus.loading,
             errorMessage: state.alertRefreshError,
             onRetry: cubit.refreshAlerts,
@@ -186,6 +192,12 @@ class TripAlertsSheet extends StatelessWidget {
                           onConfirmArrival: onConfirmArrival == null
                               ? null
                               : () => onConfirmArrival?.call(alerts[index]),
+                          onDepartStop: onDepartStop == null
+                              ? null
+                              : () {
+                                  Navigator.of(context).pop();
+                                  onDepartStop?.call(alerts[index]);
+                                },
                           onReviewReroute: onReviewReroute == null
                               ? null
                               : () {
@@ -222,12 +234,14 @@ class _AlertListCard extends StatelessWidget {
     this.onReviewReroute,
     this.onOpen,
     this.onConfirmArrival,
+    this.onDepartStop,
   });
 
   final TripAlert alert;
   final VoidCallback? onReviewReroute;
   final VoidCallback? onOpen;
   final VoidCallback? onConfirmArrival;
+  final VoidCallback? onDepartStop;
 
   @override
   Widget build(BuildContext context) {
@@ -249,8 +263,9 @@ class _AlertListCard extends StatelessWidget {
       ),
     };
 
+    final localTimestamp = alert.timestamp.toLocal();
     final timeStr =
-        '${alert.timestamp.hour.toString().padLeft(2, '0')}:${alert.timestamp.minute.toString().padLeft(2, '0')}';
+        '${localTimestamp.hour.toString().padLeft(2, '0')}:${localTimestamp.minute.toString().padLeft(2, '0')}';
 
     return Card(
       child: InkWell(
@@ -344,6 +359,8 @@ class _AlertListCard extends StatelessWidget {
                 ],
               ),
               if (alert.type == TripAlertType.delay &&
+                  !alert.isOverstay &&
+                  !alert.isResolved &&
                   onConfirmArrival != null) ...[
                 const SizedBox(height: AppSpacing.sm),
                 Align(
@@ -351,6 +368,18 @@ class _AlertListCard extends StatelessWidget {
                   child: TextButton(
                     onPressed: onConfirmArrival,
                     child: const Text("Confirm I've arrived"),
+                  ),
+                ),
+              ],
+              if (alert.isOverstay &&
+                  !alert.isResolved &&
+                  onDepartStop != null) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: onDepartStop,
+                    child: const Text('Leave this stop'),
                   ),
                 ),
               ],

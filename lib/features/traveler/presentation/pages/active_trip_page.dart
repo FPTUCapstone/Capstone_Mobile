@@ -349,7 +349,17 @@ class _ActiveTripPageState extends State<ActiveTripPage>
       onOpenAlert: (item) => unawaited(cubit.acknowledgeAlert(item)),
       onConfirmArrival: (item) =>
           unawaited(_confirmAlertArrival(context, item)),
+      onDepartStop: (_) => _departFromOverstay(context, cubit),
     );
+  }
+
+  void _departFromOverstay(BuildContext context, ActiveTripCubit cubit) {
+    final current = cubit.state;
+    if (current.hasPendingItems) {
+      unawaited(cubit.depart());
+    } else {
+      _confirmFinish(context, current);
+    }
   }
 
   Widget _buildNavigation(BuildContext context) {
@@ -442,6 +452,8 @@ class _ActiveTripPageState extends State<ActiveTripPage>
                               onConfirmArrival: (item) => unawaited(
                                 _confirmAlertArrival(context, item),
                               ),
+                              onDepartStop: (_) =>
+                                  _departFromOverstay(context, cubit),
                             );
                           },
                           onReviewReroute:
@@ -453,13 +465,21 @@ class _ActiveTripPageState extends State<ActiveTripPage>
                               : null,
                           onConfirmArrival:
                               state.activeBannerAlert!.type ==
-                                  TripAlertType.delay
+                                      TripAlertType.delay &&
+                                  !state.activeBannerAlert!.isOverstay
                               ? () => unawaited(
                                   _confirmAlertArrival(
                                     context,
                                     state.activeBannerAlert!,
                                   ),
                                 )
+                              : null,
+                          onDepartStop:
+                              state.activeBannerAlert!.isOverstay &&
+                                  state.session?.isExploring == true
+                              ? (state.hasPendingItems
+                                    ? () => unawaited(cubit.depart())
+                                    : () => _confirmFinish(context, state))
                               : null,
                           onSkipAffectedStop:
                               state.items.any(
@@ -518,6 +538,8 @@ class _ActiveTripPageState extends State<ActiveTripPage>
                                 onConfirmArrival: (item) => unawaited(
                                   _confirmAlertArrival(context, item),
                                 ),
+                                onDepartStop: (_) =>
+                                    _departFromOverstay(context, cubit),
                               ),
                             ),
                           ],

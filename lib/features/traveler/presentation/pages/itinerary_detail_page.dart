@@ -624,7 +624,9 @@ final class _DetailContent extends StatelessWidget {
 
   Future<void> _regenerate(BuildContext context) async {
     final cubit = context.read<ItineraryDetailCubit>();
-    final hasRestaurant = state.detail?.visitItems.any((item) => item.isFood);
+    final hasRestaurant = state.detail?.visitItems.any(
+      (item) => item.isFood && !item.isMandatory,
+    );
     if (hasRestaurant == true) {
       final confirmed = await showDialog<bool>(
         context: context,

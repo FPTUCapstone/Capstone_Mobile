@@ -26,6 +26,7 @@ final class TripAlert extends Equatable {
     this.isDismissedFromBanner = false,
     this.messageCode = '',
     this.affectedItemId,
+    this.plannedDeparture,
     this.resolvedAt,
     this.isRead = false,
     this.reroutingProposalId,
@@ -35,6 +36,9 @@ final class TripAlert extends Equatable {
     this.canSkipAffectedStop = false,
     bool rerouteProposalAvailable = false,
   }) : _legacyRerouteProposalAvailable = rerouteProposalAvailable;
+
+  static const stopOverstayMessageCode = 'trip_alert.stop_overstay';
+  static const localOverstayIdPrefix = 'local-overstay:';
 
   final String id;
   final String title;
@@ -46,6 +50,7 @@ final class TripAlert extends Equatable {
   final bool isDismissedFromBanner;
   final String messageCode;
   final int? affectedItemId;
+  final DateTime? plannedDeparture;
   final DateTime? resolvedAt;
   final bool isRead;
   final int? reroutingProposalId;
@@ -56,6 +61,8 @@ final class TripAlert extends Equatable {
   final bool _legacyRerouteProposalAvailable;
 
   bool get isResolved => resolvedAt != null;
+  bool get isOverstay => messageCode == stopOverstayMessageCode;
+  bool get isLocalOverstay => id.startsWith(localOverstayIdPrefix);
   bool get rerouteProposalAvailable =>
       reroutingProposalId != null || _legacyRerouteProposalAvailable;
 
@@ -71,6 +78,7 @@ final class TripAlert extends Equatable {
     bool? rerouteProposalAvailable,
     String? messageCode,
     int? affectedItemId,
+    DateTime? plannedDeparture,
     DateTime? resolvedAt,
     bool? isRead,
     int? reroutingProposalId,
@@ -93,6 +101,7 @@ final class TripAlert extends Equatable {
           rerouteProposalAvailable ?? this.rerouteProposalAvailable,
       messageCode: messageCode ?? this.messageCode,
       affectedItemId: affectedItemId ?? this.affectedItemId,
+      plannedDeparture: plannedDeparture ?? this.plannedDeparture,
       resolvedAt: resolvedAt ?? this.resolvedAt,
       isRead: isRead ?? this.isRead,
       reroutingProposalId: reroutingProposalId ?? this.reroutingProposalId,
@@ -117,6 +126,7 @@ final class TripAlert extends Equatable {
     rerouteProposalAvailable,
     messageCode,
     affectedItemId,
+    plannedDeparture,
     resolvedAt,
     isRead,
     reroutingProposalId,
