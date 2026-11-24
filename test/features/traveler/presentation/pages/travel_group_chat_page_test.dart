@@ -29,6 +29,64 @@ void main() {
   }
 
   group('MessengerPage Widget Tests (Real Messaging Contract)', () {
+    testWidgets('opens a long conversation with the newest message visible', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      const ref = ChatThreadRef(kind: ChatKind.group, id: 10);
+      final repo = _FakeMessagingRepository(
+        groups: const [
+          ChatThread(
+            ref: ref,
+            title: 'Nhóm QA',
+            unreadCount: 0,
+            hostUserId: 41,
+            memberCount: 2,
+          ),
+        ],
+        directs: const [],
+        initialMessages: [
+          for (var id = 1; id <= 50; id++)
+            ChatMessage(
+              id: id,
+              thread: ref,
+              senderUserId: 41,
+              senderName: 'Trưởng nhóm QA',
+              type: ChatMessageType.text,
+              content: 'QA message $id',
+              createdAtUtc: DateTime.utc(2026, 11, 24, 8),
+            ),
+        ],
+      );
+      await tester.pumpWidget(
+        buildPage(repo: repo, userId: 41, initialGroupId: 10),
+      );
+      await tester.pumpAndSettle();
+
+      final newest = find.text('QA message 50');
+      expect(newest, findsOneWidget);
+      final composerTop = tester
+          .getTopLeft(find.byKey(const Key('chat_draft_input')))
+          .dy;
+      expect(tester.getBottomLeft(newest).dy, lessThan(composerTop));
+
+      await tester.enterText(
+        find.byKey(const Key('chat_draft_input')),
+        'QA message sent',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('chat_send_button')));
+      await tester.pumpAndSettle();
+
+      final sent = find.text('QA message sent');
+      expect(sent, findsOneWidget);
+      expect(tester.getBottomLeft(sent).dy, lessThan(composerTop));
+    });
+
     testWidgets(
       'displays empty state instead of hardcoded seed data when no conversations exist',
       (tester) async {

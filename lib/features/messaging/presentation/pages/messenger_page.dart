@@ -368,7 +368,7 @@ class _MessengerPageState extends State<MessengerPage>
         if (!mounted || !_scrollController.hasClients) return;
         unawaited(
           _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
+            0,
             duration: const Duration(milliseconds: 250),
             curve: Curves.easeOut,
           ),
@@ -398,9 +398,7 @@ class _MessengerPageState extends State<MessengerPage>
           _scrolledThreadKey = state.selected!.key;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && _scrollController.hasClients) {
-              _scrollController.jumpTo(
-                _scrollController.position.maxScrollExtent,
-              );
+              _scrollController.jumpTo(0);
             }
           });
         }
@@ -736,10 +734,11 @@ class _MessengerPageState extends State<MessengerPage>
                   )
                 : ListView.builder(
                     controller: _scrollController,
+                    reverse: true,
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: messages.length + (state.hasOlder ? 1 : 0),
                     itemBuilder: (context, index) {
-                      if (state.hasOlder && index == 0) {
+                      if (state.hasOlder && index == messages.length) {
                         return Padding(
                           padding: const EdgeInsets.all(8),
                           child: Center(
@@ -756,8 +755,7 @@ class _MessengerPageState extends State<MessengerPage>
                           ),
                         );
                       }
-                      final msgIndex = state.hasOlder ? index - 1 : index;
-                      final msg = messages[msgIndex];
+                      final msg = messages[messages.length - 1 - index];
                       return MessagingMessageTile(
                         message: msg,
                         thread: selected,
