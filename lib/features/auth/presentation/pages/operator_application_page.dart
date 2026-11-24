@@ -11,13 +11,45 @@ import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
 class OperatorApplicationPage extends StatefulWidget {
-  const OperatorApplicationPage({super.key});
+  const OperatorApplicationPage({this.renewSession, super.key});
+  final Future<void> Function()? renewSession;
   @override
   State<OperatorApplicationPage> createState() =>
       _OperatorApplicationPageState();
 }
 
 class _OperatorApplicationPageState extends State<OperatorApplicationPage> {
+  bool _openingContract = false;
+  String? _contractError;
+  Future<void> _openContract() async {
+    if (_openingContract) return;
+    setState(() {
+      _openingContract = true;
+      _contractError = null;
+    });
+    try {
+      final renew = widget.renewSession;
+      if (renew == null) throw StateError('Session renewal unavailable');
+      await renew();
+      if (!mounted) return;
+      await context.read<AuthSessionCubit>().reloadRenewedOperatorSession();
+      if (!mounted) return;
+      if (!context.read<AuthSessionCubit>().state.awaitsContractSignature) {
+        throw StateError('Contract onboarding unresolved');
+      }
+      context.go(AppRoutes.operatorContract);
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _contractError =
+              'Chưa cập nhật được trạng thái tài khoản. Vui lòng thử lại.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _openingContract = false);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -118,6 +150,16 @@ class _OperatorApplicationPageState extends State<OperatorApplicationPage> {
               message: 'Your Tour Operator application is approved.',
               type: AppAlertType.success,
             ),
+            if (application.userStatus == 'PendingContractSignature' ||
+                context.watch<AuthSessionCubit>().state.awaitsContractSignature)
+              AppButton(
+                label: _openingContract
+                    ? 'Đang cập nhật…'
+                    : 'Xem và ký hợp đồng',
+                onPressed: _openingContract ? null : _openContract,
+              ),
+            if (_contractError != null)
+              AppAlert(message: _contractError!, type: AppAlertType.error),
           ],
           const SizedBox(height: AppSpacing.lg),
           Text('DOCUMENTS', style: Theme.of(context).textTheme.labelSmall),

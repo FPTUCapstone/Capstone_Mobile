@@ -71,6 +71,62 @@ void main() {
     expect(invalidated, 0);
   });
 
+  test(
+    'explicit post-sign renewal uses the existing refresh flow and persists server onboarding',
+    () async {
+      auth.handler = (_) => (
+        200,
+        {
+          'data': {
+            'accessToken': 'fresh-access',
+            'role': 'TourOperator',
+            'applicationStatus': 'Approved',
+            'onboardingState': 'Active',
+            'contractStatus': 'Signed',
+            'currentContractId': '9007199254740993',
+          },
+        },
+      );
+      final interceptor = dio.interceptors.whereType<AuthInterceptor>().single;
+      expect(await interceptor.renewCurrentSession(), isTrue);
+      expect(api.requests, isEmpty);
+      expect(auth.requests.single.path, '/api/v1/auth/refresh');
+      expect(storage.values[AppConstants.sessionOnboardingStateKey], 'Active');
+      expect(storage.values[AppConstants.sessionContractStatusKey], 'Signed');
+      expect(
+        storage.values[AppConstants.sessionCurrentContractIdKey],
+        '9007199254740993',
+      );
+    },
+  );
+
+  test(
+    'present null onboarding after refresh fails closed rather than enabling legacy access',
+    () async {
+      auth.handler = (_) => (
+        200,
+        {
+          'data': {
+            'accessToken': 'fresh-access',
+            'role': 'TourOperator',
+            'onboardingState': null,
+          },
+        },
+      );
+      expect(
+        await dio.interceptors
+            .whereType<AuthInterceptor>()
+            .single
+            .renewCurrentSession(),
+        isTrue,
+      );
+      expect(
+        storage.values[AppConstants.sessionOnboardingStateKey],
+        'Unresolved',
+      );
+    },
+  );
+
   test('concurrent expired requests share one refresh', () async {
     final responses = await Future.wait([
       dio.get<dynamic>('/api/v1/itineraries'),

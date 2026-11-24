@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:trip_mate_mobile/core/utils/calendar_date_format.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/in_app_notification.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/in_app_inbox_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/in_app_inbox_state.dart';
@@ -125,7 +126,7 @@ final class _NotificationTile extends StatelessWidget {
           ],
           const SizedBox(height: 4),
           Text(
-            item.createdAtUtc.toLocal().toString(),
+            formatCalendarDateTime(item.createdAtUtc.toLocal()),
             style: Theme.of(context).textTheme.bodySmall,
           ),
           if (!item.isRead)

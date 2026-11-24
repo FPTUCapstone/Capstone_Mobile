@@ -314,6 +314,26 @@ download, native cancellation/shared-resource checks, and a separate process
 restart with networking disabled. A skipped live phase is not offline evidence.
 The native bridge currently targets Android; iOS offline support is not claimed.
 
+## Operator partnership contracts
+
+Newly approved Tour Operators use `/operator/contract` to confirm their representative
+details, read the private PDF, draw a signature and verify the signing action with
+an email OTP. Existing active operators retain their access. Backend onboarding
+state controls the route; the app never assumes a saved signature activates an
+account. A signed document can be reopened from the Operator Profile.
+
+PDFs are fetched with the existing authenticated Dio client, checked against their
+server-provided SHA-256 and displayed from bytes with the MIT-licensed `pdfx 2.11.0`
+viewer. Sharing/downloading is an explicit user action using the system share sheet.
+No bearer token is passed to a browser or a public document URL. Signature images,
+OTP input and document bytes remain in the screen's memory; no new persistent
+signature cache or credentials are introduced.
+
+Run `flutter pub get` after this dependency change. The Android app must be rebuilt
+to register the native PDF viewer before testing on an emulator/device. A widget
+test with an injected PDF view is not evidence of native rendering. Email OTP
+delivery depends on the Backend email configuration; no demo OTP is supplied.
+
 ## Repository
 
 Official repository:

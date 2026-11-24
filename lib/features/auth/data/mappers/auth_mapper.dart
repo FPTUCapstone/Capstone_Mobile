@@ -4,6 +4,7 @@ import 'package:trip_mate_mobile/features/auth/data/models/register_traveler_res
 import 'package:trip_mate_mobile/features/auth/data/models/session_response_dto.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/auth_credentials.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/auth_session.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/operator_onboarding_state.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/tour_operator_application_status.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/traveler_registration.dart';
 
@@ -39,6 +40,9 @@ extension SessionResponseMapper on SessionResponseDto {
     status: status,
     role: role,
     applicationStatus: _mapApplicationStatus(applicationStatus),
+    onboardingState: mapOperatorOnboardingState(onboardingState),
+    contractStatus: contractStatus,
+    currentContractId: currentContractId,
     accessToken: accessToken,
     refreshToken: refreshToken,
     email: email,
@@ -46,6 +50,16 @@ extension SessionResponseMapper on SessionResponseDto {
     accessTokenExpiresAtUtc: accessTokenExpiresAtUtc,
   );
 }
+
+OperatorOnboardingState? mapOperatorOnboardingState(String? value) =>
+    switch (value) {
+      null => null,
+      'AwaitingReview' => OperatorOnboardingState.awaitingReview,
+      'Rejected' => OperatorOnboardingState.rejected,
+      'AwaitingSignature' => OperatorOnboardingState.awaitingSignature,
+      'Active' => OperatorOnboardingState.active,
+      _ => OperatorOnboardingState.unresolved,
+    };
 
 TourOperatorApplicationStatus _mapApplicationStatus(String? value) =>
     switch (value) {
