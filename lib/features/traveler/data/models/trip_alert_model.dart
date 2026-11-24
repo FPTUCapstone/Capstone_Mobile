@@ -11,6 +11,9 @@ abstract final class TripAlertModel {
     final rainIntensity = _rainIntensity(json['rainIntensityMmPerHour']);
     final weatherCondition = _weatherCondition(json['weatherCondition']);
     final weatherAtUtc = _optionalUtcDate(json['weatherAtUtc']);
+    final plannedDeparture = _optionalUtcDate(
+      affectedItem?['plannedDepartureUtc'],
+    );
     return TripAlert(
       id: _integer(json, 'incidentId').toString(),
       title: _title(messageCode),
@@ -21,6 +24,7 @@ abstract final class TripAlertModel {
         rainIntensity,
         weatherAtUtc,
         weatherCondition,
+        plannedDeparture,
       ),
       severity: _severity(json['severity']),
       type: type,
@@ -28,6 +32,7 @@ abstract final class TripAlertModel {
       timestamp: _date(json, 'detectedAtUtc'),
       messageCode: messageCode,
       affectedItemId: _optionalInteger(affectedItem?['itemId']),
+      plannedDeparture: plannedDeparture,
       resolvedAt: _optionalDate(json['resolvedAtUtc']),
       isRead: json['isRead'] == true,
       reroutingProposalId: _optionalInteger(json['reroutingProposalId']),
@@ -57,10 +62,22 @@ abstract final class TripAlertModel {
     'trip_alert.weather_advisory' => 'Rain preparation',
     'trip_alert.severe_weather' => 'Severe weather',
     'trip_alert.schedule_delay' => 'Schedule update',
+    TripAlert.stopOverstayMessageCode => 'Stay time exceeded',
     'trip_alert.route_deviation' => 'Route deviation',
     'trip_alert.poi_closure' => 'Place unavailable',
     _ => throw FormatException('Unsupported trip alert message code: $code'),
   };
+
+  static String overstayDescription(String name, DateTime? plannedDeparture) {
+    final place = name.isEmpty ? 'this stop' : name;
+    if (plannedDeparture == null) {
+      return 'You have stayed past the planned departure time at $place.';
+    }
+    final local = plannedDeparture.toLocal();
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return 'You have stayed past the planned departure time ($hour:$minute) at $place.';
+  }
 
   static String _description(
     String code,
@@ -69,6 +86,7 @@ abstract final class TripAlertModel {
     double? rainIntensity,
     DateTime? weatherAtUtc,
     String? weatherCondition,
+    DateTime? plannedDeparture,
   ) => switch (code) {
     'trip_alert.weather_advisory' =>
       'Rain is forecast at ${name.isEmpty ? 'this stop' : name} around your planned visit. Prepare for wet weather.${_weatherTime(weatherAtUtc)}',
@@ -81,6 +99,10 @@ abstract final class TripAlertModel {
     ),
     'trip_alert.schedule_delay' =>
       '${name.isEmpty ? 'This stop' : name} has not been recorded as reached on time.',
+    TripAlert.stopOverstayMessageCode => overstayDescription(
+      name,
+      plannedDeparture,
+    ),
     'trip_alert.route_deviation' =>
       'You appear to be away from the planned route.',
     'trip_alert.poi_closure' =>

@@ -6,6 +6,8 @@ import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/crea
 const maxTourDestinations = 10;
 
 const _blockerMessages = {
+  'required_fields_missing': 'Complete all required tour information.',
+  'itinerary_missing': 'Add an itinerary activity for every tour day.',
   'primary_image_missing': 'Add a cover photo (an active primary image).',
   'future_departure_missing':
       'Add at least one future departure with an adult price.',
@@ -22,9 +24,11 @@ const _warningMessages = {
       'Opening hours for that day are unknown, so the visit could not be checked.',
 };
 
-String tourBlockerMessage(String code) => _blockerMessages[code] ?? code;
+String tourBlockerMessage(String code) =>
+    _blockerMessages[code] ?? 'Review the tour requirements before submitting.';
 
-String tourWarningMessage(String code) => _warningMessages[code] ?? code;
+String tourWarningMessage(String code) =>
+    _warningMessages[code] ?? 'Review this itinerary activity.';
 
 final class TourPackageBanner extends StatelessWidget {
   const TourPackageBanner({

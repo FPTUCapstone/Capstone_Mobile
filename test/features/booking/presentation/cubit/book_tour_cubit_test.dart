@@ -24,6 +24,40 @@ Future<void> _settle() =>
     Future<void>.delayed(const Duration(milliseconds: 400));
 
 void main() {
+  test('invalid lead contact never reaches create booking', () async {
+    final repository = FakeBookingRepository();
+    final cubit = _cubit(repository);
+    addTearDown(cubit.close);
+    await _settle();
+    cubit.setAgreedToTerms(true);
+    for (final phone in [
+      '',
+      '091234567',
+      '09123456789',
+      '1912345678',
+      '091 2345678',
+    ]) {
+      cubit.updateLeadPhone(phone);
+      await cubit.submit();
+      expect(repository.createCalls, isEmpty, reason: phone);
+    }
+    cubit.updateLeadPhone('0912345678');
+    for (final name in ['', ' ' * 3, 'A' * 101]) {
+      cubit.updateLeadFullName(name);
+      await cubit.submit();
+      expect(repository.createCalls, isEmpty, reason: name);
+    }
+    cubit.updateLeadFullName('Nguyen Van A');
+    for (final email in ['invalid', 'a@', 'a b@example.com']) {
+      cubit.updateLeadEmail(email);
+      await cubit.submit();
+      expect(repository.createCalls, isEmpty, reason: email);
+    }
+    cubit.updateLeadEmail(' traveler@example.com ');
+    expect(cubit.state.canSubmit, isTrue);
+    cubit.updateLeadEmail('');
+    expect(cubit.state.canSubmit, isTrue);
+  });
   test('preserves mixed participants in the first quote', () async {
     final repository = FakeBookingRepository();
     final cubit = BookTourCubit(

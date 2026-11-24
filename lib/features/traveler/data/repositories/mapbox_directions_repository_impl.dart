@@ -11,17 +11,21 @@ import 'package:trip_mate_mobile/features/traveler/domain/repositories/route_dir
 /// the Mapbox token never reaches logs.
 final class MapboxDirectionsRepositoryImpl
     implements RouteDirectionsRepository {
-  MapboxDirectionsRepositoryImpl({required String accessToken, Dio? dio})
-    : _accessToken = accessToken,
-      _dio =
-          dio ??
-          Dio(
-            BaseOptions(
-              baseUrl: 'https://api.mapbox.com',
-              connectTimeout: ApiConstants.connectTimeout,
-              receiveTimeout: ApiConstants.receiveTimeout,
-            ),
-          );
+  MapboxDirectionsRepositoryImpl({
+    required String accessToken,
+    Dio? dio,
+    CancelToken? cancelToken,
+  }) : _accessToken = accessToken,
+       _cancelToken = cancelToken,
+       _dio =
+           dio ??
+           Dio(
+             BaseOptions(
+               baseUrl: 'https://api.mapbox.com',
+               connectTimeout: ApiConstants.connectTimeout,
+               receiveTimeout: ApiConstants.receiveTimeout,
+             ),
+           );
 
   /// Mapbox has no motorbike profile; driving is the closest road network.
   /// Public transit is not offered by Mapbox Directions and cannot be planned
@@ -36,6 +40,7 @@ final class MapboxDirectionsRepositoryImpl
 
   final String _accessToken;
   final Dio _dio;
+  final CancelToken? _cancelToken;
 
   @override
   bool get isAvailable => true;
@@ -59,6 +64,7 @@ final class MapboxDirectionsRepositoryImpl
           'language': 'en',
           'access_token': _accessToken,
         },
+        cancelToken: _cancelToken,
       );
       final data = response.data;
       if (data == null) throw const FormatException('Empty directions.');

@@ -275,6 +275,45 @@ flutter build apk --debug
 - UC-02 sends selected documents to the BE multipart endpoint; the BE owns
   Cloudinary storage. Mobile does not upload directly to Cloudinary.
 
+## UC-16: offline itinerary and maps (Android)
+
+Open **Dữ liệu offline** from Traveler Home or Profile to read downloaded
+packages without calling the itinerary API. Download a new package from an
+accessible itinerary's details. The package contains its saved schedule, POI
+text/opening hours, planned routes and Mapbox resources; it is viewed inside
+TripMate, not exported to Downloads or PDF.
+
+Copy `config/mapbox.example.json` to git-ignored `config/mapbox.local.json` and
+set the project's public `MAPBOX_ACCESS_TOKEN`. Never commit local credentials.
+Run or build with the local configuration:
+
+```bash
+flutter run --dart-define-from-file=config/mapbox.local.json
+flutter build apk --debug --dart-define-from-file=config/mapbox.local.json
+```
+
+The Android implementation uses an app-owned Mapbox bridge with SDK
+cancellation handles and a no-backup private store. It downloads the entire
+itinerary area with a 1 km buffer at zoom 10–16. Each complete logical package
+is limited to 150,000,000 bytes including itinerary JSON, route data, required
+style and tiles. The device must have at least 150 MB free before downloading;
+an update retains the previous complete generation until publication succeeds.
+Estimates are not exact size guarantees. Shared native resources may be evicted
+later after removal; the UI does not claim immediate recovery of disk space.
+
+Retained data is partitioned by account. Explicit logout locks access until the
+same account signs in again. An expired offline session can read retained data
+but cannot authorize bookings, payments, check-in or server navigation writes.
+Cached navigation means viewing the saved route/POIs and optional GPS position,
+not new offline route calculation or dynamic rerouting. Offline synchronization
+and download-by-day are outside this implementation.
+
+Focused checks and the real-device harness are described in
+`plans/UC-16-download-offline-map-itinerary-plan.md`. The harness separates online
+download, native cancellation/shared-resource checks, and a separate process
+restart with networking disabled. A skipped live phase is not offline evidence.
+The native bridge currently targets Android; iOS offline support is not claimed.
+
 ## Repository
 
 Official repository:

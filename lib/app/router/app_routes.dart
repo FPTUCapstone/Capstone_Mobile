@@ -70,6 +70,10 @@ abstract final class AppRoutes {
   static const activeTripLivePattern = '/traveler/trips/:itineraryId/live';
   static const tripAlertsPattern = '/traveler/trips/:itineraryId/alerts';
   static const offlinePackagePattern = '/traveler/trips/:itineraryId/offline';
+  static const offlinePackages = '/traveler/offline-packages';
+  static const offlineItineraryPattern =
+      '/traveler/trips/:itineraryId/offline/view';
+  static const offlineMapPattern = '/traveler/trips/:itineraryId/offline/map';
   static const tripHistory = '/traveler/trips';
   static const eTicketPattern = '/traveler/tickets/:ticketId';
   static const bookingETicketPattern = '/traveler/bookings/:bookingId/ticket';
@@ -80,6 +84,7 @@ abstract final class AppRoutes {
   static const tripReviewPattern = '/traveler/trips/:tripId/review';
   static const canonicalTripReviewPattern = '/traveler/reviews/:kind/:id';
   static const operator = '/operator';
+  static const operatorSettlementHistory = '/operator/finance/settlements';
   static const operatorApplication = '/operator/application';
   static const operatorApplicationResubmit = '/operator/application/resubmit';
   static const createCoupon = '/operator/coupons/create';
@@ -123,6 +128,10 @@ abstract final class AppRoutes {
       '/traveler/trips/$itineraryId/alerts';
   static String offlinePackage(int itineraryId) =>
       '/traveler/trips/$itineraryId/offline';
+  static String offlineItinerary(int itineraryId) =>
+      '/traveler/trips/$itineraryId/offline/view';
+  static String offlineMap(int itineraryId) =>
+      '/traveler/trips/$itineraryId/offline/map';
 
   /// UC-29: the e-ticket linked from Trip History (`actions.ticketId`).
   static String eTicket(int ticketId) => '/traveler/tickets/$ticketId';
@@ -220,6 +229,9 @@ abstract final class AppRouteNames {
   static const activeTripLive = 'active-trip-live';
   static const tripAlerts = 'trip-alerts';
   static const offlinePackage = 'offline-package';
+  static const offlinePackages = 'offline-packages';
+  static const offlineItinerary = 'offline-itinerary';
+  static const offlineMap = 'offline-map';
   static const tripHistory = 'trip-history';
   static const eTicket = 'e-ticket';
   static const bookingETicket = 'booking-e-ticket';

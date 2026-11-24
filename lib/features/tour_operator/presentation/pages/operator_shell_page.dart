@@ -46,7 +46,7 @@ class _OperatorShellPageState extends State<OperatorShellPage>
       Icons.book_online_outlined,
       Icons.book_online,
     ),
-    _OperatorDestination('Revenue', Icons.payments_outlined, Icons.payments),
+    _OperatorDestination('Tài chính', Icons.payments_outlined, Icons.payments),
     _OperatorDestination(
       'Coupons',
       Icons.confirmation_number_outlined,
@@ -66,6 +66,7 @@ class _OperatorShellPageState extends State<OperatorShellPage>
 
   /// The Bookings tab (UC-40) loads from the backend only once the operator first opens it.
   var _bookingsOpened = false;
+  var _financeOpened = false;
 
   @override
   void initState() {
@@ -97,6 +98,7 @@ class _OperatorShellPageState extends State<OperatorShellPage>
     setState(() {
       _selectedIndex = index;
       if (index == _bookingsIndex) _bookingsOpened = true;
+      if (index == 3) _financeOpened = true;
     });
   }
 
@@ -157,6 +159,7 @@ class _OperatorShellPageState extends State<OperatorShellPage>
               children: [
                 OperatorDashboardView(
                   isDemoMode: widget.isDemoMode,
+                  isActive: _selectedIndex == 0,
                   onNavigateToTab: _select,
                 ),
                 _OperatorToursHub(),
@@ -171,7 +174,13 @@ class _OperatorShellPageState extends State<OperatorShellPage>
                   )
                 else
                   const SizedBox.shrink(),
-                OperatorRevenueView(isDemoMode: widget.isDemoMode),
+                if (_financeOpened)
+                  OperatorRevenueView(
+                    isDemoMode: widget.isDemoMode,
+                    isActive: _selectedIndex == 3,
+                  )
+                else
+                  const SizedBox.shrink(),
                 OperatorCouponsView(isDemoMode: widget.isDemoMode),
                 const OperatorProfileView(),
               ],

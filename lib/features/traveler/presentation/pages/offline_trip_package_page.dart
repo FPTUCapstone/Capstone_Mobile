@@ -6,8 +6,10 @@ import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/offline_trip_package.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/offline_trip_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/offline_trip_package_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/offline_trip_package_state.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/pages/live_offline_package_page.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
@@ -18,6 +20,7 @@ class OfflineTripPackagePage extends StatefulWidget {
     this.title,
     this.cubit,
     this.repository,
+    this.offlineRepository,
     this.isDemoMode = false,
   });
 
@@ -25,6 +28,7 @@ class OfflineTripPackagePage extends StatefulWidget {
   final String? title;
   final OfflineTripPackageCubit? cubit;
   final ItineraryRepository? repository;
+  final OfflineTripRepository? offlineRepository;
   final bool isDemoMode;
 
   @override
@@ -32,6 +36,8 @@ class OfflineTripPackagePage extends StatefulWidget {
 }
 
 class _OfflineTripPackagePageState extends State<OfflineTripPackagePage> {
+  OfflineTripRepository? get _liveRepository =>
+      widget.offlineRepository ?? locateOptional<OfflineTripRepository>();
   late bool _isLoadingMetadata;
   String? _metadataError;
   String? _resolvedTitle;
@@ -40,6 +46,10 @@ class _OfflineTripPackagePageState extends State<OfflineTripPackagePage> {
   @override
   void initState() {
     super.initState();
+    if (!widget.isDemoMode && widget.cubit == null && _liveRepository != null) {
+      _isLoadingMetadata = false;
+      return;
+    }
     final hasInitialTitle =
         widget.title != null && widget.title!.trim().isNotEmpty;
     if (widget.isDemoMode || hasInitialTitle || widget.cubit != null) {
@@ -84,6 +94,14 @@ class _OfflineTripPackagePageState extends State<OfflineTripPackagePage> {
 
   @override
   Widget build(BuildContext context) {
+    final liveRepository = _liveRepository;
+    if (!widget.isDemoMode && widget.cubit == null && liveRepository != null) {
+      return LiveOfflinePackagePage(
+        itineraryId: widget.itineraryId,
+        repository: liveRepository,
+        title: widget.title,
+      );
+    }
     if (_isLoadingMetadata) {
       return Scaffold(
         appBar: AppBar(title: const Text('Offline Access')),

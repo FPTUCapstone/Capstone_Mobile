@@ -1,237 +1,226 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/core/utils/validators.dart';
-import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
-import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/traveler_profile_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/cubit/traveler_profile_cubit.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
 
 class TravelerProfilePage extends StatefulWidget {
   const TravelerProfilePage({super.key});
-
   @override
   State<TravelerProfilePage> createState() => _TravelerProfilePageState();
 }
 
 class _TravelerProfilePageState extends State<TravelerProfilePage> {
-  static const _initialName = 'Nguyen Minh Phuc';
-  static const _initialPhone = '0905 123 456';
-  static const _initialBirthDate = '26/09/2004';
-  static const _initialCity = 'Da Nang';
+  final cubit = serviceLocator<TravelerProfileCubit>();
+  final formKey = GlobalKey<FormState>();
+  final name = TextEditingController();
+  final phone = TextEditingController();
+  final birth = TextEditingController();
+  Uint8List? avatar;
+  String? avatarName;
+  String? avatarMime;
+  @override
+  void initState() {
+    super.initState();
+    cubit.load();
+  }
 
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController(text: _initialName);
-  final _phoneController = TextEditingController(text: _initialPhone);
-  final _birthDateController = TextEditingController(text: _initialBirthDate);
-  final _cityController = TextEditingController(text: _initialCity);
-  var _avatarChanged = false;
-  var _isSaving = false;
-  var _phoneVerified = false;
+  void fill(TravelerProfile profile) {
+    name.text = profile.fullName;
+    phone.text = (profile.phoneNumber ?? '').replaceAll(RegExp(r'\s+'), '');
+    birth.text = profile.dateOfBirth ?? '';
+    avatar = null;
+  }
 
   @override
   void dispose() {
-    _birthDateController.dispose();
-    _cityController.dispose();
-    _nameController.dispose();
-    _phoneController.dispose();
+    cubit.close();
+    name.dispose();
+    phone.dispose();
+    birth.dispose();
     super.dispose();
   }
 
+  Future<void> pickAvatar() async {
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp'],
+        withData: true,
+      );
+      if (result == null || !mounted) return;
+      final file = result.files.single;
+      final mime = switch (file.extension?.toLowerCase()) {
+        'jpg' || 'jpeg' => 'image/jpeg',
+        'png' => 'image/png',
+        'webp' => 'image/webp',
+        _ => null,
+      };
+      if (file.bytes == null ||
+          file.size == 0 ||
+          file.size > 5 * 1024 * 1024 ||
+          mime == null) {
+        throw const FormatException();
+      }
+      setState(() {
+        avatar = file.bytes;
+        avatarName = file.name;
+        avatarMime = mime;
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Choose a JPG, PNG or WEBP image up to 5 MB.'),
+          ),
+        );
+      }
+    }
+  }
+
+  void save() {
+    if (!formKey.currentState!.validate()) return;
+    cubit.save(
+      fullName: name.text,
+      phoneNumber: phone.text,
+      dateOfBirth: birth.text.isEmpty ? null : birth.text,
+      avatar: avatar,
+      avatarName: avatarName,
+      avatarMime: avatarMime,
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
-    return AppPageScaffold(
-      title: 'Edit Profile',
-      actions: [
-        IconButton(
-          onPressed: _isSaving ? null : _save,
-          tooltip: 'Save changes',
-          icon: const Icon(Icons.check),
-        ),
-      ],
-      content: [
-        const SizedBox(height: AppSpacing.md),
-        Center(
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              CircleAvatar(
-                radius: 42,
-                child: _avatarChanged
-                    ? const Icon(Icons.landscape, size: 38)
-                    : const Text(
-                        'PN',
+  Widget build(
+    BuildContext context,
+  ) => BlocConsumer<TravelerProfileCubit, TravelerProfileState>(
+    bloc: cubit,
+    listener: (context, state) {
+      if (state.profile != null && !state.busy && state.error == null) {
+        setState(() => fill(state.profile!));
+      }
+      if (state.saved) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated successfully.')),
+        );
+      }
+    },
+    builder: (context, state) => Scaffold(
+      appBar: AppBar(title: const Text('Edit Profile')),
+      body: state.profile == null
+          ? Center(
+              child: state.busy
+                  ? const CircularProgressIndicator()
+                  : TextButton(
+                      onPressed: cubit.load,
+                      child: Text(state.error ?? 'Retry'),
+                    ),
+            )
+          : Form(
+              key: formKey,
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  Center(
+                    child: CircleAvatar(
+                      radius: 44,
+                      backgroundImage: avatar != null
+                          ? MemoryImage(avatar!)
+                          : state.profile!.avatarUrl != null
+                          ? NetworkImage(state.profile!.avatarUrl!)
+                          : null,
+                      child: avatar == null && state.profile!.avatarUrl == null
+                          ? const Icon(Icons.person, size: 40)
+                          : null,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: state.busy ? null : pickAvatar,
+                    child: const Text('Change photo'),
+                  ),
+                  AppTextField(
+                    label: 'Full name',
+                    controller: name,
+                    enabled: !state.busy,
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Full name is required.'
+                        : value.trim().length > 100
+                        ? 'Use at most 100 characters.'
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  AppTextField(
+                    label: 'Email address',
+                    initialValue: state.profile!.email,
+                    enabled: false,
+                  ),
+                  const SizedBox(height: 16),
+                  AppTextField(
+                    label: 'Phone number',
+                    controller: phone,
+                    enabled: !state.busy,
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ],
+                    validator: Validators.phone,
+                  ),
+                  const SizedBox(height: 16),
+                  AppTextField(
+                    label: 'Date of birth',
+                    controller: birth,
+                    readOnly: true,
+                    enabled: !state.busy,
+                    onTap: () async {
+                      final now = DateTime.now();
+                      final limit = DateTime(now.year - 16, now.month, now.day);
+                      final parsed = DateTime.tryParse(birth.text);
+                      final selected = await showDatePicker(
+                        context: context,
+                        firstDate: DateTime(1900),
+                        lastDate: limit,
+                        initialDate:
+                            parsed != null &&
+                                !parsed.isAfter(limit) &&
+                                parsed.year >= 1900
+                            ? parsed
+                            : limit,
+                      );
+                      if (selected != null) {
+                        birth.text =
+                            '${selected.year}-${selected.month.toString().padLeft(2, '0')}-${selected.day.toString().padLeft(2, '0')}';
+                      }
+                    },
+                  ),
+                  if (state.error != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text(
+                        state.error!,
                         style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.error,
                         ),
                       ),
+                    ),
+                  const SizedBox(height: 24),
+                  FilledButton(
+                    onPressed: state.busy ? null : save,
+                    child: Text(state.busy ? 'Saving…' : 'Save changes'),
+                  ),
+                  TextButton(
+                    onPressed: state.busy
+                        ? null
+                        : () => setState(() => fill(state.profile!)),
+                    child: const Text('Discard changes'),
+                  ),
+                ],
               ),
-              Positioned(
-                right: -4,
-                bottom: -2,
-                child: IconButton.filled(
-                  onPressed: _changePhoto,
-                  tooltip: 'Change photo demo',
-                  icon: const Icon(Icons.photo_camera_outlined, size: 18),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Center(
-          child: TextButton(
-            onPressed: _changePhoto,
-            child: Text(
-              _avatarChanged ? 'Demo photo selected' : 'Change photo',
             ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              AppTextField(
-                controller: _nameController,
-                label: 'Full name',
-                validator: (value) =>
-                    Validators.requiredField(value, fieldName: 'Full name'),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              const AppTextField(
-                enabled: false,
-                initialValue: 'Email unavailable',
-                label: 'Email address',
-              ),
-              const SizedBox(height: AppSpacing.md),
-              AppTextField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                label: 'Phone number',
-                suffix: TextButton(
-                  onPressed: _verifyPhone,
-                  child: Text(_phoneVerified ? 'Verified' : 'Verify'),
-                ),
-                validator: Validators.phone,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              AppTextField(
-                controller: _birthDateController,
-                label: 'Date of birth',
-                onTap: _selectBirthDate,
-                readOnly: true,
-                suffix: const Icon(Icons.calendar_today_outlined),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              AppTextField(
-                controller: _cityController,
-                label: 'Home city',
-                onTap: _selectCity,
-                readOnly: true,
-                suffix: const Icon(Icons.chevron_right),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        const Text(
-          'Your account role is assigned by TripMate and cannot be changed from this screen.',
-        ),
-      ],
-      footer: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AppButton(
-            isLoading: _isSaving,
-            label: 'Save changes',
-            onPressed: _save,
-          ),
-          TextButton(onPressed: _discard, child: const Text('Discard changes')),
-        ],
-      ),
-    );
-  }
-
-  void _changePhoto() {
-    setState(() => _avatarChanged = true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Demo avatar selected. No gallery was opened.'),
-      ),
-    );
-  }
-
-  void _discard() {
-    setState(() {
-      _avatarChanged = false;
-      _birthDateController.text = _initialBirthDate;
-      _cityController.text = _initialCity;
-      _nameController.text = _initialName;
-      _phoneController.text = _initialPhone;
-      _phoneVerified = false;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile demo changes discarded.')),
-    );
-  }
-
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-    setState(() => _isSaving = true);
-    await Future<void>.delayed(const Duration(milliseconds: 450));
-    if (!mounted) {
-      return;
-    }
-    setState(() => _isSaving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Profile changes saved locally for the demo.'),
-      ),
-    );
-  }
-
-  Future<void> _selectBirthDate() async {
-    final selected = await showDatePicker(
-      context: context,
-      firstDate: DateTime(1940),
-      initialDate: DateTime(2004, 9, 26),
-      lastDate: DateTime.now(),
-    );
-    if (selected != null) {
-      _birthDateController.text =
-          '${selected.day.toString().padLeft(2, '0')}/'
-          '${selected.month.toString().padLeft(2, '0')}/${selected.year}';
-    }
-  }
-
-  void _selectCity() {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: ['Da Nang', 'Ha Noi', 'Ho Chi Minh City', 'Hue']
-              .map(
-                (city) => ListTile(
-                  title: Text(city),
-                  onTap: () {
-                    _cityController.text = city;
-                    Navigator.pop(sheetContext);
-                  },
-                ),
-              )
-              .toList(growable: false),
-        ),
-      ),
-    );
-  }
-
-  void _verifyPhone() {
-    setState(() => _phoneVerified = true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Phone verification simulated locally.')),
-    );
-  }
+    ),
+  );
 }

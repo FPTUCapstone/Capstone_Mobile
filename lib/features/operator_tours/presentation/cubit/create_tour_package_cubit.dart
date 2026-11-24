@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/core/error/error_mapper.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
+import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_detail.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_draft.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/usecases/create_tour_package_use_case.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/usecases/load_tour_package_options_use_case.dart';
@@ -42,6 +43,7 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
   final ManageTourMediaUseCase? _media;
   final GetPoiDetailUseCase? _getPoiDetail;
   final TourImagePicker? _imagePicker;
+  int _detailEpoch = 0;
   String? _pendingIdempotencyKey;
   String? _pendingPayload;
   String? _pendingUploadKey;
@@ -49,6 +51,7 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
 
   /// Loads the destination and cancellation-policy catalogues. Safe to retry.
   Future<void> loadOptions() async {
+    if (isClosed) return;
     emit(
       state.copyWith(
         optionsStatus: TourPackageOptionsStatus.loading,
@@ -79,6 +82,7 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
 
   /// Loads an existing package with its photos and readiness for editing or viewing.
   Future<void> loadDetail(int tourId) async {
+    if (isClosed || state.mutationBusy) return;
     emit(
       state.copyWith(
         detailStatus: TourPackageDetailStatus.loading,
@@ -87,6 +91,16 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
     );
     try {
       await _refreshDetail(tourId);
+      if (!isClosed && state.reviewStatus == TourReviewStatus.uncertain) {
+        emit(
+          state.copyWith(
+            reviewStatus: state.detail!.status.isEditable
+                ? TourReviewStatus.idle
+                : TourReviewStatus.submitted,
+            reviewFailure: null,
+          ),
+        );
+      }
     } on Failure catch (failure) {
       if (!isClosed) {
         emit(
@@ -100,22 +114,36 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
   }
 
   Future<void> _refreshDetail(int tourId) async {
+    if (isClosed) return;
     final getTour = _getTour;
     final media = _media;
     if (getTour == null || media == null) {
       throw const UnknownFailure();
     }
-    final results = await (getTour(tourId), media.list(tourId)).wait;
-    final detail = results.$1;
+    final epoch = ++_detailEpoch;
+    final detail = await getTour(tourId);
+    if (isClosed || epoch != _detailEpoch) return;
+    // Detail is authoritative even when the optional photo refresh is unavailable.
+    var photos = state.media;
+    try {
+      photos = await media.list(tourId);
+    } on Object {
+      // Preserve the last known photos; a read failure cannot undo a mutation.
+    }
     final names = await _resolvePoiNames({
       for (final item in detail.itineraryItems) item.poiId,
     }, state.poiNames);
-    if (isClosed) return;
+    if (isClosed || epoch != _detailEpoch) return;
+    if (state.reviewStatus == TourReviewStatus.submitted &&
+        detail.status.isEditable) {
+      emit(state.copyWith(detailStatus: TourPackageDetailStatus.ready));
+      return;
+    }
     emit(
       state.copyWith(
         detailStatus: TourPackageDetailStatus.ready,
         detail: detail,
-        media: results.$2,
+        media: photos,
         poiNames: names,
       ),
     );
@@ -143,7 +171,8 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
 
   /// Creates a new draft, or replaces the editable data of the loaded package.
   Future<void> submit(TourPackageDraft draft) async {
-    if (state.status == CreateTourPackageStatus.submitting) return;
+    if (isClosed || state.mutationBusy || state.locked) return;
+    _detailEpoch++;
     emit(
       state.copyWith(status: CreateTourPackageStatus.submitting, failure: null),
     );
@@ -154,7 +183,12 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
         id = await _createWithStableKey(draft);
       } else {
         await _requireUpdate()(existing.id, draft);
-        await _refreshDetail(existing.id);
+        if (isClosed) return;
+        try {
+          await _refreshDetail(existing.id);
+        } on Object {
+          // The server already confirmed the save.
+        }
         id = existing.id;
       }
       if (!isClosed) {
@@ -193,41 +227,97 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
 
   /// Saves the form, then asks the server to move the package to review. The server decides
   /// whether the prerequisites are met; a refusal leaves the package a Draft.
-  Future<void> saveAndSubmitForReview(TourPackageDraft draft) async {
+  Future<void> saveAndSubmitForReview(
+    TourPackageDraft draft, {
+    String? submissionNote,
+  }) async {
     final existing = state.detail;
     final submit = _submitForReview;
-    if (existing == null ||
+    if (isClosed ||
+        existing == null ||
         submit == null ||
-        state.reviewStatus == TourReviewStatus.submitting) {
+        state.mutationBusy ||
+        state.locked) {
       return;
     }
+    final note = normalizeSubmissionNote(submissionNote);
+    if (note != null && note.length > 4000) {
+      emit(
+        state.copyWith(
+          reviewStatus: TourReviewStatus.failure,
+          reviewFailure: const ValidationFailure(
+            'Shorten the submission note to 4,000 characters.',
+          ),
+        ),
+      );
+      return;
+    }
+    _detailEpoch++;
     emit(
       state.copyWith(
         reviewStatus: TourReviewStatus.submitting,
         reviewFailure: null,
       ),
     );
+    var sent = false;
     try {
       await _requireUpdate()(existing.id, draft);
-      await submit(existing.id);
-      await _refreshDetail(existing.id);
-      if (!isClosed) {
-        emit(state.copyWith(reviewStatus: TourReviewStatus.submitted));
+      if (isClosed) return;
+      sent = true;
+      final result = await submit(existing.id, submissionNote: note);
+      if (isClosed) return;
+      // Retain the acknowledged Pending state independently of subsequent reads.
+      emit(
+        state.copyWith(
+          detail: existing.submitted(note: note, atUtc: result.submittedAtUtc),
+          reviewStatus: TourReviewStatus.submitted,
+          reviewFailure: null,
+        ),
+      );
+      try {
+        await _refreshDetail(existing.id);
+      } on Object {
+        // Submission is already confirmed; refresh is best effort.
       }
-    } on Failure catch (failure) {
-      if (!isClosed) {
+    } on Object catch (error) {
+      if (isClosed) return;
+      final failure = ErrorMapper.toFailure(error);
+      var reconciled = false;
+      try {
+        await _refreshDetail(existing.id);
+        reconciled = true;
+      } on Object {
+        // A lost response may have committed. Lock until an authoritative reload.
+      }
+      if (isClosed) return;
+      if (sent && state.detail?.status == TourPackageStatus.pending) {
+        emit(
+          state.copyWith(
+            reviewStatus: TourReviewStatus.submitted,
+            reviewFailure: null,
+          ),
+        );
+      } else if (sent &&
+          !reconciled &&
+          (failure is NetworkFailure ||
+              failure is ServerFailure ||
+              failure is UnknownFailure ||
+              failure is ConflictFailure)) {
+        emit(
+          state.copyWith(
+            reviewStatus: TourReviewStatus.uncertain,
+            reviewFailure: const NetworkFailure(
+              'Submission status could not be confirmed. Reload the tour before trying again.',
+            ),
+          ),
+        );
+      } else {
         emit(
           state.copyWith(
             reviewStatus: TourReviewStatus.failure,
             reviewFailure: failure,
           ),
         );
-      }
-      // The save may have succeeded even though the review request did not.
-      try {
-        await _refreshDetail(existing.id);
-      } on Failure {
-        // Keep the earlier detail; the failure above is what the operator needs to see.
       }
     }
   }
@@ -237,12 +327,19 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
     final detail = state.detail;
     final media = _media;
     final picker = _imagePicker;
-    if (detail == null || media == null || picker == null || state.mediaBusy) {
+    if (isClosed ||
+        detail == null ||
+        media == null ||
+        picker == null ||
+        state.mutationBusy ||
+        state.locked) {
       return;
     }
+    _detailEpoch++;
     emit(state.copyWith(mediaBusy: true, mediaFailure: null));
     try {
       final image = await picker.pickImage();
+      if (isClosed) return;
       if (image == null) {
         emit(state.copyWith(mediaBusy: false));
         return;
@@ -264,6 +361,7 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
       _pendingUploadKey = null;
       await _afterMediaChange(detail.id);
     } on TourImageReadFailure {
+      if (isClosed) return;
       emit(
         state.copyWith(
           mediaBusy: false,
@@ -273,6 +371,7 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
         ),
       );
     } on Object catch (error) {
+      if (isClosed) return;
       emit(
         state.copyWith(
           mediaBusy: false,
@@ -293,12 +392,20 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
   ) async {
     final detail = state.detail;
     final media = _media;
-    if (detail == null || media == null || state.mediaBusy) return;
+    if (isClosed ||
+        detail == null ||
+        media == null ||
+        state.mutationBusy ||
+        state.locked) {
+      return;
+    }
+    _detailEpoch++;
     emit(state.copyWith(mediaBusy: true, mediaFailure: null));
     try {
       await action(media, detail.id);
       await _afterMediaChange(detail.id);
     } on Object catch (error) {
+      if (isClosed) return;
       emit(
         state.copyWith(
           mediaBusy: false,
@@ -309,7 +416,12 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
   }
 
   Future<void> _afterMediaChange(int tourId) async {
-    await _refreshDetail(tourId);
+    if (isClosed) return;
+    try {
+      await _refreshDetail(tourId);
+    } on Object {
+      // The media mutation succeeded even if its follow-up refresh did not.
+    }
     if (!isClosed) emit(state.copyWith(mediaBusy: false));
   }
 }
