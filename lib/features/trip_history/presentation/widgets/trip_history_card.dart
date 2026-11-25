@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:trip_mate_mobile/app/theme/app_colors.dart';
-import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/coastal_palette.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/helpers/itinerary_text.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enums.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_record.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
-import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
 /// One UC-32 trip. Every button is driven by a flag the backend sent
 /// (`actions`, `review`); nothing is derived on the device.
@@ -38,12 +37,11 @@ class TripHistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = CoastalPalette.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hairline = isDark ? p.border : const Color(0xFFEDEAE1);
     final record = this.record;
-    final statusType = switch (record.tab) {
-      TripStatus.upcoming => StatusBadgeType.info,
-      TripStatus.completed => StatusBadgeType.success,
-      TripStatus.cancelled => StatusBadgeType.error,
-    };
+
     final statusLabel = switch (record.tab) {
       TripStatus.upcoming => TripHistoryStringsEn.statusConfirmed,
       TripStatus.completed => TripHistoryStringsEn.statusCompleted,
@@ -52,56 +50,111 @@ class TripHistoryCard extends StatelessWidget {
         TripHistoryStringsEn.statusStoppedForSafety,
       TripStatus.cancelled => TripHistoryStringsEn.statusCancelled,
     };
-    final typeLabel = switch (record) {
-      BookingTripRecord() => TripHistoryStringsEn.filterTour,
-      ItineraryTripRecord() => TripHistoryStringsEn.filterItinerary,
+
+    final (statusBg, statusFg) = switch (record.tab) {
+      TripStatus.upcoming => (p.softAccent, p.primary),
+      TripStatus.completed => (p.softAccent, p.primary),
+      TripStatus.cancelled => (
+        p.errorBg,
+        isDark ? p.error : const Color(0xFF8C1030),
+      ),
     };
 
-    return Card(
-      elevation: 1,
-      margin: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.xs,
+    final isBooking = record is BookingTripRecord;
+    final typeLabel = isBooking
+        ? TripHistoryStringsEn.filterTour
+        : TripHistoryStringsEn.filterItinerary;
+    final typeBg = isBooking
+        ? (isDark ? p.warningBg : const Color(0xFFF6EDE8))
+        : p.canvas;
+    final typeFg = isBooking
+        ? (isDark ? p.accent : const Color(0xFF995436))
+        : p.secondary;
+
+    final displayTitle = switch (record) {
+      BookingTripRecord() => record.title,
+      ItineraryTripRecord() => formatTripDisplayTitle(
+        title: record.title,
+        validFrom: record.departureAtUtc,
       ),
+    };
+
+    final formattedDate = TripFormatters.formatVietnamDate(
+      record.departureAtUtc,
+    );
+    final bookingRating =
+        record is BookingTripRecord &&
+            record.review.exists &&
+            record.review.rating != null
+        ? record.review.rating
+        : null;
+
+    return Card(
+      elevation: 0,
+      color: p.surface,
+      surfaceTintColor: Colors.transparent,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: p.border),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Wrap(
-              spacing: AppSpacing.xs,
-              runSpacing: AppSpacing.xxs,
-              crossAxisAlignment: WrapCrossAlignment.center,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                if (record is BookingTripRecord)
+                Expanded(
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      _Pill(label: typeLabel, bg: typeBg, fg: typeFg),
+                      _Pill(label: statusLabel, bg: statusBg, fg: statusFg),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (bookingRating != null) ...[
                   Text(
-                    record.bookingCode,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      color: AppColors.muted,
+                    '★ $bookingRating.0',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? p.accent : const Color(0xFF995436),
                     ),
                   ),
-                StatusBadge(label: typeLabel, type: StatusBadgeType.neutral),
-                StatusBadge(label: statusLabel, type: statusType),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  formattedDate,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: p.secondary,
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: AppSpacing.xs),
+            const SizedBox(height: 10),
             Text(
-              record.title,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: AppColors.ink,
+              displayTitle,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 15.5,
+                height: 1.3,
+                color: p.ink,
               ),
             ),
-            const SizedBox(height: AppSpacing.sm),
-            _InfoBox(record: record),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: 6),
+            _MetaLine(record: record),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Divider(height: 1, thickness: 1, color: hairline),
+            ),
             _Actions(
               record: record,
               onViewEticket: onViewEticket,
@@ -120,117 +173,94 @@ class TripHistoryCard extends StatelessWidget {
   }
 }
 
-class _InfoBox extends StatelessWidget {
-  const _InfoBox({required this.record});
+class _Pill extends StatelessWidget {
+  const _Pill({required this.label, required this.bg, required this.fg});
 
-  final TripRecord record;
+  final String label;
+  final Color bg;
+  final Color fg;
 
   @override
   Widget build(BuildContext context) {
-    final record = this.record;
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
       ),
-      child: Column(
-        children: [
-          _InfoLine(
-            icon: Icons.calendar_today_outlined,
-            label: TripHistoryStringsEn.labelDepartureDate,
-            value: TripFormatters.formatVietnamDate(record.departureAtUtc),
-          ),
-          const SizedBox(height: AppSpacing.xxs),
-          switch (record) {
-            BookingTripRecord() => Column(
-              children: [
-                _InfoLine(
-                  icon: Icons.people_outline,
-                  label: TripHistoryStringsEn.labelParticipants,
-                  value: TripHistoryStringsEn.formatParticipants(
-                    record.participantCount,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xxs),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      '${TripHistoryStringsEn.labelTotalAmount}:',
-                      style: TextStyle(fontSize: 12, color: AppColors.muted),
-                    ),
-                    Flexible(
-                      child: Text(
-                        TripFormatters.formatVnd(record.totalAmount),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                        textAlign: TextAlign.end,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            ItineraryTripRecord() => Column(
-              children: [
-                _InfoLine(
-                  icon: Icons.place_outlined,
-                  label: TripHistoryStringsEn.stopsSectionTitle,
-                  value: TripHistoryStringsEn.formatStopCount(record.stopCount),
-                ),
-                if (record.visitedCount != null) ...[
-                  const SizedBox(height: AppSpacing.xxs),
-                  _InfoLine(
-                    icon: Icons.check_circle_outline,
-                    label: TripHistoryStringsEn.stopVisited,
-                    value: TripHistoryStringsEn.formatVisitedOf(
-                      record.visitedCount!,
-                      record.stopCount,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          },
-        ],
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: fg),
       ),
     );
   }
 }
 
-class _InfoLine extends StatelessWidget {
-  const _InfoLine({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
+class _MetaLine extends StatelessWidget {
+  const _MetaLine({required this.record});
 
-  final IconData icon;
-  final String label;
-  final String value;
+  final TripRecord record;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 14, color: AppColors.muted),
-        const SizedBox(width: AppSpacing.xxs),
-        Text(
-          '$label: ',
-          style: const TextStyle(fontSize: 12, color: AppColors.muted),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+    final p = CoastalPalette.of(context);
+    final mutedStyle = TextStyle(fontSize: 12.5, color: p.secondary);
+    final dot = Text(' · ', style: mutedStyle);
+
+    return switch (record) {
+      final BookingTripRecord booking => Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        runSpacing: 4,
+        children: [
+          Text(
+            booking.bookingCode,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: p.secondary,
+            ),
           ),
-        ),
-      ],
-    );
+          dot,
+          Text(
+            TripHistoryStringsEn.formatParticipants(booking.participantCount),
+            style: mutedStyle,
+          ),
+          dot,
+          Text(
+            TripFormatters.formatVnd(booking.totalAmount),
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              color: p.ink,
+            ),
+          ),
+        ],
+      ),
+      final ItineraryTripRecord itinerary => Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        runSpacing: 4,
+        children: [
+          Text(
+            TripHistoryStringsEn.formatStopCount(itinerary.stopCount),
+            style: mutedStyle,
+          ),
+          if (itinerary.visitedCount != null) ...[
+            dot,
+            Text(
+              TripHistoryStringsEn.formatVisitedOf(
+                itinerary.visitedCount!,
+                itinerary.stopCount,
+              ),
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: p.ink,
+              ),
+            ),
+          ],
+        ],
+      ),
+    };
   }
 }
 
@@ -255,55 +285,94 @@ class _Actions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = CoastalPalette.of(context);
     final record = this.record;
     final openNotice = onViewEmergencyNotice;
     final actions = record.actions;
-    const compact = VisualDensity.compact;
+
+    final secondaryStyle = OutlinedButton.styleFrom(
+      foregroundColor: p.ink,
+      backgroundColor: p.surface,
+      side: BorderSide(color: p.border),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+      visualDensity: VisualDensity.compact,
+      textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+    );
+
+    final softStyle = OutlinedButton.styleFrom(
+      foregroundColor: p.primary,
+      backgroundColor: p.canvas,
+      side: BorderSide(color: p.border),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+      visualDensity: VisualDensity.compact,
+      textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+    );
+
+    final primaryStyle = FilledButton.styleFrom(
+      backgroundColor: p.primary,
+      foregroundColor: p.onPrimary,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+      visualDensity: VisualDensity.compact,
+      textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+    );
+
     return Wrap(
-      spacing: AppSpacing.xs,
-      runSpacing: AppSpacing.xs,
+      spacing: 8,
+      runSpacing: 8,
       children: [
-        OutlinedButton.icon(
+        OutlinedButton(
           onPressed: () => onViewDetails(record),
-          icon: const Icon(Icons.info_outline, size: 16),
-          label: const Text(TripHistoryStringsEn.actionViewDetails),
-          style: OutlinedButton.styleFrom(visualDensity: compact),
+          style: secondaryStyle,
+          child: const Text(TripHistoryStringsEn.actionViewDetails),
         ),
         if (actions.canViewETicket && actions.ticketId != null)
           OutlinedButton.icon(
             onPressed: () => onViewEticket(record),
-            icon: const Icon(Icons.qr_code, size: 16),
+            icon: Icon(Icons.qr_code_2, size: 15, color: p.primary),
             label: const Text(TripHistoryStringsEn.actionViewEticket),
-            style: OutlinedButton.styleFrom(visualDensity: compact),
+            style: softStyle,
           ),
         if (record is BookingTripRecord && actions.canReview)
-          FilledButton.icon(
+          FilledButton(
             onPressed: () => onWriteReview(record),
-            icon: const Icon(Icons.rate_review_outlined, size: 16),
-            label: const Text(TripHistoryStringsEn.actionWriteReview),
-            style: FilledButton.styleFrom(visualDensity: compact),
+            style: primaryStyle,
+            child: const Text(TripHistoryStringsEn.actionWriteReview),
           ),
         if (record is BookingTripRecord && record.review.exists)
-          OutlinedButton.icon(
+          OutlinedButton(
             onPressed: () => onViewReview(record),
-            icon: const Icon(Icons.reviews_outlined, size: 16),
-            label: const Text(TripHistoryStringsEn.actionViewReview),
-            style: OutlinedButton.styleFrom(visualDensity: compact),
+            style: softStyle,
+            child: const Text(TripHistoryStringsEn.actionViewReview),
           ),
         if (actions.canViewRefund)
-          FilledButton.tonalIcon(
+          OutlinedButton(
             onPressed: () => onViewRefund(record),
-            icon: const Icon(Icons.currency_exchange, size: 16),
-            label: const Text(TripHistoryStringsEn.actionViewRefundStatus),
-            style: FilledButton.styleFrom(visualDensity: compact),
+            style: softStyle,
+            child: const Text(TripHistoryStringsEn.actionViewRefundStatus),
           ),
         if (record is BookingTripRecord && openNotice != null)
           OutlinedButton.icon(
             key: const Key('trip-emergency-notice'),
             onPressed: () => openNotice(record),
-            icon: const Icon(Icons.warning_amber_rounded, size: 16),
+            icon: Icon(Icons.warning_amber_rounded, size: 15, color: p.error),
             label: const Text(TripHistoryStringsEn.actionViewEmergencyNotice),
-            style: OutlinedButton.styleFrom(visualDensity: compact),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: p.error,
+              backgroundColor: p.errorBg,
+              side: BorderSide(color: p.error.withValues(alpha: 0.35)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(11),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              visualDensity: VisualDensity.compact,
+              textStyle: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
       ],
     );

@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:trip_mate_mobile/app/theme/app_colors.dart';
-import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/coastal_palette.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/post_trip_complaints/presentation/widgets/post_trip_complaint_entry_action.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/helpers/itinerary_text.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_record.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_record_detail.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_record_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/trip_record_detail_state.dart';
 import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
-import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
 /// The trip detail behind "View details" and "View refund" (UC-32). The detail
 /// is fetched when the sheet opens; nothing here is derived on the device.
@@ -32,18 +31,30 @@ class TripRecordDetailSheet extends StatelessWidget {
     required bool isDemo,
     bool highlightRefund = false,
   }) {
+    final p = CoastalPalette.of(context);
+    final displayTitle = switch (record) {
+      BookingTripRecord() => record.title,
+      ItineraryTripRecord() => formatTripDisplayTitle(
+        title: record.title,
+        validFrom: record.departureAtUtc,
+      ),
+    };
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
+      backgroundColor: p.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (_) => BlocProvider(
         create: (_) => serviceLocator<TripRecordDetailCubit>(
           param1: TripRecordRef(kind: record.kind, id: record.id),
           param2: isDemo,
         )..load(),
         child: TripRecordDetailSheet(
-          title: record.title,
+          title: displayTitle,
           highlightRefund: highlightRefund,
         ),
       ),
@@ -52,53 +63,67 @@ class TripRecordDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        0,
-        AppSpacing.md,
-        MediaQuery.of(context).padding.bottom + AppSpacing.md,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: IconButton(
-              tooltip: TripHistoryStringsEn.actionClose,
-              icon: const Icon(Icons.close),
-              onPressed: () => Navigator.of(context).maybePop(),
-            ),
-          ),
-          Flexible(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.ink,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  BlocBuilder<TripRecordDetailCubit, TripRecordDetailState>(
-                    builder: (context, state) => switch (state.status) {
-                      TripRecordDetailStatus.loading => const _Loading(),
-                      TripRecordDetailStatus.failure => _Failure(state: state),
-                      TripRecordDetailStatus.ready => _Content(
-                        detail: state.detail!,
-                        highlightRefund: highlightRefund,
-                      ),
-                    },
-                  ),
-                ],
+    final p = CoastalPalette.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hairline = isDark ? p.border : const Color(0xFFEDEAE1);
+
+    return ColoredBox(
+      color: p.surface,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          0,
+          16,
+          MediaQuery.of(context).padding.bottom + 16,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Align(
+              alignment: Alignment.centerRight,
+              child: IconButton(
+                tooltip: TripHistoryStringsEn.actionClose,
+                visualDensity: VisualDensity.compact,
+                icon: Icon(Icons.close, size: 20, color: p.secondary),
+                onPressed: () => Navigator.of(context).maybePop(),
               ),
             ),
-          ),
-        ],
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        height: 1.25,
+                        color: p.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Divider(height: 1, thickness: 1, color: hairline),
+                    const SizedBox(height: 14),
+                    BlocBuilder<TripRecordDetailCubit, TripRecordDetailState>(
+                      builder: (context, state) => switch (state.status) {
+                        TripRecordDetailStatus.loading => const _Loading(),
+                        TripRecordDetailStatus.failure => _Failure(
+                          state: state,
+                        ),
+                        TripRecordDetailStatus.ready => _Content(
+                          detail: state.detail!,
+                          highlightRefund: highlightRefund,
+                        ),
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -109,15 +134,19 @@ class _Loading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+    final p = CoastalPalette.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 28),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: AppSpacing.sm),
-            Text(TripHistoryStringsEn.detailLoading),
+            CircularProgressIndicator(color: p.primary),
+            const SizedBox(height: 12),
+            Text(
+              TripHistoryStringsEn.detailLoading,
+              style: TextStyle(fontSize: 13, color: p.secondary),
+            ),
           ],
         ),
       ),
@@ -132,24 +161,45 @@ class _Failure extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = CoastalPalette.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            state.message ?? TripHistoryStringsEn.errorMessageGeneric,
-            style: const TextStyle(color: AppColors.error),
-          ),
-          if (state.canRetry) ...[
-            const SizedBox(height: AppSpacing.sm),
-            FilledButton.icon(
-              onPressed: context.read<TripRecordDetailCubit>().retry,
-              icon: const Icon(Icons.refresh),
-              label: const Text(TripHistoryStringsEn.actionRetry),
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: p.errorBg,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: p.error.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              state.message ?? TripHistoryStringsEn.errorMessageGeneric,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: p.error,
+              ),
             ),
+            if (state.canRetry) ...[
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: context.read<TripRecordDetailCubit>().retry,
+                style: FilledButton.styleFrom(
+                  backgroundColor: p.primary,
+                  foregroundColor: p.onPrimary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text(TripHistoryStringsEn.actionRetry),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -267,7 +317,7 @@ class _BookingContent extends StatelessWidget {
             ],
           ),
         Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          padding: const EdgeInsets.only(bottom: 8),
           child: PostTripComplaintEntryAction(
             bookingId: detail.record.reviewableRecord.id,
           ),
@@ -284,6 +334,9 @@ class _ItineraryContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = CoastalPalette.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hairline = isDark ? p.border : const Color(0xFFEDEAE1);
     final record = detail.record;
     final session = detail.session;
 
@@ -292,22 +345,50 @@ class _ItineraryContent extends StatelessWidget {
       children: [
         if (record.visitedCount != null)
           Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+            padding: const EdgeInsets.only(bottom: 12),
             child: Text(
               TripHistoryStringsEn.formatVisitedOf(
                 record.visitedCount!,
                 record.stopCount,
               ),
-              style: const TextStyle(
+              style: TextStyle(
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.muted,
+                color: p.secondary,
               ),
             ),
           ),
-        _Section(
-          title: TripHistoryStringsEn.stopsSectionTitle,
-          children: [for (final stop in detail.stops) _StopTile(stop: stop)],
+
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            TripHistoryStringsEn.stopsSectionTitle,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: p.secondary,
+            ),
+          ),
         ),
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: p.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: p.border),
+          ),
+          child: Column(
+            children: [
+              for (var i = 0; i < detail.stops.length; i++) ...[
+                _StopTile(stop: detail.stops[i], index: i + 1),
+                if (i < detail.stops.length - 1)
+                  Divider(height: 1, thickness: 1, color: hairline),
+              ],
+            ],
+          ),
+        ),
+
         if (session != null)
           _Section(
             title: TripHistoryStringsEn.sessionSectionTitle,
@@ -336,77 +417,136 @@ class _ItineraryContent extends StatelessWidget {
 }
 
 class _StopTile extends StatelessWidget {
-  const _StopTile({required this.stop});
+  const _StopTile({required this.stop, required this.index});
 
   final TripStopDetail stop;
+  final int index;
 
   @override
   Widget build(BuildContext context) {
+    final p = CoastalPalette.of(context);
     final visit = stop.visitStatus;
     final arrival = stop.plannedArrivalUtc;
     final departure = stop.plannedDepartureUtc;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: AppColors.cardBackground,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.line),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xs),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Wrap(
-                spacing: AppSpacing.xs,
-                runSpacing: AppSpacing.xxs,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Text(
-                    stop.poiName,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  if (visit != null)
-                    StatusBadge(
-                      label: switch (visit) {
-                        TripVisitStatus.reached =>
-                          TripHistoryStringsEn.stopVisited,
-                        TripVisitStatus.skipped =>
-                          TripHistoryStringsEn.stopSkipped,
-                        TripVisitStatus.pending =>
-                          TripHistoryStringsEn.stopNotVisited,
-                      },
-                      type: switch (visit) {
-                        TripVisitStatus.reached => StatusBadgeType.success,
-                        TripVisitStatus.skipped => StatusBadgeType.warning,
-                        TripVisitStatus.pending => StatusBadgeType.neutral,
-                      },
-                    ),
-                ],
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 26,
+            height: 26,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: p.primary, shape: BoxShape.circle),
+            child: Text(
+              '$index',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: p.onPrimary,
               ),
-              if (arrival != null && departure != null)
-                _Line(
-                  TripHistoryStringsEn.formatPlannedWindow(
-                    TripFormatters.formatVietnamTime(arrival),
-                    TripFormatters.formatVietnamTime(departure),
-                  ),
-                ),
-              if (stop.reachedAtUtc != null)
-                _Line(
-                  TripHistoryStringsEn.formatReachedAt(
-                    TripFormatters.formatVietnamDateTime(stop.reachedAtUtc!),
-                  ),
-                ),
-              if (stop.skippedAtUtc != null)
-                _Line(
-                  TripHistoryStringsEn.formatSkippedAt(
-                    TripFormatters.formatVietnamDateTime(stop.skippedAtUtc!),
-                  ),
-                ),
-            ],
+            ),
           ),
-        ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      stop.poiName,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: p.ink,
+                      ),
+                    ),
+                    if (visit != null) _VisitBadge(status: visit),
+                  ],
+                ),
+                if (arrival != null && departure != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Text(
+                      TripHistoryStringsEn.formatPlannedWindow(
+                        TripFormatters.formatVietnamTime(arrival),
+                        TripFormatters.formatVietnamTime(departure),
+                      ),
+                      style: TextStyle(fontSize: 12, color: p.secondary),
+                    ),
+                  ),
+                if (stop.reachedAtUtc != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      TripHistoryStringsEn.formatReachedAt(
+                        TripFormatters.formatVietnamDateTime(
+                          stop.reachedAtUtc!,
+                        ),
+                      ),
+                      style: TextStyle(fontSize: 12, color: p.secondary),
+                    ),
+                  ),
+                if (stop.skippedAtUtc != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      TripHistoryStringsEn.formatSkippedAt(
+                        TripFormatters.formatVietnamDateTime(
+                          stop.skippedAtUtc!,
+                        ),
+                      ),
+                      style: TextStyle(fontSize: 12, color: p.secondary),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VisitBadge extends StatelessWidget {
+  const _VisitBadge({required this.status});
+
+  final TripVisitStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = CoastalPalette.of(context);
+    final (label, bg, fg) = switch (status) {
+      TripVisitStatus.reached => (
+        TripHistoryStringsEn.stopVisited,
+        p.softAccent,
+        p.primary,
+      ),
+      TripVisitStatus.skipped => (
+        TripHistoryStringsEn.stopSkipped,
+        p.warningBg,
+        p.warningText,
+      ),
+      TripVisitStatus.pending => (
+        TripHistoryStringsEn.stopNotVisited,
+        p.canvas,
+        p.secondary,
+      ),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: fg),
       ),
     );
   }
@@ -426,38 +566,41 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = CoastalPalette.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: highlighted ? AppColors.primarySoft : AppColors.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: highlighted ? AppColors.secondary : AppColors.line,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.sm),
-          child: SizedBox(
-            width: double.infinity,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 12,
-                    color: AppColors.muted,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xxs),
-                ...children,
-              ],
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: p.secondary,
+              ),
             ),
           ),
-        ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: highlighted ? p.softAccent : p.canvas,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: highlighted
+                    ? p.primary
+                    : p.border.withValues(alpha: 0.7),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: children,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -471,26 +614,35 @@ class _Row extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = CoastalPalette.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Flexible(
+          Expanded(
             flex: 2,
             child: Text(
               label,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                color: AppColors.muted,
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: p.secondary,
                 fontSize: 13,
               ),
             ),
           ),
-          const SizedBox(width: AppSpacing.xs),
-          Flexible(
+          const SizedBox(width: 12),
+          Expanded(
             flex: 3,
-            child: Text(value, style: const TextStyle(fontSize: 13)),
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: p.ink,
+              ),
+            ),
           ),
         ],
       ),
@@ -505,11 +657,16 @@ class _Line extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = CoastalPalette.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 1),
+      padding: const EdgeInsets.symmetric(vertical: 3),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 12, color: AppColors.muted),
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: p.ink,
+        ),
       ),
     );
   }
