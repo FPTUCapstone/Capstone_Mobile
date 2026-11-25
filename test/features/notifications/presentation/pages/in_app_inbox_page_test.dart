@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trip_mate_mobile/features/traveler/domain/entities/in_app_notification.dart';
-import 'package:trip_mate_mobile/features/traveler/domain/repositories/in_app_notification_repository.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/cubit/in_app_inbox_cubit.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/pages/in_app_inbox_page.dart';
+import 'package:trip_mate_mobile/features/notifications/domain/entities/in_app_notification.dart';
+import 'package:trip_mate_mobile/features/notifications/domain/repositories/in_app_notification_repository.dart';
+import 'package:trip_mate_mobile/features/notifications/presentation/cubit/in_app_inbox_cubit.dart';
+import 'package:trip_mate_mobile/features/notifications/presentation/pages/in_app_inbox_page.dart';
 
 final class _Repository implements InAppNotificationRepository {
   _Repository({required this.pages, this.failFirst = false, this.pending});
@@ -86,12 +86,35 @@ void main() {
     );
 
     expect(find.text('Removed from Da Nang Weekend'), findsOneWidget);
+    expect(find.text('Unread'), findsOneWidget);
     expect(find.text('You were removed from Da Nang Weekend.'), findsOneWidget);
     expect(find.text('Open group'), findsNothing);
     await tester.tap(find.byKey(const Key('inbox_mark_read_3')));
     await tester.pump();
     expect(repository.reads, 1);
+    expect(find.text('Unread'), findsNothing);
     expect(find.byKey(const Key('inbox_mark_read_3')), findsNothing);
+  });
+
+  testWidgets('refreshes an empty inbox to discover new notices', (tester) async {
+    final repository = _Repository(
+      pages: [
+        const InAppNotificationPage(items: [], nextBeforeId: null),
+        InAppNotificationPage(items: [_notice(3)], nextBeforeId: null),
+      ],
+    );
+    final cubit = InAppInboxCubit(repository);
+    addTearDown(cubit.close);
+    await cubit.load();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider.value(value: cubit, child: const InAppInboxPage()),
+      ),
+    );
+
+    await tester.drag(find.byKey(const Key('inbox_empty')), const Offset(0, 300));
+    await tester.pumpAndSettle();
+    expect(find.text('Removed from Da Nang Weekend'), findsOneWidget);
   });
 
   testWidgets('loads more and applies unread filter', (tester) async {

@@ -1,4 +1,4 @@
-import 'package:trip_mate_mobile/features/traveler/domain/entities/in_app_notification.dart';
+import 'package:trip_mate_mobile/features/notifications/domain/entities/in_app_notification.dart';
 
 abstract interface class InAppNotificationRepository {
   Future<InAppNotificationPage> getInbox({
