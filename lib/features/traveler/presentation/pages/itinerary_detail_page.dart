@@ -893,6 +893,9 @@ final class _DetailContent extends StatelessWidget {
     final names = {
       for (final visit in detail.visitItems) visit.poiId: visit.poiName,
     };
+    final currentEndTime =
+        detail.validTo ??
+        (detail.items.isNotEmpty ? detail.items.last.plannedDeparture : null);
     return showItinerarySuggestionsSheet(
       context,
       repository: repository,
@@ -901,6 +904,8 @@ final class _DetailContent extends StatelessWidget {
       kind: kind,
       itemId: item.itemId,
       stopName: (poiId) => names[poiId],
+      currentEndTime: currentEndTime,
+      anchorName: item.poiName,
     );
   }
 
