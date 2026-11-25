@@ -8,7 +8,6 @@ import 'package:trip_mate_mobile/features/traveler/domain/entities/active_trip_m
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_route.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_session.dart';
-import 'package:trip_mate_mobile/features/traveler/domain/entities/reroute_proposal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/weather_advisory.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigation_session_repository.dart';
@@ -868,40 +867,6 @@ void main() {
       );
     });
 
-    test('re-routing acceptance bumps the version', () {
-      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
-      cubit.acceptRerouteProposal();
-
-      expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.accepted);
-      expect(cubit.state.itineraryVersion, 2);
-
-      cubit.openRerouteProposal();
-      expect(cubit.state.isRerouteSheetVisible, isFalse);
-      cubit.acceptRerouteProposal();
-      expect(cubit.state.itineraryVersion, 2);
-    });
-
-    test('declined and expired proposals cannot be accepted later', () {
-      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
-      cubit.declineRerouteProposal();
-      expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.declined);
-      cubit.acceptRerouteProposal();
-      expect(cubit.state.itineraryVersion, 1);
-
-      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
-      cubit.expireRerouteProposal();
-      expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.expired);
-      cubit.openRerouteProposal();
-      expect(cubit.state.isRerouteSheetVisible, isFalse);
-    });
-
-    test('opening without a proposal never invents one, even in demo mode', () {
-      cubit.openRerouteProposal();
-
-      expect(cubit.state.activeRerouteProposal, isNull);
-      expect(cubit.state.isRerouteSheetVisible, isFalse);
-    });
-
     test('closeRerouteProposalSheet is idempotent when already closed', () {
       var emitted = false;
       final subscription = cubit.stream.listen((_) => emitted = true);
@@ -912,14 +877,11 @@ void main() {
       subscription.cancel();
     });
 
-    test('a finished trip rejects reroute actions and new alerts', () async {
-      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
+    test('a finished trip rejects new alerts', () async {
       await cubit.finish();
 
       expect(cubit.state.isTerminal, isTrue);
       expect(cubit.state.isRerouteSheetVisible, isFalse);
-      cubit.acceptRerouteProposal();
-      expect(cubit.state.itineraryVersion, 1);
 
       final alertsBefore = cubit.state.alerts.length;
       cubit.addAlert(
@@ -948,7 +910,7 @@ void main() {
       expect(cubit.state.alerts, isEmpty);
       cubit.demoSimulateArrivalAtNextStop();
       cubit.demoSimulatePermissionDenied();
-      cubit.openRerouteProposal();
+      await cubit.openRerouteProposal(TripAlertTestData.sampleAlerts().first);
 
       expect(cubit.state.arrivalPromptItemId, isNull);
       expect(cubit.state.alerts, isEmpty);
