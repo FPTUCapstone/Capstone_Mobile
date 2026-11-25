@@ -212,6 +212,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigatio
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/offline_trip_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/point_of_interest_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/recommendation_feedback_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/rerouting_proposal_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/route_directions_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_preferences_repository.dart';
@@ -804,6 +805,9 @@ Future<void> configureDependencies({AppConfig? config}) async {
       () => NavigationSessionRepositoryImpl(dioClient: serviceLocator()),
     )
     ..registerLazySingleton<TripAlertRepository>(
+      () => NavigationSessionRepositoryImpl(dioClient: serviceLocator()),
+    )
+    ..registerLazySingleton<ReroutingProposalRepository>(
       () => NavigationSessionRepositoryImpl(dioClient: serviceLocator()),
     )
     ..registerLazySingleton<RouteDirectionsRepository>(() {

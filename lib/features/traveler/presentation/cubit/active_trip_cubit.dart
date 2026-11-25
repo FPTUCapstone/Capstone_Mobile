@@ -15,6 +15,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.da
 import 'package:trip_mate_mobile/features/traveler/domain/entities/weather_advisory.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigation_session_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/rerouting_proposal_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/route_directions_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/trip_alert_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/arrival_detector.dart';
@@ -42,6 +43,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
     String? idempotencyKey,
     NetworkInfo? networkInfo,
     TripAlertRepository? alertRepository,
+    ReroutingProposalRepository? reroutingRepository,
     Stream<TripPushHint>? pushHints,
     Stream<EmergencyPushHint>? emergencyHints,
     WeatherAdvisorySessionStore? weatherAdvisoryStore,
@@ -49,6 +51,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
   }) : _sessionRepository = sessionRepository,
        _networkInfo = networkInfo,
        _alertRepository = alertRepository,
+       _reroutingRepository = reroutingRepository,
        _weatherAdvisoryStore =
            weatherAdvisoryStore ?? WeatherAdvisorySessionStore(),
        _overstayThreshold = overstayThreshold,
@@ -94,6 +97,8 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
   final Duration _overstayThreshold;
   final NetworkInfo? _networkInfo;
   final TripAlertRepository? _alertRepository;
+  final ReroutingProposalRepository? _reroutingRepository;
+  Timer? _rerouteExpiryTimer;
   final WeatherAdvisorySessionStore _weatherAdvisoryStore;
   StreamSubscription<bool>? _connectivitySubscription;
   StreamSubscription<TripPushHint>? _pushHintSubscription;
@@ -850,6 +855,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
   Future<void> close() async {
     _overstayTimer?.cancel();
     _overstayTimer = null;
+    _cancelRerouteExpiry();
     await _connectivitySubscription?.cancel();
     await _pushHintSubscription?.cancel();
     await _emergencyHintSubscription?.cancel();
@@ -1202,89 +1208,255 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
     emit(state.copyWith(alerts: updatedAlerts, activeBannerAlert: alert));
   }
 
-  // ─────────────────── UC-15 re-routing (no Backend yet) ─────────────────── //
+  // ───────────────────────── UC-15 re-routing ───────────────────────── //
 
-  /// Opens reroute proposal sheet for user review.
-  /// A proposal may be reviewed/actioned only when its status is pending.
-  /// If proposal is null, it reopens the active proposal; it never invents one.
-  void openRerouteProposal([RerouteProposal? proposal]) {
-    if (state.isTerminal) return;
-    final target = proposal ?? state.activeRerouteProposal;
-    if (target == null) return;
+  /// SRS MSG42 / MSG43 / MSG44.
+  static const rerouteAcceptedMessage =
+      'Your itinerary has been updated. Navigation continues on the new route.';
+  static const rerouteDeclinedMessage =
+      'Suggestion declined. Continuing on your current route.';
+  static const rerouteUnavailableMessage =
+      'No re-routing suggestion is available at the moment.';
 
-    // Terminal proposals (accepted, declined, expired) cannot be reopened
-    if (target.status != RerouteStatus.pending) return;
-
-    emit(
-      state.copyWith(
-        activeRerouteProposal: target,
-        isRerouteSheetVisible: true,
-      ),
-    );
+  /// Loads the proposal attached to [alert] and opens the comparison sheet.
+  /// Only a proposal the Traveler can still answer is shown (BR-33); anything
+  /// else is MSG44. Nothing is invented when the Backend has none.
+  Future<void> openRerouteProposal(TripAlert alert) async {
+    final repository = _reroutingRepository;
+    final session = state.session;
+    final proposalId = alert.reroutingProposalId;
+    if (repository == null ||
+        session == null ||
+        proposalId == null ||
+        state.isTerminal ||
+        state.isSubmitting) {
+      return;
+    }
+    final current = state.activeRerouteProposal;
+    if (current != null &&
+        current.proposalId == proposalId &&
+        current.isActionableAt(_clock())) {
+      _emit(state.copyWith(isRerouteSheetVisible: true));
+      return;
+    }
+    if (!state.isOnline) {
+      _failOffline(() => openRerouteProposal(alert));
+      return;
+    }
+    _retryAction = null;
+    _emit(state.copyWith(isSubmitting: true));
+    try {
+      final proposal = await repository.getProposal(
+        sessionId: session.sessionId,
+        proposalId: proposalId,
+      );
+      if (isClosed) return;
+      if (state.isTerminal || !proposal.isActionableAt(_clock())) {
+        _dropRerouteProposal(rerouteUnavailableMessage);
+        return;
+      }
+      _watchRerouteExpiry(proposal);
+      _emit(
+        state.copyWith(
+          isSubmitting: false,
+          activeRerouteProposal: proposal,
+          isRerouteSheetVisible: true,
+        ),
+      );
+    } on ReroutingFailure catch (failure) {
+      _dropRerouteProposal(failure.message);
+    } on Failure catch (failure) {
+      _failRerouteRequest(failure, () => openRerouteProposal(alert));
+    }
   }
 
-  /// Closes proposal sheet without decision.
+  /// Closes the proposal sheet without a decision.
   void closeRerouteProposalSheet() {
     if (!state.isRerouteSheetVisible) return;
-    emit(state.copyWith(isRerouteSheetVisible: false));
+    _emit(state.copyWith(isRerouteSheetVisible: false));
   }
 
-  /// UC-15 Traveler accepts the reroute proposal.
-  /// Explicit consent creates a new itinerary version (V+1).
-  /// Requires activeRerouteProposal != null and status == pending.
-  void acceptRerouteProposal() {
-    if (state.isTerminal) return;
+  /// The Traveler accepts: the Backend stores a new itinerary version and
+  /// returns the session now running on it (BR-26, BR-27).
+  Future<void> acceptRerouteProposal() async {
+    final repository = _reroutingRepository;
     final proposal = state.activeRerouteProposal;
-    if (proposal == null || proposal.status != RerouteStatus.pending) return;
-
-    final acceptedProposal = proposal.copyWith(status: RerouteStatus.accepted);
-    final nextVersion = state.itineraryVersion + 1;
-
-    emit(
-      state.copyWith(
-        itineraryVersion: nextVersion,
-        activeRerouteProposal: acceptedProposal,
-        isRerouteSheetVisible: false,
-        status: ActiveTripStatus.navigationActive,
-        statusMessage:
-            'Itinerary updated to v$nextVersion with weather-safe route.',
-      ),
-    );
+    final session = state.session;
+    if (repository == null ||
+        proposal == null ||
+        session == null ||
+        proposal.status != RerouteStatus.pending ||
+        state.isTerminal ||
+        state.isSubmitting) {
+      return;
+    }
+    _emit(state.copyWith(isRerouteSheetVisible: false));
+    if (proposal.isExpiredAt(_clock())) {
+      expireRerouteProposal();
+      return;
+    }
+    if (!state.isOnline) {
+      _failOffline(acceptRerouteProposal);
+      return;
+    }
+    _retryAction = null;
+    _emit(state.copyWith(isSubmitting: true));
+    try {
+      final updated = await repository.acceptProposal(
+        sessionId: session.sessionId,
+        proposalId: proposal.proposalId,
+      );
+      if (isClosed) return;
+      _cancelRerouteExpiry();
+      _arrivalDetector.reset();
+      _routeTracker = null;
+      _routeTargetItemId = null;
+      _lastRouteRequestAt = null;
+      _lastRouteRequestTargetId = null;
+      _offRouteFixes = 0;
+      // The accepted plan has new stops: drop the old target and guidance so
+      // the Backend's suggestion for the new session is used.
+      _emit(
+        state.copyWith(
+          activeRerouteProposal: proposal.copyWith(
+            status: RerouteStatus.accepted,
+            decidedAt: _clock().toUtc(),
+          ),
+          clearTarget: true,
+          clearRoute: true,
+          clearManeuver: true,
+          clearDistance: true,
+          clearRemainingDuration: true,
+        ),
+      );
+      _applySession(updated, feedback: rerouteAcceptedMessage);
+      unawaited(refreshAlerts());
+    } on ReroutingFailure catch (failure) {
+      _dropRerouteProposal(failure.message);
+      unawaited(_refreshAfterClosedProposal(session.sessionId));
+    } on Failure catch (failure) {
+      _failRerouteRequest(failure, acceptRerouteProposal);
+    }
   }
 
-  /// UC-15 Traveler declines the reroute proposal.
-  /// Current route and version remain active.
-  /// Requires activeRerouteProposal != null and status == pending.
-  void declineRerouteProposal() {
-    if (state.isTerminal) return;
+  /// The Traveler keeps the current route; the itinerary is untouched.
+  Future<void> declineRerouteProposal() async {
+    final repository = _reroutingRepository;
     final proposal = state.activeRerouteProposal;
-    if (proposal == null || proposal.status != RerouteStatus.pending) return;
-
-    final declinedProposal = proposal.copyWith(status: RerouteStatus.declined);
-    emit(
-      state.copyWith(
-        activeRerouteProposal: declinedProposal,
-        isRerouteSheetVisible: false,
-        status: ActiveTripStatus.navigationActive,
-        statusMessage: 'Reroute declined. Continuing on current itinerary.',
-      ),
-    );
+    final session = state.session;
+    if (repository == null ||
+        proposal == null ||
+        session == null ||
+        proposal.status != RerouteStatus.pending ||
+        state.isTerminal ||
+        state.isSubmitting) {
+      return;
+    }
+    _emit(state.copyWith(isRerouteSheetVisible: false));
+    if (!state.isOnline) {
+      _failOffline(declineRerouteProposal);
+      return;
+    }
+    _retryAction = null;
+    _emit(state.copyWith(isSubmitting: true));
+    try {
+      await repository.rejectProposal(
+        sessionId: session.sessionId,
+        proposalId: proposal.proposalId,
+      );
+      if (isClosed) return;
+      _cancelRerouteExpiry();
+      _emit(
+        state.copyWith(
+          isSubmitting: false,
+          activeRerouteProposal: proposal.copyWith(
+            status: RerouteStatus.declined,
+            decidedAt: _clock().toUtc(),
+          ),
+          feedback: _feedback(rerouteDeclinedMessage),
+        ),
+      );
+      unawaited(refreshAlerts());
+    } on ReroutingFailure catch (failure) {
+      _dropRerouteProposal(failure.message);
+      unawaited(_refreshAfterClosedProposal(session.sessionId));
+    } on Failure catch (failure) {
+      _failRerouteRequest(failure, declineRerouteProposal);
+    }
   }
 
-  /// Proposal expires. Current route remains active.
-  /// Requires activeRerouteProposal != null and status == pending.
+  /// The answer window ended: the proposal closes as expired and the current
+  /// itinerary stays in force (SRS 3.3.6, 6.a1).
   void expireRerouteProposal() {
-    if (state.isTerminal) return;
     final proposal = state.activeRerouteProposal;
-    if (proposal == null || proposal.status != RerouteStatus.pending) return;
-
-    final expiredProposal = proposal.copyWith(status: RerouteStatus.expired);
-    emit(
+    if (state.isTerminal ||
+        proposal == null ||
+        proposal.status != RerouteStatus.pending) {
+      return;
+    }
+    _cancelRerouteExpiry();
+    _emit(
       state.copyWith(
-        activeRerouteProposal: expiredProposal,
+        activeRerouteProposal: proposal.copyWith(status: RerouteStatus.expired),
         isRerouteSheetVisible: false,
-        status: ActiveTripStatus.navigationActive,
-        statusMessage: 'Suggestion expired. Current plan remains in force.',
+        feedback: _feedback(rerouteUnavailableMessage, isError: true),
+      ),
+    );
+  }
+
+  void _watchRerouteExpiry(RerouteProposal proposal) {
+    _rerouteExpiryTimer?.cancel();
+    _rerouteExpiryTimer = Timer(proposal.expiresAt.difference(_clock()), () {
+      if (!isClosed &&
+          state.activeRerouteProposal?.proposalId == proposal.proposalId) {
+        expireRerouteProposal();
+      }
+    });
+  }
+
+  void _cancelRerouteExpiry() {
+    _rerouteExpiryTimer?.cancel();
+    _rerouteExpiryTimer = null;
+  }
+
+  /// The proposal is gone or closed: forget it and say so (MSG44).
+  void _dropRerouteProposal(String message) {
+    _cancelRerouteExpiry();
+    _emit(
+      state.copyWith(
+        isSubmitting: false,
+        clearRerouteProposal: true,
+        isRerouteSheetVisible: false,
+        feedback: _feedback(message, isError: true),
+      ),
+    );
+  }
+
+  /// A closed proposal may mean another device already answered it, so the
+  /// session and the alerts are read again.
+  Future<void> _refreshAfterClosedProposal(int sessionId) async {
+    final refreshed = await _tryRefresh(sessionId);
+    if (refreshed != null && !isClosed && !state.isTerminal) {
+      _applySession(refreshed, preferredTargetId: state.targetItemId);
+    }
+    await refreshAlerts();
+  }
+
+  void _failRerouteRequest(Failure failure, Future<void> Function() retry) {
+    _retryAction = retry;
+    _emit(
+      state.copyWith(
+        isSubmitting: false,
+        feedback: _feedback(failure.message, isError: true, canRetry: true),
+      ),
+    );
+  }
+
+  void _failOffline(Future<void> Function() retry) {
+    _retryAction = retry;
+    _emit(
+      state.copyWith(
+        feedback: _feedback(offlineMessage, isError: true, canRetry: true),
       ),
     );
   }
