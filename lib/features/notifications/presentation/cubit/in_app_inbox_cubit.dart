@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
-import 'package:trip_mate_mobile/features/traveler/domain/repositories/in_app_notification_repository.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/cubit/in_app_inbox_state.dart';
+import 'package:trip_mate_mobile/features/notifications/domain/repositories/in_app_notification_repository.dart';
+import 'package:trip_mate_mobile/features/notifications/presentation/cubit/in_app_inbox_state.dart';
 
 final class InAppInboxCubit extends Cubit<InAppInboxState> {
   InAppInboxCubit(this._repository) : super(const InAppInboxState());
@@ -99,16 +99,16 @@ final class InAppInboxCubit extends Cubit<InAppInboxState> {
     }
   }
 
-  Future<void> markRead(int notificationId) async {
+  Future<bool> markRead(int notificationId) async {
     if (state.markingReadIds.contains(notificationId) ||
         !state.items.any((item) => item.id == notificationId && !item.isRead)) {
-      return;
+      return false;
     }
     final generation = _loadGeneration;
     _emitWithReadStatus(notificationId, true);
     try {
       await _repository.markRead(notificationId);
-      if (isClosed || generation != _loadGeneration) return;
+      if (isClosed || generation != _loadGeneration) return false;
       final current = state;
       emit(
         InAppInboxState(
@@ -130,9 +130,16 @@ final class InAppInboxCubit extends Cubit<InAppInboxState> {
           pageError: current.pageError,
         ),
       );
+      return true;
     } catch (error) {
-      if (isClosed || generation != _loadGeneration) return;
-      _emitWithReadStatus(notificationId, false, actionError: _message(error));
+      if (!isClosed && generation == _loadGeneration) {
+        _emitWithReadStatus(
+          notificationId,
+          false,
+          actionError: _message(error),
+        );
+      }
+      return false;
     }
   }
 

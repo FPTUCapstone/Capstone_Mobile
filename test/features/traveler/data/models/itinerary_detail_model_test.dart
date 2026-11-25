@@ -5,6 +5,38 @@ import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_det
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 
 void main() {
+  test('preserves confirmed service bookings when itinerary items refresh', () {
+    final data = <String, dynamic>{
+      'itineraryId': 10,
+      'schedulingRequestId': 20,
+      'version': 1,
+      'status': 'Active',
+      'canManage': true,
+      'totalDurationMinutes': 60,
+      'items': [],
+    };
+    expect(
+      ItineraryDetailModel.fromJson(data).toEntity().bookedServices,
+      isEmpty,
+    );
+    final detail = ItineraryDetailModel.fromJson({
+      ...data,
+      'bookedServices': [
+        {
+          'id': 42,
+          'serviceName': 'Double room',
+          'startAtUtc': '2026-12-01T07:00:00Z',
+          'quantity': 2,
+          'status': 'Confirmed',
+        },
+      ],
+    }).toEntity();
+    final service = detail.withItems([]).bookedServices.single;
+    expect(service.id, 42);
+    expect(service.status, 'Confirmed');
+    expect(service.startsAt, DateTime.utc(2026, 12, 1, 7));
+  });
+
   // ADR-002 (G2/G3): the backend says how the schedule was produced; older
   // backends and malformed values leave it null instead of failing the page.
   test('parses schedule provenance and tolerates its absence', () {

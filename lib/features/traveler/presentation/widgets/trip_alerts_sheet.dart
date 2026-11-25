@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
@@ -20,7 +22,7 @@ class TripAlertsSheet extends StatelessWidget {
   });
 
   final List<TripAlert> alerts;
-  final VoidCallback? onReviewReroute;
+  final ValueChanged<TripAlert>? onReviewReroute;
   final ValueChanged<TripAlert>? onOpenAlert;
   final ValueChanged<TripAlert>? onConfirmArrival;
   final ValueChanged<TripAlert>? onDepartStop;
@@ -51,9 +53,8 @@ class TripAlertsSheet extends StatelessWidget {
                 ];
           return TripAlertsSheet(
             alerts: alerts,
-            onReviewReroute: state.activeRerouteProposal == null
-                ? null
-                : cubit.openRerouteProposal,
+            onReviewReroute: (alert) =>
+                unawaited(cubit.openRerouteProposal(alert)),
             onOpenAlert: onOpenAlert,
             onConfirmArrival: onConfirmArrival,
             onDepartStop: state.session?.isExploring == true
@@ -232,7 +233,7 @@ class TripAlertsSheet extends StatelessWidget {
                               ? null
                               : () {
                                   Navigator.of(context).pop();
-                                  onReviewReroute?.call();
+                                  onReviewReroute?.call(alerts[index]);
                                 },
                         );
                       },

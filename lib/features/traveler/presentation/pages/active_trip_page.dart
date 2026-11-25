@@ -20,6 +20,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.da
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigation_session_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/recommendation_feedback_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/rerouting_proposal_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/route_directions_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/trip_alert_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/services/geo_distance.dart';
@@ -163,6 +164,9 @@ class _ActiveTripPageState extends State<ActiveTripPage>
       alertRepository: widget.isDemoMode
           ? null
           : locateOptional<TripAlertRepository>(),
+      reroutingRepository: widget.isDemoMode
+          ? null
+          : locateOptional<ReroutingProposalRepository>(),
       pushHints: widget.isDemoMode
           ? null
           : locateOptional<PushDeviceCoordinator>()?.hints,
@@ -473,11 +477,12 @@ class _ActiveTripPageState extends State<ActiveTripPage>
                             await _openAlertsSheet(context, cubit);
                           },
                           onReviewReroute:
-                              state
-                                      .activeBannerAlert!
-                                      .rerouteProposalAvailable &&
-                                  state.activeRerouteProposal != null
-                              ? () => cubit.openRerouteProposal()
+                              state.activeBannerAlert!.rerouteProposalAvailable
+                              ? () => unawaited(
+                                  cubit.openRerouteProposal(
+                                    state.activeBannerAlert!,
+                                  ),
+                                )
                               : null,
                           onConfirmArrival:
                               state.activeBannerAlert!.type ==
@@ -584,6 +589,12 @@ class _ActiveTripPageState extends State<ActiveTripPage>
     ActiveTripState state,
   ) {
     if (!state.isRerouteSheetVisible) {
+      if (_isRerouteSheetOpen) {
+        // The proposal closed while the sheet was up (e.g. it expired).
+        Navigator.of(context).popUntil(
+          (route) => route.settings.name != RerouteProposalSheet.routeName,
+        );
+      }
       _isRerouteSheetOpen = false;
       return;
     }
@@ -595,11 +606,11 @@ class _ActiveTripPageState extends State<ActiveTripPage>
       proposal: state.activeRerouteProposal!,
       onAccept: () {
         _isRerouteSheetOpen = false;
-        cubit.acceptRerouteProposal();
+        unawaited(cubit.acceptRerouteProposal());
       },
       onDecline: () {
         _isRerouteSheetOpen = false;
-        cubit.declineRerouteProposal();
+        unawaited(cubit.declineRerouteProposal());
       },
       onClose: () {
         _isRerouteSheetOpen = false;

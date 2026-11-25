@@ -17,6 +17,32 @@ class RerouteProposalSheet extends StatelessWidget {
   final VoidCallback onDecline;
   final VoidCallback onClose;
 
+  /// Route name used by the page to close the sheet when the proposal ends.
+  static const routeName = 'reroute-proposal-sheet';
+
+  /// The explanation shown to the Traveler, derived from the alert code the
+  /// Backend sends with the proposal.
+  static String reasonText(RerouteReason reason) {
+    final name = reason.affectedPoiName?.trim();
+    final poi = name == null || name.isEmpty ? null : name;
+    return switch (reason.code) {
+      'trip_alert.severe_weather' =>
+        'Severe weather is expected at ${poi ?? 'your next stop'}.',
+      'trip_alert.poi_closure' => '${poi ?? 'Your next stop'} is closed.',
+      'trip_alert.schedule_delay' => 'Your trip is running behind schedule.',
+      'trip_alert.route_deviation' => 'You have left the planned route.',
+      _ => 'Your plan needs a change.',
+    };
+  }
+
+  /// Local "HH:mm" for a planned time.
+  static String formatTime(DateTime value) {
+    final local = value.toLocal();
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
   static String formatArrivalTimeDiff(int diffMinutes) {
     if (diffMinutes < 0) {
       return 'Sớm hơn ${diffMinutes.abs()} phút';
@@ -38,6 +64,7 @@ class RerouteProposalSheet extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      routeSettings: const RouteSettings(name: routeName),
       builder: (sheetContext) => RerouteProposalSheet(
         proposal: proposal,
         onAccept: () {
@@ -153,7 +180,7 @@ class RerouteProposalSheet extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                proposal.reason,
+                                reasonText(proposal.reason),
                                 style: TextStyle(
                                   color: palette.ink,
                                   fontSize: 13,
@@ -199,21 +226,10 @@ class RerouteProposalSheet extends StatelessWidget {
                               ),
                               const SizedBox(height: AppSpacing.xs),
                               ...proposal.currentStops.map(
-                                (stop) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 6),
-                                  child: Text(
-                                    stop,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color:
-                                          stop.contains('Heavy Rain') ||
-                                              stop.contains('Outdoor')
-                                          ? palette.error
-                                          : palette.ink,
-                                      fontWeight: stop.contains('Heavy Rain')
-                                          ? FontWeight.w700
-                                          : FontWeight.normal,
-                                    ),
+                                (stop) => _StopLine(
+                                  stop: stop,
+                                  isRemoved: proposal.removedStops.contains(
+                                    stop.name,
                                   ),
                                 ),
                               ),
@@ -260,25 +276,7 @@ class RerouteProposalSheet extends StatelessWidget {
                               ),
                               const SizedBox(height: AppSpacing.xs),
                               ...proposal.proposedStops.map(
-                                (stop) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 6),
-                                  child: Text(
-                                    stop,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color:
-                                          stop.contains('Shelter') ||
-                                              stop.contains('Indoor')
-                                          ? palette.success
-                                          : palette.ink,
-                                      fontWeight:
-                                          stop.contains('Shelter') ||
-                                              stop.contains('Indoor')
-                                          ? FontWeight.w700
-                                          : FontWeight.normal,
-                                    ),
-                                  ),
-                                ),
+                                (stop) => _StopLine(stop: stop),
                               ),
                             ],
                           ),
@@ -319,24 +317,18 @@ class RerouteProposalSheet extends StatelessWidget {
                           ),
                           isPositive: proposal.arrivalTimeDiffMinutes <= 0,
                         ),
-                        if (proposal.distanceDiffKm != null)
-                          _MetricRow(
-                            label: 'Chênh lệch quãng đường',
-                            value:
-                                '+${proposal.distanceDiffKm!.toStringAsFixed(1)} km',
-                            isPositive: false,
-                          ),
-                        if (proposal.costDiffVnd != null)
-                          _MetricRow(
-                            label: 'Chênh lệch vé tham quan',
-                            value:
-                                '${proposal.costDiffVnd! < 0 ? '-' : '+'}50.000 VNĐ',
-                            isPositive: proposal.costDiffVnd! <= 0,
-                          ),
                       ],
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
+                  if (proposal.removedStops.isNotEmpty) ...[
+                    Text(
+                      'Removed from your plan: '
+                      '${proposal.removedStops.join(', ')}',
+                      style: TextStyle(color: palette.secondary, fontSize: 12),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                  ],
                   Container(
                     padding: const EdgeInsets.all(AppSpacing.sm),
                     decoration: BoxDecoration(
@@ -439,15 +431,76 @@ class _MetricRow extends StatelessWidget {
               style: TextStyle(fontSize: 13, color: palette.ink),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.xs),
           Text(
             value,
+            textAlign: TextAlign.end,
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
               color: isPositive ? palette.success : palette.ink,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StopLine extends StatelessWidget {
+  const _StopLine({required this.stop, this.isRemoved = false});
+
+  final RerouteStop stop;
+  final bool isRemoved;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = CoastalPalette.of(context);
+    final change = stop.change;
+    final tag = switch (change) {
+      RerouteStopChange.added => 'New',
+      RerouteStopChange.moved => 'Moved',
+      _ => null,
+    };
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            RerouteProposalSheet.formatTime(stop.plannedArrival),
+            style: TextStyle(fontSize: 12, color: palette.secondary),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          Expanded(
+            child: Text(
+              stop.name,
+              style: TextStyle(
+                fontSize: 12,
+                color: isRemoved
+                    ? palette.error
+                    : (change == RerouteStopChange.added
+                          ? palette.success
+                          : palette.ink),
+                fontWeight: change == null || change == RerouteStopChange.kept
+                    ? FontWeight.normal
+                    : FontWeight.w700,
+                decoration: isRemoved ? TextDecoration.lineThrough : null,
+              ),
+            ),
+          ),
+          if (tag != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 4),
+              child: Text(
+                tag,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: palette.primary,
+                ),
+              ),
+            ),
         ],
       ),
     );

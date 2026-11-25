@@ -25,6 +25,8 @@ import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_ale
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_alerts_sheet.dart';
 
 import '../../../../support/trip_alert_test_data.dart';
+import '../cubit/active_trip_cubit_rerouting_test.dart'
+    show FakeReroutingRepository, rerouteAlert;
 import '../cubit/active_trip_cubit_test.dart';
 
 void main() {
@@ -669,51 +671,77 @@ void main() {
       await cubit.close();
     });
 
-    testWidgets('accepting the reroute proposal bumps the version', (
+    Future<(ActiveTripCubit, FakeReroutingRepository)> reroutableCubit() async {
+      final rerouting = FakeReroutingRepository(
+        TripAlertTestData.sampleRerouteProposal(
+          expiresAt: DateTime.now().add(const Duration(minutes: 15)),
+        ),
+      );
+      final cubit = ActiveTripCubit(
+        itineraryId: 101,
+        itineraryTitle: 'Đà Nẵng City Explorer',
+        sessionRepository: DemoNavigationSessionRepository(),
+        reroutingRepository: rerouting,
+        initialAlerts: const [],
+      );
+      await cubit.start();
+      return (cubit, rerouting);
+    }
+
+    testWidgets('accepting the proposal applies the Backend session', (
       tester,
     ) async {
       useWideSurface(tester);
-      final cubit = await startedDemoCubit();
-      await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
+      final (cubit, rerouting) = await reroutableCubit();
+      await tester.pumpWidget(buildPage(cubit: cubit));
       await tester.pumpAndSettle();
 
-      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
+      await cubit.openRerouteProposal(rerouteAlert());
       await tester.pumpAndSettle();
       expect(find.byType(RerouteProposalSheet), findsOneWidget);
+      expect(
+        find.text('Severe weather is expected at Chợ Hàn.'),
+        findsOneWidget,
+      );
+      expect(find.text('Removed from your plan: Chợ Hàn'), findsOneWidget);
 
       await tester.tap(find.text('Chấp nhận đổi lộ trình'));
       await tester.pumpAndSettle();
 
       expect(find.byType(RerouteProposalSheet), findsNothing);
+      expect(rerouting.calls, contains('accept:9001:77'));
       expect(cubit.state.itineraryVersion, 2);
       await cubit.close();
     });
 
-    testWidgets('declining keeps the version', (tester) async {
+    testWidgets('keeping the current route leaves the version alone', (
+      tester,
+    ) async {
       useWideSurface(tester);
-      final cubit = await startedDemoCubit();
-      await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
+      final (cubit, rerouting) = await reroutableCubit();
+      await tester.pumpWidget(buildPage(cubit: cubit));
       await tester.pumpAndSettle();
 
-      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
+      await cubit.openRerouteProposal(rerouteAlert());
       await tester.pumpAndSettle();
       await tester.tap(find.text('Giữ lộ trình hiện tại'));
       await tester.pumpAndSettle();
 
       expect(find.byType(RerouteProposalSheet), findsNothing);
+      expect(rerouting.calls, contains('reject:9001:77'));
       expect(cubit.state.itineraryVersion, 1);
       await cubit.close();
     });
 
-    testWidgets('closing or dismissing the sheet keeps the proposal pending', (
+    testWidgets('closing the sheet keeps the proposal pending and reopens it', (
       tester,
     ) async {
       useWideSurface(tester);
-      final cubit = await startedDemoCubit();
-      await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
+      final (cubit, rerouting) = await reroutableCubit();
+      await tester.pumpWidget(buildPage(cubit: cubit));
       await tester.pumpAndSettle();
 
-      cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
+      await cubit.openRerouteProposal(rerouteAlert());
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Đóng mà không đổi lịch trình'));
       await tester.pumpAndSettle();
@@ -721,17 +749,31 @@ void main() {
       expect(find.byType(RerouteProposalSheet), findsNothing);
       expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.pending);
 
-      cubit.openRerouteProposal();
-      await tester.pumpAndSettle();
-      Navigator.of(tester.element(find.byType(RerouteProposalSheet))).pop();
-      await tester.pumpAndSettle();
-
-      expect(cubit.state.isRerouteSheetVisible, isFalse);
-      expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.pending);
-
-      cubit.openRerouteProposal();
+      await cubit.openRerouteProposal(rerouteAlert());
       await tester.pumpAndSettle();
       expect(find.byType(RerouteProposalSheet), findsOneWidget);
+      expect(
+        rerouting.calls.where((call) => call.startsWith('get')).length,
+        1,
+        reason: 'reopening a live proposal does not call the Backend again',
+      );
+      await cubit.close();
+    });
+
+    testWidgets('an expiring proposal closes the open sheet', (tester) async {
+      useWideSurface(tester);
+      final (cubit, _) = await reroutableCubit();
+      await tester.pumpWidget(buildPage(cubit: cubit));
+      await tester.pumpAndSettle();
+      await cubit.openRerouteProposal(rerouteAlert());
+      await tester.pumpAndSettle();
+      expect(find.byType(RerouteProposalSheet), findsOneWidget);
+
+      cubit.expireRerouteProposal();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(RerouteProposalSheet), findsNothing);
+      expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.expired);
       await cubit.close();
     });
   });
