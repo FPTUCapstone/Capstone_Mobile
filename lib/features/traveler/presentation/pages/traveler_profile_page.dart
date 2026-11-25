@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
+import 'package:trip_mate_mobile/core/utils/calendar_date_format.dart';
 import 'package:trip_mate_mobile/core/utils/validators.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/traveler_profile_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/traveler_profile_cubit.dart';
@@ -20,6 +21,7 @@ class _TravelerProfilePageState extends State<TravelerProfilePage> {
   final name = TextEditingController();
   final phone = TextEditingController();
   final birth = TextEditingController();
+  DateTime? selectedBirth;
   Uint8List? avatar;
   String? avatarName;
   String? avatarMime;
@@ -32,7 +34,10 @@ class _TravelerProfilePageState extends State<TravelerProfilePage> {
   void fill(TravelerProfile profile) {
     name.text = profile.fullName;
     phone.text = (profile.phoneNumber ?? '').replaceAll(RegExp(r'\s+'), '');
-    birth.text = profile.dateOfBirth ?? '';
+    selectedBirth = DateTime.tryParse(profile.dateOfBirth ?? '');
+    birth.text = selectedBirth == null
+        ? ''
+        : formatCalendarDate(selectedBirth!);
     avatar = null;
   }
 
@@ -87,7 +92,11 @@ class _TravelerProfilePageState extends State<TravelerProfilePage> {
     cubit.save(
       fullName: name.text,
       phoneNumber: phone.text,
-      dateOfBirth: birth.text.isEmpty ? null : birth.text,
+      dateOfBirth: selectedBirth == null
+          ? null
+          : '${selectedBirth!.year.toString().padLeft(4, '0')}-'
+                '${selectedBirth!.month.toString().padLeft(2, '0')}-'
+                '${selectedBirth!.day.toString().padLeft(2, '0')}',
       avatar: avatar,
       avatarName: avatarName,
       avatarMime: avatarMime,
@@ -179,7 +188,7 @@ class _TravelerProfilePageState extends State<TravelerProfilePage> {
                     onTap: () async {
                       final now = DateTime.now();
                       final limit = DateTime(now.year - 16, now.month, now.day);
-                      final parsed = DateTime.tryParse(birth.text);
+                      final parsed = selectedBirth;
                       final selected = await showDatePicker(
                         context: context,
                         firstDate: DateTime(1900),
@@ -192,8 +201,8 @@ class _TravelerProfilePageState extends State<TravelerProfilePage> {
                             : limit,
                       );
                       if (selected != null) {
-                        birth.text =
-                            '${selected.year}-${selected.month.toString().padLeft(2, '0')}-${selected.day.toString().padLeft(2, '0')}';
+                        selectedBirth = selected;
+                        birth.text = formatCalendarDate(selected);
                       }
                     },
                   ),

@@ -1,6 +1,5 @@
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
-import 'package:trip_mate_mobile/features/auth/domain/entities/tour_operator_application_status.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
 
@@ -42,8 +41,9 @@ abstract final class RouteGuards {
     // confined to the application view. Nothing is
     // inferred locally, so unresolved fails closed and never exposes approved
     // Operator content.
-    final operatorHome =
-        session.applicationStatus == TourOperatorApplicationStatus.approved
+    final operatorHome = session.awaitsContractSignature
+        ? AppRoutes.operatorContract
+        : session.hasOperatorWorkspaceAccess
         ? AppRoutes.operator
         : AppRoutes.operatorApplication;
     final home = session.role == UserRole.traveler
@@ -62,20 +62,28 @@ abstract final class RouteGuards {
       return AppRoutes.traveler;
     }
     if (session.role == UserRole.tourOperator) {
+      if (session.awaitsContractSignature) {
+        return [
+              AppRoutes.operatorContract,
+              AppRoutes.operatorApplication,
+              AppRoutes.operatorSupportChat,
+              AppRoutes.operatorChangePassword,
+            ].contains(location)
+            ? null
+            : AppRoutes.operatorContract;
+      }
       if (isTravelerRoute || isBookTourRoute) {
         return operatorHome;
       }
-      if (isBookingRefundRoute &&
-          session.applicationStatus != TourOperatorApplicationStatus.approved) {
+      if (isBookingRefundRoute && !session.hasOperatorWorkspaceAccess) {
         return operatorHome;
       }
       // A non-approved operator may never remain on the approved workspace.
       if (isOperatorRoute &&
           location != AppRoutes.operatorApplication &&
           !(location == AppRoutes.operatorApplicationResubmit &&
-              session.applicationStatus ==
-                  TourOperatorApplicationStatus.rejected) &&
-          session.applicationStatus != TourOperatorApplicationStatus.approved) {
+              session.mayResubmitOperatorApplication) &&
+          !session.hasOperatorWorkspaceAccess) {
         return AppRoutes.operatorApplication;
       }
     }
@@ -116,16 +124,15 @@ abstract final class RouteGuards {
     }
     if (session.role == UserRole.tourOperator &&
         ((_isInScope(target.path, AppRoutes.operatorPrefix) &&
-                (session.applicationStatus ==
-                        TourOperatorApplicationStatus.approved ||
+                (session.hasOperatorWorkspaceAccess ||
+                    (session.awaitsContractSignature &&
+                        target.path == AppRoutes.operatorContract) ||
                     target.path == AppRoutes.operatorApplication ||
-                    (session.applicationStatus ==
-                            TourOperatorApplicationStatus.rejected &&
+                    (session.mayResubmitOperatorApplication &&
                         target.path ==
                             AppRoutes.operatorApplicationResubmit))) ||
             (_isBookingRefundRoute(target.path) &&
-                session.applicationStatus ==
-                    TourOperatorApplicationStatus.approved))) {
+                session.hasOperatorWorkspaceAccess))) {
       return target.toString();
     }
     return null;

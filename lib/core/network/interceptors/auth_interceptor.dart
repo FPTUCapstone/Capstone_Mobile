@@ -25,6 +25,12 @@ final class AuthInterceptor extends Interceptor {
   /// One refresh serves every request that failed with the same expired token.
   final _pendingRefresh = <String, Future<String?>>{};
 
+  /// Uses the same single-flight renewal and session identity checks as a 401.
+  Future<bool> renewCurrentSession() async {
+    final session = await _readSession();
+    return await _refreshAccessToken(session) != null;
+  }
+
   /// Most endpoints under this prefix (login, register, refresh, password
   /// reset, ...) run before a session exists; their 401 is a normal
   /// sign-in/recovery failure and must never trigger global invalidation.
@@ -215,6 +221,32 @@ final class AuthInterceptor extends Interceptor {
       if (accessToken is! String || accessToken.isEmpty) return null;
       return await _secureStorage.withSessionLock(() async {
         if (!session.matches(await _readSession())) return null;
+        if (data is Map<String, dynamic> &&
+            (data['role'] == 'TourOperator' || data['role'] == 2)) {
+          for (final entry in {
+            AppConstants.sessionOnboardingStateKey: data['onboardingState'],
+            AppConstants.sessionContractStatusKey: data['contractStatus'],
+            AppConstants.sessionCurrentContractIdKey: data['currentContractId'],
+          }.entries) {
+            if (entry.value is String) {
+              await _secureStorage.write(entry.key, entry.value as String);
+            } else if (entry.key == AppConstants.sessionOnboardingStateKey &&
+                data.containsKey('onboardingState')) {
+              await _secureStorage.write(entry.key, 'Unresolved');
+            } else {
+              await _secureStorage.delete(entry.key);
+            }
+          }
+          if (data['applicationStatus'] is String) {
+            final value = data['applicationStatus'] as String;
+            await _secureStorage.write(
+              AppConstants.sessionApplicationStatusKey,
+              value.isEmpty
+                  ? 'unresolved'
+                  : '${value[0].toLowerCase()}${value.substring(1)}',
+            );
+          }
+        }
         await _secureStorage.write(AppConstants.accessTokenKey, accessToken);
         return accessToken;
       });

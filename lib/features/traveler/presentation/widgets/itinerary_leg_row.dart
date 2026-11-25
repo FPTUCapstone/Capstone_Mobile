@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/coastal_palette.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/helpers/itinerary_text.dart';
 
@@ -28,10 +29,7 @@ final class ItineraryLegRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final muted = theme.textTheme.bodySmall?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-    );
+    final palette = CoastalPalette.of(context);
     final meters = this.meters;
     final mode = this.mode;
     final summary = [
@@ -45,45 +43,86 @@ final class ItineraryLegRow extends StatelessWidget {
         meters < 1000 &&
         mode != TransportMode.walking;
     final onChangeMode = this.onChangeMode;
+
     return Padding(
-      padding: const EdgeInsets.only(left: AppSpacing.md),
-      child: Row(
+      padding: const EdgeInsets.only(left: 36, top: 2, bottom: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            _icon(mode),
-            size: 18,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(width: AppSpacing.xs),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(summary, style: theme.textTheme.bodySmall),
-                if (showWalkHint)
-                  Text(
-                    'Gần, có thể đi bộ ~${walkingMinutes(meters)} phút',
-                    style: muted,
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: palette.surface,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: palette.border),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(_icon(mode), size: 15, color: palette.secondary),
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text(
+                        summary,
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: palette.secondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (onChangeMode != null)
+                TextButton(
+                  style: TextButton.styleFrom(
+                    backgroundColor: palette.softAccent,
+                    foregroundColor: palette.primary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: const StadiumBorder(),
+                    textStyle: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-              ],
-            ),
+                  onPressed: () async {
+                    final selected = await showTransportModeSheet(
+                      context,
+                      current: mode,
+                    );
+                    if (selected != null && selected != mode) {
+                      onChangeMode(selected);
+                    }
+                  },
+                  child: Semantics(
+                    label:
+                        'Đổi phương tiện đến ${destinationName ?? 'điểm tiếp theo'}',
+                    excludeSemantics: true,
+                    child: const Text('Đổi'),
+                  ),
+                ),
+            ],
           ),
-          if (onChangeMode != null)
-            TextButton(
-              onPressed: () async {
-                final selected = await showTransportModeSheet(
-                  context,
-                  current: mode,
-                );
-                if (selected != null && selected != mode) {
-                  onChangeMode(selected);
-                }
-              },
-              child: Semantics(
-                label:
-                    'Đổi phương tiện đến ${destinationName ?? 'điểm tiếp theo'}',
-                excludeSemantics: true,
-                child: const Text('Đổi'),
+          if (showWalkHint)
+            Padding(
+              padding: const EdgeInsets.only(left: 6, top: 3),
+              child: Text(
+                'Gần, có thể đi bộ ~${walkingMinutes(meters)} phút',
+                style: TextStyle(fontSize: 11, color: palette.secondary),
               ),
             ),
         ],
@@ -111,12 +150,18 @@ Future<TransportMode?> showTransportModeSheet(
   TransportMode? current,
 }) => showModalBottomSheet<TransportMode>(
   context: context,
+  showDragHandle: true,
   builder: (context) => SafeArea(
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            0,
+            AppSpacing.md,
+            AppSpacing.sm,
+          ),
           child: Text(
             'Đổi phương tiện cho chặng này',
             style: Theme.of(context).textTheme.titleMedium,

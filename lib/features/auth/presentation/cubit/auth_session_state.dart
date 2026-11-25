@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/operator_onboarding_state.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/tour_operator_application_status.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
 
@@ -24,6 +25,9 @@ final class AuthSessionState extends Equatable {
     this.errorMessage,
     this.role,
     this.applicationStatus = TourOperatorApplicationStatus.unresolved,
+    this.onboardingState,
+    this.contractStatus,
+    this.currentContractId,
     this.operation = AuthSessionOperation.none,
     this.startResendCooldown = false,
     this.successMessage,
@@ -34,12 +38,18 @@ final class AuthSessionState extends Equatable {
     UserRole role, {
     TourOperatorApplicationStatus applicationStatus =
         TourOperatorApplicationStatus.unresolved,
+    OperatorOnboardingState? onboardingState,
+    String? contractStatus,
+    String? currentContractId,
     AuthSessionOperation operation = AuthSessionOperation.none,
     String? errorMessage,
   }) : this._(
          status: AuthSessionStatus.authenticated,
          role: role,
          applicationStatus: applicationStatus,
+         onboardingState: onboardingState,
+         contractStatus: contractStatus,
+         currentContractId: currentContractId,
          operation: operation,
          errorMessage: errorMessage,
        );
@@ -93,6 +103,19 @@ final class AuthSessionState extends Equatable {
   /// Backend-issued Tour Operator application status mapped by Data. Unknown
   /// and non-operator values remain explicitly unresolved.
   final TourOperatorApplicationStatus applicationStatus;
+  final OperatorOnboardingState? onboardingState;
+  final String? contractStatus;
+  final String? currentContractId;
+  bool get awaitsContractSignature =>
+      onboardingState == OperatorOnboardingState.awaitingSignature;
+  bool get mayResubmitOperatorApplication =>
+      applicationStatus == TourOperatorApplicationStatus.rejected &&
+      (onboardingState == null ||
+          onboardingState == OperatorOnboardingState.rejected);
+  bool get hasOperatorWorkspaceAccess =>
+      applicationStatus == TourOperatorApplicationStatus.approved &&
+      (onboardingState == null ||
+          onboardingState == OperatorOnboardingState.active);
   final bool startResendCooldown;
   final AuthSessionStatus status;
   final String? successMessage;
@@ -109,6 +132,9 @@ final class AuthSessionState extends Equatable {
     status,
     role,
     applicationStatus,
+    onboardingState,
+    contractStatus,
+    currentContractId,
     errorMessage,
     operation,
     startResendCooldown,

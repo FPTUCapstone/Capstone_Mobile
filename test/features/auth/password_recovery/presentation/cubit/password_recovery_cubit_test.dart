@@ -337,6 +337,130 @@ void main() {
         expect(cubit.state.status, PasswordRecoveryStatus.success);
       },
     );
+
+    test(
+      'editEmail preserves active cooldown for the same email without re-requesting, while allowing a different email',
+      () async {
+        final ticks = StreamController<int>.broadcast();
+        final repository = _FakePasswordRecoveryRepository();
+        final cubit = PasswordRecoveryCubit(
+          repository,
+          cooldownStream: (_) => ticks.stream,
+        );
+        addTearDown(() async {
+          await cubit.close();
+          await ticks.close();
+        });
+
+        await cubit.requestReset('user@example.com');
+        ticks.add(45);
+        await Future<void>.delayed(Duration.zero);
+
+        cubit.editEmail();
+        expect(cubit.state.hasAcceptedRequest, isFalse);
+        expect(cubit.state.cooldownSeconds, 45);
+        expect(cubit.state.hasActiveCooldownFor('USER@EXAMPLE.COM'), isTrue);
+
+        // Submitting the same email while cooldown is active is blocked without
+        // triggering a duplicate backend request; resumeReset jumps back to step 2.
+        expect(await cubit.requestReset('User@Example.com'), isFalse);
+        expect(repository.requestedEmails, ['user@example.com']);
+        expect(cubit.state.hasAcceptedRequest, isFalse);
+        expect(cubit.state.cooldownSeconds, 45);
+
+        cubit.resumeReset('User@Example.com');
+        expect(cubit.state.hasAcceptedRequest, isTrue);
+        expect(cubit.state.cooldownSeconds, 45);
+
+        // Changing to a different email sends a fresh request.
+        cubit.editEmail();
+        expect(await cubit.requestReset('other@example.com'), isTrue);
+        expect(repository.requestedEmails, [
+          'user@example.com',
+          'other@example.com',
+        ]);
+        expect(cubit.state.normalizedEmail, 'other@example.com');
+        expect(cubit.state.cooldownSeconds, 60);
+      },
+    );
+
+    test(
+      'shared cooldown tracker preserves remaining seconds after closing and recreating cubit',
+      () async {
+        var now = DateTime.utc(2026, 11, 25, 10);
+        final tracker = PasswordRecoveryCooldownTracker(clock: () => now);
+        final repository = _FakePasswordRecoveryRepository();
+
+        final firstCubit = PasswordRecoveryCubit(
+          repository,
+          cooldownStream: (_) => const Stream<int>.empty(),
+          cooldownTracker: tracker,
+        );
+        expect(await firstCubit.requestReset('user@example.com'), isTrue);
+        await firstCubit.close();
+
+        // 18 seconds pass after tapping "Back to sign in".
+        now = now.add(const Duration(seconds: 18));
+
+        final secondCubit = PasswordRecoveryCubit(
+          repository,
+          cooldownStream: (_) => const Stream<int>.empty(),
+          cooldownTracker: tracker,
+        );
+        addTearDown(secondCubit.close);
+
+        secondCubit.syncEmailCooldown('USER@EXAMPLE.COM');
+        expect(secondCubit.state.hasAcceptedRequest, isFalse);
+        expect(secondCubit.state.cooldownSeconds, 42);
+        expect(
+          secondCubit.state.hasActiveCooldownFor('user@example.com'),
+          isTrue,
+        );
+
+        // Re-requesting the same email is blocked without calling backend.
+        expect(await secondCubit.requestReset('user@example.com'), isFalse);
+        expect(repository.requestedEmails, ['user@example.com']);
+
+        // Resuming enters step 2 with the exact remaining 42s countdown.
+        secondCubit.resumeReset('user@example.com');
+        expect(secondCubit.state.hasAcceptedRequest, isTrue);
+        expect(secondCubit.state.cooldownSeconds, 42);
+
+        // Successful confirmation clears the stored cooldown.
+        expect(
+          await secondCubit.confirmReset(
+            code: '012345',
+            newPassword: 'NewPassword123!',
+          ),
+          isTrue,
+        );
+        expect(tracker.remainingSecondsFor('user@example.com'), 0);
+      },
+    );
+
+    test(
+      'rate-limited requestReset starts and persists cooldown in tracker',
+      () async {
+        final tracker = PasswordRecoveryCooldownTracker(
+          clock: () => DateTime.utc(2026, 11, 25, 10),
+        );
+        final repository = _FakePasswordRecoveryRepository(
+          requestError: const RateLimitFailure(
+            'Too many reset attempts. Please wait and try again.',
+          ),
+        );
+        final cubit = PasswordRecoveryCubit(
+          repository,
+          cooldownStream: (_) => const Stream<int>.empty(),
+          cooldownTracker: tracker,
+        );
+        addTearDown(cubit.close);
+
+        expect(await cubit.requestReset('user@example.com'), isFalse);
+        expect(cubit.state.cooldownSeconds, 60);
+        expect(tracker.remainingSecondsFor('user@example.com'), 60);
+      },
+    );
   });
 }
 

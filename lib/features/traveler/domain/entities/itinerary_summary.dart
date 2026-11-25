@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 
 /// One itinerary in the Traveler's trip list: the current version they own or
 /// share through a travel group.
@@ -13,6 +14,8 @@ final class ItinerarySummary extends Equatable {
     required this.canManage,
     required this.stopCount,
     required this.openNavigationSessionId,
+    this.transportMode,
+    this.previewStopNames = const [],
   });
 
   final int itineraryId;
@@ -27,6 +30,12 @@ final class ItinerarySummary extends Equatable {
   /// The Traveler's unfinished navigation session on this trip, if any.
   final int? openNavigationSessionId;
 
+  /// Primary transport mode for the trip, when sent by the backend.
+  final TransportMode? transportMode;
+
+  /// Up to the first few visit stop names for scannable titles and route previews.
+  final List<String> previewStopNames;
+
   bool get isTripInProgress => openNavigationSessionId != null;
 
   @override
@@ -40,6 +49,8 @@ final class ItinerarySummary extends Equatable {
     canManage,
     stopCount,
     openNavigationSessionId,
+    transportMode,
+    previewStopNames,
   ];
 }
 

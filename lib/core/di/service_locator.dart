@@ -95,6 +95,10 @@ import 'package:trip_mate_mobile/features/operator_check_in/data/repositories/op
 import 'package:trip_mate_mobile/features/operator_check_in/domain/repositories/operator_check_in_repository.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/domain/usecases/operator_check_in_use_cases.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/presentation/cubit/operator_check_in_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_contracts/data/datasources/operator_contract_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/operator_contracts/data/repositories/operator_contract_repository_impl.dart';
+import 'package:trip_mate_mobile/features/operator_contracts/domain/repositories/operator_contract_repository.dart';
+import 'package:trip_mate_mobile/features/operator_contracts/presentation/cubit/operator_contract_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_finance/data/datasources/operator_finance_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/operator_finance/data/repositories/demo_operator_finance_repository.dart';
 import 'package:trip_mate_mobile/features/operator_finance/data/repositories/operator_finance_repository_impl.dart';
@@ -202,6 +206,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/repositories/in_app_no
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_list_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_suggestion_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/itinerary_weather_tips_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/leave_travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigation_session_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/offline_trip_repository.dart';
@@ -777,6 +782,9 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerLazySingleton<ItineraryListRepository>(
       () => ItineraryRepositoryImpl(dioClient: serviceLocator()),
     )
+    ..registerLazySingleton<ItineraryWeatherTipsRepository>(
+      () => ItineraryRepositoryImpl(dioClient: serviceLocator()),
+    )
     ..registerLazySingleton<ItinerarySuggestionRepository>(
       () => ItineraryRepositoryImpl(dioClient: serviceLocator()),
     )
@@ -852,11 +860,28 @@ Future<void> configureDependencies({AppConfig? config}) async {
         serviceLocator<NetworkInfo>(),
       ),
     )
+    ..registerLazySingleton<OperatorContractRemoteDataSource>(
+      () => OperatorContractRemoteDataSource(serviceLocator<DioClient>()),
+    )
+    ..registerLazySingleton<OperatorContractRepository>(
+      () => OperatorContractRepositoryImpl(
+        serviceLocator<OperatorContractRemoteDataSource>(),
+      ),
+    )
+    ..registerFactory<OperatorContractCubit>(
+      () => OperatorContractCubit(serviceLocator<OperatorContractRepository>()),
+    )
     ..registerFactory<RegisterCubit>(
       () => RegisterCubit(serviceLocator(), serviceLocator()),
     )
+    ..registerLazySingleton<PasswordRecoveryCooldownTracker>(
+      PasswordRecoveryCooldownTracker.new,
+    )
     ..registerFactory<PasswordRecoveryCubit>(
-      () => PasswordRecoveryCubit(serviceLocator()),
+      () => PasswordRecoveryCubit(
+        serviceLocator(),
+        cooldownTracker: serviceLocator(),
+      ),
     )
     ..registerLazySingleton<DemoTripHistoryStore>(DemoTripHistoryStore.new)
     // UC-70 Operator

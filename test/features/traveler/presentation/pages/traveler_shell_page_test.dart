@@ -240,7 +240,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Trip 60014'), findsOneWidget);
-    expect(find.text('Trip in progress'), findsOneWidget);
+    expect(find.text('Đang dẫn đường'), findsOneWidget);
     expect(find.text('Feature placeholder'), findsNothing);
 
     await tester.tap(find.text('Trang chủ'));
@@ -370,14 +370,8 @@ void main() {
       // History button next to its own actions.
       await tester.tap(find.byIcon(Icons.map_outlined));
       await tester.pumpAndSettle();
-      expect(find.text('My trips'), findsOneWidget);
-      expect(
-        find.widgetWithText(
-          OutlinedButton,
-          TripHistoryStringsEn.tripHistoryTitle,
-        ),
-        findsOneWidget,
-      );
+      expect(find.text('Lịch trình của tôi'), findsOneWidget);
+      expect(find.widgetWithText(InkWell, 'Lịch sử chuyến đi'), findsOneWidget);
 
       await tester.tap(find.byIcon(Icons.explore_outlined));
       await tester.pumpAndSettle();

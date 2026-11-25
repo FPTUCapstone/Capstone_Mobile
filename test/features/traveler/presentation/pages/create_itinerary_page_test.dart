@@ -44,15 +44,15 @@ void main() {
   ) async {
     await tester.pumpWidget(buildPage());
 
-    expect(find.text('Use current location'), findsOneWidget);
-    expect(find.text('Choose a starting place'), findsOneWidget);
+    expect(find.text('Dùng vị trí hiện tại'), findsOneWidget);
+    expect(find.byKey(const Key('choose_start_place_field')), findsOneWidget);
     expect(find.textContaining('latitude', findRichText: true), findsNothing);
     expect(find.textContaining('longitude', findRichText: true), findsNothing);
 
-    await tester.tap(find.text('Use current location'));
+    await tester.tap(find.text('Dùng vị trí hiện tại'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Current location'), findsOneWidget);
+    expect(find.text('Vị trí hiện tại'), findsOneWidget);
   });
 
   testWidgets('shows progress while the current location is pending', (
@@ -77,24 +77,21 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Use current location'));
+    await tester.tap(find.text('Dùng vị trí hiện tại'));
     await tester.pump();
 
-    expect(find.text('Finding your location…'), findsOneWidget);
-    expect(find.text('Use current location'), findsNothing);
+    expect(find.text('Đang tìm vị trí…'), findsOneWidget);
+    expect(find.text('Dùng vị trí hiện tại'), findsNothing);
     final button = tester.widget<FilledButton>(
-      find.ancestor(
-        of: find.text('Finding your location…'),
-        matching: find.byWidgetPredicate((widget) => widget is FilledButton),
-      ),
+      find.byKey(const Key('use_current_location_button')),
     );
     expect(button.onPressed, isNull);
 
     pending.complete(const DeviceLocation(latitude: 16.0, longitude: 108.2));
     await tester.pumpAndSettle();
 
-    expect(find.text('Current location'), findsOneWidget);
-    expect(find.text('Use current location'), findsOneWidget);
+    expect(find.text('Vị trí hiện tại'), findsOneWidget);
+    expect(find.text('Dùng vị trí hiện tại'), findsOneWidget);
   });
 
   testWidgets('does not show Public transit as a transport option', (
@@ -103,18 +100,18 @@ void main() {
     await tester.pumpWidget(buildPage());
     await tester.pumpAndSettle();
 
-    // Scroll until the settings card is visible by looking for 'Plan details'.
     await tester.scrollUntilVisible(
-      find.text('How are you travelling?'),
+      find.text('Phương tiện di chuyển'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
 
-    // 'Public transit' must never appear in the transport dropdown.
+    expect(find.text('Phương tiện công cộng'), findsNothing);
     expect(find.text('Public transit'), findsNothing);
-    // At least one supported mode label must be visible (current selection).
-    expect(find.text('Motorbike'), findsOneWidget);
+    expect(find.byKey(const ValueKey('transport_motorbike')), findsOneWidget);
+    expect(find.byKey(const ValueKey('transport_walking')), findsOneWidget);
+    expect(find.byKey(const ValueKey('transport_car')), findsOneWidget);
   });
 
   testWidgets('shows search radius slider and optional budget field', (
@@ -124,7 +121,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
-      find.text('Search radius'),
+      find.text('1 km (Gần)'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
@@ -135,15 +132,27 @@ void main() {
     expect(slider.min, 1);
     expect(slider.max, 100);
     expect(slider.divisions, 99);
-    expect(find.text('Search radius'), findsOneWidget);
-    expect(find.text('Budget (VND, optional)'), findsOneWidget);
+    expect(find.byKey(const Key('search_radius_map_card')), findsOneWidget);
+    expect(find.text('Bản đồ khu vực & Bán kính tìm kiếm'), findsOneWidget);
+    expect(find.text('Bán kính tìm kiếm'), findsOneWidget);
+    expect(find.text('1 km (Gần)'), findsOneWidget);
+    expect(find.text('50 km (Ngoại ô)'), findsOneWidget);
+    expect(find.text('100 km (Liên tỉnh)'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Ngân sách (VNĐ, tùy chọn)'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Ngân sách (VNĐ, tùy chọn)'), findsOneWidget);
   });
 
   testWidgets('warns when the search radius is above 30 km', (tester) async {
     await tester.pumpWidget(buildPage());
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('Search radius'),
+      find.text('Bán kính tìm kiếm'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
@@ -180,19 +189,19 @@ void main() {
         child: const MaterialApp(home: CreateItineraryPage()),
       ),
     );
-    await tester.tap(find.text('Use current location'));
+    await tester.tap(find.text('Dùng vị trí hiện tại'));
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
-      find.text('Add a must-see place'),
+      find.text('Thêm điểm nhất định ghé'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Add a must-see place'));
+    await tester.tap(find.text('Thêm điểm nhất định ghé'));
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.widgetWithText(TextField, 'Search places'),
+      find.widgetWithText(TextField, 'Tìm kiếm địa điểm'),
       'Museum',
     );
     await tester.testTextInput.receiveAction(TextInputAction.search);
@@ -201,23 +210,14 @@ void main() {
     expect(repository.excludeFoodAndDrink, [false]);
   });
 
-  testWidgets('generate button is always visible as the footer', (
+  testWidgets('generate button is always visible in the sticky footer', (
     tester,
   ) async {
     await tester.pumpWidget(buildPage());
     await tester.pumpAndSettle();
 
-    // The AppButton footer is inside the ListView in AppPageScaffold, so
-    // scroll down to reach it.
-    await tester.scrollUntilVisible(
-      find.widgetWithText(FilledButton, 'Generate itinerary'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
     expect(
-      find.widgetWithText(FilledButton, 'Generate itinerary'),
+      find.widgetWithText(FilledButton, 'Tạo lịch trình tối ưu'),
       findsOneWidget,
     );
   });
@@ -228,18 +228,18 @@ void main() {
     await tester.pumpWidget(buildPage());
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('Budget (VND, optional)'),
+      find.text('Ngân sách (VNĐ, tùy chọn)'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.enterText(
-      find.widgetWithText(TextField, 'Budget (VND, optional)'),
+      find.widgetWithText(TextField, 'Ngân sách (VNĐ, tùy chọn)'),
       '0',
     );
     await tester.pump();
 
     expect(
-      find.text('Enter a positive budget or leave this field blank.'),
+      find.text('Nhập ngân sách lớn hơn 0 hoặc để trống.'),
       findsOneWidget,
     );
   });
@@ -259,6 +259,34 @@ void main() {
         .widget<Text>(find.byKey(const Key('available_time_helper')))
         .data!;
 
+    testWidgets('duration preset updates hours and minutes fields', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(412, 915));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(buildPage());
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('available_hours_field')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('start_date_field')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('4 giờ'));
+      await tester.pump();
+
+      final hoursField = tester.widget<TextField>(
+        find.byKey(const Key('available_hours_field')),
+      );
+      final minutesField = tester.widget<TextField>(
+        find.byKey(const Key('available_minutes_field')),
+      );
+      expect(hoursField.controller?.text, '4');
+      expect(minutesField.controller?.text, '0');
+    });
+
     testWidgets('accepts any hours and minutes, even past midnight', (
       tester,
     ) async {
@@ -274,7 +302,10 @@ void main() {
       );
       await tester.pump();
 
-      expect(helperText(tester), startsWith('1 hour to 3 days. Ends '));
+      expect(
+        helperText(tester),
+        startsWith('Từ 1 giờ đến 3 ngày. Kết thúc lúc '),
+      );
     });
 
     testWidgets('rejects less than one hour', (tester) async {
@@ -290,7 +321,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(helperText(tester), 'Plan at least 1 hour.');
+      expect(helperText(tester), 'Thời lượng tối thiểu là 1 giờ.');
     });
 
     testWidgets('rejects more than three days', (tester) async {
@@ -306,7 +337,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(helperText(tester), 'A trip can last at most 72 hours (3 days).');
+      expect(helperText(tester), 'Chuyến đi tối đa 72 giờ (3 ngày).');
     });
 
     testWidgets('rejects more than 59 minutes', (tester) async {
@@ -318,7 +349,49 @@ void main() {
       );
       await tester.pump();
 
-      expect(helperText(tester), 'Enter whole hours and 0–59 minutes.');
+      expect(helperText(tester), 'Nhập số giờ nguyên và 0–59 phút.');
+    });
+
+    testWidgets('opens Vietnamese Coastal date and wheel time bottom sheets', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(412, 915));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(buildPage());
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('available_hours_field')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('start_date_field')));
+      await tester.pumpAndSettle();
+
+      // Open Start Date bottom sheet and pick "Ngày mai"
+      await tester.tap(find.byKey(const Key('start_date_field')));
+      await tester.pumpAndSettle();
+      expect(find.text('Chọn ngày bắt đầu'), findsOneWidget);
+      expect(find.text('Hôm nay'), findsOneWidget);
+      expect(find.text('Ngày mai'), findsOneWidget);
+      expect(find.text('Cuối tuần'), findsOneWidget);
+      await tester.tap(find.text('Ngày mai'));
+      await tester.pump();
+      await tester.tap(find.text('Xác nhận ngày'));
+      await tester.pumpAndSettle();
+      expect(find.text('Chọn ngày bắt đầu'), findsNothing);
+
+      // Open Start Time wheel bottom sheet and pick "08:00"
+      await tester.tap(find.byKey(const Key('start_time_field')));
+      await tester.pumpAndSettle();
+      expect(find.text('Chọn giờ xuất phát'), findsOneWidget);
+      expect(find.byKey(const Key('hour_wheel')), findsOneWidget);
+      expect(find.byKey(const Key('minute_wheel')), findsOneWidget);
+      await tester.tap(find.text('08:00').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Xác nhận giờ'));
+      await tester.pumpAndSettle();
+      expect(find.text('08:00'), findsOneWidget);
     });
   });
 
@@ -348,13 +421,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Use current location'));
+    await tester.tap(find.text('Dùng vị trí hiện tại'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Explore around'));
+    await tester.tap(find.byKey(const Key('explore_around_field')));
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.widgetWithText(TextField, 'Search places'),
+      find.widgetWithText(TextField, 'Tìm kiếm địa điểm'),
       'Da Nang',
     );
     await tester.testTextInput.receiveAction(TextInputAction.search);
@@ -364,7 +437,7 @@ void main() {
 
     final budgetFieldFinder = find.widgetWithText(
       TextField,
-      'Budget (VND, optional)',
+      'Ngân sách (VNĐ, tùy chọn)',
     );
     await tester.scrollUntilVisible(
       budgetFieldFinder,
@@ -379,14 +452,8 @@ void main() {
 
     final generateButton = find.widgetWithText(
       FilledButton,
-      'Generate itinerary',
+      'Tạo lịch trình tối ưu',
     );
-    await tester.scrollUntilVisible(
-      generateButton,
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
     await tester.tap(generateButton);
     await tester.pump();
 
@@ -460,29 +527,21 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Use current location'));
+      await tester.tap(find.text('Dùng vị trí hiện tại'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Explore around'));
+      await tester.tap(find.byKey(const Key('explore_around_field')));
       await tester.pumpAndSettle();
       await tester.enterText(
-        find.widgetWithText(TextField, 'Search places'),
+        find.widgetWithText(TextField, 'Tìm kiếm địa điểm'),
         'Da Nang',
       );
       await tester.testTextInput.receiveAction(TextInputAction.search);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Da Nang Beach'));
       await tester.pumpAndSettle();
-      final generateButton = find.widgetWithText(
-        FilledButton,
-        'Generate itinerary',
+      await tester.tap(
+        find.widgetWithText(FilledButton, 'Tạo lịch trình tối ưu'),
       );
-      await tester.scrollUntilVisible(
-        generateButton,
-        300,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(generateButton);
       await tester.pump();
       completer.complete(result);
       await tester.pumpAndSettle();
@@ -546,12 +605,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Choose a starting place'));
+      await tester.tap(find.byKey(const Key('choose_start_place_field')));
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
       expect(
-        find.widgetWithText(TextField, 'Address or place name'),
+        find.widgetWithText(TextField, 'Địa chỉ hoặc tên địa điểm'),
         findsOneWidget,
       );
     },
@@ -599,18 +658,18 @@ void main() {
     );
     await pumpWithAddresses(tester, addresses);
 
-    await tester.tap(find.text('Choose a starting place'));
+    await tester.tap(find.byKey(const Key('choose_start_place_field')));
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.widgetWithText(TextField, 'Address or place name'),
+      find.widgetWithText(TextField, 'Địa chỉ hoặc tên địa điểm'),
       '123 nguyen van linh',
     );
     await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
 
     expect(addresses.queries, ['123 nguyen van linh']);
-    expect(find.text('Addresses'), findsOneWidget);
-    expect(find.text('Places'), findsOneWidget);
+    expect(find.text('Địa chỉ'), findsOneWidget);
+    expect(find.text('Địa điểm'), findsOneWidget);
     await tester.tap(find.text('123 Nguyễn Văn Linh'));
     await tester.pumpAndSettle();
 
@@ -619,10 +678,10 @@ void main() {
       find.text('123 Nguyễn Văn Linh, Hải Châu, Đà Nẵng, Việt Nam'),
       findsOneWidget,
     );
-    final explore = tester.widget<ListTile>(
-      find.widgetWithText(ListTile, 'Explore around'),
-    );
-    expect(explore.onTap, isNotNull);
+    // Explore around is now unlocked (tapping opens the POI picker)
+    await tester.tap(find.byKey(const Key('explore_around_field')));
+    await tester.pumpAndSettle();
+    expect(find.text('Chọn địa điểm'), findsOneWidget);
   });
 
   testWidgets('a catalog place can still be the starting point', (
@@ -630,21 +689,21 @@ void main() {
   ) async {
     await pumpWithAddresses(tester, _AddressRepository());
 
-    await tester.tap(find.text('Choose a starting place'));
+    await tester.tap(find.byKey(const Key('choose_start_place_field')));
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.widgetWithText(TextField, 'Address or place name'),
+      find.widgetWithText(TextField, 'Địa chỉ hoặc tên địa điểm'),
       'Scope',
     );
     await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
 
-    expect(find.text('No matching address.'), findsOneWidget);
+    expect(find.text('Không tìm thấy địa chỉ phù hợp.'), findsOneWidget);
     await tester.tap(find.text('POI in Scope A'));
     await tester.pumpAndSettle();
 
     expect(find.text('POI in Scope A'), findsOneWidget);
-    expect(find.text('No starting point selected'), findsNothing);
+    expect(find.text('Chưa chọn điểm xuất phát'), findsNothing);
   });
 
   testWidgets('without Mapbox the start search covers catalog places only', (
@@ -653,16 +712,16 @@ void main() {
     final addresses = _AddressRepository(isAvailable: false);
     await pumpWithAddresses(tester, addresses);
 
-    await tester.tap(find.text('Choose a starting place'));
+    await tester.tap(find.byKey(const Key('choose_start_place_field')));
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.widgetWithText(TextField, 'Place name'),
+      find.widgetWithText(TextField, 'Tên địa điểm'),
       'Scope',
     );
     await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
 
-    expect(find.text('Addresses'), findsNothing);
+    expect(find.text('Địa chỉ'), findsNothing);
     expect(find.text('POI in Scope A'), findsOneWidget);
     expect(addresses.queries, isEmpty);
   });
@@ -673,32 +732,35 @@ void main() {
     final poiRepository = _ScopedPoiRepository();
 
     await tester.pumpWidget(
-      MultiBlocProvider(
-        providers: [
-          BlocProvider(
-            create: (_) =>
-                CreateItineraryCubit(repository: _ItineraryRepository()),
-          ),
-          BlocProvider(
-            create: (_) => PoiSearchCubit(
-              locationService: _LocationService(),
-              repository: poiRepository,
+      MaterialApp(
+        home: MultiBlocProvider(
+          providers: [
+            BlocProvider(
+              create: (_) =>
+                  CreateItineraryCubit(repository: _ItineraryRepository()),
             ),
-          ),
-          BlocProvider(
-            create: (_) => AddressSearchCubit(repository: _AddressRepository()),
-          ),
-        ],
-        child: const MaterialApp(home: CreateItineraryPage()),
+            BlocProvider(
+              create: (_) => PoiSearchCubit(
+                locationService: _LocationService(),
+                repository: poiRepository,
+              ),
+            ),
+            BlocProvider(
+              create: (_) =>
+                  AddressSearchCubit(repository: _AddressRepository()),
+            ),
+          ],
+          child: const CreateItineraryPage(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Choose a starting place'));
+    await tester.tap(find.byKey(const Key('choose_start_place_field')));
     await tester.pumpAndSettle();
 
     await tester.enterText(
-      find.widgetWithText(TextField, 'Address or place name'),
+      find.widgetWithText(TextField, 'Địa chỉ hoặc tên địa điểm'),
       'ScopeA',
     );
     await tester.testTextInput.receiveAction(TextInputAction.search);
@@ -709,13 +771,13 @@ void main() {
     Navigator.of(tester.element(find.text('POI in Scope A'))).pop();
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Use current location'));
+    await tester.tap(find.text('Dùng vị trí hiện tại'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Explore around'));
+    await tester.tap(find.byKey(const Key('explore_around_field')));
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.widgetWithText(TextField, 'Search places'),
+      find.widgetWithText(TextField, 'Tìm kiếm địa điểm'),
       'Explore',
     );
     await tester.testTextInput.receiveAction(TextInputAction.search);
@@ -724,12 +786,12 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
-      find.text('Add a must-see place'),
+      find.text('Thêm điểm nhất định ghé'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Add a must-see place'));
+    await tester.tap(find.text('Thêm điểm nhất định ghé'));
     await tester.pumpAndSettle();
 
     expect(find.text('POI in Scope A'), findsNothing);
@@ -740,7 +802,7 @@ void main() {
       ),
       findsNothing,
     );
-    expect(find.text('Search by name to find a place.'), findsOneWidget);
+    expect(find.text('Nhập tên để tìm địa điểm.'), findsOneWidget);
   });
 
   testWidgets(
@@ -772,18 +834,30 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Use current location'));
+      await tester.tap(find.text('Dùng vị trí hiện tại'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Explore around'));
+      await tester.tap(find.byKey(const Key('explore_around_field')));
       await tester.pumpAndSettle();
 
-      // Verify quick suggestion chips exist
-      expect(find.text('Bà Nà Hills'), findsOneWidget);
-      expect(find.text('Sơn Trà'), findsOneWidget);
+      // Verify quick suggestion chips exist in the exploration sheet
+      expect(
+        find.descendant(
+          of: find.byType(BottomSheet),
+          matching: find.text('Bà Nà Hills'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(BottomSheet),
+          matching: find.text('Sơn Trà'),
+        ),
+        findsOneWidget,
+      );
 
       await tester.enterText(
-        find.widgetWithText(TextField, 'Search places'),
+        find.widgetWithText(TextField, 'Tìm kiếm địa điểm'),
         'Explore',
       );
       await tester.testTextInput.receiveAction(TextInputAction.search);
@@ -793,7 +867,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.scrollUntilVisible(
-        find.text('Must-see places'),
+        find.text('3. Điểm nhất định ghé (tùy chọn)'),
         300,
         scrollable: find.byType(Scrollable).first,
       );
@@ -809,9 +883,9 @@ void main() {
 
       expect(find.text('POI in Scope B (Điểm chính)'), findsNothing);
 
-      // Scroll back up to verify "Explore around" field still holds the exploration POI
+      // Scroll back up to verify exploration field still holds the POI
       await tester.scrollUntilVisible(
-        find.text('Explore around'),
+        find.byKey(const Key('explore_around_field')),
         -300,
         scrollable: find.byType(Scrollable).first,
       );
@@ -849,14 +923,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Use current location'));
+      await tester.tap(find.text('Dùng vị trí hiện tại'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Explore around'));
+      await tester.tap(find.byKey(const Key('explore_around_field')));
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextField, 'Search places'),
+        find.widgetWithText(TextField, 'Tìm kiếm địa điểm'),
         'Explore',
       );
       await tester.testTextInput.receiveAction(TextInputAction.search);
@@ -865,24 +939,32 @@ void main() {
       await tester.tap(find.text('POI in Scope B'));
       await tester.pumpAndSettle();
 
-      // Switch to Walking mode via onChanged
+      // Switch to Walking mode via chip tap
+      final walkingChip = find.byKey(const ValueKey('transport_walking'));
       await tester.scrollUntilVisible(
-        find.byType(DropdownButtonFormField<TransportMode>),
+        walkingChip,
         300,
         scrollable: find.byType(Scrollable).first,
       );
-      tester
-          .widget<DropdownButtonFormField<TransportMode>>(
-            find.byType(DropdownButtonFormField<TransportMode>),
-          )
-          .onChanged!(TransportMode.walking);
+      await tester.ensureVisible(walkingChip);
+      await tester.pumpAndSettle();
+      await tester.tap(walkingChip);
       await tester.pumpAndSettle();
 
       // Set available duration to 1 hour
-      final hoursField = find.widgetWithText(TextField, 'Hours');
+      final hoursField = find.byKey(const Key('available_hours_field'));
+      await tester.scrollUntilVisible(
+        hoursField,
+        -200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(hoursField);
+      await tester.pumpAndSettle();
       await tester.enterText(hoursField, '1');
-      final minutesField = find.widgetWithText(TextField, 'Minutes');
-      await tester.enterText(minutesField, '0');
+      await tester.enterText(
+        find.byKey(const Key('available_minutes_field')),
+        '0',
+      );
       await tester.pumpAndSettle();
 
       // Scroll up to check feasibility warning alert
@@ -893,7 +975,6 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Feasibility warning alert is shown
       expect(
         find.textContaining('Lưu ý về thời gian di chuyển:'),
         findsOneWidget,

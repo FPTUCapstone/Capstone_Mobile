@@ -8,6 +8,7 @@ import 'package:trip_mate_mobile/core/push/push_device_coordinator.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/auth_credentials.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/auth_session.dart';
+import 'package:trip_mate_mobile/features/auth/domain/entities/operator_onboarding_state.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/tour_operator_application_status.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
 import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_repository.dart';
@@ -69,6 +70,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
 
     final role = state.role!;
     final applicationStatus = state.applicationStatus;
+    final onboardingState = state.onboardingState;
+    final contractStatus = state.contractStatus;
+    final currentContractId = state.currentContractId;
     final offlineOwnerId = state.offlineOwnerId;
     final offlineOnly = state.isOfflineReadOnly;
     emit(
@@ -80,6 +84,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
           : AuthSessionState.authenticated(
               role,
               applicationStatus: applicationStatus,
+              onboardingState: onboardingState,
+              contractStatus: contractStatus,
+              currentContractId: currentContractId,
               operation: AuthSessionOperation.signOut,
             ),
     );
@@ -108,6 +115,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
             AuthSessionState.authenticated(
               role,
               applicationStatus: applicationStatus,
+              onboardingState: onboardingState,
+              contractStatus: contractStatus,
+              currentContractId: currentContractId,
             ),
           );
           unawaited(_pushDeviceLifecycle?.onAuthenticated());
@@ -132,6 +142,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
             : AuthSessionState.authenticated(
                 role,
                 applicationStatus: applicationStatus,
+                onboardingState: onboardingState,
+                contractStatus: contractStatus,
+                currentContractId: currentContractId,
                 errorMessage: signOutLocalCleanupFailureMessage,
               ),
       );
@@ -192,6 +205,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
       AppConstants.refreshTokenKey,
       AppConstants.sessionRoleKey,
       AppConstants.sessionApplicationStatusKey,
+      AppConstants.sessionOnboardingStateKey,
+      AppConstants.sessionContractStatusKey,
+      AppConstants.sessionCurrentContractIdKey,
       AppConstants.keepSignedInKey,
     ]) {
       try {
@@ -363,6 +379,15 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
       final storedApplicationStatus = await storage.read(
         AppConstants.sessionApplicationStatusKey,
       );
+      final storedOnboarding = await storage.read(
+        AppConstants.sessionOnboardingStateKey,
+      );
+      final storedContractStatus = await storage.read(
+        AppConstants.sessionContractStatusKey,
+      );
+      final storedContractId = await storage.read(
+        AppConstants.sessionCurrentContractIdKey,
+      );
       if (!_currentRestore(revision)) return;
       emit(
         AuthSessionState.authenticated(
@@ -370,6 +395,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
           applicationStatus: _applicationStatusFromStorage(
             storedApplicationStatus,
           ),
+          onboardingState: _onboardingFromStorage(storedOnboarding),
+          contractStatus: storedContractStatus,
+          currentContractId: storedContractId,
         ),
       );
       unawaited(_pushDeviceLifecycle?.onAuthenticated());
@@ -433,6 +461,10 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
         AppConstants.sessionApplicationStatusKey,
         TourOperatorApplicationStatus.pendingApproval.name,
       );
+      await _secureStorage?.write(
+        AppConstants.sessionOnboardingStateKey,
+        OperatorOnboardingState.awaitingReview.name,
+      );
     } catch (_) {
       // The in-memory state remains authoritative for this running session.
     }
@@ -440,6 +472,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
       AuthSessionState.authenticated(
         UserRole.tourOperator,
         applicationStatus: TourOperatorApplicationStatus.pendingApproval,
+        onboardingState: OperatorOnboardingState.awaitingReview,
       ),
     );
   }
@@ -679,6 +712,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
           AuthSessionState.authenticated(
             role,
             applicationStatus: response.applicationStatus,
+            onboardingState: response.onboardingState,
+            contractStatus: response.contractStatus,
+            currentContractId: response.currentContractId,
           ),
         );
         unawaited(_pushDeviceLifecycle?.onAuthenticated());
@@ -744,7 +780,67 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
       await storage.delete(AppConstants.sessionApplicationStatusKey);
     }
     await storage.write(AppConstants.keepSignedInKey, keepSignedIn.toString());
+    for (final entry in {
+      AppConstants.sessionOnboardingStateKey: response.onboardingState?.name,
+      AppConstants.sessionContractStatusKey: response.contractStatus,
+      AppConstants.sessionCurrentContractIdKey: response.currentContractId,
+    }.entries) {
+      if (entry.value == null) {
+        await storage.delete(entry.key);
+      } else {
+        await storage.write(entry.key, entry.value!);
+      }
+    }
   });
+
+  /// Reloads only server-issued metadata after the network renewal has
+  /// completed. Signing itself is never treated as proof of account activation.
+  Future<void> reloadRenewedOperatorSession() async {
+    final storage = _secureStorage;
+    final revision = _sessionRevision;
+    if (storage == null ||
+        !state.isAuthenticated ||
+        state.role != UserRole.tourOperator) {
+      return;
+    }
+    await storage.withSessionLock(() async {
+      final onboarding = await storage.read(
+        AppConstants.sessionOnboardingStateKey,
+      );
+      final application = await storage.read(
+        AppConstants.sessionApplicationStatusKey,
+      );
+      final contract = await storage.read(
+        AppConstants.sessionContractStatusKey,
+      );
+      final id = await storage.read(AppConstants.sessionCurrentContractIdKey);
+      if (!_currentRestore(revision) ||
+          !state.isAuthenticated ||
+          state.role != UserRole.tourOperator) {
+        return;
+      }
+      emit(
+        AuthSessionState.authenticated(
+          UserRole.tourOperator,
+          applicationStatus: _applicationStatusFromStorage(application),
+          onboardingState: _onboardingFromStorage(onboarding),
+          contractStatus: contract,
+          currentContractId: id,
+        ),
+      );
+    });
+  }
+
+  OperatorOnboardingState? _onboardingFromStorage(String? value) {
+    if (value == null) return null;
+    final name = value.isEmpty
+        ? ''
+        : '${value[0].toLowerCase()}${value.substring(1)}';
+    return OperatorOnboardingState.values
+            .where((state) => state.name == name)
+            .firstOrNull ??
+        OperatorOnboardingState.unresolved;
+  }
 
   Future<bool> _clearStoredSession(SecureStorageService storage) =>
       storage.withSessionLock(() async {
@@ -754,6 +850,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
           await storage.delete(AppConstants.refreshTokenKey);
           await storage.delete(AppConstants.sessionRoleKey);
           await storage.delete(AppConstants.sessionApplicationStatusKey);
+          await storage.delete(AppConstants.sessionOnboardingStateKey);
+          await storage.delete(AppConstants.sessionContractStatusKey);
+          await storage.delete(AppConstants.sessionCurrentContractIdKey);
           await storage.delete(AppConstants.keepSignedInKey);
           return true;
         } catch (_) {
@@ -768,6 +867,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
       AppConstants.accessTokenKey,
       AppConstants.refreshTokenKey,
       AppConstants.sessionApplicationStatusKey,
+      AppConstants.sessionOnboardingStateKey,
+      AppConstants.sessionContractStatusKey,
+      AppConstants.sessionCurrentContractIdKey,
     ]) {
       try {
         await storage.delete(key);

@@ -45,6 +45,9 @@ import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/o
 import 'package:trip_mate_mobile/features/operator_bookings/presentation/pages/operator_booking_detail_page.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/presentation/cubit/operator_check_in_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/presentation/pages/operator_check_in_page.dart';
+import 'package:trip_mate_mobile/features/operator_contracts/domain/repositories/operator_contract_repository.dart';
+import 'package:trip_mate_mobile/features/operator_contracts/presentation/cubit/operator_contract_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_contracts/presentation/pages/operator_contract_page.dart';
 import 'package:trip_mate_mobile/features/operator_finance/presentation/cubit/operator_settlement_history_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_finance/presentation/pages/operator_settlement_history_page.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
@@ -993,11 +996,22 @@ GoRouter createAppRouter(
         ),
       ),
       GoRoute(
+        path: AppRoutes.operatorContract,
+        name: AppRouteNames.operatorContract,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<OperatorContractCubit>(),
+          child: const OperatorContractPage(),
+        ),
+      ),
+      GoRoute(
         path: AppRoutes.operatorApplication,
         name: AppRouteNames.operatorApplication,
         builder: (_, state) => BlocProvider(
           create: (_) => serviceLocator<OperatorApplicationCubit>(),
-          child: const OperatorApplicationPage(),
+          child: OperatorApplicationPage(
+            renewSession: () =>
+                serviceLocator<OperatorContractRepository>().renewSession(),
+          ),
         ),
       ),
       GoRoute(

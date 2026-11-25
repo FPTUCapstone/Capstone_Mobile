@@ -86,6 +86,7 @@ abstract final class AppRoutes {
   static const operator = '/operator';
   static const operatorSettlementHistory = '/operator/finance/settlements';
   static const operatorApplication = '/operator/application';
+  static const operatorContract = '/operator/contract';
   static const operatorApplicationResubmit = '/operator/application/resubmit';
   static const createCoupon = '/operator/coupons/create';
   static const operatorChangePassword = '/operator/change-password';
@@ -239,6 +240,7 @@ abstract final class AppRouteNames {
   static const tripReview = 'trip-review';
   static const operator = 'operator';
   static const operatorApplication = 'operator-application';
+  static const operatorContract = 'operator-contract';
   static const operatorApplicationResubmit = 'operator-application-resubmit';
   static const createCoupon = 'create-coupon';
   static const operatorChangePassword = 'operator-change-password';
