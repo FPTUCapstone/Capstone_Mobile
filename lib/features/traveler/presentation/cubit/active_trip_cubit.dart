@@ -1402,6 +1402,9 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
         feedback: _feedback(rerouteUnavailableMessage, isError: true),
       ),
     );
+    // The Backend hides an expired proposal from the alert list; reading it
+    // again removes the stale Review button.
+    unawaited(refreshAlerts());
   }
 
   void _watchRerouteExpiry(RerouteProposal proposal) {
@@ -1419,7 +1422,9 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
     _rerouteExpiryTimer = null;
   }
 
-  /// The proposal is gone or closed: forget it and say so (MSG44).
+  /// The proposal is gone or closed: forget it and say so (MSG44). The alerts
+  /// are read again because the Backend no longer offers this proposal, so the
+  /// stale Review button goes away.
   void _dropRerouteProposal(String message) {
     _cancelRerouteExpiry();
     _emit(
@@ -1430,16 +1435,16 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
         feedback: _feedback(message, isError: true),
       ),
     );
+    unawaited(refreshAlerts());
   }
 
   /// A closed proposal may mean another device already answered it, so the
-  /// session and the alerts are read again.
+  /// session is read again too.
   Future<void> _refreshAfterClosedProposal(int sessionId) async {
     final refreshed = await _tryRefresh(sessionId);
     if (refreshed != null && !isClosed && !state.isTerminal) {
       _applySession(refreshed, preferredTargetId: state.targetItemId);
     }
-    await refreshAlerts();
   }
 
   void _failRerouteRequest(Failure failure, Future<void> Function() retry) {
