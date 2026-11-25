@@ -38,6 +38,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/widgets/itinerar
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/itinerary_suggestions_sheet.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/itinerary_weather_tips_card.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_map.dart';
+import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
 import 'package:trip_mate_mobile/shared/widgets/error_view.dart';
 
 final class ItineraryDetailPage extends StatefulWidget {
@@ -557,6 +558,24 @@ final class _DetailContent extends StatelessWidget {
                       context,
                     ).textTheme.bodySmall?.copyWith(color: palette.secondary),
                   ),
+                ],
+                if (detail.bookedServices.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Text(
+                    'Dịch vụ đã đặt',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  for (final service in detail.bookedServices)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(service.serviceName),
+                      subtitle: Text(
+                        'SR-${service.id} · Số lượng ${service.quantity} · ${service.status == 'Completed' ? 'Đã hoàn tất' : 'Đã xác nhận'}',
+                      ),
+                      trailing: Text(
+                        TripFormatters.formatVietnamDateTime(service.startsAt),
+                      ),
+                    ),
                 ],
                 const SizedBox(height: 14),
                 Text(

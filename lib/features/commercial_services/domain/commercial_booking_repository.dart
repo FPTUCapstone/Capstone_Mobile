@@ -15,6 +15,14 @@ typedef CommercialBookingReceipt = ({
   String status,
   num estimatedAmount,
 });
+typedef TravelerServiceRequest = ({
+  int id,
+  String requestCode,
+  String serviceName,
+  String status,
+  DateTime startsAt,
+  int quantity,
+});
 
 abstract interface class CommercialBookingRepository {
   Future<List<CommercialOption>> options(int poiId);
@@ -23,4 +31,6 @@ abstract interface class CommercialBookingRepository {
     CommercialBookingRequest request,
     String key,
   );
+  Future<List<TravelerServiceRequest>> requests({int? beforeId});
+  Future<void> cancel(int id);
 }

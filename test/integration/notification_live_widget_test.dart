@@ -91,6 +91,11 @@ void main() {
                 body: Text('Tour ${state.pathParameters['tourId']}'),
               ),
             ),
+            GoRoute(
+              path: AppRoutes.commercialBookingRequests,
+              builder: (_, _) =>
+                  const Scaffold(body: Text('Yêu cầu đặt dịch vụ')),
+            ),
           ],
         );
         addTearDown(router.dispose);
@@ -109,10 +114,7 @@ void main() {
             (state) => state.items.any((item) => item.id == id && item.isRead),
           );
           await tester.tap(
-            find.descendant(
-              of: tile,
-              matching: find.text(isOperator ? 'Open' : 'Mark as read'),
-            ),
+            find.descendant(of: tile, matching: find.text('Open')),
           );
           await read.timeout(const Duration(seconds: 15));
           final persisted = await repository.getInbox();
@@ -125,10 +127,7 @@ void main() {
         if (isOperator) {
           expect(find.text('Tour ${item.relatedEntityId}'), findsOneWidget);
         } else {
-          expect(
-            find.descendant(of: tile, matching: find.text('Unread')),
-            findsNothing,
-          );
+          expect(find.text('Yêu cầu đặt dịch vụ'), findsOneWidget);
         }
       },
     );

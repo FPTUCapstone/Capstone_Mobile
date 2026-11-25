@@ -772,7 +772,7 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerFactory<InAppInboxCubit>(() => InAppInboxCubit(serviceLocator()))
     ..registerLazySingleton<CommercialBookingRepository>(
-      () => CommercialBookingApi(serviceLocator()),
+      () => CommercialBookingApi(serviceLocator(), serviceLocator()),
     )
     ..registerFactory<CommercialBookingCubit>(
       () => CommercialBookingCubit(serviceLocator()),

@@ -12,6 +12,8 @@ abstract final class AppRoutes {
   static const poiDetailPattern = '/explore/poi/:id';
   static const commercialBookingPattern =
       '/traveler/commercial-services/:poiId/book';
+  static const commercialBookingRequests =
+      '/traveler/commercial-services/requests';
   static const tourSearch = '/explore/tours';
   static const tourDetailPattern = '/explore/tours/:tourId';
   static const bookTourPattern = '/explore/tours/:tourId/book';

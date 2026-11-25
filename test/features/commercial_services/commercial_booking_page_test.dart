@@ -4,8 +4,31 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/commercial_booking_repository.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/commercial_booking_cubit.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/commercial_booking_page.dart';
+import 'package:trip_mate_mobile/features/commercial_services/presentation/commercial_booking_requests_page.dart';
 
 void main() {
+  testWidgets('cancels a pending request and refreshes the history', (
+    tester,
+  ) async {
+    final repository = _Repository();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider(
+          create: (_) => CommercialBookingCubit(repository),
+          child: const CommercialBookingRequestsPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Hủy yêu cầu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Xác nhận hủy'));
+    await tester.pumpAndSettle();
+    expect(repository.cancelledId, 42);
+    expect(find.textContaining('Đã hủy'), findsWidgets);
+    expect(find.text('Hủy yêu cầu'), findsNothing);
+  });
+
   testWidgets('submits a selected service and shows its pending receipt', (
     tester,
   ) async {
@@ -51,6 +74,22 @@ void main() {
 final class _Repository implements CommercialBookingRepository {
   CommercialBookingRequest? request;
   String? key;
+  int? cancelledId;
+
+  @override
+  Future<void> cancel(int id) async => cancelledId = id;
+
+  @override
+  Future<List<TravelerServiceRequest>> requests({int? beforeId}) async => [
+    (
+      id: 42,
+      requestCode: 'SR-42',
+      serviceName: 'Double room',
+      status: cancelledId == null ? 'PendingConfirmation' : 'Cancelled',
+      startsAt: DateTime.utc(2026, 11, 27, 7),
+      quantity: 1,
+    ),
+  ];
 
   @override
   Future<List<CommercialOption>> options(int poiId) async => [
