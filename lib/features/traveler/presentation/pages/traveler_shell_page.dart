@@ -155,6 +155,12 @@ class _TravelerShellPageState extends State<TravelerShellPage>
               title: _buildAppBarTitle(_selectedIndex),
               actions: [
                 IconButton(
+                  key: const Key('traveler_messages_nav_button'),
+                  tooltip: 'Tin nhắn',
+                  icon: const Icon(Icons.chat_bubble_outline),
+                  onPressed: () => context.push(AppRoutes.travelerMessages),
+                ),
+                IconButton(
                   tooltip: 'Support chat',
                   icon: const Icon(Icons.support_agent),
                   onPressed: () => context.push(AppRoutes.supportChat),

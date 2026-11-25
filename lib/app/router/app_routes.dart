@@ -62,6 +62,9 @@ abstract final class AppRoutes {
   static const travelGroupDetails = '/traveler/groups/:groupId';
   static const inviteGroupMembers = '/traveler/groups/:groupId/invitation';
   static const travelGroupMembers = '/traveler/groups/:groupId/members';
+  static const travelGroupChat = '/traveler/groups/:groupId/chat';
+  static const travelerMessages = '/traveler/messages';
+  static const operatorMessages = '/operator/messages';
   static const groupLocationSharing =
       '/traveler/groups/:groupId/location-sharing';
   static const activeTripLivePattern = '/traveler/trips/:itineraryId/live';
@@ -146,6 +149,8 @@ abstract final class AppRoutes {
       '/traveler/reviews/$kind/$id';
   static String groupLocationSharingPath(int groupId) =>
       '/traveler/groups/$groupId/location-sharing';
+  static String travelGroupChatPath(int groupId) =>
+      '/traveler/groups/$groupId/chat';
   static String poiDetail(int id) => '/explore/poi/$id';
   static String tourDetail(
     String tourId, {
@@ -218,6 +223,9 @@ abstract final class AppRouteNames {
   static const travelGroupDetails = 'travel-group-details';
   static const inviteGroupMembers = 'invite-group-members';
   static const travelGroupMembers = 'travel-group-members';
+  static const travelGroupChat = 'travel-group-chat';
+  static const travelerMessages = 'traveler-messages';
+  static const operatorMessages = 'operator-messages';
   static const groupLocationSharing = 'group-location-sharing';
   static const activeTripLive = 'active-trip-live';
   static const tripAlerts = 'trip-alerts';

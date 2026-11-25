@@ -73,6 +73,13 @@ void main() {
     expect(find.text('Chấp nhận lịch trình'), findsOneWidget);
     expect(find.byKey(const Key('reorder_stops_button')), findsOneWidget);
 
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('create_travel_group_button')),
+      200,
+    );
+    expect(find.byKey(const Key('create_travel_group_button')), findsOneWidget);
+    expect(find.text('Chấp nhận lịch trình'), findsOneWidget);
+
     await tester.tap(find.byKey(const Key('reorder_stops_button')));
     await tester.pumpAndSettle();
 

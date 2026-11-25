@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/config/app_config.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/app/router/create_travel_group_route_args.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/app/theme/coastal_palette.dart';
@@ -715,6 +716,43 @@ final class _DetailContent extends StatelessWidget {
                       ),
                     ),
                   ),
+                if (detail.canManage) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  OutlinedButton.icon(
+                    key: const Key('create_travel_group_button'),
+                    onPressed: state.isBusy
+                        ? null
+                        : () {
+                            final destination = detail.items.isNotEmpty
+                                ? detail.items
+                                      .firstWhere(
+                                        (item) =>
+                                            item.poiName != null &&
+                                            item.poiName!.isNotEmpty,
+                                        orElse: () => detail.items.first,
+                                      )
+                                      .poiName
+                                : null;
+                            final dateRange = tripSchedule(
+                              detail.validFrom,
+                              detail.validTo,
+                            );
+                            context.push(
+                              AppRoutes.createTravelGroup,
+                              extra: CreateTravelGroupRouteArgs(
+                                itineraryId: detail.itineraryId,
+                                itineraryTitle:
+                                    detail.title ??
+                                    'Lịch trình #${detail.itineraryId}',
+                                destination: destination,
+                                dateRange: dateRange,
+                              ),
+                            );
+                          },
+                    icon: const Icon(Icons.group_add_outlined),
+                    label: const Text('Tạo nhóm du lịch'),
+                  ),
+                ],
               ],
             ),
           ),

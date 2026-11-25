@@ -39,6 +39,7 @@ import 'package:trip_mate_mobile/features/e_ticket/presentation/cubit/e_ticket_c
 import 'package:trip_mate_mobile/features/e_ticket/presentation/pages/e_ticket_page.dart';
 import 'package:trip_mate_mobile/features/e_ticket/resources/e_ticket_en.dart';
 import 'package:trip_mate_mobile/features/guest/presentation/pages/guest_landing_page.dart';
+import 'package:trip_mate_mobile/features/messaging/presentation/pages/messenger_page.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/domain/entities/operator_booking.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/operator_booking_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/presentation/pages/operator_booking_detail_page.dart';
@@ -486,6 +487,8 @@ GoRouter createAppRouter(
             child: CreateTravelGroupPage(
               itineraryId: args.itineraryId,
               itineraryTitle: args.itineraryTitle,
+              destination: args.destination,
+              dateRange: args.dateRange,
             ),
           );
         },
@@ -564,6 +567,27 @@ GoRouter createAppRouter(
             child: TravelGroupMembersPage(groupId: groupId),
           );
         },
+      ),
+      GoRoute(
+        path: AppRoutes.travelGroupChat,
+        name: AppRouteNames.travelGroupChat,
+        builder: (_, state) {
+          final groupId = int.tryParse(state.pathParameters['groupId'] ?? '');
+          if (groupId == null || groupId <= 0) {
+            return const ErrorView(message: 'Page not found.');
+          }
+          return MessengerRoutePage(initialGroupId: groupId);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.travelerMessages,
+        name: AppRouteNames.travelerMessages,
+        builder: (_, _) => const MessengerRoutePage(),
+      ),
+      GoRoute(
+        path: AppRoutes.operatorMessages,
+        name: AppRouteNames.operatorMessages,
+        builder: (_, _) => const MessengerRoutePage(),
       ),
       GoRoute(
         path: AppRoutes.groupLocationSharing,
