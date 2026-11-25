@@ -7,11 +7,17 @@ typedef CommercialBookingState = ({
   bool busy,
   CommercialBookingReceipt? receipt,
   String? error,
+  bool refreshAvailability,
 });
 
 final class CommercialBookingCubit extends Cubit<CommercialBookingState> {
   CommercialBookingCubit(this._repository)
-    : super((busy: false, receipt: null, error: null));
+    : super((
+        busy: false,
+        receipt: null,
+        error: null,
+        refreshAvailability: false,
+      ));
 
   final CommercialBookingRepository _repository;
   CommercialBookingRequest? _previousRequest;
@@ -21,29 +27,45 @@ final class CommercialBookingCubit extends Cubit<CommercialBookingState> {
       _repository.options(poiId);
   Future<List<CommercialSlot>> availability(int serviceId) =>
       _repository.availability(serviceId);
+  Future<List<TravelerServiceRequest>> requests({int? beforeId}) =>
+      _repository.requests(beforeId: beforeId);
+  Future<void> cancel(int id) => _repository.cancel(id);
 
   void clearError() {
     if (state.error != null) {
-      emit((busy: state.busy, receipt: state.receipt, error: null));
+      emit((
+        busy: state.busy,
+        receipt: state.receipt,
+        error: null,
+        refreshAvailability: false,
+      ));
     }
   }
 
   Future<void> submit(CommercialBookingRequest request) async {
     if (state.busy || state.receipt != null) return;
-    emit((busy: true, receipt: null, error: null));
+    emit((busy: true, receipt: null, error: null, refreshAvailability: false));
     try {
       if (_previousRequest != request) {
         _previousRequest = request;
         _requestKey = const Uuid().v4();
       }
       final receipt = await _repository.submit(request, _requestKey!);
-      if (!isClosed) emit((busy: false, receipt: receipt, error: null));
+      if (!isClosed) {
+        emit((
+          busy: false,
+          receipt: receipt,
+          error: null,
+          refreshAvailability: false,
+        ));
+      }
     } catch (error) {
       if (!isClosed) {
         emit((
           busy: false,
           receipt: null,
           error: error is Failure ? error.message : 'Không thể gửi yêu cầu.',
+          refreshAvailability: error is ConflictFailure,
         ));
       }
     }

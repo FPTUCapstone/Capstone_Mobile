@@ -35,6 +35,7 @@ import 'package:trip_mate_mobile/features/booking_refund/presentation/cubit/book
 import 'package:trip_mate_mobile/features/booking_refund/presentation/pages/booking_refund_progress_page.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/commercial_booking_cubit.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/commercial_booking_page.dart';
+import 'package:trip_mate_mobile/features/commercial_services/presentation/commercial_booking_requests_page.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/cubit/create_coupon_cubit.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/pages/create_coupon_page.dart';
 import 'package:trip_mate_mobile/features/e_ticket/domain/usecases/get_e_ticket_use_case.dart';
@@ -233,6 +234,13 @@ GoRouter createAppRouter(
             isTraveler: sessionCubit.state.role == UserRole.traveler,
             itineraryId: _positiveId(state.uri.queryParameters['itineraryId']),
           ),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.commercialBookingRequests,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<CommercialBookingCubit>(),
+          child: const CommercialBookingRequestsPage(),
         ),
       ),
       GoRoute(

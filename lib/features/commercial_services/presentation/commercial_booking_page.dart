@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/features/commercial_services/domain/commercial_booking_repository.dart';
 import 'package:trip_mate_mobile/features/commercial_services/presentation/commercial_booking_cubit.dart';
 
@@ -82,7 +84,14 @@ final class _CommercialBookingPageState extends State<CommercialBookingPage> {
         ),
       );
       if (confirmed != true || !mounted) return;
-      await context.read<CommercialBookingCubit>().submit(request);
+      final cubit = context.read<CommercialBookingCubit>();
+      await cubit.submit(request);
+      if (!mounted || !cubit.state.refreshAvailability) return;
+      setState(() {
+        _slot = null;
+        _quantity = 1;
+        _slots = cubit.availability(option.id);
+      });
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -123,7 +132,18 @@ final class _CommercialBookingPageState extends State<CommercialBookingPage> {
   Widget build(BuildContext context) {
     final booking = context.watch<CommercialBookingCubit>().state;
     return Scaffold(
-      appBar: AppBar(title: const Text('Đặt dịch vụ')),
+      appBar: AppBar(
+        title: const Text('Đặt dịch vụ'),
+        actions: [
+          IconButton(
+            tooltip: 'Yêu cầu của tôi',
+            onPressed: _busy
+                ? null
+                : () => context.push(AppRoutes.commercialBookingRequests),
+            icon: const Icon(Icons.receipt_long_outlined),
+          ),
+        ],
+      ),
       body: switch (booking.receipt) {
         final receipt? => Padding(
           padding: const EdgeInsets.all(20),
@@ -232,6 +252,13 @@ final class _CommercialBookingPageState extends State<CommercialBookingPage> {
                           );
                         },
                       ),
+                    if (booking.error != null)
+                      Text(
+                        booking.error!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
                     if (slot != null) ...[
                       Text('Số lượng · còn ${slot.remainingQuantity}'),
                       Row(
@@ -277,13 +304,6 @@ final class _CommercialBookingPageState extends State<CommercialBookingPage> {
                           labelText: 'Ghi chú (không bắt buộc)',
                         ),
                       ),
-                      if (booking.error != null)
-                        Text(
-                          booking.error!,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                        ),
                       FilledButton(
                         onPressed: _busy ? null : _submit,
                         child: Text(_busy ? 'Đang xử lý…' : 'Gửi yêu cầu'),

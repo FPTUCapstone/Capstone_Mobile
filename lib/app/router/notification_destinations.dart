@@ -2,7 +2,11 @@ import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/features/notifications/domain/entities/in_app_notification.dart';
 
 String? travelerNotificationDestination(InAppNotification item) =>
-    item.relatedEntityType == 'Booking' ? AppRoutes.tripHistory : null;
+    switch (item.relatedEntityType) {
+      'Booking' => AppRoutes.tripHistory,
+      'ServiceBooking' => AppRoutes.commercialBookingRequests,
+      _ => null,
+    };
 
 String? operatorNotificationDestination(InAppNotification item) {
   final tourId = item.relatedEntityId;
