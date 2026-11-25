@@ -309,6 +309,55 @@ void main() {
     await cubit.close();
   });
 
+  test('an expired proposal refreshes alerts so Review disappears', () async {
+    alerts.persisted
+      ..clear()
+      ..add(rerouteAlert());
+    rerouting.proposal = TripAlertTestData.sampleRerouteProposal(
+      expiresAt: DateTime.now().add(const Duration(milliseconds: 80)),
+    );
+    final cubit = await startedCubit(clock: DateTime.now);
+    expect(cubit.state.alerts.single.reroutingProposalId, 77);
+    await cubit.openRerouteProposal(rerouteAlert());
+    // The Backend hides a proposal once it is past its TTL.
+    alerts.persisted
+      ..clear()
+      ..add(rerouteAlert(proposalId: null));
+
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    await pumpEventQueue();
+
+    expect(cubit.state.activeRerouteProposal?.status, RerouteStatus.expired);
+    expect(cubit.state.alerts.single.reroutingProposalId, isNull);
+    expect(cubit.state.alerts.single.rerouteProposalAvailable, isFalse);
+    await cubit.close();
+  });
+
+  test('an unavailable proposal found on open refreshes alerts', () async {
+    final cubit = await startedCubit();
+    for (final unavailable in [
+      () => rerouting.proposal = TripAlertTestData.sampleRerouteProposal(
+        status: RerouteStatus.expired,
+        expiresAt: now.add(const Duration(minutes: 10)),
+      ),
+      () => rerouting.getFailure = const ReroutingFailure(
+        _msg44,
+        reason: ReroutingFailureReason.notFound,
+      ),
+    ]) {
+      unavailable();
+      final loadsBefore = alerts.listCalls.length;
+
+      await cubit.openRerouteProposal(rerouteAlert());
+      await pumpEventQueue();
+
+      expect(cubit.state.feedback?.message, _msg44);
+      expect(alerts.listCalls.length, greaterThan(loadsBefore));
+      rerouting.getFailure = null;
+    }
+    await cubit.close();
+  });
+
   test('a finished trip ignores re-routing actions', () async {
     final cubit = await startedCubit();
     await cubit.openRerouteProposal(rerouteAlert());
