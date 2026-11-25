@@ -126,6 +126,12 @@ class _OperatorShellPageState extends State<OperatorShellPage>
             icon: const Icon(Icons.chat_bubble_outline),
             onPressed: () => context.push(AppRoutes.operatorMessages),
           ),
+          if (!widget.isDemoMode)
+            IconButton(
+              onPressed: () => context.pushNamed(AppRouteNames.operatorInbox),
+              tooltip: 'Notifications',
+              icon: const Icon(Icons.notifications_outlined),
+            ),
           if (_safetyAlerts case final alerts?) _SafetyAlertsAction(alerts),
           IconButton(
             // Busy state comes from the Cubit's own sign-out marker, so a

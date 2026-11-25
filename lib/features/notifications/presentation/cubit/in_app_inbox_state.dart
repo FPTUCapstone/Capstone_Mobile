@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:trip_mate_mobile/features/traveler/domain/entities/in_app_notification.dart';
+import 'package:trip_mate_mobile/features/notifications/domain/entities/in_app_notification.dart';
 
 enum InAppInboxStatus { initial, loading, ready, error }
 

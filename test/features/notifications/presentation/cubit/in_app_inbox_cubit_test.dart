@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
-import 'package:trip_mate_mobile/features/traveler/domain/entities/in_app_notification.dart';
-import 'package:trip_mate_mobile/features/traveler/domain/repositories/in_app_notification_repository.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/cubit/in_app_inbox_cubit.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/cubit/in_app_inbox_state.dart';
+import 'package:trip_mate_mobile/features/notifications/domain/entities/in_app_notification.dart';
+import 'package:trip_mate_mobile/features/notifications/domain/repositories/in_app_notification_repository.dart';
+import 'package:trip_mate_mobile/features/notifications/presentation/cubit/in_app_inbox_cubit.dart';
+import 'package:trip_mate_mobile/features/notifications/presentation/cubit/in_app_inbox_state.dart';
 
 void main() {
   test('loads, paginates, and stops at the last page', () async {

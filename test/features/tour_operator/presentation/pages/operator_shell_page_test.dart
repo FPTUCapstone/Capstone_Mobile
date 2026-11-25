@@ -187,6 +187,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('operator-safety-alerts')), findsOneWidget);
+      expect(find.byTooltip('Notifications'), findsOneWidget);
       expect(find.text('2'), findsOneWidget);
       expect(realtime.starts, 1);
     });
@@ -214,6 +215,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('operator-safety-alerts')), findsNothing);
+      expect(find.byTooltip('Notifications'), findsNothing);
       expect(realtime.starts, 0);
       expect(safety.getReviewsCalls, 0);
     });

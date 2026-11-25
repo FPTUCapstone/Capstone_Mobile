@@ -14,10 +14,11 @@ import 'package:trip_mate_mobile/features/poi/presentation/widgets/poi_status_an
 import 'package:trip_mate_mobile/shared/formatters/visit_price_format.dart';
 
 class PoiDetailPage extends StatelessWidget {
-  const PoiDetailPage({this.isTraveler = false, super.key});
+  const PoiDetailPage({this.isTraveler = false, this.itineraryId, super.key});
 
   /// A signed-in traveler gets the favorite heart.
   final bool isTraveler;
+  final int? itineraryId;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +50,7 @@ class PoiDetailPage extends StatelessWidget {
           PoiDetailStatus.success => _PoiDetailContent(
             detail: state.detail!,
             isTraveler: isTraveler,
+            itineraryId: itineraryId,
           ),
         };
       },
@@ -65,10 +67,15 @@ class PoiDetailPage extends StatelessWidget {
 }
 
 class _PoiDetailContent extends StatelessWidget {
-  const _PoiDetailContent({required this.detail, required this.isTraveler});
+  const _PoiDetailContent({
+    required this.detail,
+    required this.isTraveler,
+    this.itineraryId,
+  });
 
   final PoiDetail detail;
   final bool isTraveler;
+  final int? itineraryId;
 
   @override
   Widget build(BuildContext context) {
@@ -104,6 +111,22 @@ class _PoiDetailContent extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (isTraveler &&
+                          const {
+                            'hotel',
+                            'vehicle rental',
+                            'vehicle',
+                            'restaurant',
+                          }.contains(detail.categoryName.trim().toLowerCase()))
+                        FilledButton(
+                          onPressed: () => context.push(
+                            AppRoutes.commercialBooking(
+                              detail.id,
+                              itineraryId: itineraryId,
+                            ),
+                          ),
+                          child: const Text('Xem dịch vụ và đặt chỗ'),
+                        ),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,

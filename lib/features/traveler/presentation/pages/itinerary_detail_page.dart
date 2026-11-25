@@ -661,9 +661,14 @@ final class _DetailContent extends StatelessWidget {
                         onTap: visitIndex < 0 ? null : () => onSelectItem(item),
                         onOpenDetail: visitIndex < 0 || item.poiId == null
                             ? null
-                            : () => GoRouter.maybeOf(
-                                context,
-                              )?.push(AppRoutes.poiDetail(item.poiId!)),
+                            : () => GoRouter.maybeOf(context)?.push(
+                                AppRoutes.poiDetail(
+                                  item.poiId!,
+                                  itineraryId: detail.canManage
+                                      ? detail.itineraryId
+                                      : null,
+                                ),
+                              ),
                         provenanceTag: _provenanceLabel(detail.provenance),
                         stopNumber: visitIndex < 0 ? null : visitIndex + 1,
                         shiftMinutes: item.poiId == null
