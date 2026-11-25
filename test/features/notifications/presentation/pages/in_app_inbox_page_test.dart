@@ -96,7 +96,9 @@ void main() {
     expect(find.byKey(const Key('inbox_mark_read_3')), findsNothing);
   });
 
-  testWidgets('refreshes an empty inbox to discover new notices', (tester) async {
+  testWidgets('refreshes an empty inbox to discover new notices', (
+    tester,
+  ) async {
     final repository = _Repository(
       pages: [
         const InAppNotificationPage(items: [], nextBeforeId: null),
@@ -112,7 +114,10 @@ void main() {
       ),
     );
 
-    await tester.drag(find.byKey(const Key('inbox_empty')), const Offset(0, 300));
+    await tester.drag(
+      find.byKey(const Key('inbox_empty')),
+      const Offset(0, 300),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Removed from Da Nang Weekend'), findsOneWidget);
   });
