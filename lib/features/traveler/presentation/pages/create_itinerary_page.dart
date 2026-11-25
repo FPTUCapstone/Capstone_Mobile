@@ -5,24 +5,34 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart' show LocationPermission;
 import 'package:go_router/go_router.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' show MapboxStyles;
+import 'package:trip_mate_mobile/app/config/app_config.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
+import 'package:trip_mate_mobile/app/theme/coastal_palette.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/core/location/device_location_service.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/address_suggestion.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_route.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/selectable_poi.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/address_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_state.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/poi_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/poi_search_state.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/helpers/itinerary_text.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/widgets/coastal_date_time_sheets.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_map.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
-import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
-import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
 
 final class CreateItineraryPage extends StatefulWidget {
-  const CreateItineraryPage({super.key});
+  const CreateItineraryPage({this.useMapbox, super.key});
+
+  /// Defaults to whether a Mapbox token is configured; false renders the
+  /// lightweight drawn radius preview (used in widget tests).
+  final bool? useMapbox;
 
   @override
   State<CreateItineraryPage> createState() => _CreateItineraryPageState();
@@ -30,6 +40,24 @@ final class CreateItineraryPage extends StatefulWidget {
 
 class _CreateItineraryPageState extends State<CreateItineraryPage> {
   static const _planningTimeZone = 'Asia/Ho_Chi_Minh';
+  static const _quickExploreAreas = [
+    'Sơn Trà',
+    'Bà Nà Hills',
+    'Hội An',
+    'Ngũ Hành Sơn',
+    'Cầu Rồng',
+    'Mỹ Khê',
+  ];
+  static const _durationPresets = <(String, int)>[
+    ('4 giờ', 240),
+    ('8 giờ', 480),
+    ('12 giờ', 720),
+    ('2 ngày', 2880),
+  ];
+
+  late final bool _useMapbox =
+      widget.useMapbox ??
+      (locateOptional<AppConfig>()?.mapboxAccessToken != null);
 
   DeviceLocation? _startLocation;
   String? _startLabel;
@@ -67,6 +95,7 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = CoastalPalette.of(context);
     return MultiBlocListener(
       listeners: [
         BlocListener<PoiSearchCubit, PoiSearchState>(
@@ -76,7 +105,7 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
               setState(() {
                 _waitingForCurrentLocation = false;
                 _startLocation = location;
-                _startLabel = 'Current location';
+                _startLabel = 'Vị trí hiện tại';
               });
             }
             if (state.status == PoiSearchStatus.failure &&
@@ -115,111 +144,177 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
           final isLocating = context.select<PoiSearchCubit, bool>(
             (cubit) => cubit.state.status == PoiSearchStatus.locating,
           );
-          return AppPageScaffold(
-            title: 'Create itinerary',
-            content: [
-              const Text(
-                'Start with where you are, then choose the places that matter to you.',
+          return Scaffold(
+            backgroundColor: palette.canvas,
+            appBar: AppBar(
+              backgroundColor: palette.canvas,
+              foregroundColor: palette.ink,
+              surfaceTintColor: Colors.transparent,
+              elevation: 0,
+              titleSpacing: Navigator.canPop(context) ? 0 : AppSpacing.md,
+              title: Text(
+                'Lập lịch trình',
+                style: TextStyle(
+                  fontFamily: AppTypography.displayFont,
+                  fontSize: 19,
+                  fontWeight: FontWeight.w700,
+                  color: palette.ink,
+                ),
               ),
-              const SizedBox(height: AppSpacing.lg),
-              if (_formError != null) ...[
-                AppAlert(message: _formError!, type: AppAlertType.error),
-                const SizedBox(height: AppSpacing.md),
-              ],
-              if (_getTravelFeasibilityWarning() case final travelWarning?) ...[
-                AppAlert(message: travelWarning, type: AppAlertType.warning),
-                const SizedBox(height: AppSpacing.md),
-              ],
-              _LocationCard(
-                title: 'Starting point',
-                value: _startLabel,
-                isLocating: isLocating,
-                onCurrentLocation: isGenerating || isLocating
-                    ? null
-                    : _useCurrentLocation,
-                onChoosePlace: isGenerating ? null : _showStartPicker,
+            ),
+            body: SafeArea(
+              top: false,
+              bottom: false,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: ListView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md,
+                      4,
+                      AppSpacing.md,
+                      AppSpacing.xl,
+                    ),
+                    children: [
+                      Text(
+                        'Chọn điểm đến, thời gian và phương tiện — TripMate tự động sắp xếp cung đường hợp lý nhất.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: palette.secondary,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (_formError != null) ...[
+                        AppAlert(
+                          message: _formError!,
+                          type: AppAlertType.error,
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                      ],
+                      if (_getTravelFeasibilityWarning()
+                          case final travelWarning?) ...[
+                        AppAlert(
+                          message: travelWarning,
+                          type: AppAlertType.warning,
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                      ],
+                      _JourneyCard(
+                        palette: palette,
+                        startLabel: _startLabel,
+                        hasStartLocation: _startLocation != null,
+                        explorationName: _explorationPoi?.name,
+                        endName: _endPoi?.name,
+                        returnToStart: _returnToStart,
+                        isLocating: isLocating,
+                        enabled: !isGenerating,
+                        quickAreas: _quickExploreAreas,
+                        onCurrentLocation: isGenerating || isLocating
+                            ? null
+                            : _useCurrentLocation,
+                        onChooseStart: isGenerating ? null : _showStartPicker,
+                        onChooseExploration:
+                            isGenerating || _startLocation == null
+                            ? null
+                            : () => _showPoiPicker(_PoiTarget.exploration),
+                        onQuickAreaTap: isGenerating || _startLocation == null
+                            ? null
+                            : (area) => _showPoiPicker(
+                                _PoiTarget.exploration,
+                                initialQuery: area,
+                              ),
+                        onChooseEnd:
+                            isGenerating ||
+                                _returnToStart ||
+                                _startLocation == null
+                            ? null
+                            : () => _showPoiPicker(_PoiTarget.end),
+                        onReturnChanged: isGenerating
+                            ? null
+                            : (value) => setState(() => _returnToStart = value),
+                      ),
+                      const SizedBox(height: 12),
+                      _SearchRadiusMapCard(
+                        palette: palette,
+                        useMapbox: _useMapbox,
+                        startLocation: _startLocation,
+                        explorationPoi: _explorationPoi,
+                        searchRadiusKm: _searchRadiusKm,
+                        enabled: !isGenerating,
+                        onRadiusChanged: (value) => setState(() {
+                          _searchRadiusKm = value;
+                          final exp = _explorationPoi;
+                          if (exp != null) {
+                            _mandatoryPois.removeWhere((poi) {
+                              if (poi.id == exp.id) return false;
+                              final dist = _calculateDistanceKm(
+                                exp.latitude,
+                                exp.longitude,
+                                poi.latitude,
+                                poi.longitude,
+                              );
+                              return dist > value;
+                            });
+                          } else {
+                            _mandatoryPois.clear();
+                          }
+                        }),
+                      ),
+                      const SizedBox(height: 12),
+                      _SettingsCard(
+                        palette: palette,
+                        startAt: _startAt,
+                        availableMinutes: _availableMinutes,
+                        durationPresets: _durationPresets,
+                        transportMode: _transportMode,
+                        restPreference: _restPreference,
+                        budgetController: _budgetController,
+                        budgetError: _budgetError,
+                        hoursController: _hoursController,
+                        minutesController: _minutesController,
+                        durationError: _durationError,
+                        enabled: !isGenerating,
+                        onPickDate: _pickStartDate,
+                        onPickTime: _pickStartTimeOnly,
+                        onPresetDuration: _applyDurationPreset,
+                        onDurationChanged: (_) => _updateDuration(),
+                        onTransportChanged: (value) =>
+                            setState(() => _transportMode = value),
+                        onRestChanged: (value) =>
+                            setState(() => _restPreference = value),
+                        onBudgetChanged: _updateBudget,
+                      ),
+                      const SizedBox(height: 12),
+                      _MandatoryPois(
+                        palette: palette,
+                        pois: _mandatoryPois,
+                        primaryPoiId: _explorationPoi?.id,
+                        enabled: !isGenerating && _startLocation != null,
+                        onAdd: () => _showPoiPicker(_PoiTarget.mandatory),
+                        onRemove: (poi) =>
+                            setState(() => _mandatoryPois.remove(poi)),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              const SizedBox(height: AppSpacing.md),
-              _PoiField(
-                label: 'Explore around',
-                value: _explorationPoi?.name,
-                helper: 'Choose the area or attraction you want to explore.',
-                onTap: isGenerating || _startLocation == null
-                    ? null
-                    : () => _showPoiPicker(_PoiTarget.exploration),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              _PoiField(
-                label: 'Finish at',
-                value: _returnToStart ? null : _endPoi?.name,
-                helper: _returnToStart
-                    ? 'Turn off "Return to starting point" below to choose '
-                          'where the trip ends.'
-                    : 'Choose where the trip ends.',
-                onTap: isGenerating || _returnToStart || _startLocation == null
-                    ? null
-                    : () => _showPoiPicker(_PoiTarget.end),
-              ),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Return to starting point'),
-                value: _returnToStart,
-                onChanged: isGenerating
-                    ? null
-                    : (value) => setState(() => _returnToStart = value),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              _SettingsCard(
-                startAt: _startAt,
-                availableMinutes: _availableMinutes,
-                transportMode: _transportMode,
-                restPreference: _restPreference,
-                searchRadiusKm: _searchRadiusKm,
-                budgetController: _budgetController,
-                budgetError: _budgetError,
-                enabled: !isGenerating,
-                onStartAtChanged: _pickStartTime,
-                hoursController: _hoursController,
-                minutesController: _minutesController,
-                durationError: _durationError,
-                onDurationChanged: (_) => _updateDuration(),
-                onTransportChanged: (value) =>
-                    setState(() => _transportMode = value),
-                onRestChanged: (value) =>
-                    setState(() => _restPreference = value),
-                onRadiusChanged: (value) => setState(() {
-                  _searchRadiusKm = value;
-                  final exp = _explorationPoi;
-                  if (exp != null) {
-                    _mandatoryPois.removeWhere((poi) {
-                      if (poi.id == exp.id) return false;
-                      final dist = _calculateDistanceKm(
-                        exp.latitude,
-                        exp.longitude,
-                        poi.latitude,
-                        poi.longitude,
-                      );
-                      return dist > value;
-                    });
-                  } else {
-                    _mandatoryPois.clear();
-                  }
-                }),
-                onBudgetChanged: _updateBudget,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              _MandatoryPois(
-                pois: _mandatoryPois,
-                primaryPoiId: _explorationPoi?.id,
-                enabled: !isGenerating && _startLocation != null,
-                onAdd: () => _showPoiPicker(_PoiTarget.mandatory),
-                onRemove: (poi) => setState(() => _mandatoryPois.remove(poi)),
-              ),
-            ],
-            footer: AppButton(
-              label: 'Generate itinerary',
-              isLoading: isGenerating,
-              onPressed: isGenerating ? null : _submit,
+            ),
+            bottomNavigationBar: _StickyPlanFooter(
+              palette: palette,
+              routeLabel: _explorationPoi != null
+                  ? 'Đến: ${_explorationPoi!.name}'
+                  : (_startLabel != null
+                        ? 'Từ: $_startLabel'
+                        : 'Chưa chọn hành trình'),
+              hasRoute: _startLocation != null || _explorationPoi != null,
+              startAt: _startAt,
+              availableMinutes: _availableMinutes,
+              transportMode: _transportMode,
+              searchRadiusKm: _searchRadiusKm,
+              isGenerating: isGenerating,
+              onSubmit: _submit,
             ),
           );
         },
@@ -233,6 +328,17 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
       _waitingForCurrentLocation = true;
     });
     context.read<PoiSearchCubit>().useCurrentLocation();
+  }
+
+  void _applyDurationPreset(int totalMinutes) {
+    final hours = totalMinutes ~/ 60;
+    final minutes = totalMinutes % 60;
+    _hoursController.text = '$hours';
+    _minutesController.text = '$minutes';
+    setState(() {
+      _availableMinutes = totalMinutes;
+      _durationError = null;
+    });
   }
 
   double _calculateDistanceKm(
@@ -294,16 +400,16 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
     setState(() {
       if (hours == null || minutes == null || minutes > 59) {
         _availableMinutes = null;
-        _durationError = 'Enter whole hours and 0–59 minutes.';
+        _durationError = 'Nhập số giờ nguyên và 0–59 phút.';
         return;
       }
       final total = hours * 60 + minutes;
       if (total < minAvailableMinutes) {
         _availableMinutes = null;
-        _durationError = 'Plan at least 1 hour.';
+        _durationError = 'Thời lượng tối thiểu là 1 giờ.';
       } else if (total > maxAvailableMinutes) {
         _availableMinutes = null;
-        _durationError = 'A trip can last at most 72 hours (3 days).';
+        _durationError = 'Chuyến đi tối đa 72 giờ (3 ngày).';
       } else {
         _availableMinutes = total;
         _durationError = null;
@@ -312,7 +418,7 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
   }
 
   void _updateBudget(String text) {
-    final normalized = text.replaceAll(',', '').trim();
+    final normalized = text.replaceAll(',', '').replaceAll('.', '').trim();
     if (normalized.isEmpty) {
       setState(() {
         _budgetVnd = null;
@@ -327,29 +433,44 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
           ? parsed
           : null;
       _budgetError = _budgetVnd == null
-          ? 'Enter a positive budget or leave this field blank.'
+          ? 'Nhập ngân sách lớn hơn 0 hoặc để trống.'
           : null;
     });
   }
 
-  Future<void> _pickStartTime() async {
-    final date = await showDatePicker(
+  Future<void> _pickStartDate() async {
+    final now = planningWallClockNow();
+    final date = await showCoastalDatePickerSheet(
       context: context,
       initialDate: _startAt,
-      firstDate: planningWallClockNow(),
-      lastDate: planningWallClockNow().add(const Duration(days: 365)),
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365)),
     );
     if (date == null || !mounted) return;
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(_startAt),
-    );
-    if (time == null || !mounted) return;
     setState(() {
       _startAt = DateTime(
         date.year,
         date.month,
         date.day,
+        _startAt.hour,
+        _startAt.minute,
+      );
+    });
+  }
+
+  Future<void> _pickStartTimeOnly() async {
+    final time = await showCoastalTimePickerSheet(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_startAt),
+      selectedDate: _startAt,
+      availableMinutes: _availableMinutes,
+    );
+    if (time == null || !mounted) return;
+    setState(() {
+      _startAt = DateTime(
+        _startAt.year,
+        _startAt.month,
+        _startAt.day,
         time.hour,
         time.minute,
       );
@@ -364,6 +485,7 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
     final choice = await showModalBottomSheet<_StartChoice>(
       context: context,
       isScrollControlled: true,
+      showDragHandle: true,
       builder: (_) => MultiBlocProvider(
         providers: [
           BlocProvider.value(value: poiSearchCubit),
@@ -386,13 +508,14 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
     });
   }
 
-  Future<void> _showPoiPicker(_PoiTarget target) async {
+  Future<void> _showPoiPicker(_PoiTarget target, {String? initialQuery}) async {
     // The sheet is a separate route outside this page's provider subtree, so
     // the page's cubit is handed to it explicitly.
     final poiSearchCubit = context.read<PoiSearchCubit>();
     final selected = await showModalBottomSheet<SelectablePoi>(
       context: context,
       isScrollControlled: true,
+      showDragHandle: true,
       builder: (_) => BlocProvider.value(
         value: poiSearchCubit,
         child: _PoiPickerSheet(
@@ -407,6 +530,7 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
               ? _searchRadiusKm.round()
               : null,
           isExploration: target == _PoiTarget.exploration,
+          initialQuery: initialQuery,
         ),
       ),
     );
@@ -439,7 +563,7 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
     final explorationPoi = _explorationPoi;
     if (startLocation == null || explorationPoi == null) {
       setState(() {
-        _formError = 'Choose a starting point and an area to explore.';
+        _formError = 'Vui lòng chọn điểm xuất phát và khu vực khám phá.';
       });
       return;
     }
@@ -447,7 +571,7 @@ class _CreateItineraryPageState extends State<CreateItineraryPage> {
     if (!_returnToStart && _endPoi == null) {
       setState(() {
         _formError =
-            'Choose a finishing location or enable "Return to starting point".';
+            'Vui lòng chọn điểm kết thúc hoặc bật "Quay về điểm xuất phát".';
       });
       return;
     }
@@ -502,157 +626,1197 @@ final class _StartChoice {
   final double longitude;
 }
 
-final class _LocationCard extends StatelessWidget {
-  const _LocationCard({
-    required this.title,
-    required this.value,
+final class _JourneyCard extends StatelessWidget {
+  const _JourneyCard({
+    required this.palette,
+    required this.startLabel,
+    required this.hasStartLocation,
+    required this.explorationName,
+    required this.endName,
+    required this.returnToStart,
     required this.isLocating,
+    required this.enabled,
+    required this.quickAreas,
     required this.onCurrentLocation,
-    required this.onChoosePlace,
+    required this.onChooseStart,
+    required this.onChooseExploration,
+    required this.onQuickAreaTap,
+    required this.onChooseEnd,
+    required this.onReturnChanged,
   });
 
-  final String title;
-  final String? value;
+  final CoastalPalette palette;
+  final String? startLabel;
+  final bool hasStartLocation;
+  final String? explorationName;
+  final String? endName;
+  final bool returnToStart;
   final bool isLocating;
+  final bool enabled;
+  final List<String> quickAreas;
   final VoidCallback? onCurrentLocation;
-  final VoidCallback? onChoosePlace;
+  final VoidCallback? onChooseStart;
+  final VoidCallback? onChooseExploration;
+  final ValueChanged<String>? onQuickAreaTap;
+  final VoidCallback? onChooseEnd;
+  final ValueChanged<bool>? onReturnChanged;
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(AppSpacing.md),
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: palette.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: AppSpacing.xs),
-          Text(value ?? 'No starting point selected'),
-          const SizedBox(height: AppSpacing.sm),
-          FilledButton.icon(
-            onPressed: onCurrentLocation,
-            icon: isLocating
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.my_location_outlined),
-            label: Text(
-              isLocating ? 'Finding your location…' : 'Use current location',
+          Text(
+            '1. Hành trình của bạn',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: palette.ink,
             ),
           ),
-          TextButton.icon(
-            onPressed: onChoosePlace,
-            icon: const Icon(Icons.place_outlined),
-            label: const Text('Choose a starting place'),
+          const SizedBox(height: 2),
+          Text(
+            'Chọn tự do điểm xuất phát và khu vực muốn khám phá',
+            style: TextStyle(fontSize: 11.5, color: palette.secondary),
+          ),
+          const SizedBox(height: 14),
+          // Point A with vertical dashed connector down to Point B (Web parity)
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  width: 24,
+                  child: Column(
+                    children: [
+                      _RouteBadge(label: 'A', background: palette.primary),
+                      Expanded(
+                        child: CustomPaint(
+                          size: const Size(2, double.infinity),
+                          painter: _DashedConnectorPainter(
+                            color: palette.border,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Điểm xuất phát',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: palette.ink,
+                                ),
+                              ),
+                            ),
+                            FilledButton.tonal(
+                              key: const Key('use_current_location_button'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: palette.softAccent,
+                                foregroundColor: palette.primary,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                shape: const StadiumBorder(),
+                                textStyle: const TextStyle(
+                                  fontFamily: AppTypography.uiFont,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              onPressed: onCurrentLocation,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (isLocating) ...[
+                                    const SizedBox.square(
+                                      dimension: 12,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 1.8,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 5),
+                                  ],
+                                  Text(
+                                    isLocating
+                                        ? 'Đang tìm vị trí…'
+                                        : 'Dùng vị trí hiện tại',
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        _PickerBox(
+                          key: const Key('choose_start_place_field'),
+                          palette: palette,
+                          text: startLabel ?? 'Chưa chọn điểm xuất phát',
+                          actionLabel: startLabel == null ? 'Chọn' : 'Đổi',
+                          hasValue: startLabel != null,
+                          onTap: onChooseStart,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Point B: Exploration area
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  width: 24,
+                  child: Column(
+                    children: [
+                      _RouteIconBadge(
+                        icon: Icons.star,
+                        background: palette.accent,
+                      ),
+                      if (!returnToStart)
+                        Expanded(
+                          child: CustomPaint(
+                            size: const Size(2, double.infinity),
+                            painter: _DashedConnectorPainter(
+                              color: palette.border,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Khu vực khám phá',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: palette.ink,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _PickerBox(
+                        key: const Key('explore_around_field'),
+                        palette: palette,
+                        text:
+                            explorationName ??
+                            (hasStartLocation
+                                ? 'Chọn khu vực hoặc điểm tham quan...'
+                                : 'Chọn điểm xuất phát trước để mở khóa'),
+                        actionLabel: explorationName == null ? 'Chọn' : 'Đổi',
+                        hasValue: explorationName != null,
+                        onTap: onChooseExploration,
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            'Gợi ý nhanh:',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: palette.secondary,
+                            ),
+                          ),
+                          for (final area in quickAreas)
+                            Builder(
+                              builder: (context) {
+                                final isSelected =
+                                    explorationName != null &&
+                                    explorationName!.toLowerCase().contains(
+                                      area.toLowerCase(),
+                                    );
+                                return InkWell(
+                                  borderRadius: BorderRadius.circular(999),
+                                  onTap: onQuickAreaTap == null
+                                      ? null
+                                      : () => onQuickAreaTap!(area),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 9,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? palette.softAccent
+                                          : palette.surface,
+                                      borderRadius: BorderRadius.circular(999),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? palette.primary
+                                            : palette.border,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      area,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: isSelected
+                                            ? palette.primary
+                                            : (onQuickAreaTap == null
+                                                  ? palette.secondary
+                                                  : palette.ink),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (!returnToStart) ...[
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 24,
+                  child: _RouteIconBadge(
+                    icon: Icons.flag_outlined,
+                    background: palette.ink,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Điểm kết thúc',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: palette.ink,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _PickerBox(
+                        key: const Key('finish_at_field'),
+                        palette: palette,
+                        text: endName ?? 'Chọn nơi kết thúc chuyến đi...',
+                        actionLabel: endName == null ? 'Chọn' : 'Đổi',
+                        hasValue: endName != null,
+                        onTap: onChooseEnd,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Divider(color: palette.border, height: 1),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Quay về điểm xuất phát khi kết thúc hành trình',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: palette.ink,
+                      ),
+                    ),
+                    Text(
+                      'Tắt đi nếu bạn muốn kết thúc chuyến đi tại một địa điểm khác',
+                      style: TextStyle(fontSize: 11, color: palette.secondary),
+                    ),
+                  ],
+                ),
+              ),
+              Switch.adaptive(
+                value: returnToStart,
+                activeThumbColor: Colors.white,
+                activeTrackColor: palette.primary,
+                onChanged: onReturnChanged,
+              ),
+            ],
           ),
         ],
       ),
-    ),
-  );
+    );
+  }
 }
 
-final class _PoiField extends StatelessWidget {
-  const _PoiField({
-    required this.label,
-    required this.value,
-    required this.helper,
-    required this.onTap,
-  });
+final class _RouteBadge extends StatelessWidget {
+  const _RouteBadge({required this.label, required this.background});
 
   final String label;
-  final String? value;
-  final String helper;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 22,
+      height: 22,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(color: background, shape: BoxShape.circle),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+}
+
+final class _RouteIconBadge extends StatelessWidget {
+  const _RouteIconBadge({required this.icon, required this.background});
+
+  final IconData icon;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 22,
+      height: 22,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(color: background, shape: BoxShape.circle),
+      child: Icon(icon, size: 12, color: Colors.white),
+    );
+  }
+}
+
+final class _PickerBox extends StatelessWidget {
+  const _PickerBox({
+    required this.palette,
+    required this.text,
+    required this.actionLabel,
+    required this.hasValue,
+    required this.onTap,
+    super.key,
+  });
+
+  final CoastalPalette palette;
+  final String text;
+  final String actionLabel;
+  final bool hasValue;
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: ListTile(
-      enabled: onTap != null,
-      title: Text(label),
-      subtitle: Text(value ?? helper),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: onTap,
-    ),
-  );
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    return Material(
+      color: enabled ? palette.surface : palette.canvas,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(11),
+        side: BorderSide(color: palette.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  text,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: hasValue ? FontWeight.w600 : FontWeight.w400,
+                    color: hasValue ? palette.ink : palette.secondary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                actionLabel,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: enabled ? palette.primary : palette.secondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+final class _DashedConnectorPainter extends CustomPainter {
+  const _DashedConnectorPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+    const dash = 4.0;
+    const gap = 3.5;
+    var y = 4.0;
+    while (y < size.height - 4) {
+      final endY = math.min(y + dash, size.height - 4);
+      canvas.drawLine(
+        Offset(size.width / 2, y),
+        Offset(size.width / 2, endY),
+        paint,
+      );
+      y += dash + gap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedConnectorPainter oldDelegate) =>
+      oldDelegate.color != color;
+}
+
+final class _SearchRadiusMapCard extends StatelessWidget {
+  const _SearchRadiusMapCard({
+    required this.palette,
+    required this.useMapbox,
+    required this.startLocation,
+    required this.explorationPoi,
+    required this.searchRadiusKm,
+    required this.enabled,
+    required this.onRadiusChanged,
+  });
+
+  final CoastalPalette palette;
+  final bool useMapbox;
+  final DeviceLocation? startLocation;
+  final SelectablePoi? explorationPoi;
+  final double searchRadiusKm;
+  final bool enabled;
+  final ValueChanged<double> onRadiusChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final radiusInt = searchRadiusKm.round();
+    final hasAnyPoint = startLocation != null || explorationPoi != null;
+    final circleCenter = explorationPoi != null
+        ? NavigationCoordinate(
+            latitude: explorationPoi!.latitude,
+            longitude: explorationPoi!.longitude,
+          )
+        : (startLocation != null
+              ? NavigationCoordinate(
+                  latitude: startLocation!.latitude,
+                  longitude: startLocation!.longitude,
+                )
+              : null);
+
+    return Container(
+      key: const Key('search_radius_map_card'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: palette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Bản đồ khu vực & Bán kính tìm kiếm',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: palette.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Xem trước vị trí xuất phát và phạm vi gợi ý',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: palette.secondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                decoration: BoxDecoration(
+                  color: palette.softAccent,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '$radiusInt km',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: palette.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              height: 185,
+              decoration: BoxDecoration(
+                border: Border.all(color: palette.border),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: !hasAnyPoint
+                  ? _EmptyRadiusMapPlaceholder(
+                      palette: palette,
+                      radiusKm: radiusInt,
+                    )
+                  : (useMapbox
+                        ? _buildLiveMap(circleCenter!)
+                        : _RadiusFallbackCanvas(
+                            palette: palette,
+                            hasStart: startLocation != null,
+                            hasExploration: explorationPoi != null,
+                            radiusKm: radiusInt,
+                          )),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Bán kính tìm kiếm',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: palette.ink,
+                  ),
+                ),
+              ),
+              Text(
+                'R = $radiusInt km',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: palette.ink,
+                ),
+              ),
+            ],
+          ),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: palette.primary,
+              thumbColor: palette.primary,
+              inactiveTrackColor: palette.border,
+              trackHeight: 3.5,
+            ),
+            child: Slider(
+              value: searchRadiusKm,
+              min: minSearchRadiusKm.toDouble(),
+              max: maxSearchRadiusKm.toDouble(),
+              divisions: maxSearchRadiusKm - minSearchRadiusKm,
+              label: '$radiusInt km',
+              onChanged: enabled ? onRadiusChanged : null,
+            ),
+          ),
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  '1 km (Gần)',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 10.5, color: palette.secondary),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  '50 km (Ngoại ô)',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 10.5, color: palette.secondary),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  '100 km (Liên tỉnh)',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: TextStyle(fontSize: 10.5, color: palette.secondary),
+                ),
+              ),
+            ],
+          ),
+          if (radiusInt > _wideRadiusKm)
+            Padding(
+              key: const Key('wide_radius_warning'),
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                'Trên $_wideRadiusKm km, các điểm có thể cách xa nhau: mất nhiều '
+                'thời gian di chuyển hơn và ít điểm vừa lịch trình hơn.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: palette.error),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLiveMap(NavigationCoordinate circleCenter) {
+    final ring = tripMapCircleRing(circleCenter, searchRadiusKm);
+    final markers = <TripMapMarker>[
+      if (startLocation case final start?)
+        TripMapMarker(
+          id: 1,
+          coordinate: NavigationCoordinate(
+            latitude: start.latitude,
+            longitude: start.longitude,
+          ),
+          label: 'Điểm xuất phát',
+          badge: 'A',
+          color: palette.primary,
+          showLabel: false,
+        ),
+      if (explorationPoi case final exp?)
+        TripMapMarker(
+          id: 2,
+          coordinate: NavigationCoordinate(
+            latitude: exp.latitude,
+            longitude: exp.longitude,
+          ),
+          label: exp.name,
+          badge: '★',
+          color: palette.accent,
+          showLabel: false,
+        ),
+    ];
+    return TripMap(
+      mapWidgetKey: const ValueKey('mapbox-plan-radius-map'),
+      styleUri: MapboxStyles.MAPBOX_STREETS,
+      camera: TripMapCamera.fitMarkers,
+      showUserLocation: false,
+      markers: markers,
+      polygons: [
+        TripMapPolygon(
+          points: ring,
+          fillColor: palette.primary,
+          fillOpacity: 0.14,
+          outlineColor: palette.primary,
+        ),
+      ],
+      lines: [
+        TripMapLine(
+          points: ring,
+          color: palette.primary,
+          width: 2.0,
+          opacity: 0.72,
+        ),
+      ],
+    );
+  }
+}
+
+final class _EmptyRadiusMapPlaceholder extends StatelessWidget {
+  const _EmptyRadiusMapPlaceholder({
+    required this.palette,
+    required this.radiusKm,
+  });
+
+  final CoastalPalette palette;
+  final int radiusKm;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        CustomPaint(
+          painter: _CoastalMapBackdropPainter(
+            primary: palette.primary,
+            accent: palette.accent,
+            showPins: false,
+          ),
+        ),
+        Center(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            decoration: BoxDecoration(
+              color: palette.surface.withValues(alpha: 0.94),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: palette.border),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x14000000),
+                  blurRadius: 10,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Chọn điểm xuất phát hoặc khu vực khám phá để kích hoạt bản đồ',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: palette.ink,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'TripMate sẽ tìm kiếm các địa điểm trong bán kính $radiusKm km',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 11, color: palette.secondary),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+final class _RadiusFallbackCanvas extends StatelessWidget {
+  const _RadiusFallbackCanvas({
+    required this.palette,
+    required this.hasStart,
+    required this.hasExploration,
+    required this.radiusKm,
+  });
+
+  final CoastalPalette palette;
+  final bool hasStart;
+  final bool hasExploration;
+  final int radiusKm;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        CustomPaint(
+          painter: _CoastalMapBackdropPainter(
+            primary: palette.primary,
+            accent: palette.accent,
+            showPins: true,
+            hasStart: hasStart,
+            hasExploration: hasExploration,
+          ),
+        ),
+        Positioned(
+          left: 10,
+          bottom: 8,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: palette.surface.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: palette.border),
+            ),
+            child: Text(
+              'Phạm vi $radiusKm km',
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                color: palette.primary,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+final class _CoastalMapBackdropPainter extends CustomPainter {
+  const _CoastalMapBackdropPainter({
+    required this.primary,
+    required this.accent,
+    required this.showPins,
+    this.hasStart = false,
+    this.hasExploration = false,
+  });
+
+  final Color primary;
+  final Color accent;
+  final bool showPins;
+  final bool hasStart;
+  final bool hasExploration;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Soft coastal sea + land backdrop matching Mapbox streets tone.
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()..color = const Color(0xFFD6EEF8),
+    );
+    final landPath = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width * 0.62, 0)
+      ..quadraticBezierTo(
+        size.width * 0.56,
+        size.height * 0.45,
+        size.width * 0.72,
+        size.height,
+      )
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(landPath, Paint()..color = const Color(0xFFF3F0E6));
+
+    // Subtle river & road accents.
+    final roadPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.85)
+      ..strokeWidth = 2.2
+      ..style = PaintingStyle.stroke;
+    canvas
+      ..drawLine(
+        Offset(size.width * 0.1, size.height * 0.35),
+        Offset(size.width * 0.65, size.height * 0.55),
+        roadPaint,
+      )
+      ..drawLine(
+        Offset(size.width * 0.42, 0),
+        Offset(size.width * 0.52, size.height),
+        roadPaint,
+      );
+
+    // Translucent search radius circle + dashed outline.
+    final center = Offset(size.width * 0.58, size.height * 0.48);
+    final radius = math.min(size.width, size.height) * 0.33;
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()..color = primary.withValues(alpha: 0.14),
+    );
+    final ringPaint = Paint()
+      ..color = primary.withValues(alpha: 0.7)
+      ..strokeWidth = 1.6
+      ..style = PaintingStyle.stroke;
+    const dashCount = 24;
+    for (var i = 0; i < dashCount; i++) {
+      final startAngle = (2 * math.pi * i) / dashCount;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        (math.pi / dashCount) * 1.15,
+        false,
+        ringPaint,
+      );
+    }
+
+    if (showPins) {
+      if (hasStart) {
+        final p = Offset(size.width * 0.42, size.height * 0.42);
+        canvas
+          ..drawCircle(p, 10, Paint()..color = primary)
+          ..drawCircle(
+            p,
+            10,
+            Paint()
+              ..color = Colors.white
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2,
+          );
+      }
+      if (hasExploration) {
+        canvas
+          ..drawCircle(center, 10, Paint()..color = accent)
+          ..drawCircle(
+            center,
+            10,
+            Paint()
+              ..color = Colors.white
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2,
+          );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _CoastalMapBackdropPainter oldDelegate) =>
+      oldDelegate.showPins != showPins ||
+      oldDelegate.hasStart != hasStart ||
+      oldDelegate.hasExploration != hasExploration;
 }
 
 final class _SettingsCard extends StatelessWidget {
   const _SettingsCard({
+    required this.palette,
     required this.startAt,
     required this.availableMinutes,
+    required this.durationPresets,
     required this.transportMode,
     required this.restPreference,
-    required this.searchRadiusKm,
     required this.budgetController,
     required this.budgetError,
     required this.hoursController,
     required this.minutesController,
     required this.durationError,
     required this.enabled,
-    required this.onStartAtChanged,
+    required this.onPickDate,
+    required this.onPickTime,
+    required this.onPresetDuration,
     required this.onDurationChanged,
     required this.onTransportChanged,
     required this.onRestChanged,
-    required this.onRadiusChanged,
     required this.onBudgetChanged,
   });
 
+  final CoastalPalette palette;
   final DateTime startAt;
   final int? availableMinutes;
+  final List<(String, int)> durationPresets;
   final TextEditingController hoursController;
   final TextEditingController minutesController;
   final String? durationError;
   final TransportMode transportMode;
   final RestPreference restPreference;
-  final double searchRadiusKm;
   final TextEditingController budgetController;
   final String? budgetError;
   final bool enabled;
-  final VoidCallback onStartAtChanged;
+  final VoidCallback onPickDate;
+  final VoidCallback onPickTime;
+  final ValueChanged<int> onPresetDuration;
   final ValueChanged<String> onDurationChanged;
   final ValueChanged<TransportMode> onTransportChanged;
   final ValueChanged<RestPreference> onRestChanged;
-  final ValueChanged<double> onRadiusChanged;
   final ValueChanged<String> onBudgetChanged;
 
-  /// "1 hour to 3 days. Ends Fri, Oct 16, 2026 at 2:30 AM." The trip may
-  /// cross midnight.
-  String _endLabel(BuildContext context) {
+  static const _supportedTransportModes = [
+    (TransportMode.walking, Icons.directions_walk, 'Đi bộ'),
+    (TransportMode.motorbike, Icons.two_wheeler, 'Xe máy'),
+    (TransportMode.car, Icons.directions_car_outlined, 'Ô tô'),
+  ];
+
+  static const _restChoices = [
+    (RestPreference.auto, 'Tự động'),
+    (RestPreference.none, 'Không nghỉ'),
+    (RestPreference.frequent, 'Nghỉ nhiều'),
+  ];
+
+  String _dateLabel() {
+    final dd = startAt.day.toString().padLeft(2, '0');
+    final mm = startAt.month.toString().padLeft(2, '0');
+    return '$dd/$mm/${startAt.year}';
+  }
+
+  String _timeLabel(DateTime dt) {
+    final hh = dt.hour.toString().padLeft(2, '0');
+    final mm = dt.minute.toString().padLeft(2, '0');
+    return '$hh:$mm';
+  }
+
+  String _endBadgeLabel() {
     final minutes = availableMinutes;
     if (minutes == null) return '';
     final end = startAt.add(Duration(minutes: minutes));
-    final localizations = MaterialLocalizations.of(context);
-    return '1 hour to 3 days. Ends '
-        '${localizations.formatMediumDate(end)} at '
-        '${TimeOfDay.fromDateTime(end).format(context)}.';
+    final sameDay =
+        end.year == startAt.year &&
+        end.month == startAt.month &&
+        end.day == startAt.day;
+    if (sameDay) {
+      return '${_timeLabel(startAt)} → ${_timeLabel(end)} (cùng ngày)';
+    }
+    final dd = end.day.toString().padLeft(2, '0');
+    final mm = end.month.toString().padLeft(2, '0');
+    return '${_timeLabel(startAt)} → ${_timeLabel(end)} ($dd/$mm)';
   }
 
-  static const _supportedTransportModes = [
-    TransportMode.walking,
-    TransportMode.motorbike,
-    TransportMode.car,
-  ];
+  String _endHelperLabel() {
+    final minutes = availableMinutes;
+    if (minutes == null) return '';
+    final end = startAt.add(Duration(minutes: minutes));
+    final dd = end.day.toString().padLeft(2, '0');
+    final mm = end.month.toString().padLeft(2, '0');
+    return 'Từ 1 giờ đến 3 ngày. Kết thúc lúc ${_timeLabel(end)} ngày $dd/$mm/${end.year}.';
+  }
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(AppSpacing.md),
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: palette.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Plan details', style: Theme.of(context).textTheme.titleMedium),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Start time'),
-            subtitle: Text(
-              '${MaterialLocalizations.of(context).formatMediumDate(startAt)} '
-              'at ${TimeOfDay.fromDateTime(startAt).format(context)}',
+          Text(
+            '2. Thời gian & Phương tiện',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: palette.ink,
             ),
-            trailing: const Icon(Icons.edit_calendar_outlined),
-            onTap: enabled ? onStartAtChanged : null,
           ),
-          Text('Time available', style: Theme.of(context).textTheme.bodyLarge),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: 2),
+          Text(
+            'Chuyến đi từ 1 giờ đến 3 ngày, có thể kéo dài qua đêm',
+            style: TextStyle(fontSize: 11.5, color: palette.secondary),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _MiniTapField(
+                  fieldKey: const Key('start_date_field'),
+                  palette: palette,
+                  label: 'Ngày bắt đầu',
+                  value: _dateLabel(),
+                  icon: Icons.calendar_today_outlined,
+                  onTap: enabled ? onPickDate : null,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _MiniTapField(
+                  fieldKey: const Key('start_time_field'),
+                  palette: palette,
+                  label: 'Giờ xuất phát',
+                  value: _timeLabel(startAt),
+                  icon: Icons.schedule_outlined,
+                  onTap: enabled ? onPickTime : null,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Thời lượng dự kiến',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: palette.ink,
+                  ),
+                ),
+              ),
+              if (availableMinutes != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: palette.softAccent,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    _endBadgeLabel(),
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      color: palette.primary,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              for (final (label, mins) in durationPresets) ...[
+                Expanded(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: enabled ? () => onPresetDuration(mins) : null,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 140),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: availableMinutes == mins
+                            ? palette.primary
+                            : palette.surface,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: availableMinutes == mins
+                              ? palette.primary
+                              : palette.border,
+                        ),
+                      ),
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: availableMinutes == mins
+                              ? palette.onPrimary
+                              : palette.ink,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                if (mins != durationPresets.last.$2) const SizedBox(width: 6),
+              ],
+            ],
+          ),
+          const SizedBox(height: 10),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -667,8 +1831,9 @@ final class _SettingsCard extends StatelessWidget {
                     LengthLimitingTextInputFormatter(2),
                   ],
                   decoration: const InputDecoration(
-                    labelText: 'Hours',
-                    suffixText: 'h',
+                    labelText: 'Giờ',
+                    suffixText: 'g',
+                    isDense: true,
                   ),
                   onChanged: enabled ? onDurationChanged : null,
                 ),
@@ -685,8 +1850,9 @@ final class _SettingsCard extends StatelessWidget {
                     LengthLimitingTextInputFormatter(2),
                   ],
                   decoration: const InputDecoration(
-                    labelText: 'Minutes',
-                    suffixText: 'min',
+                    labelText: 'Phút',
+                    suffixText: 'ph',
+                    isDense: true,
                   ),
                   onChanged: enabled ? onDurationChanged : null,
                 ),
@@ -694,90 +1860,138 @@ final class _SettingsCard extends StatelessWidget {
             ],
           ),
           Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.xxs),
+            padding: const EdgeInsets.only(top: 5),
             child: Text(
-              durationError ?? _endLabel(context),
+              durationError ?? _endHelperLabel(),
               key: const Key('available_time_helper'),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: durationError == null
-                    ? Theme.of(context).colorScheme.onSurfaceVariant
-                    : Theme.of(context).colorScheme.error,
+                    ? palette.secondary
+                    : palette.error,
               ),
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          DropdownButtonFormField<TransportMode>(
-            initialValue: transportMode,
-            decoration: InputDecoration(labelText: 'How are you travelling?'),
-            items: _supportedTransportModes
-                .map(
-                  (mode) => DropdownMenuItem(
-                    value: mode,
-                    child: Text(_transportLabel(mode)),
-                  ),
-                )
-                .toList(),
-            onChanged: enabled
-                ? (value) {
-                    if (value != null) onTransportChanged(value);
-                  }
-                : null,
+          const SizedBox(height: 14),
+          Text(
+            'Phương tiện di chuyển',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: palette.ink,
+            ),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          DropdownButtonFormField<RestPreference>(
-            initialValue: restPreference,
-            decoration: const InputDecoration(labelText: 'Break preference'),
-            items: RestPreference.values
-                .map(
-                  (value) => DropdownMenuItem(
-                    value: value,
-                    child: Text(_restLabel(value)),
-                  ),
-                )
-                .toList(),
-            onChanged: enabled
-                ? (value) {
-                    if (value != null) onRestChanged(value);
-                  }
-                : null,
-          ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: 8),
           Row(
             children: [
-              const Text('Search radius'),
-              const SizedBox(width: AppSpacing.sm),
-              Text('${searchRadiusKm.round()} km'),
+              for (final (mode, icon, label) in _supportedTransportModes) ...[
+                Expanded(
+                  child: InkWell(
+                    key: ValueKey('transport_${mode.name}'),
+                    borderRadius: BorderRadius.circular(11),
+                    onTap: enabled ? () => onTransportChanged(mode) : null,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 140),
+                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      decoration: BoxDecoration(
+                        color: transportMode == mode
+                            ? palette.softAccent
+                            : palette.surface,
+                        borderRadius: BorderRadius.circular(11),
+                        border: Border.all(
+                          color: transportMode == mode
+                              ? palette.primary
+                              : palette.border,
+                          width: transportMode == mode ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            icon,
+                            size: 16,
+                            color: transportMode == mode
+                                ? palette.primary
+                                : palette.secondary,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            label,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: transportMode == mode
+                                  ? palette.primary
+                                  : palette.ink,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                if (mode != TransportMode.car) const SizedBox(width: 8),
+              ],
             ],
           ),
-          Slider(
-            value: searchRadiusKm,
-            min: minSearchRadiusKm.toDouble(),
-            max: maxSearchRadiusKm.toDouble(),
-            divisions: maxSearchRadiusKm - minSearchRadiusKm,
-            label: '${searchRadiusKm.round()} km',
-            onChanged: enabled ? onRadiusChanged : null,
-          ),
-          if (searchRadiusKm.round() > _wideRadiusKm)
-            Padding(
-              key: const Key('wide_radius_warning'),
-              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-              child: Text(
-                'Trên $_wideRadiusKm km, các điểm có thể cách xa nhau: mất nhiều '
-                'thời gian di chuyển hơn và ít điểm vừa lịch trình hơn.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.error,
-                ),
-              ),
+          const SizedBox(height: 14),
+          Text(
+            'Nhịp độ nghỉ ngơi',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: palette.ink,
             ),
-          const SizedBox(height: AppSpacing.xs),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              for (final (pref, label) in _restChoices) ...[
+                Expanded(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: enabled ? () => onRestChanged(pref) : null,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 140),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: restPreference == pref
+                            ? palette.softAccent
+                            : palette.surface,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: restPreference == pref
+                              ? palette.primary
+                              : palette.border,
+                          width: restPreference == pref ? 1.4 : 1,
+                        ),
+                      ),
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: restPreference == pref
+                              ? palette.primary
+                              : palette.ink,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                if (pref != RestPreference.frequent) const SizedBox(width: 6),
+              ],
+            ],
+          ),
+          const SizedBox(height: 14),
           TextField(
             controller: budgetController,
             enabled: enabled,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: 'Budget (VND, optional)',
-              helperText:
-                  'POI entry fees only. Food and transport not included.',
+              labelText: 'Ngân sách (VNĐ, tùy chọn)',
+              helperText: 'Chỉ tính vé tham quan và ăn uống dự kiến.',
               errorText: budgetError,
               prefixText: '₫ ',
             ),
@@ -785,12 +1999,79 @@ final class _SettingsCard extends StatelessWidget {
           ),
         ],
       ),
-    ),
-  );
+    );
+  }
+}
+
+final class _MiniTapField extends StatelessWidget {
+  const _MiniTapField({
+    required this.palette,
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.onTap,
+    this.fieldKey,
+  });
+
+  final CoastalPalette palette;
+  final String label;
+  final String value;
+  final IconData icon;
+  final VoidCallback? onTap;
+  final Key? fieldKey;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w700,
+            color: palette.ink,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Material(
+          key: fieldKey,
+          color: palette.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(color: palette.border),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: palette.ink,
+                      ),
+                    ),
+                  ),
+                  Icon(icon, size: 15, color: palette.secondary),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 final class _MandatoryPois extends StatelessWidget {
   const _MandatoryPois({
+    required this.palette,
     required this.pois,
     required this.enabled,
     required this.onAdd,
@@ -798,6 +2079,7 @@ final class _MandatoryPois extends StatelessWidget {
     this.primaryPoiId,
   });
 
+  final CoastalPalette palette;
   final List<SelectablePoi> pois;
   final bool enabled;
   final VoidCallback onAdd;
@@ -805,45 +2087,224 @@ final class _MandatoryPois extends StatelessWidget {
   final int? primaryPoiId;
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(AppSpacing.md),
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: palette.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Must-see places',
-            style: Theme.of(context).textTheme.titleMedium,
+            '3. Điểm nhất định ghé (tùy chọn)',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: palette.ink,
+            ),
           ),
-          const SizedBox(height: AppSpacing.xs),
-          const Text('Optional. Add up to 6 places you do not want to miss.'),
-          Wrap(
-            spacing: AppSpacing.xs,
-            children: pois.map((poi) {
-              final isPrimary = poi.id == primaryPoiId;
-              return InputChip(
-                label: Text(isPrimary ? '${poi.name} (Điểm chính)' : poi.name),
-                onDeleted: enabled ? () => onRemove(poi) : null,
-              );
-            }).toList(),
+          const SizedBox(height: 2),
+          Text(
+            'Chọn tối đa 6 địa điểm bạn không muốn bỏ lỡ.',
+            style: TextStyle(fontSize: 11.5, color: palette.secondary),
           ),
-          TextButton.icon(
+          if (pois.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: AppSpacing.xs,
+              runSpacing: 4,
+              children: pois.map((poi) {
+                final isPrimary = poi.id == primaryPoiId;
+                return InputChip(
+                  label: Text(
+                    isPrimary ? '${poi.name} (Điểm chính)' : poi.name,
+                  ),
+                  onDeleted: enabled ? () => onRemove(poi) : null,
+                );
+              }).toList(),
+            ),
+          ],
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: palette.primary,
+              side: BorderSide(color: palette.border),
+            ),
             onPressed: enabled && pois.length < 6 ? onAdd : null,
-            icon: const Icon(Icons.add_location_alt_outlined),
-            label: const Text('Add a must-see place'),
+            icon: const Icon(Icons.add_location_alt_outlined, size: 18),
+            label: const Text('Thêm điểm nhất định ghé'),
           ),
         ],
       ),
-    ),
-  );
+    );
+  }
+}
+
+final class _StickyPlanFooter extends StatelessWidget {
+  const _StickyPlanFooter({
+    required this.palette,
+    required this.routeLabel,
+    required this.hasRoute,
+    required this.startAt,
+    required this.availableMinutes,
+    required this.transportMode,
+    required this.searchRadiusKm,
+    required this.isGenerating,
+    required this.onSubmit,
+  });
+
+  final CoastalPalette palette;
+  final String routeLabel;
+  final bool hasRoute;
+  final DateTime startAt;
+  final int? availableMinutes;
+  final TransportMode transportMode;
+  final double searchRadiusKm;
+  final bool isGenerating;
+  final VoidCallback onSubmit;
+
+  String _hhmm(DateTime dt) =>
+      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+
+  String _timeSummary() {
+    final minutes = availableMinutes;
+    if (minutes == null) return 'Thời lượng chưa hợp lệ';
+    final end = startAt.add(Duration(minutes: minutes));
+    final dd = startAt.day.toString().padLeft(2, '0');
+    final mm = startAt.month.toString().padLeft(2, '0');
+    final shortDur = minutes % 60 == 0
+        ? '${minutes ~/ 60}h'
+        : '${minutes ~/ 60}h${minutes % 60}p';
+    return '$shortDur ($dd/$mm • ${_hhmm(startAt)}–${_hhmm(end)})';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: palette.surface,
+        border: Border(top: BorderSide(color: palette.border)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  _SummaryPill(
+                    label: routeLabel,
+                    palette: palette,
+                    highlighted: hasRoute,
+                    maxWidth: 132,
+                  ),
+                  _SummaryPill(label: _timeSummary(), palette: palette),
+                  _SummaryPill(
+                    label: transportLabel(transportMode),
+                    palette: palette,
+                  ),
+                  _SummaryPill(
+                    label: 'R = ${searchRadiusKm.round()} km',
+                    palette: palette,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: palette.primary,
+                    foregroundColor: palette.onPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: isGenerating ? null : onSubmit,
+                  child: isGenerating
+                      ? SizedBox.square(
+                          dimension: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.2,
+                            color: palette.onPrimary,
+                          ),
+                        )
+                      : const Text('Tạo lịch trình tối ưu'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+final class _SummaryPill extends StatelessWidget {
+  const _SummaryPill({
+    required this.label,
+    required this.palette,
+    this.highlighted = false,
+    this.maxWidth,
+  });
+
+  final String label;
+  final CoastalPalette palette;
+  final bool highlighted;
+  final double? maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        fontSize: 10.5,
+        fontWeight: FontWeight.w600,
+        color: highlighted ? palette.primary : palette.ink,
+      ),
+    );
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: highlighted ? palette.softAccent : palette.canvas,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: highlighted ? palette.softAccent : palette.border,
+        ),
+      ),
+      child: maxWidth == null
+          ? text
+          : ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxWidth!),
+              child: text,
+            ),
+    );
+  }
 }
 
 final class _PoiPickerSheet extends StatefulWidget {
-  const _PoiPickerSheet({this.near, this.radiusKm, this.isExploration = false});
+  const _PoiPickerSheet({
+    this.near,
+    this.radiusKm,
+    this.isExploration = false,
+    this.initialQuery,
+  });
 
   final DeviceLocation? near;
   final int? radiusKm;
   final bool isExploration;
+  final String? initialQuery;
 
   @override
   State<_PoiPickerSheet> createState() => _PoiPickerSheetState();
@@ -859,22 +2320,24 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
     'Ngũ Hành Sơn',
     'Cầu Rồng',
     'Mỹ Khê',
-    'Hòa Phú Thành',
+    'Hội An',
   ];
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_loadMoreWhenNearEnd);
+    final seed = widget.initialQuery?.trim();
+    if (seed != null && seed.isNotEmpty) {
+      _queryController.text = seed;
+    }
     context.read<PoiSearchCubit>().prepareScope(
       near: widget.near,
       radiusKm: widget.radiusKm,
     );
-    if (widget.isExploration) {
+    if (widget.isExploration || (seed != null && seed.isNotEmpty)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _queryController.text.isEmpty) {
-          _search();
-        }
+        if (mounted) _search();
       });
     }
   }
@@ -894,7 +2357,7 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
       padding: EdgeInsets.only(
         left: AppSpacing.md,
         right: AppSpacing.md,
-        top: AppSpacing.md,
+        top: AppSpacing.xs,
         bottom: MediaQuery.viewInsetsOf(context).bottom + AppSpacing.md,
       ),
       child: SizedBox(
@@ -903,7 +2366,7 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Choose a place',
+              'Chọn địa điểm',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -912,7 +2375,7 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
               autofocus: true,
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
-                labelText: 'Search places',
+                labelText: 'Tìm kiếm địa điểm',
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.search),
                   onPressed: _search,
@@ -959,7 +2422,7 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
                   if (state.scope != activeScope &&
                       state.status != PoiSearchStatus.searching) {
                     return const Center(
-                      child: Text('Search by name to find a place.'),
+                      child: Text('Nhập tên để tìm địa điểm.'),
                     );
                   }
                   if (state.status == PoiSearchStatus.searching) {
@@ -967,12 +2430,14 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
                   }
                   if (state.status == PoiSearchStatus.failure) {
                     return Center(
-                      child: Text(state.message ?? 'Could not load places.'),
+                      child: Text(
+                        state.message ?? 'Không thể tải danh sách địa điểm.',
+                      ),
                     );
                   }
                   if (state.results.isEmpty) {
                     return const Center(
-                      child: Text('Search by name to find a place.'),
+                      child: Text('Nhập tên để tìm địa điểm.'),
                     );
                   }
                   return ListView.builder(
@@ -990,9 +2455,7 @@ class _PoiPickerSheetState extends State<_PoiPickerSheet> {
                       return ListTile(
                         title: Text(poi.name),
                         subtitle: Text(
-                          poi.address ??
-                              poi.categoryName ??
-                              'Point of interest',
+                          poi.address ?? poi.categoryName ?? 'Điểm tham quan',
                         ),
                         onTap: () => Navigator.of(context).pop(poi),
                       );
@@ -1081,7 +2544,7 @@ class _StartPlacePickerSheetState extends State<_StartPlacePickerSheet> {
         padding: EdgeInsets.only(
           left: AppSpacing.md,
           right: AppSpacing.md,
-          top: AppSpacing.md,
+          top: AppSpacing.xs,
           bottom: MediaQuery.viewInsetsOf(context).bottom + AppSpacing.md,
         ),
         child: SizedBox(
@@ -1090,7 +2553,7 @@ class _StartPlacePickerSheetState extends State<_StartPlacePickerSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Choose a starting place',
+                'Chọn điểm xuất phát',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -1100,8 +2563,8 @@ class _StartPlacePickerSheetState extends State<_StartPlacePickerSheet> {
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
                   labelText: addressAvailable
-                      ? 'Address or place name'
-                      : 'Place name',
+                      ? 'Địa chỉ hoặc tên địa điểm'
+                      : 'Tên địa điểm',
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.search),
                     onPressed: _search,
@@ -1121,8 +2584,8 @@ class _StartPlacePickerSheetState extends State<_StartPlacePickerSheet> {
                     : Center(
                         child: Text(
                           addressAvailable
-                              ? 'Type a street address, hotel, or place name.'
-                              : 'Search by name to find a place.',
+                              ? 'Nhập tên đường, khách sạn hoặc địa điểm.'
+                              : 'Nhập tên để tìm địa điểm.',
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -1137,14 +2600,14 @@ class _StartPlacePickerSheetState extends State<_StartPlacePickerSheet> {
   List<Widget> _addressSection(BuildContext context) {
     final state = context.watch<AddressSearchCubit>().state;
     return [
-      const _SectionHeader('Addresses'),
+      const _SectionHeader('Địa chỉ'),
       switch (state.status) {
         AddressSearchStatus.searching => const _SectionLoading(),
         AddressSearchStatus.failure => _SectionMessage(
-          state.message ?? 'Address search is unavailable right now.',
+          state.message ?? 'Tìm kiếm địa chỉ hiện không khả dụng.',
         ),
         _ when state.candidates.isEmpty => const _SectionMessage(
-          'No matching address.',
+          'Không tìm thấy địa chỉ phù hợp.',
         ),
         _ => Column(
           children: [
@@ -1172,14 +2635,14 @@ class _StartPlacePickerSheetState extends State<_StartPlacePickerSheet> {
   List<Widget> _placeSection(BuildContext context) {
     final state = context.watch<PoiSearchCubit>().state;
     return [
-      const _SectionHeader('Places'),
+      const _SectionHeader('Địa điểm'),
       switch (state.status) {
         PoiSearchStatus.searching => const _SectionLoading(),
         PoiSearchStatus.failure => _SectionMessage(
-          state.message ?? 'Could not load places.',
+          state.message ?? 'Không thể tải danh sách địa điểm.',
         ),
         _ when state.results.isEmpty => const _SectionMessage(
-          'No matching place.',
+          'Không tìm thấy địa điểm phù hợp.',
         ),
         _ => Column(
           children: [
@@ -1188,7 +2651,7 @@ class _StartPlacePickerSheetState extends State<_StartPlacePickerSheet> {
                 leading: const Icon(Icons.place_outlined),
                 title: Text(poi.name),
                 subtitle: Text(
-                  poi.address ?? poi.categoryName ?? 'Point of interest',
+                  poi.address ?? poi.categoryName ?? 'Điểm tham quan',
                 ),
                 onTap: () => Navigator.of(context).pop(
                   _StartChoice(
@@ -1257,16 +2720,3 @@ final class _SectionMessage extends StatelessWidget {
     child: Text(message, style: Theme.of(context).textTheme.bodySmall),
   );
 }
-
-String _transportLabel(TransportMode mode) => switch (mode) {
-  TransportMode.walking => 'Walking',
-  TransportMode.motorbike => 'Motorbike',
-  TransportMode.car => 'Car',
-  TransportMode.publicTransit => 'Public transit',
-};
-
-String _restLabel(RestPreference preference) => switch (preference) {
-  RestPreference.auto => 'Suggest breaks when useful',
-  RestPreference.none => 'No named rest stops',
-  RestPreference.frequent => 'Prefer more breaks',
-};

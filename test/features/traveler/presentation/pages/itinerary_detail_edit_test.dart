@@ -70,6 +70,19 @@ void main() {
     );
     expect(find.text('Điểm bắt buộc'), findsOneWidget);
     expect(find.text('60 phút'), findsWidgets);
+    expect(
+      find.descendant(of: summary, matching: find.text('Tổng thời lượng')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: summary, matching: find.text('Số điểm dừng')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: summary, matching: find.text('Nguồn lịch trình')),
+      findsOneWidget,
+    );
+    expect(find.text('Chi tiết địa điểm →'), findsNWidgets(3));
   });
 
   testWidgets('the total is compared with the budget when there is one', (
@@ -242,7 +255,7 @@ void main() {
 
   group('the reorder or remove editor', () {
     Future<void> openEditor(WidgetTester tester) async {
-      await tester.tap(find.text('Sắp xếp hoặc bỏ địa điểm'));
+      await tester.tap(find.byKey(const Key('reorder_stops_button')));
       await tester.pumpAndSettle();
     }
 
@@ -303,6 +316,32 @@ void main() {
       expect(repository.sentStops.single, hasLength(3));
       expect(repository.sentRemovalReasons.single, isEmpty);
     });
+
+    testWidgets(
+      'moves stops up and down with arrow buttons and saves new order',
+      (tester) async {
+        final repository = await pump(tester, editablePlan());
+        await openEditor(tester);
+
+        expect(find.byIcon(Icons.drag_handle_rounded), findsNWidgets(3));
+        // Move Cham Museum (index 0) down below My Khe Beach (index 1).
+        await tester.tap(find.byTooltip('Đưa Cham Museum xuống dưới'));
+        await tester.pumpAndSettle();
+
+        // Move Noodle house (index 2) up above Cham Museum.
+        await tester.tap(find.byTooltip('Đưa Noodle house lên trên'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Lưu thay đổi'));
+        await tester.pumpAndSettle();
+
+        expect(repository.sentStops.single, const [
+          ItineraryStop(poiId: 2, transportModeToNext: TransportMode.motorbike),
+          ItineraryStop(poiId: 3),
+          ItineraryStop(poiId: 1),
+        ]);
+      },
+    );
   });
 }
 

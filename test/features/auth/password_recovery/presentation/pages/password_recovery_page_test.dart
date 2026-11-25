@@ -569,6 +569,115 @@ void main() {
 
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'Change email returns to step 1 and keeps cooldown for same email',
+    (tester) async {
+      final ticks = StreamController<int>.broadcast();
+      final repository = _FakePasswordRecoveryRepository();
+      final cubit = PasswordRecoveryCubit(
+        repository,
+        cooldownStream: (_) => ticks.stream,
+      );
+      addTearDown(() async {
+        await cubit.close();
+        await ticks.close();
+      });
+      await tester.pumpWidget(_testApp(cubit));
+      await _openResetForm(tester);
+
+      expect(find.text('Change email'), findsOneWidget);
+      await tester.tap(find.text('Change email'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Forgot password'), findsOneWidget);
+      expect(find.text('Send Reset Code (60s)'), findsOneWidget);
+      expect(find.textContaining('Wait 60s'), findsOneWidget);
+      final disabledButton = tester.widget<FilledButton>(
+        find.byType(FilledButton).first,
+      );
+      expect(disabledButton.onPressed, isNull);
+
+      await tester.tap(find.text('Enter existing code'));
+      await tester.pumpAndSettle();
+
+      expect(repository.requestedEmails, ['user@example.com']);
+      expect(find.text('Reset your password'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Back to sign in and re-entering forgot password keeps active cooldown for same email',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      var now = DateTime.utc(2026, 11, 25, 10);
+      final tracker = PasswordRecoveryCooldownTracker(clock: () => now);
+      final repository = _FakePasswordRecoveryRepository();
+      final router = GoRouter(
+        initialLocation: AppRoutes.forgotPassword,
+        routes: [
+          GoRoute(
+            path: AppRoutes.forgotPassword,
+            builder: (_, _) => BlocProvider<PasswordRecoveryCubit>(
+              create: (_) => PasswordRecoveryCubit(
+                repository,
+                cooldownStream: (_) => const Stream<int>.empty(),
+                cooldownTracker: tracker,
+              ),
+              child: const PasswordRecoveryPage(),
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.login,
+            builder: (context, _) => Scaffold(
+              body: TextButton(
+                onPressed: () => context.go(AppRoutes.forgotPassword),
+                child: const Text('Forgot password?'),
+              ),
+            ),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await _openResetForm(tester);
+      expect(repository.requestedEmails, ['user@example.com']);
+
+      // 18 seconds pass, then user taps "Back to sign in", disposing cubit 1.
+      now = now.add(const Duration(seconds: 18));
+      await tester.ensureVisible(find.text('Back to sign in'));
+      await tester.tap(find.text('Back to sign in'));
+      await tester.pumpAndSettle();
+      expect(find.text('Forgot password?'), findsOneWidget);
+
+      // User re-opens Forgot Password (fresh route & cubit) and enters same email.
+      await tester.tap(find.text('Forgot password?'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Email address'),
+        'USER@example.com',
+      );
+      await tester.pump();
+
+      // Send button is disabled with remaining 42s countdown; no 2nd API call.
+      final sendButton = tester.widget<FilledButton>(
+        find.byType(FilledButton).first,
+      );
+      expect(sendButton.onPressed, isNull);
+      expect(find.text('Send Reset Code (42s)'), findsOneWidget);
+      expect(find.text('Enter existing code'), findsOneWidget);
+      expect(repository.requestedEmails, ['user@example.com']);
+
+      // Resuming jumps into Step 2 with Resend code (42s) still disabled.
+      await tester.tap(find.text('Enter existing code'));
+      await tester.pumpAndSettle();
+      expect(find.text('Reset your password'), findsOneWidget);
+      expect(find.text('Resend code (42s)'), findsOneWidget);
+      expect(repository.requestedEmails, ['user@example.com']);
+    },
+  );
 }
 
 Future<void> _openResetForm(WidgetTester tester) async {

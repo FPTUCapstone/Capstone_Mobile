@@ -63,17 +63,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Day plan'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Địa điểm này hiện không hoạt động.'),
+      200,
+    );
     expect(find.text('Địa điểm này hiện không hoạt động.'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('khoảng 15 phút'), 200);
     expect(find.text('khoảng 15 phút'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Sắp xếp hoặc bỏ địa điểm'), 200);
     expect(find.text('Chấp nhận lịch trình'), findsOneWidget);
-    expect(find.text('Sắp xếp hoặc bỏ địa điểm'), findsOneWidget);
+    expect(find.byKey(const Key('reorder_stops_button')), findsOneWidget);
 
-    await tester.ensureVisible(find.text('Sắp xếp hoặc bỏ địa điểm'));
-
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Sắp xếp hoặc bỏ địa điểm'));
+    await tester.tap(find.byKey(const Key('reorder_stops_button')));
     await tester.pumpAndSettle();
 
     final list = tester.widget<ReorderableListView>(
@@ -182,7 +182,7 @@ void main() {
       find.byKey(const Key('navigation_in_progress_notice')),
       findsOneWidget,
     );
-    expect(find.text('Sắp xếp hoặc bỏ địa điểm'), findsNothing);
+    expect(find.byKey(const Key('reorder_stops_button')), findsNothing);
     expect(find.byTooltip('Tạo lại lịch trình'), findsNothing);
   });
 
@@ -201,6 +201,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('08:00'), 200);
 
     expect(find.text('08:00'), findsOneWidget);
   });
@@ -221,13 +222,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(
-        find.text('Sắp xếp hoặc bỏ địa điểm'),
-        200,
-      );
-      await tester.ensureVisible(find.text('Sắp xếp hoặc bỏ địa điểm'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Sắp xếp hoặc bỏ địa điểm'));
+      await tester.tap(find.byKey(const Key('reorder_stops_button')));
       await tester.pumpAndSettle();
 
       final list = tester.widget<ReorderableListView>(
@@ -331,7 +326,7 @@ void main() {
 
     expect(find.text('Chỉ xem (thành viên nhóm)'), findsOneWidget);
     expect(find.text('Chấp nhận lịch trình'), findsNothing);
-    expect(find.text('Sắp xếp hoặc bỏ địa điểm'), findsNothing);
+    expect(find.byKey(const Key('reorder_stops_button')), findsNothing);
     expect(find.byTooltip('Tạo lại lịch trình'), findsNothing);
   });
 
@@ -377,6 +372,41 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Không tìm thấy lịch trình này.'), findsOneWidget);
+  });
+
+  testWidgets('formats generic generated titles using visit stop names', (
+    tester,
+  ) async {
+    final generatedDetail = ItineraryDetail(
+      itineraryId: _ownerDetail.itineraryId,
+      schedulingRequestId: _ownerDetail.schedulingRequestId,
+      title: 'Generated itinerary - 25 Nov 2026',
+      version: 2,
+      status: 'Draft',
+      validFrom: _ownerDetail.validFrom,
+      validTo: _ownerDetail.validTo,
+      canManage: true,
+      totalEstimatedCost: _ownerDetail.totalEstimatedCost,
+      totalDurationMinutes: _ownerDetail.totalDurationMinutes,
+      items: _ownerDetail.items,
+    );
+    final cubit = ItineraryDetailCubit(
+      repository: _Repository(generatedDetail),
+    );
+    addTearDown(cubit.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider.value(
+          value: cubit,
+          child: const ItineraryDetailPage(itineraryId: 10),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Unavailable museum – Beach'), findsOneWidget);
+    expect(find.text('Generated itinerary - 25 Nov 2026'), findsNothing);
   });
 }
 

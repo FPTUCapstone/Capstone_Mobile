@@ -851,8 +851,14 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerFactory<RegisterCubit>(
       () => RegisterCubit(serviceLocator(), serviceLocator()),
     )
+    ..registerLazySingleton<PasswordRecoveryCooldownTracker>(
+      PasswordRecoveryCooldownTracker.new,
+    )
     ..registerFactory<PasswordRecoveryCubit>(
-      () => PasswordRecoveryCubit(serviceLocator()),
+      () => PasswordRecoveryCubit(
+        serviceLocator(),
+        cooldownTracker: serviceLocator(),
+      ),
     )
     ..registerLazySingleton<DemoTripHistoryStore>(DemoTripHistoryStore.new)
     // UC-70 Operator
