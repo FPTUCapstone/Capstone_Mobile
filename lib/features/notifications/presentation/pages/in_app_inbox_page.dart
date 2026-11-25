@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/core/utils/calendar_date_format.dart';
-import 'package:trip_mate_mobile/features/traveler/domain/entities/in_app_notification.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/cubit/in_app_inbox_cubit.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/cubit/in_app_inbox_state.dart';
+import 'package:trip_mate_mobile/features/notifications/domain/entities/in_app_notification.dart';
+import 'package:trip_mate_mobile/features/notifications/presentation/cubit/in_app_inbox_cubit.dart';
+import 'package:trip_mate_mobile/features/notifications/presentation/cubit/in_app_inbox_state.dart';
 
-/// Traveler-only inbox. Related entity IDs are metadata, never navigation links.
+/// In-app notifications for the signed-in workspace.
 final class InAppInboxPage extends StatelessWidget {
-  const InAppInboxPage({super.key});
+  const InAppInboxPage({this.destinationFor, super.key});
+
+  final String? Function(InAppNotification item)? destinationFor;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -23,14 +26,18 @@ final class InAppInboxPage extends StatelessWidget {
               value: state.unreadOnly,
               onChanged: cubit.setUnreadOnly,
             ),
-            Expanded(child: _content(state, cubit)),
+            Expanded(child: _content(context, state, cubit)),
           ],
         );
       },
     ),
   );
 
-  Widget _content(InAppInboxState state, InAppInboxCubit cubit) {
+  Widget _content(
+    BuildContext context,
+    InAppInboxState state,
+    InAppInboxCubit cubit,
+  ) {
     if (state.status == InAppInboxStatus.initial ||
         state.status == InAppInboxStatus.loading) {
       return const Center(child: CircularProgressIndicator());
@@ -47,11 +54,25 @@ final class InAppInboxPage extends StatelessWidget {
       );
     }
     if (state.items.isEmpty) {
-      return Center(
-        child: Text(
-          state.unreadOnly
-              ? 'No unread notifications.'
-              : 'No notifications yet.',
+      return LayoutBuilder(
+        builder: (context, constraints) => RefreshIndicator(
+          onRefresh: cubit.load,
+          child: ListView(
+            key: const Key('inbox_empty'),
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              SizedBox(
+                height: constraints.maxHeight,
+                child: Center(
+                  child: Text(
+                    state.unreadOnly
+                        ? 'No unread notifications.'
+                        : 'No notifications yet.',
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -67,10 +88,20 @@ final class InAppInboxPage extends StatelessWidget {
         itemBuilder: (context, index) {
           if (index < state.items.length) {
             final item = state.items[index];
+            final destination = destinationFor?.call(item);
             return _NotificationTile(
               item: item,
               pending: state.markingReadIds.contains(item.id),
               onMarkRead: () => cubit.markRead(item.id),
+              onOpen: destination == null
+                  ? null
+                  : () async {
+                      final opened =
+                          item.isRead || await cubit.markRead(item.id);
+                      if (opened && context.mounted) {
+                        await context.push(destination);
+                      }
+                    },
             );
           }
           if (index == state.items.length && state.actionError != null) {
@@ -102,11 +133,13 @@ final class _NotificationTile extends StatelessWidget {
     required this.item,
     required this.pending,
     required this.onMarkRead,
+    required this.onOpen,
   });
 
   final InAppNotification item;
   final bool pending;
   final VoidCallback onMarkRead;
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -130,6 +163,16 @@ final class _NotificationTile extends StatelessWidget {
             style: Theme.of(context).textTheme.bodySmall,
           ),
           if (!item.isRead)
+            Text('Unread', style: Theme.of(context).textTheme.labelMedium),
+          if (onOpen != null)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: pending ? null : onOpen,
+                child: const Text('Open'),
+              ),
+            )
+          else if (!item.isRead)
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(

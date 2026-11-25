@@ -7,7 +7,7 @@ import 'package:trip_mate_mobile/app/config/environment.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
-import 'package:trip_mate_mobile/features/traveler/data/repositories/in_app_notification_repository_impl.dart';
+import 'package:trip_mate_mobile/features/notifications/data/repositories/in_app_notification_repository_impl.dart';
 
 void main() {
   test(

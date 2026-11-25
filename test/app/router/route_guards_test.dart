@@ -68,6 +68,10 @@ void main() {
           builder: (_, _) => const Text('Operator workspace'),
         ),
         GoRoute(
+          path: AppRoutes.operatorInbox,
+          builder: (_, _) => const Text('Operator notifications'),
+        ),
+        GoRoute(
           path: AppRoutes.createCoupon,
           builder: (_, _) => const Text('Create coupon'),
         ),
@@ -122,6 +126,30 @@ void main() {
     await tester.pumpAndSettle();
     return router.routerDelegate.currentConfiguration.last.matchedLocation;
   }
+
+  testWidgets('the operator inbox follows the operator workspace permissions', (
+    tester,
+  ) async {
+    const approved = AuthSessionState.authenticated(
+      UserRole.tourOperator,
+      applicationStatus: TourOperatorApplicationStatus.approved,
+    );
+    const pending = AuthSessionState.authenticated(UserRole.tourOperator);
+    const traveler = AuthSessionState.authenticated(UserRole.traveler);
+
+    expect(
+      await resolve(tester, approved, AppRoutes.operatorInbox),
+      AppRoutes.operatorInbox,
+    );
+    expect(
+      await resolve(tester, pending, AppRoutes.operatorInbox),
+      AppRoutes.operatorApplication,
+    );
+    expect(
+      await resolve(tester, traveler, AppRoutes.operatorInbox),
+      AppRoutes.traveler,
+    );
+  });
 
   testWidgets('TourOperator Approved lands on the operator workspace', (
     tester,

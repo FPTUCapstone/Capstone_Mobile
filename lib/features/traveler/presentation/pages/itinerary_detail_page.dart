@@ -38,6 +38,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/widgets/itinerar
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/itinerary_suggestions_sheet.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/itinerary_weather_tips_card.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_map.dart';
+import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
 import 'package:trip_mate_mobile/shared/widgets/error_view.dart';
 
 final class ItineraryDetailPage extends StatefulWidget {
@@ -558,6 +559,24 @@ final class _DetailContent extends StatelessWidget {
                     ).textTheme.bodySmall?.copyWith(color: palette.secondary),
                   ),
                 ],
+                if (detail.bookedServices.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Text(
+                    'Dịch vụ đã đặt',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  for (final service in detail.bookedServices)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(service.serviceName),
+                      subtitle: Text(
+                        'SR-${service.id} · Số lượng ${service.quantity} · ${service.status == 'Completed' ? 'Đã hoàn tất' : 'Đã xác nhận'}',
+                      ),
+                      trailing: Text(
+                        TripFormatters.formatVietnamDateTime(service.startsAt),
+                      ),
+                    ),
+                ],
                 const SizedBox(height: 14),
                 Text(
                   'Lộ trình tham quan chi tiết (${detail.items.length} điểm dừng)',
@@ -661,9 +680,14 @@ final class _DetailContent extends StatelessWidget {
                         onTap: visitIndex < 0 ? null : () => onSelectItem(item),
                         onOpenDetail: visitIndex < 0 || item.poiId == null
                             ? null
-                            : () => GoRouter.maybeOf(
-                                context,
-                              )?.push(AppRoutes.poiDetail(item.poiId!)),
+                            : () => GoRouter.maybeOf(context)?.push(
+                                AppRoutes.poiDetail(
+                                  item.poiId!,
+                                  itineraryId: detail.canManage
+                                      ? detail.itineraryId
+                                      : null,
+                                ),
+                              ),
                         provenanceTag: _provenanceLabel(detail.provenance),
                         stopNumber: visitIndex < 0 ? null : visitIndex + 1,
                         shiftMinutes: item.poiId == null

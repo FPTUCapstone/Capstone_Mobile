@@ -1,8 +1,8 @@
 import 'package:trip_mate_mobile/core/error/error_mapper.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
-import 'package:trip_mate_mobile/features/traveler/data/models/in_app_notification_model.dart';
-import 'package:trip_mate_mobile/features/traveler/domain/entities/in_app_notification.dart';
-import 'package:trip_mate_mobile/features/traveler/domain/repositories/in_app_notification_repository.dart';
+import 'package:trip_mate_mobile/features/notifications/data/models/in_app_notification_model.dart';
+import 'package:trip_mate_mobile/features/notifications/domain/entities/in_app_notification.dart';
+import 'package:trip_mate_mobile/features/notifications/domain/repositories/in_app_notification_repository.dart';
 
 final class InAppNotificationRepositoryImpl
     implements InAppNotificationRepository {

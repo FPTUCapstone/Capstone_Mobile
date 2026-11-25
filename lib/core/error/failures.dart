@@ -181,6 +181,18 @@ final class NavigationFailure extends Failure {
   List<Object?> get props => [message, reason, activeSessionId];
 }
 
+/// UC-15: the re-routing suggestion cannot be used any more (SRS MSG44).
+enum ReroutingFailureReason { notFound, expired, closed, infeasible }
+
+final class ReroutingFailure extends Failure {
+  const ReroutingFailure(super.message, {required this.reason});
+
+  final ReroutingFailureReason reason;
+
+  @override
+  List<Object?> get props => [message, reason];
+}
+
 /// UC-70: stable reasons the Backend rejects an emergency tour request.
 enum EmergencyTourFailureReason {
   staleImpact,

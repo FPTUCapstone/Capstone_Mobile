@@ -3,16 +3,22 @@ import 'package:trip_mate_mobile/core/error/error_mapper.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/features/traveler/data/models/navigation_session_model.dart';
+import 'package:trip_mate_mobile/features/traveler/data/models/reroute_proposal_model.dart';
 import 'package:trip_mate_mobile/features/traveler/data/models/trip_alert_model.dart';
 import 'package:trip_mate_mobile/features/traveler/data/models/weather_advisory_model.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_session.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/reroute_proposal.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/weather_advisory.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/navigation_session_repository.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/repositories/rerouting_proposal_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/trip_alert_repository.dart';
 
 final class NavigationSessionRepositoryImpl
-    implements NavigationSessionRepository, TripAlertRepository {
+    implements
+        NavigationSessionRepository,
+        TripAlertRepository,
+        ReroutingProposalRepository {
   const NavigationSessionRepositoryImpl({required DioClient dioClient})
     : _dioClient = dioClient;
 
@@ -143,6 +149,86 @@ final class NavigationSessionRepositoryImpl
       throw _toFailure(error);
     }
   }
+
+  @override
+  Future<RerouteProposal> getProposal({
+    required int sessionId,
+    required int proposalId,
+  }) async {
+    try {
+      final response = await _dioClient.dio.get<Map<String, dynamic>>(
+        _proposalPath(sessionId, proposalId),
+      );
+      final data = response.data;
+      if (data == null) throw const FormatException('Empty proposal response.');
+      return RerouteProposalModel.fromJson(data);
+    } catch (error) {
+      throw _toReroutingFailure(error);
+    }
+  }
+
+  @override
+  Future<NavigationSession> acceptProposal({
+    required int sessionId,
+    required int proposalId,
+  }) async {
+    try {
+      final response = await _dioClient.dio.put<Map<String, dynamic>>(
+        '${_proposalPath(sessionId, proposalId)}/acceptance',
+      );
+      final data = response.data;
+      if (data == null) {
+        throw const FormatException('Empty navigation session response.');
+      }
+      return NavigationSessionModel.fromJson(data);
+    } catch (error) {
+      throw _toReroutingFailure(error);
+    }
+  }
+
+  @override
+  Future<void> rejectProposal({
+    required int sessionId,
+    required int proposalId,
+  }) async {
+    try {
+      await _dioClient.dio.put<void>(
+        '${_proposalPath(sessionId, proposalId)}/rejection',
+      );
+    } catch (error) {
+      throw _toReroutingFailure(error);
+    }
+  }
+
+  static String _proposalPath(int sessionId, int proposalId) =>
+      '$_sessionPath/$sessionId/rerouting-proposals/$proposalId';
+
+  static Failure _toReroutingFailure(Object error) {
+    if (error is DioException) {
+      final reason =
+          _reroutingReasons[ErrorMapper.extractErrorCode(error.response?.data)];
+      if (reason != null) {
+        return ReroutingFailure(_msg44, reason: reason);
+      }
+    }
+    return switch (ErrorMapper.toFailure(error)) {
+      ServerFailure() => const ServerFailure(_msg127),
+      NetworkFailure() => const NetworkFailure(_msg127),
+      final failure => failure,
+    };
+  }
+
+  static const _msg44 = 'No re-routing suggestion is available at the moment.';
+  static const _msg127 =
+      'TripMate is temporarily unable to process your request. '
+      'Please check your connection and try again.';
+
+  static const _reroutingReasons = <String, ReroutingFailureReason>{
+    'rerouting.not_found': ReroutingFailureReason.notFound,
+    'rerouting.proposal_expired': ReroutingFailureReason.expired,
+    'rerouting.proposal_closed': ReroutingFailureReason.closed,
+    'rerouting.proposal_infeasible': ReroutingFailureReason.infeasible,
+  };
 
   static Map<String, dynamic> _json(Object? value) {
     if (value is Map<String, dynamic>) return value;

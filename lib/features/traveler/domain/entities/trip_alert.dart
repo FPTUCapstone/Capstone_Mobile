@@ -34,8 +34,7 @@ final class TripAlert extends Equatable {
     this.weatherAtUtc,
     this.rainIntensityMmPerHour,
     this.canSkipAffectedStop = false,
-    bool rerouteProposalAvailable = false,
-  }) : _legacyRerouteProposalAvailable = rerouteProposalAvailable;
+  });
 
   static const stopOverstayMessageCode = 'trip_alert.stop_overstay';
   static const localOverstayIdPrefix = 'local-overstay:';
@@ -58,13 +57,13 @@ final class TripAlert extends Equatable {
   final DateTime? weatherAtUtc;
   final double? rainIntensityMmPerHour;
   final bool canSkipAffectedStop;
-  final bool _legacyRerouteProposalAvailable;
 
   bool get isResolved => resolvedAt != null;
   bool get isOverstay => messageCode == stopOverstayMessageCode;
   bool get isLocalOverstay => id.startsWith(localOverstayIdPrefix);
-  bool get rerouteProposalAvailable =>
-      reroutingProposalId != null || _legacyRerouteProposalAvailable;
+
+  /// The Backend attached a UC-15 re-routing proposal to this alert.
+  bool get rerouteProposalAvailable => reroutingProposalId != null;
 
   TripAlert copyWith({
     String? id,
@@ -75,7 +74,6 @@ final class TripAlert extends Equatable {
     String? affectedStopName,
     DateTime? timestamp,
     bool? isDismissedFromBanner,
-    bool? rerouteProposalAvailable,
     String? messageCode,
     int? affectedItemId,
     DateTime? plannedDeparture,
@@ -97,8 +95,6 @@ final class TripAlert extends Equatable {
       timestamp: timestamp ?? this.timestamp,
       isDismissedFromBanner:
           isDismissedFromBanner ?? this.isDismissedFromBanner,
-      rerouteProposalAvailable:
-          rerouteProposalAvailable ?? this.rerouteProposalAvailable,
       messageCode: messageCode ?? this.messageCode,
       affectedItemId: affectedItemId ?? this.affectedItemId,
       plannedDeparture: plannedDeparture ?? this.plannedDeparture,
@@ -123,7 +119,6 @@ final class TripAlert extends Equatable {
     affectedStopName,
     timestamp,
     isDismissedFromBanner,
-    rerouteProposalAvailable,
     messageCode,
     affectedItemId,
     plannedDeparture,

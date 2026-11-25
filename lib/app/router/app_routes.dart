@@ -10,6 +10,10 @@ abstract final class AppRoutes {
   static const explore = '/explore';
   static const guestHome = '/guest/home';
   static const poiDetailPattern = '/explore/poi/:id';
+  static const commercialBookingPattern =
+      '/traveler/commercial-services/:poiId/book';
+  static const commercialBookingRequests =
+      '/traveler/commercial-services/requests';
   static const tourSearch = '/explore/tours';
   static const tourDetailPattern = '/explore/tours/:tourId';
   static const bookTourPattern = '/explore/tours/:tourId/book';
@@ -84,6 +88,7 @@ abstract final class AppRoutes {
   static const tripReviewPattern = '/traveler/trips/:tripId/review';
   static const canonicalTripReviewPattern = '/traveler/reviews/:kind/:id';
   static const operator = '/operator';
+  static const operatorInbox = '/operator/notifications';
   static const operatorSettlementHistory = '/operator/finance/settlements';
   static const operatorApplication = '/operator/application';
   static const operatorContract = '/operator/contract';
@@ -151,7 +156,18 @@ abstract final class AppRoutes {
       '/traveler/groups/$groupId/location-sharing';
   static String travelGroupChatPath(int groupId) =>
       '/traveler/groups/$groupId/chat';
-  static String poiDetail(int id) => '/explore/poi/$id';
+  static String poiDetail(int id, {int? itineraryId}) => Uri(
+    path: '/explore/poi/$id',
+    queryParameters: itineraryId == null
+        ? null
+        : {'itineraryId': '$itineraryId'},
+  ).toString();
+  static String commercialBooking(int poiId, {int? itineraryId}) => Uri(
+    path: '/traveler/commercial-services/$poiId/book',
+    queryParameters: itineraryId == null
+        ? null
+        : {'itineraryId': '$itineraryId'},
+  ).toString();
   static String tourDetail(
     String tourId, {
     bool demo = false,
@@ -239,6 +255,7 @@ abstract final class AppRouteNames {
   static const travelerEmergency = 'traveler-emergency';
   static const tripReview = 'trip-review';
   static const operator = 'operator';
+  static const operatorInbox = 'operator-inbox';
   static const operatorApplication = 'operator-application';
   static const operatorContract = 'operator-contract';
   static const operatorApplicationResubmit = 'operator-application-resubmit';
