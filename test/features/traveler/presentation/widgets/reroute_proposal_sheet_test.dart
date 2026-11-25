@@ -5,22 +5,28 @@ import 'package:trip_mate_mobile/features/traveler/presentation/widgets/reroute_
 
 void main() {
   group('RerouteProposalSheet formatArrivalTimeDiff (P2-1)', () {
-    test('formats negative diff as "X min earlier"', () {
-      expect(RerouteProposalSheet.formatArrivalTimeDiff(-30), '30 min earlier');
-      expect(RerouteProposalSheet.formatArrivalTimeDiff(-1), '1 min earlier');
-      expect(RerouteProposalSheet.formatArrivalTimeDiff(-15), '15 min earlier');
+    test('formats negative diff as "Sớm hơn X phút"', () {
+      expect(
+        RerouteProposalSheet.formatArrivalTimeDiff(-30),
+        'Sớm hơn 30 phút',
+      );
+      expect(RerouteProposalSheet.formatArrivalTimeDiff(-1), 'Sớm hơn 1 phút');
+      expect(
+        RerouteProposalSheet.formatArrivalTimeDiff(-15),
+        'Sớm hơn 15 phút',
+      );
     });
 
-    test('formats positive diff as "X min later"', () {
-      expect(RerouteProposalSheet.formatArrivalTimeDiff(15), '15 min later');
-      expect(RerouteProposalSheet.formatArrivalTimeDiff(1), '1 min later');
-      expect(RerouteProposalSheet.formatArrivalTimeDiff(45), '45 min later');
+    test('formats positive diff as "Trễ hơn X phút"', () {
+      expect(RerouteProposalSheet.formatArrivalTimeDiff(15), 'Trễ hơn 15 phút');
+      expect(RerouteProposalSheet.formatArrivalTimeDiff(1), 'Trễ hơn 1 phút');
+      expect(RerouteProposalSheet.formatArrivalTimeDiff(45), 'Trễ hơn 45 phút');
     });
 
-    test('formats zero diff as "No arrival-time change"', () {
+    test('formats zero diff as "Không đổi giờ đến"', () {
       expect(
         RerouteProposalSheet.formatArrivalTimeDiff(0),
-        'No arrival-time change',
+        'Không đổi giờ đến',
       );
     });
   });
@@ -42,30 +48,31 @@ void main() {
       );
     }
 
-    testWidgets('renders "30 min earlier" when arrivalTimeDiffMinutes is -30', (
-      tester,
-    ) async {
-      final proposal = createTestProposal(arrivalTimeDiffMinutes: -30);
+    testWidgets(
+      'renders "Sớm hơn 30 phút" when arrivalTimeDiffMinutes is -30',
+      (tester) async {
+        final proposal = createTestProposal(arrivalTimeDiffMinutes: -30);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: RerouteProposalSheet(
-              proposal: proposal,
-              onAccept: () {},
-              onDecline: () {},
-              onClose: () {},
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: RerouteProposalSheet(
+                proposal: proposal,
+                onAccept: () {},
+                onDecline: () {},
+                onClose: () {},
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Arrival time adjustment'), findsOneWidget);
-      expect(find.text('30 min earlier'), findsOneWidget);
-      expect(find.textContaining('-30 min'), findsNothing);
-    });
+        expect(find.text('Điều chỉnh giờ đến'), findsOneWidget);
+        expect(find.text('Sớm hơn 30 phút'), findsOneWidget);
+        expect(find.textContaining('-30 phút'), findsNothing);
+      },
+    );
 
-    testWidgets('renders "15 min later" when arrivalTimeDiffMinutes is 15', (
+    testWidgets('renders "Trễ hơn 15 phút" when arrivalTimeDiffMinutes is 15', (
       tester,
     ) async {
       final proposal = createTestProposal(arrivalTimeDiffMinutes: 15);
@@ -83,13 +90,13 @@ void main() {
         ),
       );
 
-      expect(find.text('Arrival time adjustment'), findsOneWidget);
-      expect(find.text('15 min later'), findsOneWidget);
-      expect(find.textContaining('15 min earlier'), findsNothing);
+      expect(find.text('Điều chỉnh giờ đến'), findsOneWidget);
+      expect(find.text('Trễ hơn 15 phút'), findsOneWidget);
+      expect(find.textContaining('Sớm hơn 15 phút'), findsNothing);
     });
 
     testWidgets(
-      'renders "No arrival-time change" when arrivalTimeDiffMinutes is 0',
+      'renders "Không đổi giờ đến" when arrivalTimeDiffMinutes is 0',
       (tester) async {
         final proposal = createTestProposal(arrivalTimeDiffMinutes: 0);
 
@@ -106,8 +113,8 @@ void main() {
           ),
         );
 
-        expect(find.text('Arrival time adjustment'), findsOneWidget);
-        expect(find.text('No arrival-time change'), findsOneWidget);
+        expect(find.text('Điều chỉnh giờ đến'), findsOneWidget);
+        expect(find.text('Không đổi giờ đến'), findsOneWidget);
       },
     );
 
@@ -133,7 +140,7 @@ void main() {
         ),
       );
 
-      final closeButton = find.byTooltip('Close without changing plan');
+      final closeButton = find.byTooltip('Đóng mà không đổi lịch trình');
       expect(closeButton, findsOneWidget);
 
       await tester.tap(closeButton);
@@ -166,7 +173,7 @@ void main() {
         ),
       );
 
-      final declineButton = find.text('Keep Current Route');
+      final declineButton = find.text('Giữ lộ trình hiện tại');
       expect(declineButton, findsOneWidget);
 
       await tester.tap(declineButton);
@@ -197,7 +204,7 @@ void main() {
         ),
       );
 
-      final acceptButton = find.text('Accept Re-routing');
+      final acceptButton = find.text('Chấp nhận đổi lộ trình');
       expect(acceptButton, findsOneWidget);
 
       await tester.tap(acceptButton);

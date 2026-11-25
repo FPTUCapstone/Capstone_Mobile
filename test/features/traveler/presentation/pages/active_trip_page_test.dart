@@ -162,11 +162,11 @@ void main() {
         expect(find.byType(NavigationMapCanvas), findsOneWidget);
         expect(find.textContaining('MAPBOX NOT CONFIGURED'), findsOneWidget);
         expect(find.text('Marble Mountains (Ngũ Hành Sơn)'), findsOneWidget);
-        expect(find.text('SUGGESTED NEXT'), findsOneWidget);
-        expect(find.text('MANDATORY'), findsOneWidget);
-        expect(find.text('0 of 5 stops reached'), findsOneWidget);
+        expect(find.text('Gợi ý tiếp theo'), findsOneWidget);
+        expect(find.text('Bắt buộc'), findsOneWidget);
+        expect(find.text('0 / 5 điểm đã đến'), findsOneWidget);
         expect(find.byKey(const Key('manual_arrived_button')), findsOneWidget);
-        expect(find.text('I have arrived'), findsOneWidget);
+        expect(find.text('Tôi đã đến'), findsOneWidget);
 
         await cubit.close();
       },
@@ -182,23 +182,28 @@ void main() {
 
         await tester.tap(find.byKey(const Key('manual_arrived_button')));
         await tester.pumpAndSettle();
-        expect(find.text('Mark as arrived?'), findsOneWidget);
+        expect(find.text('Xác nhận đã đến?'), findsOneWidget);
 
-        await tester.tap(find.text("I'm here"));
+        await tester.tap(
+          find.descendant(
+            of: find.byType(AlertDialog),
+            matching: find.text('Tôi đã đến'),
+          ),
+        );
         await tester.pumpAndSettle();
 
         expect(
-          find.text('You are at Marble Mountains (Ngũ Hành Sơn)'),
+          find.text('Bạn đang ở Marble Mountains (Ngũ Hành Sơn)'),
           findsOneWidget,
         );
-        expect(find.text('EXPLORING'), findsOneWidget);
-        expect(find.text('1 of 5 stops reached'), findsOneWidget);
+        expect(find.text('Đang tham quan'), findsOneWidget);
+        expect(find.text('1 / 5 điểm đã đến'), findsOneWidget);
 
         await tester.tap(find.byKey(const Key('depart_button')));
         await tester.pumpAndSettle();
 
         expect(find.text('Cơm Gà Bà Buội'), findsOneWidget);
-        expect(find.text('NAVIGATING'), findsOneWidget);
+        expect(find.text('Đang dẫn đường'), findsOneWidget);
 
         await cubit.close();
       },
@@ -217,15 +222,15 @@ void main() {
       await tester.tap(find.text('Simulate Stop Arrival'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Have you arrived?'), findsOneWidget);
-      await tester.tap(find.text('Not yet'));
+      expect(find.text('Bạn đã đến nơi chưa?'), findsOneWidget);
+      await tester.tap(find.text('Chưa đến'));
       await tester.pumpAndSettle();
       expect(cubit.state.arrivalPromptItemId, isNull);
       expect(cubit.state.isExploring, isFalse);
 
       cubit.demoSimulateArrivalAtNextStop();
       await tester.pumpAndSettle();
-      await tester.tap(find.text("Yes, I'm here"));
+      await tester.tap(find.text('Đúng, tôi đã đến'));
       await tester.pumpAndSettle();
 
       expect(cubit.state.isExploring, isTrue);
@@ -248,13 +253,13 @@ void main() {
       await tester.tap(find.byKey(const Key('skip_target_button')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Skip this stop?'), findsOneWidget);
+      expect(find.text('Bỏ qua điểm dừng này?'), findsOneWidget);
       expect(
-        find.textContaining('This is a mandatory stop in your itinerary.'),
+        find.textContaining('Đây là điểm bắt buộc trong lịch trình của bạn.'),
         findsOneWidget,
       );
 
-      await tester.tap(find.text('Skip stop'));
+      await tester.tap(find.text('Bỏ qua điểm'));
       await tester.pumpAndSettle();
 
       expect(find.text('Cơm Gà Bà Buội'), findsOneWidget);
@@ -274,23 +279,23 @@ void main() {
       await tester.tap(find.byKey(const Key('finish_trip_button')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Finish this trip?'), findsOneWidget);
+      expect(find.text('Kết thúc chuyến đi?'), findsOneWidget);
       expect(
-        find.textContaining('5 stops have not been visited'),
+        find.textContaining('Còn 5 điểm dừng chưa ghé thăm'),
         findsOneWidget,
       );
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Finish trip'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Kết thúc chuyến'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Navigation ended'), findsOneWidget);
-      expect(find.textContaining('You reached 0 of 5 stops'), findsOneWidget);
-      expect(find.text('Back to Home'), findsOneWidget);
+      expect(find.text('Đã kết thúc dẫn đường'), findsOneWidget);
+      expect(find.text('0/5'), findsOneWidget);
+      expect(find.text('Về trang chủ'), findsOneWidget);
 
       await cubit.close();
     });
 
-    testWidgets('the stop list shows statuses and per-stop actions', (
+    testWidgets('the stop list sheet shows statuses and 1-tap actions', (
       tester,
     ) async {
       usePhoneSurface(tester);
@@ -299,18 +304,27 @@ void main() {
       await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('View all stops'));
+      await tester.tap(find.byKey(const Key('view_all_stops_button')));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Skipped'), findsOneWidget);
-      expect(find.textContaining('Heading here'), findsOneWidget);
+      expect(find.byKey(const Key('stops_timeline_sheet')), findsOneWidget);
+      expect(find.text('Lộ trình chuyến đi'), findsOneWidget);
+      expect(find.textContaining('Đã bỏ qua'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('stops_timeline_sheet')),
+          matching: find.text('Đang dẫn đường'),
+        ),
+        findsOneWidget,
+      );
 
-      await tester.tap(find.byKey(const Key('stop_actions_1003')));
+      await tester.ensureVisible(find.byKey(const Key('stop_navigate_1003')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Navigate here'));
+      await tester.tap(find.byKey(const Key('stop_navigate_1003')));
       await tester.pumpAndSettle();
 
       expect(cubit.state.targetItemId, 1003);
+      expect(find.byKey(const Key('stops_timeline_sheet')), findsNothing);
 
       await cubit.close();
     });
@@ -342,7 +356,7 @@ void main() {
       );
       expect(identical(before, afterGps), isTrue);
       await tester.pump();
-      expect(find.textContaining('(straight line)'), findsOneWidget);
+      expect(find.textContaining('(đường chim bay)'), findsOneWidget);
 
       await cubit.skipItem(1001);
       await tester.pump();
@@ -354,7 +368,7 @@ void main() {
       await cubit.close();
     });
 
-    testWidgets('toggling the stop list does not rebuild the shell', (
+    testWidgets('opening the stop list sheet does not rebuild the shell', (
       tester,
     ) async {
       usePhoneSurface(tester);
@@ -365,13 +379,18 @@ void main() {
         find.byType(NavigationMapCanvas),
       );
 
-      await tester.tap(find.text('View all stops'));
+      await tester.tap(find.byKey(const Key('view_all_stops_button')));
       await tester.pumpAndSettle();
-      expect(find.text('Hide stops'), findsOneWidget);
-      await tester.tap(find.text('Hide stops'));
+      expect(find.text('Lộ trình chuyến đi'), findsOneWidget);
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const Key('stops_timeline_sheet')),
+          matching: find.text('Đóng'),
+        ),
+      );
       await tester.pumpAndSettle();
 
-      expect(find.text('View all stops'), findsOneWidget);
+      expect(find.byKey(const Key('stops_timeline_sheet')), findsNothing);
       expect(
         identical(
           before,
@@ -400,9 +419,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Location permission required'), findsOneWidget);
-      expect(find.text('Open settings'), findsOneWidget);
-      expect(find.text('Try again'), findsOneWidget);
+      expect(find.text('Cần quyền truy cập vị trí'), findsOneWidget);
+      expect(find.text('Mở cài đặt'), findsOneWidget);
+      expect(find.text('Thử lại'), findsOneWidget);
     });
   });
 
@@ -422,7 +441,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Unable to start navigation'), findsOneWidget);
+      expect(find.text('Không thể bắt đầu dẫn đường'), findsOneWidget);
       expect(
         find.text(
           'Only an Active itinerary can be navigated. Accept the itinerary first.',
@@ -430,9 +449,9 @@ void main() {
         findsOneWidget,
       );
 
-      // Retrying cannot make the itinerary Active: only "Go back" is offered.
-      expect(find.text('Retry'), findsNothing);
-      expect(find.text('Go back'), findsOneWidget);
+      // Retrying cannot make the itinerary Active: only "Quay lại" is offered.
+      expect(find.text('Thử lại'), findsNothing);
+      expect(find.text('Quay lại'), findsOneWidget);
     });
 
     testWidgets('offers Retry when the start failed for a network reason', (
@@ -448,7 +467,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Please check your connection.'), findsOneWidget);
-      await tester.tap(find.text('Retry'));
+      await tester.tap(find.text('Thử lại'));
       await tester.pumpAndSettle();
       expect(find.text('Marble Mountains (Ngũ Hành Sơn)'), findsOneWidget);
     });
@@ -474,15 +493,15 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('You are already navigating another trip'),
+        find.text('Bạn đang dẫn đường một chuyến đi khác'),
         findsOneWidget,
       );
-      expect(find.textContaining('Itinerary #55'), findsOneWidget);
-      expect(find.text('Resume that trip'), findsOneWidget);
+      expect(find.textContaining('Lịch trình #55'), findsOneWidget);
+      expect(find.text('Tiếp tục chuyến kia'), findsOneWidget);
 
-      await tester.tap(find.text('End it and start this trip'));
+      await tester.tap(find.text('Kết thúc chuyến kia & bắt đầu chuyến này'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('End and start'));
+      await tester.tap(find.text('Kết thúc & bắt đầu'));
       await tester.pumpAndSettle();
 
       expect(sessions.calls, contains('complete:77'));
@@ -566,7 +585,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Loading trip...'), findsOneWidget);
+      expect(find.text('Đang tải chuyến đi...'), findsOneWidget);
 
       completer.complete(_detail(title: 'Saigon Explorer'));
       await tester.pumpAndSettle();
@@ -580,10 +599,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Unable to load trip'), findsOneWidget);
-      expect(find.text('Trip information unavailable.'), findsOneWidget);
-      expect(find.text('Retry'), findsOneWidget);
-      expect(find.text('Go back'), findsOneWidget);
+      expect(find.text('Không thể tải chuyến đi'), findsOneWidget);
+      expect(find.text('Không thể tải thông tin chuyến đi.'), findsOneWidget);
+      expect(find.text('Thử lại'), findsOneWidget);
+      expect(find.text('Quay lại'), findsOneWidget);
     });
   });
 
@@ -602,7 +621,7 @@ void main() {
 
       await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Trip alerts log'));
+      await tester.tap(find.byTooltip('Cảnh báo chuyến đi'));
       await tester.pumpAndSettle();
 
       expect(find.text('Live weather update'), findsNothing);
@@ -662,7 +681,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(RerouteProposalSheet), findsOneWidget);
 
-      await tester.tap(find.text('Accept Re-routing'));
+      await tester.tap(find.text('Chấp nhận đổi lộ trình'));
       await tester.pumpAndSettle();
 
       expect(find.byType(RerouteProposalSheet), findsNothing);
@@ -678,7 +697,7 @@ void main() {
 
       cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Keep Current Route'));
+      await tester.tap(find.text('Giữ lộ trình hiện tại'));
       await tester.pumpAndSettle();
 
       expect(find.byType(RerouteProposalSheet), findsNothing);
@@ -696,7 +715,7 @@ void main() {
 
       cubit.openRerouteProposal(TripAlertTestData.sampleRerouteProposal());
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Close without changing plan'));
+      await tester.tap(find.byTooltip('Đóng mà không đổi lịch trình'));
       await tester.pumpAndSettle();
 
       expect(find.byType(RerouteProposalSheet), findsNothing);
@@ -720,7 +739,7 @@ void main() {
   group('ActiveTripPage completion feedback', () {
     const marble = 'Marble Mountains (Ngũ Hành Sơn)';
     const chamMuseum = 'Bảo tàng Điêu khắc Chăm';
-    final dialog = find.byType(AlertDialog);
+    final dialog = find.byKey(const Key('active_trip_completion_dialog'));
     Finder inDialog(Finder finder) =>
         find.descendant(of: dialog, matching: finder);
     List<String?> snackBarTexts(WidgetTester tester) => tester
@@ -734,7 +753,7 @@ void main() {
         .toList();
 
     /// The trip page pushed over a home route, as in the app, so that
-    /// "Back to Home" has somewhere to go.
+    /// "Về trang chủ" has somewhere to go.
     Future<void> pumpOverHome(
       WidgetTester tester,
       ActiveTripCubit cubit, {
@@ -783,13 +802,11 @@ void main() {
 
       await finishWithTwoReachedStops(tester, cubit);
 
-      expect(find.text('Navigation ended'), findsOneWidget);
+      expect(find.text('Đã kết thúc dẫn đường'), findsOneWidget);
+      expect(inDialog(find.text('2/5')), findsOneWidget);
+      expect(inDialog(find.text('Điểm đã đến')), findsOneWidget);
       expect(
-        inDialog(find.textContaining('You reached 2 of 5 stops')),
-        findsOneWidget,
-      );
-      expect(
-        inDialog(find.text('How were the stops? (optional)')),
+        inDialog(find.text('Trải nghiệm các điểm dừng? (tùy chọn)')),
         findsOneWidget,
       );
       expect(inDialog(find.text(marble)), findsOneWidget);
@@ -797,8 +814,8 @@ void main() {
       // Skipped and never-reached stops are not asked about.
       expect(inDialog(find.text('Cơm Gà Bà Buội')), findsNothing);
       expect(inDialog(find.text('Chợ Hàn (Han Market)')), findsNothing);
-      expect(find.byTooltip('Like $marble'), findsOneWidget);
-      expect(find.byTooltip('Dislike $marble'), findsOneWidget);
+      expect(find.byTooltip('Thích $marble'), findsOneWidget);
+      expect(find.byTooltip('Không thích $marble'), findsOneWidget);
       expect(inDialog(find.byIcon(Icons.thumb_up_outlined)), findsNWidgets(2));
       expect(
         inDialog(find.byIcon(Icons.thumb_down_outlined)),
@@ -814,11 +831,11 @@ void main() {
       await pumpOverHome(tester, cubit, feedback: feedback);
       await finishWithTwoReachedStops(tester, cubit);
 
-      await tester.tap(find.byTooltip('Like $marble'));
+      await tester.tap(find.byTooltip('Thích $marble'));
       // Changing one's mind keeps the last answer only.
-      await tester.tap(find.byTooltip('Like $chamMuseum'));
+      await tester.tap(find.byTooltip('Thích $chamMuseum'));
       await tester.pump();
-      await tester.tap(find.byTooltip('Dislike $chamMuseum'));
+      await tester.tap(find.byTooltip('Không thích $chamMuseum'));
       await tester.pump();
 
       expect(inDialog(find.byIcon(Icons.thumb_up)), findsOneWidget);
@@ -826,7 +843,7 @@ void main() {
       // Nothing is sent while the dialog is still open.
       expect(feedback.sent, isEmpty);
 
-      await tester.tap(find.text('Back to Home'));
+      await tester.tap(find.text('Về trang chủ'));
       await tester.pumpAndSettle();
 
       expect(find.text('home screen'), findsOneWidget);
@@ -858,15 +875,15 @@ void main() {
       await pumpOverHome(tester, cubit, feedback: feedback);
       await finishWithTwoReachedStops(tester, cubit);
 
-      await tester.tap(find.byTooltip('Like $marble'));
+      await tester.tap(find.byTooltip('Thích $marble'));
       await tester.pump();
       expect(inDialog(find.byIcon(Icons.thumb_up)), findsOneWidget);
 
-      await tester.tap(find.byTooltip('Like $marble'));
+      await tester.tap(find.byTooltip('Thích $marble'));
       await tester.pump();
       expect(inDialog(find.byIcon(Icons.thumb_up)), findsNothing);
 
-      await tester.tap(find.text('Back to Home'));
+      await tester.tap(find.text('Về trang chủ'));
       await tester.pumpAndSettle();
 
       expect(find.text('home screen'), findsOneWidget);
@@ -879,7 +896,7 @@ void main() {
       await pumpOverHome(tester, cubit, feedback: feedback);
       await finishWithTwoReachedStops(tester, cubit);
 
-      await tester.tap(find.text('Back to Home'));
+      await tester.tap(find.text('Về trang chủ'));
       await tester.pumpAndSettle();
 
       expect(find.text('home screen'), findsOneWidget);
@@ -893,12 +910,12 @@ void main() {
       await pumpOverHome(tester, cubit, feedback: feedback);
       await finishWithTwoReachedStops(tester, cubit);
 
-      await tester.tap(find.byTooltip('Like $marble'));
-      await tester.tap(find.byTooltip('Dislike $chamMuseum'));
+      await tester.tap(find.byTooltip('Thích $marble'));
+      await tester.tap(find.byTooltip('Không thích $chamMuseum'));
       await tester.pump();
       // The trip's own "Arrived at ..." message may still be showing.
       final messagesBefore = snackBarTexts(tester);
-      await tester.tap(find.text('Back to Home'));
+      await tester.tap(find.text('Về trang chủ'));
       await tester.pumpAndSettle();
 
       expect(find.text('home screen'), findsOneWidget);
@@ -914,10 +931,10 @@ void main() {
       await pumpOverHome(tester, cubit, feedback: feedback);
       await finishWithTwoReachedStops(tester, cubit);
 
-      await tester.tap(find.byTooltip('Like $marble'));
-      await tester.tap(find.byTooltip('Like $chamMuseum'));
+      await tester.tap(find.byTooltip('Thích $marble'));
+      await tester.tap(find.byTooltip('Thích $chamMuseum'));
       await tester.pump();
-      await tester.tap(find.text('Back to Home'));
+      await tester.tap(find.text('Về trang chủ'));
       await tester.pumpAndSettle();
 
       expect(find.text('home screen'), findsOneWidget);
@@ -931,13 +948,10 @@ void main() {
 
       await finishWithTwoReachedStops(tester, cubit);
 
-      expect(
-        inDialog(find.textContaining('You reached 2 of 5 stops')),
-        findsOneWidget,
-      );
-      expect(find.text('How were the stops? (optional)'), findsNothing);
+      expect(inDialog(find.text('2/5')), findsOneWidget);
+      expect(find.text('Trải nghiệm các điểm dừng? (tùy chọn)'), findsNothing);
       expect(inDialog(find.byIcon(Icons.thumb_up_outlined)), findsNothing);
-      expect(find.text('Back to Home'), findsOneWidget);
+      expect(find.text('Về trang chủ'), findsOneWidget);
     });
 
     testWidgets('does not ask when no stop was reached', (tester) async {
@@ -947,11 +961,8 @@ void main() {
       await cubit.finish();
       await tester.pumpAndSettle();
 
-      expect(
-        inDialog(find.textContaining('You reached 0 of 5 stops')),
-        findsOneWidget,
-      );
-      expect(find.text('How were the stops? (optional)'), findsNothing);
+      expect(inDialog(find.text('0/5')), findsOneWidget);
+      expect(find.text('Trải nghiệm các điểm dừng? (tùy chọn)'), findsNothing);
     });
 
     testWidgets('a long list of reached stops scrolls inside the dialog', (
@@ -994,16 +1005,16 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(find.text('Trip Completed!'), findsOneWidget);
+      expect(find.text('Hoàn thành chuyến đi!'), findsOneWidget);
       // The button stays on screen; the last stop is reached by scrolling.
-      expect(find.text('Back to Home').hitTestable(), findsOneWidget);
-      expect(find.byTooltip('Dislike Stop 30').hitTestable(), findsNothing);
+      expect(find.text('Về trang chủ').hitTestable(), findsOneWidget);
+      expect(find.byTooltip('Không thích Stop 30').hitTestable(), findsNothing);
 
-      await tester.ensureVisible(find.byTooltip('Dislike Stop 30'));
+      await tester.ensureVisible(find.byTooltip('Không thích Stop 30'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Dislike Stop 30'));
+      await tester.tap(find.byTooltip('Không thích Stop 30'));
       await tester.pump();
-      await tester.tap(find.text('Back to Home'));
+      await tester.tap(find.text('Về trang chủ'));
       await tester.pumpAndSettle();
 
       expect(find.text('home screen'), findsOneWidget);

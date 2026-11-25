@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:trip_mate_mobile/app/theme/coastal_palette.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_route.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_session.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/helpers/itinerary_map_data.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/itinerary_map.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/widgets/mapbox_navigation_map.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_map.dart';
 
 void main() {
@@ -74,5 +77,47 @@ void main() {
     expect(ring.first.longitude, closeTo(ring.last.longitude, 1e-6));
     expect(ring[6].latitude, greaterThan(center.latitude));
     expect(ring[18].latitude, lessThan(center.latitude));
+  });
+
+  test('navigationMapMarkers uses Coastal numbered badges and checkmarks', () {
+    final now = DateTime.utc(2026, 11, 25, 10);
+    final items = [
+      NavigationSessionItem(
+        itemId: 1,
+        sequenceNo: 1,
+        poiId: 10,
+        poiName: 'Non Nuoc',
+        latitude: 16.0,
+        longitude: 108.2,
+        plannedArrival: now,
+        plannedDeparture: now,
+        isMandatory: false,
+        status: NavigationItemStatus.reached,
+        reachedAt: now,
+        skippedAt: null,
+      ),
+      NavigationSessionItem(
+        itemId: 2,
+        sequenceNo: 2,
+        poiId: 11,
+        poiName: 'My Khe',
+        latitude: 16.07,
+        longitude: 108.24,
+        plannedArrival: now,
+        plannedDeparture: now,
+        isMandatory: true,
+        status: NavigationItemStatus.pending,
+        reachedAt: null,
+        skippedAt: null,
+      ),
+    ];
+
+    final navMarkers = navigationMapMarkers(items, 2);
+    expect(navMarkers[0].badge, '✓');
+    expect(navMarkers[0].color, CoastalPalette.light.success);
+    expect(navMarkers[0].highlighted, isFalse);
+    expect(navMarkers[1].badge, '2');
+    expect(navMarkers[1].color, CoastalPalette.light.primary);
+    expect(navMarkers[1].highlighted, isTrue);
   });
 }
