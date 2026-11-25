@@ -189,6 +189,24 @@ The Mobile feature is `operator_finance`; the approved scope and test plan are
 in `docs/superpowers/specs/2026-11-19-uc44-mobile-finance-spec.md` and its matching
 plan. Export, payout requests, bank editing and admin transfer actions are excluded.
 
+## UC-15 Confirm Re-routing
+
+Traveler role, owner of the navigation session only. Root:
+`/api/v1/navigation-sessions/{sessionId}/rerouting-proposals/{proposalId}`.
+`proposalId` comes from `reroutingProposalId` on a UC-14 alert.
+
+| Call | Success |
+| --- | --- |
+| `GET` | `200` `proposalId`, `incidentId`, `status` (`Proposed`/`Accepted`/`Rejected`/`Expired`), `reason{code,strategy,affectedItemId,affectedPoiName}`, `currentStops[]`, `proposedStops[]` (with `change` `Kept`/`Added`/`Moved`), `affectedStops[]`, `removedStops[]`, `travelTimeDiffMinutes`, `arrivalTimeDiffMinutes`, `proposedAtUtc`, `expiresAtUtc` (15 minutes after proposal), `decidedAtUtc?` |
+| `PUT .../acceptance` | `200` navigation session on the new itinerary version (replay returns the same result) |
+| `PUT .../rejection` | `204` (replay is also `204`) |
+
+Errors carry `errorCode`: `rerouting.not_found` (404), `rerouting.proposal_expired`,
+`rerouting.proposal_closed`, `rerouting.proposal_infeasible` (409) → MSG44 *No
+re-routing suggestion is available at the moment.*; server failure → MSG127.
+Mobile maps `Rejected` to `RerouteStatus.declined`. The Backend contract is in
+`Capstone_BE` PR #208 (`specs/UC-15-confirm-rerouting-spec.md`).
+
 ## Cross-cutting Mobile Rules
 
 - Use the shared BE base URL; do not create `/mobile-api`, a separate database, or a separate authentication system.
