@@ -23,15 +23,18 @@ class RevenueSummaryCards extends StatelessWidget {
               formatVnd(summary.netAmount),
               key: const Key('revenue-net-amount'),
               style: const TextStyle(
-                fontSize: 26,
+                fontSize: 22,
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
+            const SizedBox(height: 6),
+            Text(
               'Khoản đã quyết toán trừ hoàn trả đã xác nhận, của các đơn thanh toán trong kỳ.',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(
+                fontSize: 12.5,
+                color: Colors.white.withValues(alpha: 0.85),
+              ),
             ),
           ],
         ),

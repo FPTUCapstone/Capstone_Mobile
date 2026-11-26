@@ -7,7 +7,7 @@ class AppButton extends StatelessWidget {
     this.isLoading = false,
     this.icon,
     this.isOutlined = false,
-    this.minimumHeight = 52.0,
+    this.minimumHeight = 46.0,
     super.key,
   });
 

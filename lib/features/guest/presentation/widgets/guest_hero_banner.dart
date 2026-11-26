@@ -42,7 +42,7 @@ class HeroSlideData {
 class GuestHeroBanner extends StatefulWidget {
   const GuestHeroBanner({
     super.key,
-    this.height = 215,
+    this.height = 168,
     this.autoRotate = true,
     this.rotationInterval = const Duration(milliseconds: 4500),
     this.customSlides,
@@ -63,25 +63,25 @@ class GuestHeroBanner extends StatefulWidget {
   /// Authoritative Central Vietnam destination slides showcasing iconic landmarks.
   static const List<HeroSlideData> defaultSlides = [
     HeroSlideData(
-      tag: '✦ ĐÀ NẴNG',
+      tag: 'ĐÀ NẴNG',
       title: 'Cầu Rồng & Biển Mỹ Khê',
       subtitle: 'Thành phố ánh sáng và cung đường biển quyến rũ',
       imageUrl: 'assets/images/destinations/danang_dragon_bridge.jpg',
     ),
     HeroSlideData(
-      tag: '✦ DI SẢN UNESCO',
+      tag: 'DI SẢN UNESCO',
       title: 'Phố Cổ Hội An Lung Linh',
       subtitle: 'Dạo bước qua ngàn năm hoài niệm và đèn lồng rực rỡ',
       imageUrl: 'assets/images/destinations/hoian_lantern_night.jpg',
     ),
     HeroSlideData(
-      tag: '✦ CỐ ĐÔ HUẾ',
+      tag: 'CỐ ĐÔ HUẾ',
       title: 'Đại Nội & Lăng Tẩm Cung Đình',
       subtitle: 'Dấu ấn vương triều bên dòng sông Hương thơ mộng',
       imageUrl: 'assets/images/destinations/hue_ngo_mon.jpg',
     ),
     HeroSlideData(
-      tag: '✦ KỲ QUAN THIÊN NHIÊN',
+      tag: 'KỲ QUAN THIÊN NHIÊN',
       title: 'Bà Nà Hills & Ngũ Hành Sơn',
       subtitle: 'Khám phá mây trời non nước và danh thắng kỳ vĩ',
       imageUrl: 'assets/images/destinations/marble_mountains.jpg',
@@ -181,12 +181,12 @@ class _GuestHeroBannerState extends State<GuestHeroBanner> {
         height: widget.height,
         width: double.infinity,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x1800152A),
-              blurRadius: 16,
-              offset: Offset(0, 6),
+              color: Color(0x12103B39),
+              blurRadius: 12,
+              offset: Offset(0, 4),
             ),
           ],
         ),
@@ -237,19 +237,19 @@ class _GuestHeroBannerState extends State<GuestHeroBanner> {
             // Slide photographic background
             _buildSlideImage(slide),
 
-            // Multi-stop gradient overlay for superior text contrast
+            // Multi-stop gradient overlay for gentle Coastal contrast
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Color(0x38000000),
-                    Color(0x12000000),
-                    Color(0x7300152A),
-                    Color(0xD900152A),
+                    Color(0x180E1E1D),
+                    Color(0x0A0E1E1D),
+                    Color(0x6B102827),
+                    Color(0xCC0E2221),
                   ],
-                  stops: [0.0, 0.35, 0.7, 1.0],
+                  stops: [0.0, 0.35, 0.68, 1.0],
                 ),
               ),
             ),
@@ -257,7 +257,7 @@ class _GuestHeroBannerState extends State<GuestHeroBanner> {
             // Foreground caption & badge
             Positioned(
               left: 14,
-              right: 80, // Leave room for indicators on the right
+              right: 76, // Leave room for indicators on the right
               bottom: 12,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,21 +270,34 @@ class _GuestHeroBannerState extends State<GuestHeroBanner> {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.22),
-                      borderRadius: BorderRadius.circular(10),
+                      color: Colors.white.withValues(alpha: 0.20),
+                      borderRadius: BorderRadius.circular(999),
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.35),
+                        color: Colors.white.withValues(alpha: 0.30),
                         width: 0.8,
                       ),
                     ),
-                    child: Text(
-                      slide.tag,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.6,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!slide.tag.startsWith('✦')) ...[
+                          const Icon(
+                            Icons.auto_awesome,
+                            size: 11,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 4),
+                        ],
+                        Text(
+                          slide.tag,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 5),
@@ -296,14 +309,14 @@ class _GuestHeroBannerState extends State<GuestHeroBanner> {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 16.5,
-                      fontWeight: FontWeight.w800,
-                      height: 1.25,
-                      letterSpacing: -0.3,
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w700,
+                      height: 1.22,
+                      letterSpacing: -0.2,
                       shadows: [
                         Shadow(
-                          color: Colors.black54,
-                          blurRadius: 6,
+                          color: Colors.black38,
+                          blurRadius: 4,
                           offset: Offset(0, 1),
                         ),
                       ],
@@ -317,7 +330,7 @@ class _GuestHeroBannerState extends State<GuestHeroBanner> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.92),
+                      color: Colors.white.withValues(alpha: 0.90),
                       fontSize: 11.5,
                       fontWeight: FontWeight.w400,
                     ),
@@ -395,7 +408,7 @@ class _HeroPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const staticContent = ColoredBox(
-      color: Color(0xFF0F2B48),
+      color: Color(0xFF174B4A),
       child: SizedBox.expand(
         child: Center(
           child: Icon(

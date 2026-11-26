@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/tripmate_logo.dart';
 
@@ -155,165 +156,176 @@ class _SplashPageState extends State<SplashPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.freshGreen,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Spacer(flex: 3),
+      backgroundColor: AppColors.primary,
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF174B4A), Color(0xFF103B39)],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Spacer(flex: 3),
 
-              // Animated Official Emblem (Solid Pure White, Flat, No AI Glow)
-              AnimatedBuilder(
-                animation: _controller,
-                builder: (context, _) {
-                  return Opacity(
-                    opacity: _logoOpacity.value,
-                    child: Transform.scale(
-                      scale: _logoScale.value,
-                      child: const TripMateEmblem(size: 96, isWhite: true),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: AppSpacing.lg),
-
-              // Animated Wordmark
-              AnimatedBuilder(
-                animation: _controller,
-                builder: (context, _) {
-                  return Opacity(
-                    opacity: _textOpacity.value,
-                    child: SlideTransition(
-                      position: _textSlide,
-                      child: Column(
-                        children: const [
-                          Text(
-                            'TripMate',
-                            style: TextStyle(
-                              fontSize: 36,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              letterSpacing: -0.8,
-                              height: 1.1,
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Plan smarter. Travel better.',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                        ],
+                // Animated Official Emblem
+                AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, _) {
+                    return Opacity(
+                      opacity: _logoOpacity.value,
+                      child: Transform.scale(
+                        scale: _logoScale.value,
+                        child: const TripMateEmblem(size: 80, isWhite: true),
                       ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: AppSpacing.md),
+                    );
+                  },
+                ),
+                const SizedBox(height: AppSpacing.md),
 
-              // Animated Tagline
-              AnimatedBuilder(
-                animation: _controller,
-                builder: (context, _) {
-                  return Opacity(
-                    opacity: _taglineOpacity.value,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: const Text(
-                        'Hành trình trọn vẹn · Trải nghiệm thông minh',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              const Spacer(flex: 2),
-
-              // Action Button & Flat Indicator
-              AnimatedBuilder(
-                animation: _controller,
-                builder: (context, _) {
-                  return Opacity(
-                    opacity: _buttonOpacity.value,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Theme(
-                          data: Theme.of(context).copyWith(
-                            elevatedButtonTheme: ElevatedButtonThemeData(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: AppColors.freshGreen,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                textStyle: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ),
-                          child: AppButton(
-                            label: 'Get started',
-                            onPressed: _handleManualNavigate,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                // Animated Wordmark
+                AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, _) {
+                    return Opacity(
+                      opacity: _textOpacity.value,
+                      child: SlideTransition(
+                        position: _textSlide,
+                        child: const Column(
                           children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: const BoxDecoration(
+                            Text(
+                              'TripMate',
+                              style: TextStyle(
+                                fontSize: 30,
+                                fontWeight: FontWeight.w800,
                                 color: Colors.white,
-                                shape: BoxShape.circle,
+                                letterSpacing: -0.6,
+                                height: 1.15,
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            SizedBox(height: 6),
                             Text(
-                              'TripMate Travel Platform',
+                              'Lên kế hoạch thông minh · Du lịch trọn vẹn',
+                              textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.white.withValues(alpha: 0.75),
-                                letterSpacing: 0.4,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w500,
+                                color: Color(0xFFE8F0EA),
+                                letterSpacing: 0.1,
                               ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: AppSpacing.lg),
-            ],
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: AppSpacing.md),
+
+                // Animated Tagline
+                AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, _) {
+                    return Opacity(
+                      opacity: _taglineOpacity.value,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.24),
+                          ),
+                        ),
+                        child: const Text(
+                          'Hành trình trọn vẹn · Trải nghiệm thông minh',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.15,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                const Spacer(flex: 2),
+
+                // Action Button & Flat Indicator
+                AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, _) {
+                    return Opacity(
+                      opacity: _buttonOpacity.value,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Theme(
+                            data: Theme.of(context).copyWith(
+                              filledButtonTheme: FilledButtonThemeData(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: AppColors.primary,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  textStyle: const TextStyle(
+                                    fontFamily: AppTypography.uiFont,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            child: AppButton(
+                              label: 'Bắt đầu khám phá',
+                              onPressed: _handleManualNavigate,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFB96D4C),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Nền tảng du lịch thông minh TripMate',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: Colors.white.withValues(alpha: 0.78),
+                                  letterSpacing: 0.2,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: AppSpacing.lg),
+              ],
+            ),
           ),
         ),
       ),

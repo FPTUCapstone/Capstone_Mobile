@@ -309,15 +309,18 @@ class _OperatorFinanceOverviewState extends State<OperatorFinanceOverview> {
               formatVnd(summary.netAmount),
               key: const Key('finance-overview-net'),
               style: const TextStyle(
-                fontSize: 28,
+                fontSize: 22,
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
+            const SizedBox(height: 6),
+            Text(
               'Đã quyết toán, trừ hoàn trả đã xác nhận.',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(
+                fontSize: 12.5,
+                color: Colors.white.withValues(alpha: 0.85),
+              ),
             ),
           ],
         ),

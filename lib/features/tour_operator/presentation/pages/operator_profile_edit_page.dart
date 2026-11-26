@@ -182,10 +182,21 @@ class _OperatorProfileEditPageState extends State<OperatorProfileEditPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         title: const Text(
           'Chỉnh sửa hồ sơ doanh nghiệp',
-          style: TextStyle(fontWeight: FontWeight.w700),
+          style: TextStyle(
+            fontSize: 16.5,
+            fontWeight: FontWeight.w700,
+            color: AppColors.ink,
+          ),
+        ),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, thickness: 1, color: AppColors.line),
         ),
       ),
       body: BlocConsumer<OperatorProfileCubit, OperatorProfileState>(
@@ -279,56 +290,102 @@ class _OperatorProfileEditPageState extends State<OperatorProfileEditPage> {
                   const SizedBox(height: AppSpacing.md),
                 ],
                 AppCard(
-                  padding: const EdgeInsets.all(AppSpacing.md),
+                  padding: const EdgeInsets.all(14),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Logo doanh nghiệp',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.ink,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'JPG, PNG, WebP · Tối đa 5MB (BR-16)',
-                        style: TextStyle(fontSize: 12, color: AppColors.muted),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      _LogoPreview(
-                        selectedBytes: _selectedLogo?.bytes,
-                        localBytes: _removeLogo ? null : profile.localLogoBytes,
-                        logoUrl: _removeLogo ? null : profile.logoUrl,
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Wrap(
-                        spacing: AppSpacing.sm,
-                        alignment: WrapAlignment.center,
+                      Row(
                         children: [
-                          OutlinedButton.icon(
-                            key: const Key('operator_profile_pick_logo_button'),
-                            onPressed: busy ? null : _pickLogo,
-                            icon: const Icon(Icons.upload_outlined, size: 18),
-                            label: Text(
-                              hasVisibleLogo ? 'Thay đổi logo' : 'Tải lên logo',
+                          _LogoPreview(
+                            selectedBytes: _selectedLogo?.bytes,
+                            localBytes: _removeLogo
+                                ? null
+                                : profile.localLogoBytes,
+                            logoUrl: _removeLogo ? null : profile.logoUrl,
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Logo doanh nghiệp',
+                                  style: Theme.of(context).textTheme.titleSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.ink,
+                                      ),
+                                ),
+                                const SizedBox(height: 2),
+                                const Text(
+                                  'JPG, PNG, WebP · Tối đa 5MB',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.muted,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 6,
+                                  children: [
+                                    OutlinedButton.icon(
+                                      key: const Key(
+                                        'operator_profile_pick_logo_button',
+                                      ),
+                                      onPressed: busy ? null : _pickLogo,
+                                      icon: const Icon(
+                                        Icons.upload_outlined,
+                                        size: 16,
+                                      ),
+                                      label: Text(
+                                        hasVisibleLogo
+                                            ? 'Thay đổi logo'
+                                            : 'Tải lên logo',
+                                      ),
+                                      style: OutlinedButton.styleFrom(
+                                        minimumSize: const Size(0, 36),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                        ),
+                                      ),
+                                    ),
+                                    if (hasVisibleLogo)
+                                      OutlinedButton.icon(
+                                        key: const Key(
+                                          'operator_profile_remove_logo_button',
+                                        ),
+                                        onPressed: busy
+                                            ? null
+                                            : _handleRemoveLogo,
+                                        icon: const Icon(
+                                          Icons.delete_outline,
+                                          size: 16,
+                                          color: AppColors.error,
+                                        ),
+                                        label: const Text(
+                                          'Xóa logo',
+                                          style: TextStyle(
+                                            color: AppColors.error,
+                                          ),
+                                        ),
+                                        style: OutlinedButton.styleFrom(
+                                          minimumSize: const Size(0, 36),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                          ),
+                                          side: BorderSide(
+                                            color: AppColors.error.withValues(
+                                              alpha: 0.4,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
-                          if (hasVisibleLogo)
-                            OutlinedButton.icon(
-                              key: const Key(
-                                'operator_profile_remove_logo_button',
-                              ),
-                              onPressed: busy ? null : _handleRemoveLogo,
-                              icon: const Icon(
-                                Icons.delete_outline,
-                                size: 18,
-                                color: AppColors.error,
-                              ),
-                              label: const Text(
-                                'Xóa logo',
-                                style: TextStyle(color: AppColors.error),
-                              ),
-                            ),
                         ],
                       ),
                       if (logoError != null) ...[
@@ -336,7 +393,6 @@ class _OperatorProfileEditPageState extends State<OperatorProfileEditPage> {
                         Text(
                           logoError,
                           key: const Key('operator_profile_logo_error'),
-                          textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.error,
@@ -349,7 +405,7 @@ class _OperatorProfileEditPageState extends State<OperatorProfileEditPage> {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppCard(
-                  padding: const EdgeInsets.all(AppSpacing.md),
+                  padding: const EdgeInsets.all(14),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -361,7 +417,7 @@ class _OperatorProfileEditPageState extends State<OperatorProfileEditPage> {
                               color: AppColors.ink,
                             ),
                       ),
-                      const SizedBox(height: AppSpacing.md),
+                      const SizedBox(height: AppSpacing.sm),
                       TextField(
                         key: const Key('field_business_name'),
                         controller: _businessNameController,
@@ -377,7 +433,7 @@ class _OperatorProfileEditPageState extends State<OperatorProfileEditPage> {
                             .read<OperatorProfileCubit>()
                             .clearFieldError(businessName: true),
                       ),
-                      const SizedBox(height: AppSpacing.md),
+                      const SizedBox(height: AppSpacing.sm),
                       TextField(
                         key: const Key('field_contact_phone'),
                         controller: _phoneController,
@@ -394,7 +450,7 @@ class _OperatorProfileEditPageState extends State<OperatorProfileEditPage> {
                             .read<OperatorProfileCubit>()
                             .clearFieldError(contactPhone: true),
                       ),
-                      const SizedBox(height: AppSpacing.md),
+                      const SizedBox(height: AppSpacing.sm),
                       TextField(
                         key: const Key('field_contact_email'),
                         controller: _emailController,
@@ -411,7 +467,7 @@ class _OperatorProfileEditPageState extends State<OperatorProfileEditPage> {
                             .read<OperatorProfileCubit>()
                             .clearFieldError(contactEmail: true),
                       ),
-                      const SizedBox(height: AppSpacing.md),
+                      const SizedBox(height: AppSpacing.sm),
                       TextField(
                         key: const Key('field_business_address'),
                         controller: _addressController,
@@ -426,7 +482,7 @@ class _OperatorProfileEditPageState extends State<OperatorProfileEditPage> {
                             .read<OperatorProfileCubit>()
                             .clearFieldError(businessAddress: true),
                       ),
-                      const SizedBox(height: AppSpacing.md),
+                      const SizedBox(height: AppSpacing.sm),
                       TextField(
                         key: const Key('field_website'),
                         controller: _websiteController,
@@ -443,12 +499,12 @@ class _OperatorProfileEditPageState extends State<OperatorProfileEditPage> {
                             .read<OperatorProfileCubit>()
                             .clearFieldError(website: true),
                       ),
-                      const SizedBox(height: AppSpacing.md),
+                      const SizedBox(height: AppSpacing.sm),
                       TextField(
                         key: const Key('field_business_description'),
                         controller: _descriptionController,
                         enabled: !busy,
-                        maxLines: 4,
+                        maxLines: 3,
                         maxLength:
                             OperatorProfileValidator.maxDescriptionLength,
                         decoration: InputDecoration(
@@ -465,41 +521,47 @@ class _OperatorProfileEditPageState extends State<OperatorProfileEditPage> {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppCard(
-                  padding: const EdgeInsets.all(AppSpacing.md),
+                  padding: const EdgeInsets.all(14),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Thông tin pháp lý & Tài khoản (Chỉ đọc · BR-08)',
+                        'Thông tin pháp lý & Tài khoản (Chỉ đọc)',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: AppColors.ink,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.sm),
+                      const SizedBox(height: 6),
                       _ReadOnlyRow(
                         label: 'Số GPKD lữ hành',
                         value: profile.businessLicenceNumber,
                       ),
+                      const Divider(height: 10, color: AppColors.line),
                       _ReadOnlyRow(label: 'Mã số thuế', value: profile.taxCode),
+                      const Divider(height: 10, color: AppColors.line),
                       _ReadOnlyRow(
                         label: 'Trạng thái duyệt',
                         value: profile.approvalStatus,
                       ),
+                      const Divider(height: 10, color: AppColors.line),
                       _ReadOnlyRow(
-                        label: 'Email tài khoản (BR-17)',
+                        label: 'Email tài khoản',
                         value: profile.accountEmail,
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: AppSpacing.lg),
+                const SizedBox(height: AppSpacing.md),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
                         key: const Key('operator_profile_cancel_button'),
                         onPressed: busy ? null : () => _handleCancel(profile),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(44),
+                        ),
                         child: const Text('Hủy'),
                       ),
                     ),
@@ -508,6 +570,9 @@ class _OperatorProfileEditPageState extends State<OperatorProfileEditPage> {
                       child: FilledButton(
                         key: const Key('operator_profile_save_button'),
                         onPressed: busy ? null : _handleSubmit,
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(44),
+                        ),
                         child: busy
                             ? const SizedBox(
                                 width: 18,
@@ -546,11 +611,11 @@ class _LogoPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final bytes = selectedBytes ?? localBytes;
     return Container(
-      width: 88,
-      height: 88,
+      width: 68,
+      height: 68,
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.line),
       ),
       clipBehavior: Clip.antiAlias,
@@ -559,8 +624,8 @@ class _LogoPreview extends StatelessWidget {
               bytes,
               fit: BoxFit.contain,
               errorBuilder: (_, _, _) => const Icon(
-                Icons.business_center,
-                size: 36,
+                Icons.business_center_outlined,
+                size: 28,
                 color: AppColors.muted,
               ),
             )
@@ -569,12 +634,16 @@ class _LogoPreview extends StatelessWidget {
               logoUrl!,
               fit: BoxFit.contain,
               errorBuilder: (_, _, _) => const Icon(
-                Icons.business_center,
-                size: 36,
+                Icons.business_center_outlined,
+                size: 28,
                 color: AppColors.muted,
               ),
             )
-          : const Icon(Icons.business_center, size: 36, color: AppColors.muted),
+          : const Icon(
+              Icons.business_center_outlined,
+              size: 28,
+              color: AppColors.muted,
+            ),
     );
   }
 }

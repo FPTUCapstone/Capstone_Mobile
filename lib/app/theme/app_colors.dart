@@ -7,30 +7,28 @@ import 'package:flutter/material.dart';
 /// [TripMateColors] from `Theme.of(context).extension<TripMateColors>()` or
 /// `context.tmColors`.
 abstract final class AppColors {
-  // Brand Anchors (Matching TripMate Coastal Heritage & Editorial Baseline)
-  static const primary = Color(0xFF00152A); // brandNavy #00152A
-  static const primaryBright = Color(0xFF102A43); // Navy Light
-  static const primarySoft = Color(0xFFE6F4F1); // Mint Soft / Teal Container
-  static const secondary = Color(0xFF006B5F); // brandTeal #006B5F
-  static const secondaryDark = Color(0xFF00544A); // Teal Dark
-  static const accent = Color(0xFFFF7043); // brandCoral #FF7043
-  static const freshGreen = Color(
-    0xFF00B074,
-  ); // Fresh Vibrant Green (Startup/Splash)
-  static const logoNavy = Color(0xFF122E43); // Official Brand Oceanic Navy
+  // Brand Anchors (Unified TripMate Coastal Heritage System)
+  static const primary = Color(0xFF174B4A); // Coastal Deep Teal
+  static const primaryBright = Color(0xFF1F6361); // Coastal Teal Bright
+  static const primarySoft = Color(0xFFE8F0EA); // Soft Sage Container
+  static const secondary = Color(0xFF174B4A); // Unified Coastal Teal
+  static const secondaryDark = Color(0xFF103B39); // Coastal Teal Deep
+  static const accent = Color(0xFFB96D4C); // Warm Terracotta Accent
+  static const freshGreen = Color(0xFF174B4A); // Calm Coastal Startup Teal
+  static const logoNavy = Color(0xFF103B39); // Official Coastal Deep Anchor
 
   // Neutral & Surfaces
-  static const ink = Color(0xFF102A43); // High-contrast ink
-  static const muted = Color(0xFF64748B); // Slate Muted
-  static const line = Color(0xFFE2E8F0); // Subtle 1px card/divider line
-  static const surface = Color(0xFFF8FAFC); // surfaceBg #F8FAFC
-  static const cardBackground = Color(0xFFFFFFFF); // Pure white surface
-  static const darkSurface = Color(0xFF00152A);
+  static const ink = Color(0xFF1C2928); // Calm High-Contrast Coastal Ink
+  static const muted = Color(0xFF5B6E69); // Soft Sage Slate
+  static const line = Color(0xFFDCE2DD); // Subtle 1px card/divider line
+  static const surface = Color(0xFFF7F5EF); // Warm Coastal Ivory Canvas
+  static const cardBackground = Color(0xFFFFFFFF); // Crisp white card surface
+  static const darkSurface = Color(0xFF103B39);
 
   // Status & Feedback
-  static const success = Color(0xFF059669); // Emerald success
-  static const warning = Color(0xFFD97706); // Amber warning
-  static const error = Color(0xFFBA1A1A); // Crimson / Coral Red error
+  static const success = Color(0xFF0E9F6E); // Calm Emerald success
+  static const warning = Color(0xFFB45309); // Warm Amber warning
+  static const error = Color(0xFFC8233F); // Muted Crimson error
 }
 
 /// Semantic Light & Dark color tokens for TripMate Mobile
@@ -134,69 +132,69 @@ final class TripMateColors extends ThemeExtension<TripMateColors> {
   final bool isDark;
 
   static const TripMateColors light = TripMateColors(
-    brandNavy: Color(0xFF00152A),
-    brandTeal: Color(0xFF006B5F),
-    brandTealDark: Color(0xFF004F46),
-    brandCoral: Color(0xFFFF7043),
-    coralAccessibleText: Color(0xFFB83D18),
-    coralSoftContainer: Color(0xFFFFEFE9),
-    tealSoftContainer: Color(0xFFE3F1EE),
-    canvas: Color(0xFFF5F6F2),
+    brandNavy: Color(0xFF103B39),
+    brandTeal: Color(0xFF174B4A),
+    brandTealDark: Color(0xFF103B39),
+    brandCoral: Color(0xFF995436),
+    coralAccessibleText: Color(0xFF995436),
+    coralSoftContainer: Color(0xFFF6EDE8),
+    tealSoftContainer: Color(0xFFE8F0EA),
+    canvas: Color(0xFFF7F5EF),
     surfaceCard: Color(0xFFFFFFFF),
-    surfaceElevated: Color(0xFFECEEE8),
-    surfaceOverlay: Color(0xF2FFFFFF),
-    borderSubtle: Color(0xFFE1E4DC),
-    borderStrong: Color(0xFFC8CEC2),
-    textPrimary: Color(0xFF00152A),
-    textSecondary: Color(0xFF52606D),
-    textMuted: Color(0xFF63717E),
+    surfaceElevated: Color(0xFFEDEAE1),
+    surfaceOverlay: Color(0xF5FFFFFF),
+    borderSubtle: Color(0xFFDCE2DD),
+    borderStrong: Color(0xFFC4CEC8),
+    textPrimary: Color(0xFF1C2928),
+    textSecondary: Color(0xFF536560),
+    textMuted: Color(0xFF5B6E69),
     textOnBrand: Color(0xFFFFFFFF),
-    textOnCoralBadge: Color(0xFF00152A),
-    actionPrimary: Color(0xFF006B5F),
-    actionPrimaryPressed: Color(0xFF004F46),
-    actionDisabledBg: Color(0xFFE4E7E0),
-    actionDisabledText: Color(0xFF75808A),
-    success: Color(0xFF0E7C5B),
-    successContainer: Color(0xFFE2F5EE),
-    warning: Color(0xFF9C5100),
-    warningContainer: Color(0xFFFFF2DF),
-    error: Color(0xFFB42318),
-    errorContainer: Color(0xFFFEE4E2),
-    info: Color(0xFF0B57D0),
-    infoContainer: Color(0xFFE8F0FE),
-    photoOverlayTop: Color(0x3300152A),
-    photoOverlayBottom: Color(0xCC00152A),
-    mapRouteLine: Color(0xFF006B5F),
-    mapRouteSecondary: Color(0xFFFF7043),
-    mapSurface: Color(0xFFE9EFEA),
-    shimmerBase: Color(0xFFE6E9E1),
-    shimmerHighlight: Color(0xFFF3F5EF),
+    textOnCoralBadge: Color(0xFFFFFFFF),
+    actionPrimary: Color(0xFF174B4A),
+    actionPrimaryPressed: Color(0xFF103B39),
+    actionDisabledBg: Color(0xFFE6E3DA),
+    actionDisabledText: Color(0xFF7B8B86),
+    success: Color(0xFF0E9F6E),
+    successContainer: Color(0xFFE5F6EF),
+    warning: Color(0xFFB45309),
+    warningContainer: Color(0xFFFEF3E2),
+    error: Color(0xFFC8233F),
+    errorContainer: Color(0xFFFDECEF),
+    info: Color(0xFF174B4A),
+    infoContainer: Color(0xFFE8F0EA),
+    photoOverlayTop: Color(0x26102827),
+    photoOverlayBottom: Color(0xBF102827),
+    mapRouteLine: Color(0xFF174B4A),
+    mapRouteSecondary: Color(0xFFB96D4C),
+    mapSurface: Color(0xFFE8F0EA),
+    shimmerBase: Color(0xFFEBE8DF),
+    shimmerHighlight: Color(0xFFF6F4EE),
     isDark: false,
   );
 
   static const TripMateColors dark = TripMateColors(
-    brandNavy: Color(0xFF00152A),
-    brandTeal: Color(0xFF33B2A3),
-    brandTealDark: Color(0xFF1E8F82),
-    brandCoral: Color(0xFFFF7043),
-    coralAccessibleText: Color(0xFFFF8F6B),
-    coralSoftContainer: Color(0xFF3D2118),
-    tealSoftContainer: Color(0xFF103834),
-    canvas: Color(0xFF09131F),
-    surfaceCard: Color(0xFF102030),
-    surfaceElevated: Color(0xFF172B3F),
-    surfaceOverlay: Color(0xEE102030),
-    borderSubtle: Color(0xFF23384D),
-    borderStrong: Color(0xFF354E68),
-    textPrimary: Color(0xFFF4F6F1),
-    textSecondary: Color(0xFFB6C3CE),
-    textMuted: Color(0xFF8FA2B2),
-    textOnBrand: Color(0xFF041418),
-    textOnCoralBadge: Color(0xFF00152A),
-    actionPrimary: Color(0xFF33B2A3),
-    actionPrimaryPressed: Color(0xFF289689),
-    actionDisabledBg: Color(0xFF1C2E40),
-    actionDisabledText: Color(0xFF6B8094),
+    brandNavy: Color(0xFF103B39),
+    brandTeal: Color(0xFF4FB3A7),
+    brandTealDark: Color(0xFF338C82),
+    brandCoral: Color(0xFFD89272),
+    coralAccessibleText: Color(0xFFE5A486),
+    coralSoftContainer: Color(0xFF3A241B),
+    tealSoftContainer: Color(0xFF143533),
+    canvas: Color(0xFF0E1716),
+    surfaceCard: Color(0xFF152322),
+    surfaceElevated: Color(0xFF1D302E),
+    surfaceOverlay: Color(0xEE152322),
+    borderSubtle: Color(0xFF273E3C),
+    borderStrong: Color(0xFF3A5754),
+    textPrimary: Color(0xFFF4F3EE),
+    textSecondary: Color(0xFFB6C5C0),
+    textMuted: Color(0xFF8FA39D),
+    textOnBrand: Color(0xFF071615),
+    textOnCoralBadge: Color(0xFF101C1B),
+    actionPrimary: Color(0xFF4FB3A7),
+    actionPrimaryPressed: Color(0xFF3B9A8F),
+    actionDisabledBg: Color(0xFF1E302E),
+    actionDisabledText: Color(0xFF6E847E),
     success: Color(0xFF4ADEA0),
     successContainer: Color(0xFF103428),
     warning: Color(0xFFFFB74D),
@@ -205,13 +203,13 @@ final class TripMateColors extends ThemeExtension<TripMateColors> {
     errorContainer: Color(0xFF441818),
     info: Color(0xFF7CB4FF),
     infoContainer: Color(0xFF162A47),
-    photoOverlayTop: Color(0x4D000D1A),
-    photoOverlayBottom: Color(0xDB000D1A),
-    mapRouteLine: Color(0xFF43CBB9),
-    mapRouteSecondary: Color(0xFFFF8A65),
-    mapSurface: Color(0xFF112636),
-    shimmerBase: Color(0xFF1A2D40),
-    shimmerHighlight: Color(0xFF243B52),
+    photoOverlayTop: Color(0x4D0A1413),
+    photoOverlayBottom: Color(0xDB0A1413),
+    mapRouteLine: Color(0xFF4FB3A7),
+    mapRouteSecondary: Color(0xFFD89272),
+    mapSurface: Color(0xFF142826),
+    shimmerBase: Color(0xFF1B2E2C),
+    shimmerHighlight: Color(0xFF263E3C),
     isDark: true,
   );
 

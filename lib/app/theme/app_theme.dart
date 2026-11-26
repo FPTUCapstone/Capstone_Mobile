@@ -60,37 +60,47 @@ abstract final class AppTheme {
       ),
       appBarTheme: AppBarTheme(
         centerTitle: false,
+        toolbarHeight: 52,
         backgroundColor: c.surfaceCard,
         foregroundColor: c.textPrimary,
         elevation: 0,
+        scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
+        titleTextStyle: TextStyle(
+          fontFamily: AppTypography.displayFont,
+          fontSize: 17.5,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.2,
+          color: c.textPrimary,
+        ),
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: c.surfaceCard,
         indicatorColor: c.tealSoftContainer,
         surfaceTintColor: Colors.transparent,
-        elevation: 2,
+        height: 62,
+        elevation: 0,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return TextStyle(
               fontFamily: AppTypography.uiFont,
-              fontSize: 12,
+              fontSize: 11.5,
               fontWeight: FontWeight.w700,
               color: c.brandTeal,
             );
           }
           return TextStyle(
             fontFamily: AppTypography.uiFont,
-            fontSize: 12,
+            fontSize: 11.5,
             fontWeight: FontWeight.w500,
             color: c.textSecondary,
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return IconThemeData(color: c.brandTeal);
+            return IconThemeData(color: c.brandTeal, size: 22);
           }
-          return IconThemeData(color: c.textSecondary);
+          return IconThemeData(color: c.textSecondary, size: 21);
         }),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -99,12 +109,16 @@ abstract final class AppTheme {
           foregroundColor: c.textOnBrand,
           disabledBackgroundColor: c.actionDisabledBg,
           disabledForegroundColor: c.actionDisabledText,
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          minimumSize: const Size(0, 44),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: 10,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(TripMateRadius.sm),
           ),
           textStyle: const TextStyle(
-            fontSize: 15,
+            fontSize: 14,
             fontWeight: FontWeight.w700,
             fontFamily: AppTypography.uiFont,
           ),
@@ -113,13 +127,17 @@ abstract final class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: c.textPrimary,
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          side: BorderSide(color: c.borderStrong, width: 1.2),
+          minimumSize: const Size(0, 44),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: 10,
+          ),
+          side: BorderSide(color: c.borderStrong, width: 1),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(TripMateRadius.sm),
           ),
           textStyle: const TextStyle(
-            fontSize: 15,
+            fontSize: 14,
             fontWeight: FontWeight.w600,
             fontFamily: AppTypography.uiFont,
           ),
@@ -128,27 +146,51 @@ abstract final class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: c.brandTeal,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           textStyle: const TextStyle(
-            fontSize: 14,
+            fontSize: 13.5,
             fontWeight: FontWeight.w600,
             fontFamily: AppTypography.uiFont,
           ),
         ),
       ),
+      chipTheme: ChipThemeData(
+        backgroundColor: c.surfaceCard,
+        selectedColor: c.tealSoftContainer,
+        side: BorderSide(color: c.borderSubtle),
+        shape: const StadiumBorder(),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        labelStyle: TextStyle(
+          fontFamily: AppTypography.uiFont,
+          fontSize: 12.5,
+          fontWeight: FontWeight.w600,
+          color: c.textPrimary,
+        ),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: c.surfaceCard,
+        surfaceTintColor: Colors.transparent,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: c.surfaceCard,
+        isDense: true,
         hintStyle: TextStyle(
           fontFamily: AppTypography.uiFont,
+          fontSize: 13.5,
           color: c.textMuted,
         ),
         labelStyle: TextStyle(
           fontFamily: AppTypography.uiFont,
+          fontSize: 13.5,
           color: c.textSecondary,
         ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.md,
+          horizontal: 14,
+          vertical: 12,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(TripMateRadius.sm),
@@ -164,11 +206,11 @@ abstract final class AppTheme {
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(TripMateRadius.sm),
-          borderSide: BorderSide(color: c.error, width: 1.6),
+          borderSide: BorderSide(color: c.error, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(TripMateRadius.sm),
-          borderSide: BorderSide(color: c.brandTeal, width: 1.6),
+          borderSide: BorderSide(color: c.brandTeal, width: 1.5),
         ),
       ),
       dividerTheme: DividerThemeData(

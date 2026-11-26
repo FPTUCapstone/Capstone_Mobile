@@ -204,16 +204,21 @@ final class _PaymentPageState extends State<PaymentPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
         title: const Text(
           'Thanh Toán Điện Tử',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
         ),
         backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF0F1B2D),
-        elevation: 0.5,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: AppColors.ink,
+        elevation: 0,
         centerTitle: true,
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, thickness: 1, color: AppColors.line),
+        ),
       ),
       body: BlocConsumer<PaymentCubit, PaymentState>(
         listener: (context, state) {
@@ -362,17 +367,11 @@ final class _BookingSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x08000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -437,8 +436,8 @@ final class _BookingSummaryCard extends StatelessWidget {
               Text(
                 _formatMoney(amount, currency),
                 style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
+                  fontSize: 18.5,
+                  fontWeight: FontWeight.w800,
                   color: AppColors.primary,
                 ),
               ),
@@ -604,7 +603,7 @@ final class _PayOsGatewayCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -42,16 +42,21 @@ final class BookTourPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
         title: const Text(
           'Book Tour',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
         ),
         backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF0F1B2D),
-        elevation: 0.5,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: AppColors.ink,
+        elevation: 0,
         centerTitle: true,
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, thickness: 1, color: AppColors.line),
+        ),
       ),
       body: BlocConsumer<BookTourCubit, BookTourState>(
         listenWhen: (previous, current) =>
@@ -157,28 +162,28 @@ final class _BookingFormViewState extends State<_BookingFormView> {
         children: [
           // ── Step & Assurance Banner ──────────────────────────────────────
           Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFEAF1FE), Color(0xFFF0FDF4)],
+                colors: [Color(0xFFE8F0EA), Color(0xFFF3F6F1)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFD6E4FC)),
+              border: Border.all(color: AppColors.line),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryBright.withValues(alpha: 0.12),
+                    color: AppColors.primary.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.event_available_rounded,
-                    color: AppColors.primaryBright,
-                    size: 24,
+                    color: AppColors.primary,
+                    size: 22,
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
@@ -190,7 +195,7 @@ final class _BookingFormViewState extends State<_BookingFormView> {
                         'Direct Operator Reservation',
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF0F1B2D),
+                          color: AppColors.ink,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -225,7 +230,7 @@ final class _BookingFormViewState extends State<_BookingFormView> {
                     state.participantCounts.copyWith(adult: value),
                   ),
                 ),
-                const Divider(color: Color(0xFFF1F5F9), height: 16),
+                const Divider(color: AppColors.line, height: 16),
                 _ParticipantCounter(
                   label: 'Children',
                   subtitle: 'Age 2 to 11',
@@ -235,7 +240,7 @@ final class _BookingFormViewState extends State<_BookingFormView> {
                     state.participantCounts.copyWith(child: value),
                   ),
                 ),
-                const Divider(color: Color(0xFFF1F5F9), height: 16),
+                const Divider(color: AppColors.line, height: 16),
                 _ParticipantCounter(
                   label: 'Infants',
                   subtitle: 'Under 2 years old',
@@ -473,7 +478,7 @@ final class _BookingFormViewState extends State<_BookingFormView> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: AppColors.line),
             ),
             child: Material(
               color: Colors.transparent,
@@ -506,12 +511,12 @@ final class _BookingFormViewState extends State<_BookingFormView> {
                 : null,
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.primary,
-              disabledBackgroundColor: const Color(0xFFCBD5E1),
-              minimumSize: const Size.fromHeight(54),
+              disabledBackgroundColor: AppColors.line,
+              minimumSize: const Size.fromHeight(48),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(12),
               ),
-              elevation: state.canAttemptSubmit ? 2 : 0,
+              elevation: 0,
             ),
             child: state.submitStatus == SubmitStatus.submitting
                 ? const SizedBox(
@@ -581,18 +586,11 @@ final class _CardContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x05000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -615,7 +613,7 @@ final class _CardContainer extends StatelessWidget {
                   title,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF0F1B2D),
+                    color: AppColors.ink,
                   ),
                 ),
               ),
@@ -701,7 +699,7 @@ final class _ParticipantCounter extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: AppColors.line),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -799,7 +797,7 @@ final class _QuoteSummary extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.line),
         boxShadow: const [
           BoxShadow(
             color: Color(0x05000000),
@@ -833,7 +831,7 @@ final class _QuoteSummary extends StatelessWidget {
                     'Price Breakdown',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF0F1B2D),
+                      color: AppColors.ink,
                     ),
                   ),
                 ],
@@ -1041,7 +1039,7 @@ final class _BookingConfirmedView extends StatelessWidget {
             'Booking Confirmed!',
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F1B2D),
+              color: AppColors.ink,
             ),
           ),
           const SizedBox(height: 6),
@@ -1057,7 +1055,7 @@ final class _BookingConfirmedView extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: AppColors.line),
               boxShadow: const [
                 BoxShadow(
                   color: Color(0x0A000000),

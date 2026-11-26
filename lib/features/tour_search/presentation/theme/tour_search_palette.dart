@@ -5,23 +5,24 @@ import 'package:flutter/material.dart';
 /// Uses the same teal/navy/emerald design language as the Stitch UI reference,
 /// constrained to constants for consistent visual identity.
 abstract final class TourSearchPalette {
-  // ── Brand / Header ───────────────────────────────────────────────────
-  static const teal = Color(0xFF006B5F);
-  static const tealDark = Color(0xFF00544A);
-  static const tealSoft = Color(0xFFE6F4F1);
+  // ── Brand / Header (Unified Coastal Heritage) ────────────────────────
+  static const teal = Color(0xFF174B4A);
+  static const tealDark = Color(0xFF103B39);
+  static const tealSoft = Color(0xFFE8F0EA);
 
   // ── Text / Titles ────────────────────────────────────────────────────
-  static const navy = Color(0xFF102A43);
-  static const navyLight = Color(0xFF243B53);
+  static const navy = Color(0xFF1C2928);
+  static const navyLight = Color(0xFF3E524E);
 
   // ── Surface / Containers ─────────────────────────────────────────────
-  static const background = Color(0xFFF7F9FC);
-  static const cardBorder = Color(0xFFE2E8F0);
-  static const line = Color(0xFFF1F5F9);
+  static const background = Color(0xFFF7F5EF);
+  static const cardBorder = Color(0xFFDCE2DD);
+  static const line = Color(0xFFEDEAE1);
 
   // ── Status ───────────────────────────────────────────────────────────
-  static const available = Color(0xFF059669);
-  static const soldOut = Color(0xFFE11D48);
-  static const warning = Color(0xFFF59E0B);
-  static const muted = Color(0xFF6B7C97);
+  static const available = Color(0xFF0E9F6E);
+  static const soldOut = Color(0xFFC8233F);
+  static const warning = Color(0xFFB45309);
+  static const muted = Color(0xFF5B6E69);
+  static const accent = Color(0xFFB96D4C);
 }

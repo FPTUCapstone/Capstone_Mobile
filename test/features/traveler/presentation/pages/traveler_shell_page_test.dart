@@ -224,7 +224,7 @@ void main() {
     );
     addTearDown(router.dispose);
     await tester.pumpWidget(MaterialApp.router(routerConfig: router));
-    await tester.tap(find.byTooltip('Support chat'));
+    await tester.tap(find.byTooltip('Hỗ trợ'));
     await tester.pumpAndSettle();
     expect(find.text('General support destination'), findsOneWidget);
   });
@@ -251,38 +251,52 @@ void main() {
   });
 
   testWidgets(
-    'renders Search Tours and Tour Recommendations buttons on Home tab',
+    'renders localized Tour Search and Tour Recommendations quick actions on Home tab',
     (tester) async {
       final cubit = await _authenticatedCubit();
       addTearDown(cubit.close);
       await _pumpShell(tester, cubit);
       await tester.pumpAndSettle();
 
-      expect(find.text('Search Tours'), findsOneWidget);
-      expect(find.text('Xin chào, Traveler 👋'), findsOneWidget);
+      expect(find.text('Tìm tour'), findsOneWidget);
+      expect(find.text('Xin chào, Traveler'), findsOneWidget);
       expect(find.textContaining('Nguyen Minh Phuc'), findsNothing);
-      expect(find.text('Tour Recommendations'), findsOneWidget);
+      expect(find.text('Gợi ý tour'), findsOneWidget);
+      expect(find.byIcon(Icons.logout), findsNothing);
     },
   );
 
-  testWidgets('traveler shell sign-out uses the backend-integrated flow once', (
-    tester,
-  ) async {
-    final repository = _RecordingAuthRepository();
-    final cubit = await _authenticatedCubit(repository: repository);
-    addTearDown(cubit.close);
-    await _pumpShell(tester, cubit);
+  testWidgets(
+    'traveler profile sign-out confirms and uses the backend-integrated flow once',
+    (tester) async {
+      final repository = _RecordingAuthRepository();
+      final cubit = await _authenticatedCubit(repository: repository);
+      addTearDown(cubit.close);
+      await _pumpShell(tester, cubit);
 
-    await tester.tap(find.widgetWithIcon(IconButton, Icons.logout));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.person_outline));
+      await tester.pumpAndSettle();
+      final signOutButton = find.byKey(
+        const Key('traveler-profile-sign-out-button'),
+      );
+      await tester.scrollUntilVisible(
+        signOutButton,
+        250,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.tap(signOutButton);
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsOneWidget);
 
-    expect(repository.logoutCalls, 1);
-    expect(cubit.state.status, AuthSessionStatus.unauthenticated);
-    // The existing one-tap UX stays unchanged: no confirmation step.
-    expect(find.byType(AlertDialog), findsNothing);
-  });
+      await tester.tap(find.widgetWithText(FilledButton, 'Đăng xuất'));
+      await tester.pumpAndSettle();
 
-  testWidgets('traveler shell sign-out action is disabled while in flight', (
+      expect(repository.logoutCalls, 1);
+      expect(cubit.state.status, AuthSessionStatus.unauthenticated);
+    },
+  );
+
+  testWidgets('traveler profile sign-out action is disabled while in flight', (
     tester,
   ) async {
     final completer = Completer<void>();
@@ -291,22 +305,26 @@ void main() {
     addTearDown(cubit.close);
     await _pumpShell(tester, cubit);
 
-    await tester.tap(find.widgetWithIcon(IconButton, Icons.logout));
+    await tester.tap(find.byIcon(Icons.person_outline));
+    await tester.pumpAndSettle();
+    final signOutButton = find.byKey(
+      const Key('traveler-profile-sign-out-button'),
+    );
+    await tester.scrollUntilVisible(
+      signOutButton,
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(signOutButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Đăng xuất'));
     await tester.pump();
 
     // Busy state is derived from the approved Cubit marker, not a page flag.
     expect(cubit.state.operation, AuthSessionOperation.signOut);
-    expect(
-      tester
-          .widget<IconButton>(find.widgetWithIcon(IconButton, Icons.logout))
-          .onPressed,
-      isNull,
-    );
+    expect(tester.widget<OutlinedButton>(signOutButton).onPressed, isNull);
 
-    await tester.tap(
-      find.widgetWithIcon(IconButton, Icons.logout),
-      warnIfMissed: false,
-    );
+    await tester.tap(signOutButton, warnIfMissed: false);
     await tester.pump();
     expect(repository.logoutCalls, 1);
 
@@ -397,7 +415,7 @@ void main() {
 
       await tester.tap(find.byIcon(Icons.home_outlined));
       await tester.pumpAndSettle();
-      expect(find.text('Xin chào, Traveler 👋'), findsOneWidget);
+      expect(find.text('Xin chào, Traveler'), findsOneWidget);
       // Bookings returns to the retained tour-list tab, without a new route.
       await tester.tap(find.byIcon(Icons.confirmation_number_outlined));
       await tester.pumpAndSettle();
@@ -416,7 +434,7 @@ void main() {
       // Switch to profile tab (index 4): Trip History button is displayed
       await tester.tap(find.byIcon(Icons.person_outline));
       await tester.pumpAndSettle();
-      expect(find.text('Traveler Hồ sơ'), findsOneWidget);
+      expect(find.text('Hồ sơ du khách'), findsOneWidget);
       expect(
         find.widgetWithText(
           OutlinedButton,

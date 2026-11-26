@@ -90,8 +90,8 @@ void main() {
       await tester.tap(find.widgetWithText(TextButton, 'Đăng nhập').first);
       await tester.pumpAndSettle();
 
-      expect(find.text('Welcome back'), findsOneWidget);
-      expect(find.text('Sign in'), findsOneWidget);
+      expect(find.text('Chào mừng trở lại'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Đăng nhập'), findsOneWidget);
 
       final guestExploreLink = find.text('Duyệt khám phá không cần đăng nhập');
       await tester.scrollUntilVisible(

@@ -34,15 +34,20 @@ class TravelerProfileView extends StatelessWidget {
     final initials = name.isNotEmpty ? name[0].toUpperCase() : 'T';
 
     return ListView(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.sm,
+        AppSpacing.md,
+        AppSpacing.lg,
+      ),
       children: [
         Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          padding: const EdgeInsets.only(bottom: 10),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Traveler Hồ sơ',
+                'Hồ sơ du khách',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: AppColors.ink,
@@ -50,19 +55,30 @@ class TravelerProfileView extends StatelessWidget {
               ),
               OutlinedButton.icon(
                 onPressed: () => context.push(AppRoutes.tripHistory),
-                icon: const Icon(Icons.history_outlined, size: 16),
-                label: const Text(TripHistoryStringsEn.tripHistoryTitle),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 36),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  padding: const EdgeInsets.symmetric(horizontal: 11),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                icon: const Icon(Icons.history_outlined, size: 15),
+                label: const Text(
+                  TripHistoryStringsEn.tripHistoryTitle,
+                  style: TextStyle(fontSize: 12.5),
+                ),
               ),
             ],
           ),
         ),
-        // Profile Summary Card
+        // Compact Horizontal Profile Summary Card
         AppCard(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
+          padding: const EdgeInsets.all(14),
+          child: Row(
             children: [
               CircleAvatar(
-                radius: 36,
+                radius: 26,
                 backgroundImage: profileState.profile?.avatarUrl == null
                     ? null
                     : NetworkImage(profileState.profile!.avatarUrl!),
@@ -72,51 +88,63 @@ class TravelerProfileView extends StatelessWidget {
                     : Text(
                         initials,
                         style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
                           color: AppColors.secondary,
                         ),
                       ),
               ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                name,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.ink,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                email,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  'TRAVELER VERIFIED',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                    color: AppColors.secondary,
-                  ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name.isEmpty ? 'Du khách TripMate' : name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                    if (email.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        email,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                      ),
+                    ],
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primarySoft,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: const Text(
+                        'Thành viên TripMate',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.secondary,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.md),
 
         // Section: Personal & Travel Preferences (SRS #46)
         Text(
@@ -189,30 +217,31 @@ class TravelerProfileView extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.md),
 
         // Sign Out Button
         OutlinedButton.icon(
+          key: const Key('traveler-profile-sign-out-button'),
           onPressed: state.operation == AuthSessionOperation.signOut
               ? null
               : () => _confirmSignOut(context, session),
-          icon: const Icon(Icons.logout, color: AppColors.error),
+          icon: const Icon(Icons.logout, size: 18, color: AppColors.error),
           label: const Text(
             'Đăng xuất',
             style: TextStyle(color: AppColors.error),
           ),
           style: OutlinedButton.styleFrom(
             side: const BorderSide(color: Color(0xFFFCA5A5)),
-            minimumSize: const Size.fromHeight(50),
+            minimumSize: const Size.fromHeight(44),
           ),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.md),
         Center(
           child: Text(
-            'TripMate Mobile · Voyager Edition v1.0.0',
+            'TripMate Mobile · Phiên bản 1.0.0',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: AppColors.muted,
-              fontSize: 11,
+              fontSize: 11.5,
             ),
           ),
         ),

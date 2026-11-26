@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/app/theme/coastal_palette.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/helpers/itinerary_text.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enums.dart';
@@ -297,7 +298,11 @@ class _Actions extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
       visualDensity: VisualDensity.compact,
-      textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+      textStyle: const TextStyle(
+        fontFamily: AppTypography.uiFont,
+        fontSize: 12.5,
+        fontWeight: FontWeight.w600,
+      ),
     );
 
     final softStyle = OutlinedButton.styleFrom(
@@ -307,7 +312,11 @@ class _Actions extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
       visualDensity: VisualDensity.compact,
-      textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+      textStyle: const TextStyle(
+        fontFamily: AppTypography.uiFont,
+        fontSize: 12.5,
+        fontWeight: FontWeight.w600,
+      ),
     );
 
     final primaryStyle = FilledButton.styleFrom(
@@ -316,7 +325,11 @@ class _Actions extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
       visualDensity: VisualDensity.compact,
-      textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+      textStyle: const TextStyle(
+        fontFamily: AppTypography.uiFont,
+        fontSize: 12.5,
+        fontWeight: FontWeight.w600,
+      ),
     );
 
     return Wrap(

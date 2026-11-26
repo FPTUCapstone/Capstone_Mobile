@@ -16,12 +16,18 @@ void main() {
       // Verify emblem and brand text elements
       expect(find.byType(TripMateEmblem), findsOneWidget);
       expect(find.text('TripMate'), findsOneWidget);
-      expect(find.text('Plan smarter. Travel better.'), findsOneWidget);
+      expect(
+        find.text('Lên kế hoạch thông minh · Du lịch trọn vẹn'),
+        findsOneWidget,
+      );
       expect(
         find.text('Hành trình trọn vẹn · Trải nghiệm thông minh'),
         findsOneWidget,
       );
-      expect(find.widgetWithText(AppButton, 'Get started'), findsOneWidget);
+      expect(
+        find.widgetWithText(AppButton, 'Bắt đầu khám phá'),
+        findsOneWidget,
+      );
 
       await tester.pumpAndSettle();
     });
@@ -41,7 +47,7 @@ void main() {
 
       // Settle animation to completion
       await tester.pumpAndSettle();
-      expect(find.text('Get started'), findsOneWidget);
+      expect(find.text('Bắt đầu khám phá'), findsOneWidget);
     });
 
     testWidgets('invokes onFinished callback upon animation completion', (
@@ -117,8 +123,8 @@ void main() {
       await tester.pumpWidget(MaterialApp.router(routerConfig: router));
       await tester.pumpAndSettle();
 
-      expect(find.text('Get started'), findsOneWidget);
-      await tester.tap(find.text('Get started'));
+      expect(find.text('Bắt đầu khám phá'), findsOneWidget);
+      await tester.tap(find.text('Bắt đầu khám phá'));
       await tester.pumpAndSettle();
 
       expect(find.text('Guest Home Destination'), findsOneWidget);

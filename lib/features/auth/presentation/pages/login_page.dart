@@ -42,17 +42,17 @@ class _LoginPageState extends State<LoginPage> {
         return AppPageScaffold(
           showAppBar: false,
           content: [
-            const SizedBox(height: AppSpacing.xl),
-            const _TripMateMark(),
             const SizedBox(height: AppSpacing.lg),
+            const _TripMateMark(),
+            const SizedBox(height: AppSpacing.md),
             Text(
-              'Welcome back',
+              'Chào mừng trở lại',
               style: Theme.of(context).textTheme.headlineMedium,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppSpacing.xs),
+            const SizedBox(height: 4),
             Text(
-              'Sign in to continue planning your trip.',
+              'Đăng nhập để tiếp tục lên kế hoạch cho chuyến đi.',
               style: Theme.of(
                 context,
               ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
@@ -66,42 +66,48 @@ class _LoginPageState extends State<LoginPage> {
                   AppTextField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    label: 'Email address',
-                    prefixIcon: const Icon(Icons.mail_outline),
+                    label: 'Địa chỉ email',
+                    prefixIcon: const Icon(Icons.mail_outline, size: 19),
                     textInputAction: TextInputAction.next,
                     validator: Validators.email,
                   ),
-                  const SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: AppSpacing.sm),
                   AppPasswordField(
                     controller: _passwordController,
-                    label: 'Password',
+                    label: 'Mật khẩu',
                     textInputAction: TextInputAction.done,
                     validator: (value) =>
-                        Validators.requiredField(value, fieldName: 'Password'),
+                        Validators.requiredField(value, fieldName: 'Mật khẩu'),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: 6),
             Row(
               children: [
                 Checkbox(
                   value: _keepSignedIn,
+                  visualDensity: VisualDensity.compact,
                   onChanged: (value) {
                     setState(() => _keepSignedIn = value ?? false);
                   },
                 ),
-                const Expanded(child: Text('Keep me signed in')),
+                const Expanded(
+                  child: Text(
+                    'Ghi nhớ đăng nhập',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                ),
                 TextButton(
                   onPressed: session.isLoading
                       ? null
                       : () => context.push(AppRoutes.forgotPassword),
-                  child: const Text('Forgot password?'),
+                  child: const Text('Quên mật khẩu?'),
                 ),
               ],
             ),
             if (widget.notice != null) ...[
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.xs),
               AppAlert(message: widget.notice!, type: AppAlertType.success),
             ],
             // A completed local sign-out that could not reach the server
@@ -109,19 +115,19 @@ class _LoginPageState extends State<LoginPage> {
             if (session.status == AuthSessionStatus.failure ||
                 (session.status == AuthSessionStatus.unauthenticated &&
                     session.errorMessage != null)) ...[
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.xs),
               AppAlert(
-                message: session.errorMessage ?? 'Unable to sign in.',
+                message: session.errorMessage ?? 'Không thể đăng nhập lúc này.',
                 type: AppAlertType.error,
               ),
             ],
             const SizedBox(height: AppSpacing.md),
             AppButton(
               isLoading: session.isLoading,
-              label: 'Sign in',
+              label: 'Đăng nhập',
               onPressed: _submit,
             ),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
             Row(
               children: [
                 const Expanded(child: Divider()),
@@ -130,43 +136,49 @@ class _LoginPageState extends State<LoginPage> {
                     horizontal: AppSpacing.sm,
                   ),
                   child: Text(
-                    'or continue with',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    'hoặc tiếp tục với',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
                   ),
                 ),
                 const Expanded(child: Divider()),
               ],
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.sm),
             OutlinedButton.icon(
               onPressed: session.isLoading
                   ? null
                   : () => context.read<AuthSessionCubit>().signInWithGoogle(),
               icon: const Text(
                 'G',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
               ),
-              label: const Text('Continue with Google'),
+              label: const Text('Tiếp tục với Google'),
               style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
+                minimumSize: const Size.fromHeight(46),
+                backgroundColor: Colors.white,
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.sm),
             Wrap(
               alignment: WrapAlignment.center,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                const Text('New to TripMate?'),
+                const Text(
+                  'Chưa có tài khoản TripMate?',
+                  style: TextStyle(fontSize: 13),
+                ),
                 TextButton(
                   onPressed: _showAccountTypeSheet,
-                  child: const Text('Create an account'),
+                  child: const Text('Tạo tài khoản'),
                 ),
               ],
             ),
             Center(
               child: TextButton.icon(
                 onPressed: () => context.go(AppRoutes.guestHome),
-                icon: const Icon(Icons.travel_explore),
+                icon: const Icon(Icons.travel_explore, size: 18),
                 label: const Text('Duyệt khám phá không cần đăng nhập'),
               ),
             ),
@@ -183,9 +195,9 @@ class _LoginPageState extends State<LoginPage> {
       builder: (sheetContext) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
+            AppSpacing.md,
             0,
-            AppSpacing.lg,
+            AppSpacing.md,
             AppSpacing.lg,
           ),
           child: Column(
@@ -193,24 +205,24 @@ class _LoginPageState extends State<LoginPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Create an account',
+                'Chọn loại tài khoản',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: AppSpacing.md),
               AppButton(
-                label: 'Traveler account',
+                label: 'Tài khoản Du khách',
                 onPressed: () {
                   Navigator.pop(sheetContext);
                   context.push(AppRoutes.travelerRegistration);
                 },
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.xs),
               OutlinedButton(
                 onPressed: () {
                   Navigator.pop(sheetContext);
                   context.push(AppRoutes.operatorRegistration);
                 },
-                child: const Text('Tour Operator account'),
+                child: const Text('Tài khoản Nhà điều hành tour'),
               ),
             ],
           ),

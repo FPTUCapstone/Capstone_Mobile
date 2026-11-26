@@ -22,7 +22,7 @@ class OperatorCouponsView extends StatelessWidget {
           onPressed: () => context.push(AppRoutes.createCoupon),
           icon: const Icon(Icons.add),
           label: const Text('Tạo coupon mới'),
-          backgroundColor: AppColors.secondary,
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
         ),
         body: const Padding(
@@ -32,7 +32,7 @@ class OperatorCouponsView extends StatelessWidget {
               icon: Icons.confirmation_number_outlined,
               title: 'Chưa có mã khuyến mãi',
               message:
-                  'Tính năng quản lý và phân phối coupon đối tác đang chờ kết nối API hệ thống (PENDING_BE_INTEGRATION).',
+                  'Hiện chưa có mã khuyến mãi nào. Bạn có thể tạo mã ưu đãi mới cho các gói tour của mình.',
             ),
           ),
         ),
@@ -72,7 +72,7 @@ class OperatorCouponsView extends StatelessWidget {
         onPressed: () => context.push(AppRoutes.createCoupon),
         icon: const Icon(Icons.add),
         label: const Text('Tạo coupon mới'),
-        backgroundColor: AppColors.secondary,
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
       body: ListView(

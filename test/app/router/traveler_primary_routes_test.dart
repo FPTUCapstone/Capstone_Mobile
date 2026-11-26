@@ -91,7 +91,7 @@ void main() {
           if (traveler) {
             await tester.tap(find.byIcon(Icons.person_outline));
             await tester.pump(const Duration(milliseconds: 300));
-            expect(find.text('Traveler Hồ sơ'), findsOneWidget);
+            expect(find.text('Hồ sơ du khách'), findsOneWidget);
             expect(find.byType(AppSlidingBottomNav), findsOneWidget);
           }
         },

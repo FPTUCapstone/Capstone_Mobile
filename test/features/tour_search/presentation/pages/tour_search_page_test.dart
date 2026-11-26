@@ -61,7 +61,6 @@ void main() {
 
       expect(find.text('TripMate'), findsOneWidget);
       expect(find.text('Tìm kiếm Tour'), findsOneWidget);
-      expect(find.text('TOURS'), findsOneWidget);
       expect(find.text('Đăng nhập'), findsOneWidget);
       expect(find.text('Lọc tour'), findsOneWidget);
       expect(find.text('Tìm thấy 1 tour'), findsOneWidget);

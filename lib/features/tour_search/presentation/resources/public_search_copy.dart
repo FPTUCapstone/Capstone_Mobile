@@ -172,7 +172,7 @@ String publicSearchPage(int page, int total, bool useEnglish) =>
     useEnglish ? 'Page $page of $total' : 'Trang $page / $total';
 
 String publicSearchDays(int days, bool useEnglish) =>
-    useEnglish ? '$days days' : '$days ngày';
+    useEnglish ? (days == 1 ? '1 day' : '$days days') : '$days ngày';
 
 String publicSearchSlots(int? slots, bool useEnglish) => slots == null
     ? publicSearchCopy(SearchText.available, useEnglish)
