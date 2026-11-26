@@ -449,9 +449,16 @@ class _MessengerPageState extends State<MessengerPage>
     final threads = _filteredThreads(state.threads);
 
     return Scaffold(
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
         automaticallyImplyLeading: !isSplitView,
         title: const Text('Tin nhắn'),
+        backgroundColor: AppColors.cardBackground,
+        surfaceTintColor: Colors.transparent,
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, thickness: 1, color: AppColors.line),
+        ),
         actions: [
           IconButton(
             key: const Key('new_dm_button'),
@@ -463,42 +470,58 @@ class _MessengerPageState extends State<MessengerPage>
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
-            child: TextField(
-              key: const Key('thread_search_input'),
-              controller: _threadSearchController,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                hintText: 'Tìm hội thoại đã tải…',
-                isDense: true,
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (value) => setState(() => _threadQuery = value),
+          DecoratedBox(
+            decoration: const BoxDecoration(
+              color: AppColors.cardBackground,
+              border: Border(bottom: BorderSide(color: AppColors.line)),
             ),
-          ),
-          SizedBox(
-            width: double.infinity,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              child: Row(
-                children: [
-                  for (final item in const [
-                    (_ThreadFilter.all, 'Tất cả'),
-                    (_ThreadFilter.group, 'Nhóm'),
-                    (_ThreadFilter.direct, 'Riêng tư'),
-                  ]) ...[
-                    ChoiceChip(
-                      label: Text(item.$2),
-                      selected: _filter == item.$1,
-                      onSelected: (_) => setState(() => _filter = item.$1),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+                  child: TextField(
+                    key: const Key('thread_search_input'),
+                    controller: _threadSearchController,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      hintText: 'Tìm hội thoại đã tải…',
+                      isDense: true,
+                      filled: true,
+                      fillColor: AppColors.surface,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.line),
+                      ),
                     ),
-                    if (item.$1 != _ThreadFilter.direct)
-                      const SizedBox(width: 8),
-                  ],
-                ],
-              ),
+                    onChanged: (value) => setState(() => _threadQuery = value),
+                  ),
+                ),
+                SizedBox(
+                  width: double.infinity,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(12, 2, 12, 8),
+                    child: Row(
+                      children: [
+                        for (final item in const [
+                          (_ThreadFilter.all, 'Tất cả'),
+                          (_ThreadFilter.group, 'Nhóm'),
+                          (_ThreadFilter.direct, 'Riêng tư'),
+                        ]) ...[
+                          ChoiceChip(
+                            label: Text(item.$2),
+                            selected: _filter == item.$1,
+                            onSelected: (_) =>
+                                setState(() => _filter = item.$1),
+                          ),
+                          if (item.$1 != _ThreadFilter.direct)
+                            const SizedBox(width: 8),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           if (state.listError != null)
@@ -560,6 +583,9 @@ class _MessengerPageState extends State<MessengerPage>
                               final selected = state.selected?.key == t.key;
                               return ListTile(
                                 key: Key('thread_${t.key}'),
+                                tileColor: selected
+                                    ? AppColors.primarySoft
+                                    : AppColors.cardBackground,
                                 selected: selected,
                                 leading: CircleAvatar(
                                   backgroundColor: AppColors.primarySoft,
@@ -567,7 +593,7 @@ class _MessengerPageState extends State<MessengerPage>
                                     t.kind == ChatKind.direct
                                         ? Icons.person_outline
                                         : Icons.groups_outlined,
-                                    color: AppColors.secondary,
+                                    color: AppColors.primary,
                                   ),
                                 ),
                                 title: Text(
@@ -575,16 +601,23 @@ class _MessengerPageState extends State<MessengerPage>
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.ink,
                                   ),
                                 ),
                                 subtitle: Text(
                                   '${t.lastMessage ?? 'Chưa có tin nhắn'}${t.isReadOnly ? ' · Đã đóng' : ''}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: AppColors.muted,
+                                  ),
                                 ),
                                 trailing: t.unreadCount > 0
-                                    ? Badge.count(count: t.unreadCount)
+                                    ? Badge.count(
+                                        count: t.unreadCount,
+                                        backgroundColor: AppColors.accent,
+                                      )
                                     : null,
                                 onTap: () {
                                   unawaited(_cubit.select(t));
@@ -621,7 +654,14 @@ class _MessengerPageState extends State<MessengerPage>
     final cannotSend = selected.isReadOnly || state.blocked;
 
     return Scaffold(
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
+        backgroundColor: AppColors.cardBackground,
+        surfaceTintColor: Colors.transparent,
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, thickness: 1, color: AppColors.line),
+        ),
         leading: isSplitView
             ? null
             : IconButton(

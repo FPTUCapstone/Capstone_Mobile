@@ -206,19 +206,19 @@ class _SupportChatPageState extends State<SupportChatPage> {
       child: Container(
         width: isUser ? null : double.infinity,
         constraints: isUser
-            ? BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * .86)
+            ? BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * .84)
             : null,
-        padding: const EdgeInsets.all(AppSpacing.md),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: isUser ? AppColors.primarySoft : AppColors.cardBackground,
+          color: isUser ? AppColors.primary : AppColors.cardBackground,
           border: Border.all(
-            color: isUser ? AppColors.primarySoft : AppColors.line,
+            color: isUser ? AppColors.primary : AppColors.line,
           ),
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(18),
-            topRight: const Radius.circular(18),
-            bottomLeft: Radius.circular(isUser ? 18 : 4),
-            bottomRight: Radius.circular(isUser ? 4 : 18),
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(isUser ? 16 : 4),
+            bottomRight: Radius.circular(isUser ? 4 : 16),
           ),
         ),
         child: Column(
@@ -227,24 +227,29 @@ class _SupportChatPageState extends State<SupportChatPage> {
           children: [
             Text(
               isUser ? 'You' : 'TripMate support',
-              style: Theme.of(
-                context,
-              ).textTheme.labelSmall?.copyWith(color: AppColors.muted),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: isUser
+                    ? Colors.white.withValues(alpha: 0.78)
+                    : AppColors.primary,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-            const SizedBox(height: AppSpacing.xs),
+            const SizedBox(height: AppSpacing.xxs),
             SelectableText(
               entry.content,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontSize: 15,
-                height: 1.55,
-                color: AppColors.ink,
+                fontSize: 14.5,
+                height: 1.5,
+                color: isUser ? Colors.white : AppColors.ink,
               ),
             ),
             if (entry.sources.isNotEmpty)
               ExpansionTile(
                 title: Text(
                   'Sources (${entry.sources.length})',
-                  style: Theme.of(context).textTheme.labelSmall,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: isUser ? Colors.white70 : AppColors.muted,
+                  ),
                 ),
                 tilePadding: EdgeInsets.zero,
                 childrenPadding: EdgeInsets.zero,
@@ -258,7 +263,10 @@ class _SupportChatPageState extends State<SupportChatPage> {
                         padding: const EdgeInsets.only(bottom: AppSpacing.xs),
                         child: Text(
                           source.title,
-                          style: Theme.of(context).textTheme.bodySmall,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: isUser ? Colors.white : AppColors.muted,
+                              ),
                         ),
                       ),
                     ),
@@ -281,8 +289,15 @@ class _SupportChatPageState extends State<SupportChatPage> {
     builder: (context, state) {
       final cubit = context.read<SupportChatCubit>();
       return Scaffold(
+        backgroundColor: AppColors.surface,
         appBar: AppBar(
           title: const Text('Support chat'),
+          backgroundColor: AppColors.cardBackground,
+          surfaceTintColor: Colors.transparent,
+          bottom: const PreferredSize(
+            preferredSize: Size.fromHeight(1),
+            child: Divider(height: 1, thickness: 1, color: AppColors.line),
+          ),
           actions: [
             IconButton(
               tooltip: 'Clear chat',
@@ -295,22 +310,43 @@ class _SupportChatPageState extends State<SupportChatPage> {
           child: Column(
             children: [
               if (state.context != null)
-                Padding(
+                Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.md,
+                    vertical: 4,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: AppColors.primarySoft,
+                    border: Border(bottom: BorderSide(color: AppColors.line)),
                   ),
                   child: Row(
                     children: [
+                      const Icon(
+                        Icons.link_rounded,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Selected ${state.context?.kind} #${state.context?.id}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
                         ),
                       ),
                       if (state.context != null)
                         IconButton(
                           tooltip: 'Clear context',
+                          visualDensity: VisualDensity.compact,
                           onPressed: () => cubit.selectContext(null),
-                          icon: const Icon(Icons.close),
+                          icon: const Icon(
+                            Icons.close,
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
                         ),
                     ],
                   ),
@@ -329,26 +365,49 @@ class _SupportChatPageState extends State<SupportChatPage> {
                   padding: const EdgeInsets.all(AppSpacing.md),
                   children: [
                     if (state.messages.isEmpty && state.failure == null)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: AppSpacing.lg,
+                      Container(
+                        margin: const EdgeInsets.symmetric(
+                          vertical: AppSpacing.md,
+                        ),
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        decoration: BoxDecoration(
+                          color: AppColors.cardBackground,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.line),
                         ),
                         child: Column(
                           children: [
-                            const Icon(
-                              Icons.support_agent,
-                              size: 36,
-                              color: AppColors.secondary,
+                            Container(
+                              width: 52,
+                              height: 52,
+                              decoration: const BoxDecoration(
+                                color: AppColors.primarySoft,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.support_agent_rounded,
+                                size: 28,
+                                color: AppColors.primary,
+                              ),
                             ),
                             const SizedBox(height: AppSpacing.md),
                             Text(
                               'How can I help?',
-                              style: Theme.of(context).textTheme.titleLarge,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.ink,
+                                  ),
                             ),
                             const SizedBox(height: AppSpacing.xs),
                             const Text(
                               'Ask about tours, bookings, refunds or itineraries.',
                               textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                color: AppColors.muted,
+                                height: 1.4,
+                              ),
                             ),
                           ],
                         ),
@@ -370,59 +429,88 @@ class _SupportChatPageState extends State<SupportChatPage> {
                     if (state.failure case final failure?)
                       Semantics(
                         liveRegion: true,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(failure.message),
-                            if (state.canRetry)
-                              TextButton(
-                                onPressed: cubit.retry,
-                                child: const Text('Retry'),
+                        child: Container(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFDEEEF),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.error.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                failure.message,
+                                style: const TextStyle(
+                                  color: AppColors.error,
+                                  fontSize: 13.5,
+                                ),
                               ),
-                          ],
+                              if (state.canRetry)
+                                TextButton(
+                                  onPressed: cubit.retry,
+                                  child: const Text('Retry'),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                   ],
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _message,
-                        decoration: const InputDecoration(
-                          labelText: 'Message',
-                          filled: true,
-                          fillColor: AppColors.cardBackground,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: AppSpacing.md,
-                            vertical: 14,
+              DecoratedBox(
+                decoration: const BoxDecoration(
+                  color: AppColors.cardBackground,
+                  border: Border(top: BorderSide(color: AppColors.line)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    AppSpacing.sm,
+                    AppSpacing.md,
+                    AppSpacing.sm,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _message,
+                          decoration: const InputDecoration(
+                            labelText: 'Message',
+                            filled: true,
+                            fillColor: AppColors.surface,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(20),
+                              ),
+                            ),
                           ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(16)),
-                          ),
+                          minLines: 1,
+                          maxLines: 3,
+                          maxLength: 2000,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _send(),
+                          enabled: !state.loading,
                         ),
-                        minLines: 1,
-                        maxLines: 3,
-                        maxLength: 2000,
-                        textInputAction: TextInputAction.send,
-                        onSubmitted: (_) => _send(),
-                        enabled: !state.loading,
                       ),
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: IconButton.filled(
-                        tooltip: 'Send message',
-                        onPressed: state.loading ? null : _send,
-                        icon: const Icon(Icons.send),
+                      const SizedBox(width: AppSpacing.xs),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: IconButton.filled(
+                          tooltip: 'Send message',
+                          onPressed: state.loading ? null : _send,
+                          icon: const Icon(Icons.send_rounded, size: 20),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
