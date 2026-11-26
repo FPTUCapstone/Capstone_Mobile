@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/availability_status.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summary.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/resources/public_search_copy.dart';
@@ -23,7 +24,7 @@ class TourListCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cardContent = Padding(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -48,6 +49,7 @@ class TourListCard extends StatelessWidget {
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: TourSearchPalette.navy,
                         fontWeight: FontWeight.w700,
+                        height: 1.25,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xxs),
@@ -62,14 +64,14 @@ class TourListCard extends StatelessWidget {
                           color: TourSearchPalette.muted,
                         ),
                       ),
-                    const SizedBox(height: AppSpacing.xs),
+                    const SizedBox(height: 6),
 
                     // ── Operator & Duration ────────────────────────────────
                     Row(
                       children: [
                         const Icon(
                           Icons.business_outlined,
-                          size: 16,
+                          size: 14,
                           color: TourSearchPalette.muted,
                         ),
                         const SizedBox(width: AppSpacing.xxs),
@@ -83,10 +85,10 @@ class TourListCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: AppSpacing.sm),
+                        const SizedBox(width: AppSpacing.xs),
                         const Icon(
                           Icons.schedule_outlined,
-                          size: 16,
+                          size: 14,
                           color: TourSearchPalette.muted,
                         ),
                         const SizedBox(width: AppSpacing.xxs),
@@ -98,25 +100,47 @@ class TourListCard extends StatelessWidget {
                         ),
                       ],
                     ),
+                    if (tour.aggregateRating != null) ...[
+                      const SizedBox(height: 5),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.star_rounded,
+                            size: 15,
+                            color: TourSearchPalette.accent,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            tour.aggregateRating!.toString(),
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: TourSearchPalette.navy,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
-          if (tour.aggregateRating != null) Text('★ ${tour.aggregateRating}'),
+          const SizedBox(height: 10),
+          const Divider(height: 1, thickness: 1, color: TourSearchPalette.line),
+          const SizedBox(height: 8),
           // ── Price & Availability ───────────────────────────────
           Wrap(
             alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
             spacing: AppSpacing.xs,
             runSpacing: AppSpacing.xxs,
             children: [
               Text(
                 _formatPrice(tour.basePrice, tour.currency),
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: TourSearchPalette.navy,
-                  fontWeight: FontWeight.w800,
+                style: AppTypography.price(
+                  TourSearchPalette.teal,
+                  fontSize: 15.5,
                 ),
               ),
               _AvailabilityBadge(tour: tour, useEnglish: useEnglish),
@@ -133,21 +157,14 @@ class TourListCard extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(color: TourSearchPalette.cardBorder),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x14102A43),
-              blurRadius: 16,
-              offset: Offset(0, 4),
-            ),
-          ],
         ),
         child: Material(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           child: InkWell(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             onTap: onTap,
             child: cardContent,
           ),
@@ -289,11 +306,11 @@ class _TourThumbnail extends StatelessWidget {
 
     return Container(
       key: Key('tour-thumbnail-${tour.tourId}'),
-      width: 108,
-      height: 108,
+      width: 88,
+      height: 88,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: TourSearchPalette.cardBorder),
       ),
       child: hasValidUrl

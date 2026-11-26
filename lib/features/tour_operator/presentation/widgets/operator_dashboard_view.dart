@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/operator_dashboard_metrics_panel.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
@@ -33,15 +34,15 @@ class OperatorDashboardView extends StatelessWidget {
 
         // Quick Operations Row
         _buildQuickOperationsBar(context),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.md),
 
         // Key Metrics Bento Grid
         _buildMetricsGrid(context),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.md),
 
         // Today's Departure & Check-in Status
         _buildTodayDeparturesCard(context),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.md),
 
         // Recent Bookings Snapshot
         _buildRecentBookingsSection(context),
@@ -81,16 +82,16 @@ class OperatorDashboardView extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 48,
-          height: 48,
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
             color: AppColors.primary,
             borderRadius: BorderRadius.circular(12),
           ),
           child: const Icon(
-            Icons.business_center,
+            Icons.business_center_outlined,
             color: Colors.white,
-            size: 24,
+            size: 22,
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
@@ -115,7 +116,7 @@ class OperatorDashboardView extends StatelessWidget {
                   const Icon(
                     Icons.verified,
                     size: 16,
-                    color: AppColors.secondary,
+                    color: AppColors.primary,
                   ),
                 ],
               ),
@@ -133,29 +134,30 @@ class OperatorDashboardView extends StatelessWidget {
 
   Widget _buildQuickOperationsBar(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF00152A), Color(0xFF004D40)],
+          colors: [Color(0xFFE8F0EA), Color(0xFFF3F6F1)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
             children: [
-              Icon(Icons.qr_code_scanner, color: Color(0xFF6DF5E1), size: 20),
-              SizedBox(width: 8),
+              Icon(Icons.qr_code_scanner, color: AppColors.primary, size: 18),
+              SizedBox(width: 6),
               Text(
                 'ĐIỂM DANH CHECK-IN TOUR',
                 style: TextStyle(
-                  color: Color(0xFF6DF5E1),
+                  color: AppColors.primary,
                   fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.6,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.4,
                 ),
               ),
             ],
@@ -164,33 +166,39 @@ class OperatorDashboardView extends StatelessWidget {
           const Text(
             'Quét vé điện tử QR của hành khách',
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
+              color: AppColors.ink,
+              fontSize: 15.5,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 4),
-          Text(
+          const Text(
             'Xác thực vé nhanh chóng tại điểm đón khách và cập nhật trạng thái tham gia tức thì.',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.8),
-              fontSize: 12,
+              color: AppColors.muted,
+              fontSize: 12.5,
               height: 1.35,
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
-                child: ElevatedButton.icon(
+                child: FilledButton.icon(
                   onPressed: () => _openQrScanner(context),
-                  icon: const Icon(Icons.camera_alt_outlined, size: 18),
+                  icon: const Icon(Icons.camera_alt_outlined, size: 17),
                   label: const Text('Mở máy quét QR'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF006B5F),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    minimumSize: const Size.fromHeight(44),
+                    minimumSize: const Size.fromHeight(40),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    textStyle: const TextStyle(
+                      fontFamily: AppTypography.uiFont,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -200,14 +208,20 @@ class OperatorDashboardView extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               OutlinedButton.icon(
                 onPressed: () => context.push(AppRoutes.createTourPackage),
-                icon: const Icon(Icons.add, size: 18, color: Colors.white),
+                icon: const Icon(Icons.add, size: 17, color: AppColors.primary),
                 label: const Text(
-                  'Tạo Tour',
-                  style: TextStyle(color: Colors.white),
+                  'Tạo tour',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Color(0xFF6DF5E1), width: 1.2),
-                  minimumSize: const Size(110, 44),
+                  backgroundColor: Colors.white,
+                  side: const BorderSide(color: AppColors.primary, width: 1.1),
+                  minimumSize: const Size(104, 40),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -252,9 +266,9 @@ class OperatorDashboardView extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: AppSpacing.xs),
             const Text(
-              'Chưa có lịch tour khởi hành trong ngày (PENDING_BE_INTEGRATION).',
+              'Chưa có lịch tour khởi hành trong ngày hôm nay.',
               style: TextStyle(fontSize: 13, color: AppColors.muted),
             ),
           ],

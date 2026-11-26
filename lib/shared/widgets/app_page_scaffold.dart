@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 
 class AppPageScaffold extends StatelessWidget {
@@ -19,9 +20,22 @@ class AppPageScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return Scaffold(
+      backgroundColor: c.canvas,
       appBar: showAppBar
-          ? AppBar(title: title == null ? null : Text(title!), actions: actions)
+          ? AppBar(
+              title: title == null ? null : Text(title!),
+              actions: actions,
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(1),
+                child: Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: c.borderSubtle.withValues(alpha: 0.7),
+                ),
+              ),
+            )
           : null,
       body: SafeArea(
         child: LayoutBuilder(
@@ -41,7 +55,7 @@ class AppPageScaffold extends StatelessWidget {
                   children: [
                     ...content,
                     if (footer != null) ...[
-                      const SizedBox(height: AppSpacing.xl),
+                      const SizedBox(height: AppSpacing.lg),
                       footer!,
                     ],
                   ],

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/tour_operator/domain/entities/operator_dashboard_metrics.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/cubit/operator_dashboard_cubit.dart';
@@ -158,7 +159,7 @@ class _OperatorDashboardMetricsPanelState
                   value: '${metrics.activeTourCount} gói',
                   subtitle: 'Còn nhận đặt chỗ',
                   icon: Icons.tour_outlined,
-                  color: const Color(0xFF0284C7),
+                  color: AppColors.primary,
                   onTap: () => widget.onNavigateToTab(1),
                 ),
                 _MetricCard(
@@ -166,7 +167,7 @@ class _OperatorDashboardMetricsPanelState
                   value: '${metrics.monthlyBookingCount} đơn',
                   subtitle: 'Đã thanh toán, không bị hủy',
                   icon: Icons.confirmation_number_outlined,
-                  color: const Color(0xFF0D9488),
+                  color: const Color(0xFF286664),
                   onTap: () => widget.onNavigateToTab(2),
                 ),
                 _MetricCard(
@@ -174,7 +175,7 @@ class _OperatorDashboardMetricsPanelState
                   value: formatVnd(metrics.monthlyNetAmount),
                   subtitle: 'Đã quyết toán, trừ hoàn trả đã xác nhận',
                   icon: Icons.payments_outlined,
-                  color: const Color(0xFF059669),
+                  color: AppColors.success,
                   onTap: () => widget.onNavigateToTab(3),
                 ),
                 _MetricCard(
@@ -182,24 +183,47 @@ class _OperatorDashboardMetricsPanelState
                   value: '${metrics.activeCouponCount} mã',
                   subtitle: 'Còn thời hạn và lượt dùng',
                   icon: Icons.local_offer_outlined,
-                  color: const Color(0xFFD97706),
+                  color: AppColors.accent,
                   onTap: () => widget.onNavigateToTab(4),
                 ),
               ];
               final singleColumn =
                   constraints.maxWidth < 360 ||
                   MediaQuery.textScalerOf(context).scale(14) > 20;
-              return Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
+              if (singleColumn) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var i = 0; i < cards.length; i++) ...[
+                      if (i > 0) const SizedBox(height: AppSpacing.sm),
+                      cards[i],
+                    ],
+                  ],
+                );
+              }
+              return Column(
                 children: [
-                  for (final card in cards)
-                    SizedBox(
-                      width: singleColumn
-                          ? constraints.maxWidth
-                          : (constraints.maxWidth - AppSpacing.sm) / 2,
-                      child: card,
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(child: cards[0]),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(child: cards[1]),
+                      ],
                     ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(child: cards[2]),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(child: cards[3]),
+                      ],
+                    ),
+                  ),
                 ],
               );
             },
@@ -227,7 +251,7 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AppCard(
-    padding: const EdgeInsets.all(AppSpacing.md),
+    padding: const EdgeInsets.all(12),
     onTap: onTap,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -238,24 +262,31 @@ class _MetricCard extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(fontSize: 12, color: AppColors.muted),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.muted,
+                  height: 1.25,
+                ),
               ),
             ),
-            const SizedBox(width: 4),
-            Icon(icon, size: 18, color: color),
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 15, color: color),
+            ),
           ],
         ),
-        const SizedBox(height: AppSpacing.xs),
+        const SizedBox(height: 8),
+        Text(value, style: AppTypography.price(AppColors.ink, fontSize: 15.5)),
+        const SizedBox(height: 3),
         Text(
-          value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            color: AppColors.ink,
-          ),
+          subtitle,
+          style: TextStyle(fontSize: 11, color: color, height: 1.25),
         ),
-        const SizedBox(height: 2),
-        Text(subtitle, style: TextStyle(fontSize: 11, color: color)),
       ],
     ),
   );

@@ -49,7 +49,7 @@ void main() {
     await tester.pumpWidget(_page(const TravelerRegistrationPage()));
 
     await _tapVisible(tester, find.byType(Checkbox));
-    await _tapVisible(tester, find.widgetWithText(FilledButton, 'Register'));
+    await _tapVisible(tester, find.widgetWithText(FilledButton, 'Đăng ký'));
     await tester.pump();
 
     expect(find.text('Full name is required.'), findsOneWidget);
@@ -172,7 +172,7 @@ void main() {
       ),
     );
 
-    final forgotPassword = find.text('Forgot password?');
+    final forgotPassword = find.text('Quên mật khẩu?');
     await _tapVisible(tester, forgotPassword);
     await tester.pumpAndSettle();
 
@@ -203,11 +203,11 @@ void main() {
       ),
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Email address'),
+      find.widgetWithText(TextFormField, 'Địa chỉ email'),
       'operator@example.com',
     );
     await tester.scrollUntilVisible(
-      find.text('Create an account'),
+      find.text('Tạo tài khoản'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
@@ -280,6 +280,7 @@ Future<void> _tapVisible(WidgetTester tester, Finder finder) async {
     scrollable: find.byType(Scrollable).first,
   );
   await tester.tap(finder);
+  await tester.pump();
 }
 
 final class _FakeTravelPreferencesRepository

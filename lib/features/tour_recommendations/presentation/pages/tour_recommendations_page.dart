@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/domain/entities/tour_recommendation.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/presentation/cubit/tour_recommendations_cubit.dart';
@@ -45,8 +46,13 @@ class _TourRecommendationsView extends StatelessWidget {
       appBar: AppBar(
         title: const Text(TourRecommendationsStrings.appBarTitle),
         backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         foregroundColor: TourSearchPalette.navy,
         elevation: 0,
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, thickness: 1, color: AppColors.line),
+        ),
         actions: [
           IconButton(
             tooltip: TourRecommendationsStrings.preferencesTooltip,
@@ -167,16 +173,16 @@ class _RecommendationExplanationBanner extends StatelessWidget {
         AppSpacing.xs,
       ),
       child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFFF0FDF4),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFBBF7D0)),
+          color: AppColors.primarySoft,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.line),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.auto_awesome, color: Color(0xFF16A34A), size: 22),
+            const Icon(Icons.auto_awesome, color: AppColors.primary, size: 20),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Column(
@@ -185,7 +191,7 @@ class _RecommendationExplanationBanner extends StatelessWidget {
                   Text(
                     TourRecommendationsStrings.bannerTitle,
                     style: theme.textTheme.titleSmall?.copyWith(
-                      color: const Color(0xFF15803D),
+                      color: AppColors.ink,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -193,7 +199,7 @@ class _RecommendationExplanationBanner extends StatelessWidget {
                   Text(
                     TourRecommendationsStrings.bannerDescription,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFF166534),
+                      color: AppColors.muted,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xs),
@@ -204,7 +210,7 @@ class _RecommendationExplanationBanner extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF15803D),
+                        color: AppColors.primary,
                         decoration: TextDecoration.underline,
                       ),
                     ),

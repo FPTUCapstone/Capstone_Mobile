@@ -101,26 +101,26 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
               state.profile?.avatarUrl,
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: 12),
 
           // Hero Smart Itinerary Banner (SRS #47)
           _buildSmartPlannerHero(context),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
 
           // Active Trip Glance (SRS #52)
           _buildActiveTripGlance(context),
 
           // Quick Action Hub
           _buildQuickActionHub(context),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
 
           // Featured Central Vietnam Tours (SRS #63, #64)
           _buildTourDiscoverySection(context),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
 
           // Top Destinations / POIs (SRS #50)
           _buildFeaturedPoisSection(context),
-          const SizedBox(height: AppSpacing.xl),
+          const SizedBox(height: AppSpacing.lg),
         ],
       ),
     );
@@ -215,7 +215,9 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    name.isEmpty ? 'Xin chào 👋' : 'Xin chào, $name 👋',
+                    name.isEmpty ? 'Xin chào' : 'Xin chào, $name',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: AppColors.ink,
@@ -231,8 +233,9 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
                 ],
               ),
             ),
+            const SizedBox(width: 10),
             CircleAvatar(
-              radius: 20,
+              radius: 19,
               backgroundColor: AppColors.primarySoft,
               child: imageUrl == null || imageUrl.isEmpty
                   ? fallback
@@ -240,8 +243,8 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
                       child: Image.network(
                         imageUrl,
                         key: const Key('traveler-home-avatar-image'),
-                        width: 40,
-                        height: 40,
+                        width: 38,
+                        height: 38,
                         fit: BoxFit.cover,
                         semanticLabel: 'Ảnh đại diện của $name',
                         frameBuilder: (_, child, frame, _) =>
@@ -252,16 +255,14 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.md),
-        // Search bar launcher
+        const SizedBox(height: 12),
+        // Compact single-line search bar launcher
         InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () => _openTours(context),
           child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: 12,
-            ),
+            height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
@@ -269,27 +270,34 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.search, color: AppColors.muted, size: 20),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
+                const Icon(
+                  Icons.search_rounded,
+                  color: AppColors.secondary,
+                  size: 19,
+                ),
+                const SizedBox(width: 8),
+                const Expanded(
                   child: Text(
-                    'Tìm tour, điểm đến, ẩm thực miền Trung...',
-                    style: TextStyle(color: AppColors.muted, fontSize: 14),
+                    'Tìm tour, điểm đến miền Trung...',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: AppColors.muted, fontSize: 13.5),
                   ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(6),
+                    color: AppColors.primarySoft,
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
                     'Tour & POI',
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: AppColors.secondary,
                     ),
@@ -307,79 +315,69 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF00152A), Color(0xFF004D40)],
+          colors: [Color(0xFFE8F0EA), Color(0xFFF3F6F1)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFC8D7CE)),
       ),
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.auto_awesome, size: 12, color: AppColors.primary),
+                SizedBox(width: 4),
+                Text(
+                  'TRỢ LÝ LỊCH TRÌNH AI',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.4,
+                  ),
                 ),
-                decoration: BoxDecoration(
-                  color: AppColors.primarySoft.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.auto_awesome,
-                      size: 14,
-                      color: Color(0xFF6DF5E1),
-                    ),
-                    SizedBox(width: 4),
-                    Text(
-                      'AI TRIP PLANNER',
-                      style: TextStyle(
-                        color: Color(0xFF6DF5E1),
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: 8),
           const Text(
             'Lên lịch trình thông minh\nchỉ trong 30 giây',
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
+              color: AppColors.ink,
+              fontSize: 16.5,
+              fontWeight: FontWeight.w700,
               height: 1.25,
             ),
           ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'Tự động tối ưu hóa điểm tham quan, tuyến đường và chi phí cho chuyến du lịch Đà Nẵng - Hội An - Huế.',
+          const SizedBox(height: 4),
+          const Text(
+            'Tự động tối ưu điểm tham quan, tuyến đường và chi phí cho hành trình Đà Nẵng - Hội An - Huế.',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.85),
-              fontSize: 13,
+              color: AppColors.muted,
+              fontSize: 12.5,
               height: 1.4,
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
-          ElevatedButton.icon(
+          const SizedBox(height: 12),
+          FilledButton.icon(
             onPressed: () => context.push(AppRoutes.createItinerary),
-            icon: const Icon(Icons.rocket_launch, size: 16),
+            icon: const Icon(Icons.auto_awesome_outlined, size: 16),
             label: const Text('Bắt đầu lên lịch trình'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF006B5F),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              minimumSize: const Size(0, 40),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -507,85 +505,85 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
 
   Widget _buildQuickActionHub(BuildContext context) {
     final actions = [
-      _QuickActionItem(
+      const _QuickActionItem(
         icon: Icons.tour_outlined,
-        label: 'Search Tours',
+        label: 'Tìm tour',
         route: AppRoutes.tourSearch,
-        color: const Color(0xFF0284C7),
+        color: Color(0xFF174B4A),
       ),
-      _QuickActionItem(
-        icon: Icons.recommend_outlined,
-        label: 'Tour Recommendations',
+      const _QuickActionItem(
+        icon: Icons.auto_awesome_outlined,
+        label: 'Gợi ý tour',
         route: AppRoutes.tourRecommendations,
-        color: const Color(0xFF0D9488),
+        color: Color(0xFFB96D4C),
       ),
-      _QuickActionItem(
+      const _QuickActionItem(
         icon: Icons.group_add_outlined,
         label: 'Vào nhóm',
         route: AppRoutes.joinTravelGroup,
-        color: const Color(0xFF7C3AED),
+        color: Color(0xFF286664),
       ),
-      _QuickActionItem(
+      const _QuickActionItem(
         icon: Icons.download_for_offline_outlined,
-        label: 'Dữ liệu offline',
+        label: 'Ngoại tuyến',
         route: AppRoutes.offlinePackages,
-        color: const Color(0xFFD97706),
+        color: Color(0xFF995436),
       ),
     ];
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: actions
-          .map(
-            (action) => Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: InkWell(
+      children: [
+        for (var i = 0; i < actions.length; i++) ...[
+          if (i > 0) const SizedBox(width: 8),
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () {
+                if (actions[i].route == AppRoutes.tourSearch) {
+                  _openTours(context);
+                } else {
+                  context.push(actions[i].route);
+                }
+              },
+              child: Container(
+                height: 82,
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  onTap: () {
-                    if (action.route == AppRoutes.tourSearch) {
-                      _openTours(context);
-                    } else {
-                      context.push(action.route);
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.line),
+                  border: Border.all(color: AppColors.line),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundColor: actions[i].color.withValues(alpha: 0.12),
+                      child: Icon(
+                        actions[i].icon,
+                        size: 18,
+                        color: actions[i].color,
+                      ),
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircleAvatar(
-                          radius: 18,
-                          backgroundColor: action.color.withValues(alpha: 0.12),
-                          child: Icon(
-                            action.icon,
-                            size: 20,
-                            color: action.color,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          action.label,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.ink,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                    const SizedBox(height: 6),
+                    Text(
+                      actions[i].label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.ink,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
-          )
-          .toList(),
+          ),
+        ],
+      ],
     );
   }
 

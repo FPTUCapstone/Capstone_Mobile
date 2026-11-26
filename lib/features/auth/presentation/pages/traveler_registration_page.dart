@@ -92,67 +92,67 @@ class __TravelerRegistrationFormState extends State<_TravelerRegistrationForm> {
         final isSubmitting = state is RegisterLoading;
 
         return AppPageScaffold(
-          title: 'Create Account',
+          title: 'Tạo tài khoản',
           content: [
             Text(
-              'Join TripMate to plan one-day itineraries around your own time, budget and pace.',
+              'Tham gia TripMate để lập lịch trình du lịch trong ngày theo thời gian, ngân sách và nhịp độ của bạn.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
             Form(
               key: _formKey,
               child: Column(
                 children: [
                   AppTextField(
                     controller: _nameController,
-                    label: 'Full name',
+                    label: 'Họ và tên',
                     textInputAction: TextInputAction.next,
                     enabled: !isSubmitting,
                     validator: Validators.fullName,
                   ),
-                  const SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: AppSpacing.sm),
                   AppTextField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    label: 'Email address',
+                    label: 'Địa chỉ email',
                     textInputAction: TextInputAction.next,
                     enabled: !isSubmitting,
                     validator: Validators.email,
                   ),
-                  const SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: AppSpacing.sm),
                   AppTextField(
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
-                    label: 'Phone number',
+                    label: 'Số điện thoại',
                     textInputAction: TextInputAction.next,
                     enabled: !isSubmitting,
                     validator: Validators.phone,
                   ),
-                  const SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: AppSpacing.sm),
                   AppPasswordField(
                     controller: _passwordController,
                     helperText:
-                        'Use upper case, lower case, a number and a special character.',
-                    label: 'Password',
+                        'Gồm chữ hoa, chữ thường, chữ số và ký tự đặc biệt.',
+                    label: 'Mật khẩu',
                     textInputAction: TextInputAction.next,
                     enabled: !isSubmitting,
                     validator: Validators.password,
                   ),
-                  const SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: AppSpacing.sm),
                   AppPasswordField(
                     controller: _confirmController,
-                    label: 'Confirm password',
+                    label: 'Xác nhận mật khẩu',
                     enabled: !isSubmitting,
                     validator: (value) {
                       final requiredError = Validators.requiredField(
                         value,
-                        fieldName: 'Confirm password',
+                        fieldName: 'Xác nhận mật khẩu',
                       );
                       if (requiredError != null) {
                         return requiredError;
                       }
                       if (value != _passwordController.text) {
-                        return 'Passwords do not match. Please re-enter.';
+                        return 'Mật khẩu xác nhận không khớp. Vui lòng nhập lại.';
                       }
                       return null;
                     },
@@ -160,16 +160,18 @@ class __TravelerRegistrationFormState extends State<_TravelerRegistrationForm> {
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.sm),
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
               controlAffinity: ListTileControlAffinity.leading,
               value: _acceptedTerms,
               onChanged: isSubmitting
                   ? null
                   : (value) => setState(() => _acceptedTerms = value ?? false),
               title: const Text(
-                'I agree to the Terms of Service and the Privacy Policy.',
+                'Tôi đồng ý với Điều khoản dịch vụ và Chính sách bảo mật.',
+                style: TextStyle(fontSize: 13),
               ),
             ),
           ],
@@ -178,7 +180,7 @@ class __TravelerRegistrationFormState extends State<_TravelerRegistrationForm> {
             children: [
               AppButton(
                 isLoading: isSubmitting,
-                label: 'Register',
+                label: 'Đăng ký',
                 onPressed: _acceptedTerms && !isSubmitting ? _register : null,
               ),
               const SizedBox(height: AppSpacing.xs),
@@ -186,12 +188,15 @@ class __TravelerRegistrationFormState extends State<_TravelerRegistrationForm> {
                 alignment: WrapAlignment.center,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  const Text('Already have an account?'),
+                  const Text(
+                    'Đã có tài khoản?',
+                    style: TextStyle(fontSize: 13),
+                  ),
                   TextButton(
                     onPressed: isSubmitting
                         ? null
                         : () => context.go(AppRoutes.login),
-                    child: const Text('Sign in'),
+                    child: const Text('Đăng nhập'),
                   ),
                 ],
               ),

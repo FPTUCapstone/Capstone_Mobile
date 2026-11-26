@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 
 /// Destination item definition for [AppSlidingBottomNav].
 class AppNavDestination {
@@ -78,26 +79,26 @@ class AppSlidingBottomNav extends StatelessWidget {
         decoration: BoxDecoration(
           color: backgroundColor,
           border: const Border(
-            top: BorderSide(color: AppColors.line, width: 0.8),
+            top: BorderSide(color: AppColors.line, width: 1),
           ),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x0A00152A),
-              blurRadius: 16,
-              offset: Offset(0, -4),
+              color: Color(0x08103B39),
+              blurRadius: 12,
+              offset: Offset(0, -2),
             ),
           ],
         ),
         child: SafeArea(
           top: false,
           child: SizedBox(
-            height: 64,
+            height: 60,
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final totalWidth = constraints.maxWidth;
                 final slotWidth = totalWidth / count;
                 // Capsule width is proportional to slot width, clamped to comfortable bounds.
-                final pillWidth = (slotWidth - 12).clamp(52.0, 76.0);
+                final pillWidth = (slotWidth - 12).clamp(48.0, 72.0);
                 final pillLeft =
                     selectedIndex * slotWidth + (slotWidth - pillWidth) / 2;
 
@@ -108,28 +109,21 @@ class AppSlidingBottomNav extends StatelessWidget {
                     AnimatedPositioned(
                       duration: disableAnimations
                           ? Duration.zero
-                          : const Duration(milliseconds: 280),
+                          : const Duration(milliseconds: 260),
                       curve: Curves.easeOutCubic,
                       left: pillLeft,
-                      top: 9,
+                      top: 7,
                       width: pillWidth,
                       height: 46,
                       child: showHighlightCapsule
                           ? Container(
                               decoration: BoxDecoration(
                                 color: highlightColor,
-                                borderRadius: BorderRadius.circular(23),
+                                borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
-                                  color: activeColor.withValues(alpha: 0.20),
+                                  color: activeColor.withValues(alpha: 0.14),
                                   width: 1.0,
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: activeColor.withValues(alpha: 0.08),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
                               ),
                             )
                           : const SizedBox.shrink(),
@@ -186,7 +180,7 @@ class AppSlidingBottomNav extends StatelessWidget {
             hoverColor: activeColor.withValues(alpha: 0.04),
             onTap: () => onDestinationSelected(index),
             child: SizedBox(
-              height: 64,
+              height: 60,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
@@ -195,14 +189,14 @@ class AppSlidingBottomNav extends StatelessWidget {
                     clipBehavior: Clip.none,
                     children: [
                       AnimatedScale(
-                        scale: isSelected ? 1.08 : 1.0,
+                        scale: isSelected ? 1.06 : 1.0,
                         duration: animDuration,
                         curve: Curves.easeOutBack,
                         child: Icon(
                           isSelected
                               ? destination.selectedIcon
                               : destination.icon,
-                          size: isSelected ? 22 : 21,
+                          size: isSelected ? 21 : 20,
                           color: isSelected ? activeColor : inactiveColor,
                         ),
                       ),
@@ -222,6 +216,7 @@ class AppSlidingBottomNav extends StatelessWidget {
                             child: Text(
                               destination.badge!,
                               style: const TextStyle(
+                                fontFamily: AppTypography.uiFont,
                                 color: Colors.white,
                                 fontSize: 9,
                                 fontWeight: FontWeight.bold,
@@ -231,16 +226,17 @@ class AppSlidingBottomNav extends StatelessWidget {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 2),
                   AnimatedDefaultTextStyle(
                     duration: animDuration,
                     style: TextStyle(
+                      fontFamily: AppTypography.uiFont,
                       fontSize: 11,
                       fontWeight: isSelected
                           ? FontWeight.w700
                           : FontWeight.w500,
                       color: isSelected ? activeColor : inactiveColor,
-                      letterSpacing: isSelected ? -0.2 : 0.0,
+                      letterSpacing: isSelected ? -0.15 : 0.0,
                     ),
                     child: Text(
                       destination.label,

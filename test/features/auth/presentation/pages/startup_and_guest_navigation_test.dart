@@ -36,8 +36,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Get started'), findsOneWidget);
-    await tester.tap(find.text('Get started'));
+    expect(find.text('Bắt đầu khám phá'), findsOneWidget);
+    await tester.tap(find.text('Bắt đầu khám phá'));
     await tester.pumpAndSettle();
 
     expect(find.text('Guest Home Destination'), findsOneWidget);
