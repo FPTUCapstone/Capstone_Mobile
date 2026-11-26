@@ -69,7 +69,7 @@ final class DioOperatorProfileRemoteDataSource
         return _parseProfile(data['profile']);
       }
       // Fallback: if 200 PUT omitted the profile object, fetch the latest copy.
-      return getProfile();
+      return await getProfile();
     } on DioException catch (error) {
       throw _mapDioException(error, isMutation: true);
     } on OperatorProfileValidationException {
