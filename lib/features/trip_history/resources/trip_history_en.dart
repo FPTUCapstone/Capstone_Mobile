@@ -36,7 +36,7 @@ abstract final class TripHistoryStringsEn {
   static const String labelDepartureDate = 'Ngày đi';
   static const String labelParticipants = 'Hành khách';
   static const String labelTotalAmount = 'Tổng thanh toán';
-  static const String labelFree = 'Miễn phí';
+  static const String labelFree = 'Free';
   static const String labelStatus = 'Trạng thái';
   static const String labelType = 'Loại';
 
