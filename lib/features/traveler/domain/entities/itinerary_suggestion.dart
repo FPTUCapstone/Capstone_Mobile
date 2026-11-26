@@ -77,9 +77,29 @@ final class ItinerarySuggestion extends Equatable {
   final double? overflowVnd;
   final TripadvisorRating? tripadvisor;
 
+  /// Whether this place fits only by extending the itinerary end time by a
+  /// known positive number of minutes (ADR 0001).
+  bool get isOvertimeExtension =>
+      unfitReason == 'ExceedsEndTime' &&
+      overflowMinutes != null &&
+      overflowMinutes! > 0;
+
   /// Places that do not fit or are closed on arrival are shown but cannot be
-  /// chosen; an unknown fit can (the save re-checks it).
-  bool get isSelectable => fitsItinerary != false && openAtArrival != false;
+  /// chosen; an unknown fit can (the save re-checks it). Places that exceed
+  /// end time remain selectable only when backend reported a known positive
+  /// [overflowMinutes] so the traveler can confirm the exact extension.
+  bool get isSelectable {
+    if (openAtArrival == false) return false;
+    if (unfitReason == 'ClosedAtArrival' ||
+        unfitReason == 'Inactive' ||
+        unfitReason == 'NoOpeningHours') {
+      return false;
+    }
+    if (unfitReason == 'ExceedsEndTime') {
+      return overflowMinutes != null && overflowMinutes! > 0;
+    }
+    return fitsItinerary != false;
+  }
 
   @override
   List<Object?> get props => [

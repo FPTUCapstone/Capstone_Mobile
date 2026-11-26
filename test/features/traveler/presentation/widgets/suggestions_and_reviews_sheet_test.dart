@@ -195,6 +195,15 @@ void main() {
     expect(find.text('4/5 · 19 đánh giá'), findsNWidgets(3));
   });
 
+  const tooLateUnknown = ItinerarySuggestion(
+    poiId: 504,
+    name: 'Quán Chay Quá Giới Hạn',
+    fitsItinerary: false,
+    openAtArrival: true,
+    unfitReason: 'ExceedsEndTime',
+    unfitPoiId: 504,
+  );
+
   testWidgets('places that do not fit are greyed with the reason', (
     tester,
   ) async {
@@ -204,17 +213,19 @@ void main() {
         itineraryId: 10,
         kind: SuggestionKind.replace,
         searchRadiusKm: 15,
-        items: [tooLate, pushesStopLate],
+        items: [tooLateUnknown, pushesStopLate],
       ),
     );
 
     final semantics = tester.ensureSemantics();
     expect(find.text('Thay địa điểm'), findsOneWidget);
-    expect(find.text('Vượt giờ kết thúc 1 giờ 20 phút'), findsOneWidget);
+    expect(find.text('Vượt giờ kết thúc'), findsOneWidget);
     expect(
-      tester.getSemantics(find.bySemanticsLabel(RegExp('^Mì Quảng 1A'))),
+      tester.getSemantics(
+        find.bySemanticsLabel(RegExp('^Quán Chay Quá Giới Hạn')),
+      ),
       isSemantics(
-        label: 'Mì Quảng 1A. Không chọn được: Vượt giờ kết thúc 1 giờ 20 phút',
+        label: 'Quán Chay Quá Giới Hạn. Không chọn được: Vượt giờ kết thúc',
         hasEnabledState: true,
         isEnabled: false,
       ),
@@ -225,11 +236,73 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.text('Mì Quảng 1A'));
+    await tester.tap(find.text('Quán Chay Quá Giới Hạn'));
     await tester.pumpAndSettle();
     // Not selectable: the sheet stays open.
     expect(find.text('Thay địa điểm'), findsOneWidget);
   });
+
+  testWidgets(
+    'overtime place with known overflow asks confirmation before returning it',
+    (tester) async {
+      ItinerarySuggestion? chosen;
+      await tester.binding.setSurfaceSize(const Size(420, 1600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () async {
+                chosen = await showItinerarySuggestionsSheet(
+                  context,
+                  repository: FakeSuggestionRepository(
+                    const ItinerarySuggestions(
+                      itineraryId: 10,
+                      kind: SuggestionKind.food,
+                      searchRadiusKm: 15,
+                      items: [tooLate],
+                    ),
+                  ),
+                  itineraryId: 10,
+                  kind: SuggestionKind.food,
+                  itemId: 70,
+                  currentEndTime: DateTime.utc(2026, 10, 18, 5), // 12:00 VN
+                  anchorName: 'Morning Glory Signature',
+                );
+              },
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Vượt giờ kết thúc 1 giờ 20 phút'), findsOneWidget);
+      await tester.tap(find.text('Mì Quảng 1A'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Kéo dài lịch trình thêm 1 giờ 20 phút?'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('12:00', findRichText: true), findsOneWidget);
+      expect(find.textContaining('13:20', findRichText: true), findsOneWidget);
+
+      // Going back keeps the suggestions sheet open without returning a choice.
+      await tester.tap(find.text('Quay lại'));
+      await tester.pumpAndSettle();
+      expect(chosen, isNull);
+      expect(find.text('Mì Quảng 1A'), findsOneWidget);
+
+      await tester.tap(find.text('Mì Quảng 1A'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tiếp tục thêm quán'));
+      await tester.pumpAndSettle();
+
+      expect(chosen, tooLate);
+    },
+  );
 
   testWidgets('choosing a place that fits returns it', (tester) async {
     ItinerarySuggestion? chosen;
