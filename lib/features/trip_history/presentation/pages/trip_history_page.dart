@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
-import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/coastal_palette.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/features/traveler_emergency/presentation/cubit/traveler_emergency_notices_cubit.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/trip_enums.dart';
@@ -129,23 +129,57 @@ class _TripHistoryPageState extends State<TripHistoryPage>
 
   @override
   Widget build(BuildContext context) {
+    final p = CoastalPalette.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hairline = isDark ? p.border : const Color(0xFFEDEAE1);
+    final segmentBg = isDark ? p.canvas : const Color(0xFFEDEAE1);
+
     return Scaffold(
+      backgroundColor: p.canvas,
       appBar: AppBar(
-        title: const Text(TripHistoryStringsEn.tripHistoryTitle),
+        backgroundColor: p.surface,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: p.ink,
+        elevation: 0,
+        titleSpacing: 4,
+        title: Text(
+          TripHistoryStringsEn.tripHistoryTitle,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.2,
+            color: p.ink,
+          ),
+        ),
         actions: [
-          IconButton(
-            tooltip: 'My Complaints',
-            icon: const Icon(Icons.report_outlined),
-            onPressed: () => context.push(AppRoutes.myPostTripComplaints),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Tooltip(
+              message: TripHistoryStringsEn.tooltipMyComplaints,
+              child: TextButton(
+                onPressed: () => context.push(AppRoutes.myPostTripComplaints),
+                style: TextButton.styleFrom(
+                  foregroundColor: p.secondary,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  minimumSize: const Size(44, 36),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text(
+                  TripHistoryStringsEn.actionMyComplaints,
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: TripHistoryStringsEn.tabUpcoming),
-            Tab(text: TripHistoryStringsEn.tabCompleted),
-            Tab(text: TripHistoryStringsEn.tabCancelled),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(height: 1, thickness: 1, color: hairline),
         ),
       ),
       body: BlocConsumer<TripRecordsCubit, TripRecordsState>(
@@ -160,18 +194,64 @@ class _TripHistoryPageState extends State<TripHistoryPage>
 
           return Column(
             children: [
-              const SizedBox(height: AppSpacing.xs),
-              TripHistoryFiltersBar(
-                selectedTripType: state.tripType,
-                startDate: state.startDate,
-                endDate: state.endDate,
-                validationError: state.validationError,
-                onTripTypeChanged: cubit.setTripType,
-                onDateRangeSelected: cubit.setDateRange,
-                onClearFilters: cubit.clearFilters,
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: p.surface,
+                  border: Border(bottom: BorderSide(color: hairline)),
+                ),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+                      child: Container(
+                        height: 42,
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: segmentBg,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: TabBar(
+                          controller: _tabController,
+                          indicator: BoxDecoration(
+                            color: p.primary,
+                            borderRadius: BorderRadius.circular(9),
+                          ),
+                          indicatorSize: TabBarIndicatorSize.tab,
+                          dividerColor: Colors.transparent,
+                          splashBorderRadius: BorderRadius.circular(9),
+                          labelColor: p.onPrimary,
+                          unselectedLabelColor: p.secondary,
+                          labelPadding: EdgeInsets.zero,
+                          labelStyle: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          unselectedLabelStyle: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          tabs: const [
+                            Tab(text: TripHistoryStringsEn.tabUpcoming),
+                            Tab(text: TripHistoryStringsEn.tabCompleted),
+                            Tab(text: TripHistoryStringsEn.tabCancelled),
+                          ],
+                        ),
+                      ),
+                    ),
+                    TripHistoryFiltersBar(
+                      selectedTripType: state.tripType,
+                      startDate: state.startDate,
+                      endDate: state.endDate,
+                      validationError: state.validationError,
+                      onTripTypeChanged: cubit.setTripType,
+                      onDateRangeSelected: cubit.setDateRange,
+                      onClearFilters: cubit.clearFilters,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ),
               ),
-              const SizedBox(height: AppSpacing.xs),
-              Expanded(child: _buildBody(context, state, cubit)),
+              Expanded(child: _buildBody(context, state, cubit, p)),
             ],
           );
         },
@@ -183,6 +263,7 @@ class _TripHistoryPageState extends State<TripHistoryPage>
     BuildContext context,
     TripRecordsState state,
     TripRecordsCubit cubit,
+    CoastalPalette p,
   ) {
     if (state.isLoading || state.status == TripRecordsStatus.initial) {
       return const Center(child: LoadingIndicator());
@@ -204,7 +285,14 @@ class _TripHistoryPageState extends State<TripHistoryPage>
               const SizedBox(height: AppSpacing.md),
               FilledButton.icon(
                 onPressed: cubit.retry,
-                icon: const Icon(Icons.refresh),
+                style: FilledButton.styleFrom(
+                  backgroundColor: p.primary,
+                  foregroundColor: p.onPrimary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.refresh, size: 18),
                 label: const Text(TripHistoryStringsEn.actionRetry),
               ),
             ],
@@ -217,23 +305,36 @@ class _TripHistoryPageState extends State<TripHistoryPage>
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.history_toggle_off_outlined,
-                size: 56,
-                color: AppColors.muted,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                TripHistoryStringsEn.emptyListMessage,
-                textAlign: TextAlign.center,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(color: AppColors.muted),
-              ),
-            ],
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(maxWidth: 360),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            decoration: BoxDecoration(
+              color: p.surface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: p.border),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.luggage_outlined,
+                  size: 40,
+                  color: p.secondary.withValues(alpha: 0.7),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  TripHistoryStringsEn.emptyListMessage,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    height: 1.45,
+                    color: p.secondary,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -244,25 +345,23 @@ class _TripHistoryPageState extends State<TripHistoryPage>
       children: [
         if (summary != null)
           Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.xxs,
-            ),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 '${TripHistoryStringsEn.summaryCompletedTrips(summary.totalCompletedTrips)}'
                 ' · ${TripHistoryStringsEn.summaryVisitedPois(summary.totalVisitedPois)}',
-                style: const TextStyle(
-                  fontSize: 13,
+                style: TextStyle(
+                  fontSize: 12.5,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.muted,
+                  color: p.secondary,
                 ),
               ),
             ),
           ),
         Expanded(
           child: ListView.builder(
+            padding: const EdgeInsets.only(top: 10, bottom: 20),
             itemCount: state.items.length,
             itemBuilder: (context, index) {
               final record = state.items[index];
@@ -297,7 +396,7 @@ class _TripHistoryPageState extends State<TripHistoryPage>
             },
           ),
         ),
-        _buildPaginationBar(context, state, cubit),
+        _buildPaginationBar(context, state, cubit, p),
       ],
     );
   }
@@ -306,17 +405,15 @@ class _TripHistoryPageState extends State<TripHistoryPage>
     BuildContext context,
     TripRecordsState state,
     TripRecordsCubit cubit,
+    CoastalPalette p,
   ) {
     if (state.totalPages <= 1) return const SizedBox.shrink();
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: p.surface,
+        border: Border(top: BorderSide(color: p.border)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -325,16 +422,36 @@ class _TripHistoryPageState extends State<TripHistoryPage>
             onPressed: state.hasPreviousPage
                 ? () => cubit.goToPage(state.page - 1)
                 : null,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: p.ink,
+              side: BorderSide(color: p.border),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              visualDensity: VisualDensity.compact,
+            ),
             child: const Text(TripHistoryStringsEn.paginationPrevious),
           ),
           Text(
             TripHistoryStringsEn.formatPagination(state.page, state.totalPages),
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              color: p.ink,
+            ),
           ),
           OutlinedButton(
             onPressed: state.hasNextPage
                 ? () => cubit.goToPage(state.page + 1)
                 : null,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: p.ink,
+              side: BorderSide(color: p.border),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              visualDensity: VisualDensity.compact,
+            ),
             child: const Text(TripHistoryStringsEn.paginationNext),
           ),
         ],

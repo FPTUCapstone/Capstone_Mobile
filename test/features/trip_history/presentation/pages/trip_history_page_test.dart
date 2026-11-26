@@ -287,7 +287,10 @@ void main() {
     ) async {
       await pumpPage(tester);
 
-      expect(find.textContaining('Visited'), findsNothing);
+      expect(
+        find.textContaining(TripHistoryStringsEn.stopVisited),
+        findsNothing,
+      );
     });
   });
 

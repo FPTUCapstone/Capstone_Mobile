@@ -81,7 +81,7 @@ class _TripReviewPageState extends State<TripReviewPage> {
     showModalBottomSheet<void>(
       context: context,
       builder: (sheetCtx) => SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -269,13 +269,15 @@ class _TripReviewPageState extends State<TripReviewPage> {
                               color: AppColors.primary,
                             ),
                             const SizedBox(width: AppSpacing.xs),
-                            Text(
-                              TripHistoryStringsEn.summarySectionTitle,
-                              style: Theme.of(context).textTheme.labelLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primary,
-                                  ),
+                            Expanded(
+                              child: Text(
+                                TripHistoryStringsEn.summarySectionTitle,
+                                style: Theme.of(context).textTheme.labelLarge
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primary,
+                                    ),
+                              ),
                             ),
                           ],
                         ),

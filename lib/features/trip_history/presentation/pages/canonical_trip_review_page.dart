@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/app/theme/coastal_palette.dart';
 import 'package:trip_mate_mobile/core/utils/calendar_date_format.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/canonical_trip_review.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/canonical_trip_review_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/presentation/cubit/canonical_trip_review_cubit.dart';
+import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 
 final class CanonicalTripReviewPage extends StatefulWidget {
   const CanonicalTripReviewPage({super.key, required this.cubit});
@@ -42,6 +44,15 @@ final class _CanonicalTripReviewPageState
     super.dispose();
   }
 
+  String _ratingLabel(int rating) => switch (rating) {
+    1 => '1/5 · Không hài lòng',
+    2 => '2/5 · Cần cải thiện',
+    3 => '3/5 · Tạm ổn',
+    4 => '4/5 · Rất hài lòng',
+    5 => '5/5 · Tuyệt vời',
+    _ => 'Chạm để chọn số sao',
+  };
+
   Future<void> _pickPhotos() async {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
@@ -51,7 +62,7 @@ final class _CanonicalTripReviewPageState
     );
     if (result == null) return;
     if (result.files.length > 5) {
-      setState(() => _message = 'Select no more than five photos.');
+      setState(() => _message = TripHistoryStringsEn.validationPhotoMaxCount);
       return;
     }
     final photos = <ReviewPhotoUpload>[];
@@ -59,7 +70,7 @@ final class _CanonicalTripReviewPageState
       final Uint8List? bytes = file.bytes;
       if (bytes == null || bytes.isEmpty || bytes.length > 5000000) {
         setState(
-          () => _message = 'Each photo must be no larger than 5,000,000 bytes.',
+          () => _message = TripHistoryStringsEn.validationPhotoExceedsLimit,
         );
         return;
       }
@@ -72,7 +83,7 @@ final class _CanonicalTripReviewPageState
       };
       if (type == null) {
         setState(
-          () => _message = 'Only JPEG, PNG, and WebP photos are supported.',
+          () => _message = TripHistoryStringsEn.validationPhotoInvalidType,
         );
         return;
       }
@@ -92,7 +103,10 @@ final class _CanonicalTripReviewPageState
         _rating < 1 ||
         _title.text.trim().isEmpty ||
         _content.text.trim().isEmpty) {
-      setState(() => _message = 'Provide a rating, title, and review.');
+      setState(
+        () => _message =
+            'Vui lòng chọn số sao, nhập tiêu đề và nội dung đánh giá.',
+      );
       return;
     }
     await widget.cubit.submit(
@@ -104,8 +118,20 @@ final class _CanonicalTripReviewPageState
     );
   }
 
+  void _navigateBack(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(AppRoutes.tripHistory);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final p = CoastalPalette.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hairline = isDark ? p.border : const Color(0xFFEDEAE1);
+
     return BlocProvider.value(
       value: widget.cubit,
       child: BlocConsumer<CanonicalTripReviewCubit, CanonicalTripReviewState>(
@@ -124,9 +150,11 @@ final class _CanonicalTripReviewPageState
             }
           });
           if (state.outcome == CanonicalReviewOutcome.created) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('Review published.')));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(TripHistoryStringsEn.reviewSubmitSuccess),
+              ),
+            );
             if (context.canPop()) {
               context.pop(true);
             } else {
@@ -138,140 +166,414 @@ final class _CanonicalTripReviewPageState
           final data = _context;
           final review = data?.review;
           final readOnly = review != null && !(data?.isEditable ?? false);
+          final canShowForm =
+              data != null &&
+              data.existingReviewKind != 'legacy' &&
+              (review != null || data.canSubmit);
+
           return Scaffold(
-            appBar: AppBar(title: const Text('Trip review')),
+            backgroundColor: p.canvas,
+            appBar: AppBar(
+              backgroundColor: p.surface,
+              surfaceTintColor: Colors.transparent,
+              foregroundColor: p.ink,
+              elevation: 0,
+              title: Text(
+                review != null
+                    ? TripHistoryStringsEn.viewReviewTitle
+                    : TripHistoryStringsEn.tripReviewTitle,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: p.ink,
+                ),
+              ),
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(1),
+                child: Divider(height: 1, thickness: 1, color: hairline),
+              ),
+            ),
             body: _busy && data == null
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(child: CircularProgressIndicator(color: p.primary))
                 : ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
                       if (_message != null)
                         Semantics(
                           liveRegion: true,
-                          child: Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Text(_message!),
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: p.warningBg,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: p.warningBorder),
+                            ),
+                            child: Text(
+                              _message!,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: p.warningText,
+                              ),
                             ),
                           ),
                         ),
                       if (data != null) ...[
-                        Card(
-                          child: ListTile(
-                            title: Text(data.name),
-                            subtitle: Text(
-                              '${data.bookingReference}\n${formatCalendarDateTime(data.departureAtUtc.toLocal())}',
-                            ),
+                        // Tour Context Card
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: p.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: p.border),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Tour đã hoàn thành',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: isDark
+                                          ? p.accent
+                                          : const Color(0xFF995436),
+                                    ),
+                                  ),
+                                  Text(
+                                    formatCalendarDateTime(
+                                      data.departureAtUtc.toLocal(),
+                                    ),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: p.secondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                data.name,
+                                style: TextStyle(
+                                  fontSize: 15.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: p.ink,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Mã đơn ${data.bookingReference}',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  color: p.secondary,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                        const SizedBox(height: 12),
+
                         if (data.existingReviewKind == 'legacy')
-                          const Card(
-                            child: Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Text('This legacy review is read-only.'),
-                            ),
+                          _NoticeCard(
+                            text: 'Đánh giá cũ này hiện chỉ có thể xem.',
+                            palette: p,
                           )
                         else if (review == null && !data.canSubmit)
-                          Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Text(
-                                'Review unavailable: ${data.submitUnavailableReason}',
-                              ),
-                            ),
+                          _NoticeCard(
+                            text:
+                                'Chưa thể đánh giá: ${data.submitUnavailableReason ?? ''}',
+                            palette: p,
                           )
                         else ...[
                           if (readOnly)
-                            const Card(
-                              child: Padding(
-                                padding: EdgeInsets.all(12),
-                                child: Text(
-                                  'The seven-day edit window has expired. This review is read-only.',
-                                ),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _NoticeCard(
+                                text: TripHistoryStringsEn.reviewReadOnlyNotice,
+                                palette: p,
                               ),
                             ),
                           IgnorePointer(
                             ignoring: readOnly || _busy,
                             child: Column(
                               children: [
-                                Semantics(
-                                  label: 'Rating',
-                                  child: Row(
+                                // Rating Card
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: p.surface,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: p.border),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      for (var i = 1; i <= 5; i++)
-                                        IconButton(
-                                          tooltip:
-                                              '$i ${i == 1 ? 'star' : 'stars'}',
-                                          onPressed: () =>
-                                              setState(() => _rating = i),
-                                          icon: Icon(
-                                            i <= _rating
-                                                ? Icons.star
-                                                : Icons.star_border,
-                                            color: i <= _rating
-                                                ? Colors.amber
-                                                : null,
-                                          ),
+                                      Text(
+                                        'Mức độ hài lòng của bạn',
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w600,
+                                          color: p.secondary,
                                         ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Semantics(
+                                        label: 'Rating',
+                                        child: Wrap(
+                                          crossAxisAlignment:
+                                              WrapCrossAlignment.center,
+                                          spacing: 4,
+                                          runSpacing: 6,
+                                          children: [
+                                            for (var i = 1; i <= 5; i++)
+                                              IconButton(
+                                                tooltip: '$i sao',
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                                padding: EdgeInsets.zero,
+                                                constraints:
+                                                    const BoxConstraints(
+                                                      minWidth: 38,
+                                                      minHeight: 38,
+                                                    ),
+                                                onPressed: () =>
+                                                    setState(() => _rating = i),
+                                                icon: Icon(
+                                                  i <= _rating
+                                                      ? Icons.star_rounded
+                                                      : Icons
+                                                            .star_outline_rounded,
+                                                  size: 34,
+                                                  color: i <= _rating
+                                                      ? const Color(0xFFD97706)
+                                                      : p.border,
+                                                ),
+                                              ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              _ratingLabel(_rating),
+                                              style: TextStyle(
+                                                fontSize: 12.5,
+                                                fontWeight: FontWeight.w600,
+                                                color: _rating > 0
+                                                    ? p.ink
+                                                    : p.secondary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
                                 const SizedBox(height: 12),
-                                TextField(
-                                  controller: _title,
-                                  maxLength: 200,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Title',
-                                    border: OutlineInputBorder(),
+
+                                // Form Card
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: p.surface,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: p.border),
                                   ),
-                                ),
-                                const SizedBox(height: 12),
-                                TextField(
-                                  controller: _content,
-                                  maxLength: 1000,
-                                  maxLines: 6,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Review',
-                                    border: OutlineInputBorder(),
-                                  ),
-                                ),
-                                if (review == null)
-                                  ListTile(
-                                    contentPadding: EdgeInsets.zero,
-                                    title: Text(
-                                      _photos.isEmpty
-                                          ? 'Add photos (optional)'
-                                          : '${_photos.length} photo(s) selected',
-                                    ),
-                                    trailing: const Icon(Icons.add_a_photo),
-                                    onTap: _pickPhotos,
-                                  ),
-                                SwitchListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  title: const Text('Publish my display name'),
-                                  value: _publishName,
-                                  onChanged: (value) =>
-                                      setState(() => _publishName = value),
-                                ),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    TextButton(
-                                      onPressed: () => context.canPop()
-                                          ? context.pop()
-                                          : context.go(AppRoutes.tripHistory),
-                                      child: const Text('Cancel'),
-                                    ),
-                                    if (!readOnly)
-                                      FilledButton(
-                                        onPressed: _busy ? null : _submit,
-                                        child: Text(
-                                          review == null
-                                              ? 'Publish review'
-                                              : 'Update review',
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        TripHistoryStringsEn.reviewTitleLabel,
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: p.ink,
                                         ),
                                       ),
-                                  ],
+                                      const SizedBox(height: 6),
+                                      TextField(
+                                        controller: _title,
+                                        maxLength: 200,
+                                        decoration: InputDecoration(
+                                          hintText: TripHistoryStringsEn
+                                              .reviewTitleHint,
+                                          filled: true,
+                                          fillColor: p.canvas.withValues(
+                                            alpha: 0.6,
+                                          ),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            borderSide: BorderSide(
+                                              color: p.border,
+                                            ),
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            borderSide: BorderSide(
+                                              color: p.border,
+                                            ),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            borderSide: BorderSide(
+                                              color: p.primary,
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        TripHistoryStringsEn.reviewContentLabel,
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: p.ink,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      TextField(
+                                        controller: _content,
+                                        maxLength: 1000,
+                                        maxLines: 5,
+                                        decoration: InputDecoration(
+                                          hintText: TripHistoryStringsEn
+                                              .reviewContentHint,
+                                          filled: true,
+                                          fillColor: p.canvas.withValues(
+                                            alpha: 0.6,
+                                          ),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            borderSide: BorderSide(
+                                              color: p.border,
+                                            ),
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            borderSide: BorderSide(
+                                              color: p.border,
+                                            ),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            borderSide: BorderSide(
+                                              color: p.primary,
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      if (review == null) ...[
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              TripHistoryStringsEn
+                                                  .photoSectionTitle,
+                                              style: TextStyle(
+                                                fontSize: 12.5,
+                                                fontWeight: FontWeight.w700,
+                                                color: p.ink,
+                                              ),
+                                            ),
+                                            Text(
+                                              '${_photos.length}/5 ảnh',
+                                              style: TextStyle(
+                                                fontSize: 11.5,
+                                                color: p.secondary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: OutlinedButton.icon(
+                                            onPressed: _pickPhotos,
+                                            icon: Icon(
+                                              Icons
+                                                  .add_photo_alternate_outlined,
+                                              size: 18,
+                                              color: p.secondary,
+                                            ),
+                                            label: Text(
+                                              _photos.isEmpty
+                                                  ? 'Thêm ảnh từ thư viện (JPG, PNG, tối đa 5 MB)'
+                                                  : 'Đã chọn ${_photos.length} ảnh · Chạm để chọn lại',
+                                              style: TextStyle(
+                                                fontSize: 12.5,
+                                                fontWeight: FontWeight.w600,
+                                                color: p.secondary,
+                                              ),
+                                            ),
+                                            style: OutlinedButton.styleFrom(
+                                              backgroundColor: p.canvas
+                                                  .withValues(alpha: 0.6),
+                                              side: BorderSide(color: p.border),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 12,
+                                                    horizontal: 12,
+                                                  ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                      const SizedBox(height: 12),
+                                      Divider(
+                                        height: 1,
+                                        thickness: 1,
+                                        color: hairline,
+                                      ),
+                                      SwitchListTile(
+                                        contentPadding: EdgeInsets.zero,
+                                        activeTrackColor: p.primary,
+                                        title: Text(
+                                          'Hiển thị tên của bạn',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: p.ink,
+                                          ),
+                                        ),
+                                        subtitle: Text(
+                                          'Tắt nếu muốn đăng ẩn danh',
+                                          style: TextStyle(
+                                            fontSize: 11.5,
+                                            color: p.secondary,
+                                          ),
+                                        ),
+                                        value: _publishName,
+                                        onChanged: (value) => setState(
+                                          () => _publishName = value,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
@@ -280,8 +582,96 @@ final class _CanonicalTripReviewPageState
                       ],
                     ],
                   ),
+            bottomNavigationBar: canShowForm
+                ? SafeArea(
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                      decoration: BoxDecoration(
+                        color: p.surface,
+                        border: Border(top: BorderSide(color: hairline)),
+                      ),
+                      child: Row(
+                        children: [
+                          OutlinedButton(
+                            onPressed: () => _navigateBack(context),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: p.ink,
+                              side: BorderSide(color: p.border),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 13,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              TripHistoryStringsEn.actionCancel,
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          if (!readOnly) ...[
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: FilledButton(
+                                onPressed: _busy ? null : _submit,
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: p.primary,
+                                  foregroundColor: p.onPrimary,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 13,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(
+                                  review == null
+                                      ? TripHistoryStringsEn.actionSubmitReview
+                                      : TripHistoryStringsEn.actionSaveReview,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  )
+                : null,
           );
         },
+      ),
+    );
+  }
+}
+
+class _NoticeCard extends StatelessWidget {
+  const _NoticeCard({required this.text, required this.palette});
+
+  final String text;
+  final CoastalPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: palette.warningBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: palette.warningBorder),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: palette.warningText,
+        ),
       ),
     );
   }
