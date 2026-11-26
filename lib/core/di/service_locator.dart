@@ -175,9 +175,15 @@ import 'package:trip_mate_mobile/features/tour_detail/data/repositories/tour_det
 import 'package:trip_mate_mobile/features/tour_detail/domain/repositories/tour_detail_repository.dart';
 import 'package:trip_mate_mobile/features/tour_detail/domain/usecases/get_tour_detail.dart';
 import 'package:trip_mate_mobile/features/tour_detail/presentation/cubit/tour_detail_cubit.dart';
+import 'package:trip_mate_mobile/features/tour_operator/data/datasources/operator_profile_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/tour_operator/data/repositories/demo_operator_profile_repository.dart';
 import 'package:trip_mate_mobile/features/tour_operator/data/repositories/operator_dashboard_repository_impl.dart';
+import 'package:trip_mate_mobile/features/tour_operator/data/repositories/operator_profile_repository_impl.dart';
 import 'package:trip_mate_mobile/features/tour_operator/domain/repositories/operator_dashboard_repository.dart';
+import 'package:trip_mate_mobile/features/tour_operator/domain/repositories/operator_profile_repository.dart';
+import 'package:trip_mate_mobile/features/tour_operator/domain/usecases/operator_profile_use_cases.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/cubit/operator_dashboard_cubit.dart';
+import 'package:trip_mate_mobile/features/tour_operator/presentation/cubit/operator_profile_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/data/datasources/tour_recommendations_data_source.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/data/repositories/tour_recommendations_repository_impl.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/domain/repositories/tour_recommendations_repository.dart';
@@ -454,6 +460,24 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerFactory<OperatorDashboardCubit>(
       () => OperatorDashboardCubit(serviceLocator()),
     )
+    ..registerLazySingleton<OperatorProfileRemoteDataSource>(
+      () => DioOperatorProfileRemoteDataSource(serviceLocator<DioClient>().dio),
+    )
+    ..registerLazySingleton<OperatorProfileRepository>(
+      () => OperatorProfileRepositoryImpl(serviceLocator()),
+    )
+    ..registerLazySingleton<DemoOperatorProfileRepository>(
+      DemoOperatorProfileRepository.new,
+    )
+    ..registerFactoryParam<OperatorProfileCubit, bool, void>((demo, _) {
+      final repo = demo
+          ? serviceLocator<DemoOperatorProfileRepository>()
+          : serviceLocator<OperatorProfileRepository>();
+      return OperatorProfileCubit(
+        getProfile: GetOperatorProfileUseCase(repo),
+        updateProfile: UpdateOperatorProfileUseCase(repo),
+      );
+    })
     ..registerLazySingleton<OperatorFinanceRemoteDataSource>(
       () => DioOperatorFinanceRemoteDataSource(serviceLocator()),
     )

@@ -85,6 +85,9 @@ import 'package:trip_mate_mobile/features/support_chat/domain/entities/support_c
 import 'package:trip_mate_mobile/features/support_chat/presentation/cubit/support_chat_cubit.dart';
 import 'package:trip_mate_mobile/features/support_chat/presentation/pages/support_chat_page.dart';
 import 'package:trip_mate_mobile/features/tour_detail/presentation/pages/tour_detail_page.dart';
+import 'package:trip_mate_mobile/features/tour_operator/domain/entities/operator_profile.dart';
+import 'package:trip_mate_mobile/features/tour_operator/presentation/cubit/operator_profile_cubit.dart';
+import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_profile_edit_page.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/presentation/pages/tour_recommendations_page.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summary.dart';
@@ -1043,6 +1046,23 @@ GoRouter createAppRouter(
           create: (_) => serviceLocator<OperatorContractCubit>(),
           child: const OperatorContractPage(),
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.operatorProfileEdit,
+        name: AppRouteNames.operatorProfileEdit,
+        builder: (_, state) {
+          final isDemo = state.uri.queryParameters['demo'] == 'true';
+          final initialProfile = state.extra is OperatorProfile
+              ? state.extra as OperatorProfile
+              : null;
+          return BlocProvider(
+            create: (_) => serviceLocator<OperatorProfileCubit>(param1: isDemo),
+            child: OperatorProfileEditPage(
+              initialProfile: initialProfile,
+              isDemoMode: isDemo,
+            ),
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.operatorApplication,

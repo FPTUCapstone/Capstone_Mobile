@@ -67,6 +67,7 @@ class _OperatorShellPageState extends State<OperatorShellPage>
   /// The Bookings tab (UC-40) loads from the backend only once the operator first opens it.
   var _bookingsOpened = false;
   var _financeOpened = false;
+  var _profileOpened = false;
 
   @override
   void initState() {
@@ -99,6 +100,7 @@ class _OperatorShellPageState extends State<OperatorShellPage>
       _selectedIndex = index;
       if (index == _bookingsIndex) _bookingsOpened = true;
       if (index == 3) _financeOpened = true;
+      if (index == 5) _profileOpened = true;
     });
   }
 
@@ -188,7 +190,10 @@ class _OperatorShellPageState extends State<OperatorShellPage>
                 else
                   const SizedBox.shrink(),
                 OperatorCouponsView(isDemoMode: widget.isDemoMode),
-                const OperatorProfileView(),
+                if (_profileOpened)
+                  OperatorProfileView(isDemoMode: widget.isDemoMode)
+                else
+                  const SizedBox.shrink(),
               ],
             ),
           ),
