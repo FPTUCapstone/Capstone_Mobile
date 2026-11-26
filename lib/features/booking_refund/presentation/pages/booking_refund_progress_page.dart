@@ -34,7 +34,16 @@ final class _BookingRefundProgressPageState
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Refund progress')),
+    backgroundColor: AppColors.surface,
+    appBar: AppBar(
+      title: const Text('Refund progress'),
+      backgroundColor: AppColors.cardBackground,
+      surfaceTintColor: Colors.transparent,
+      bottom: const PreferredSize(
+        preferredSize: Size.fromHeight(1),
+        child: Divider(height: 1, thickness: 1, color: AppColors.line),
+      ),
+    ),
     bottomNavigationBar:
         BlocBuilder<BookingRefundProgressCubit, BookingRefundProgressState>(
           builder: (context, state) {
@@ -42,20 +51,35 @@ final class _BookingRefundProgressPageState
                 state.progress == null) {
               return const SizedBox.shrink();
             }
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.support_agent),
-                  label: const Text('Ask about this refund'),
-                  onPressed: () => context.push(
-                    context.read<AuthSessionCubit>().state.role ==
-                            UserRole.tourOperator
-                        ? AppRoutes.operatorSupportChat
-                        : AppRoutes.supportChat,
-                    extra: SupportChatContext(
-                      kind: 'refund',
-                      id: widget.bookingId,
+            return DecoratedBox(
+              decoration: const BoxDecoration(
+                color: AppColors.cardBackground,
+                border: Border(top: BorderSide(color: AppColors.line)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    AppSpacing.sm,
+                    AppSpacing.md,
+                    AppSpacing.md,
+                  ),
+                  child: SizedBox(
+                    height: 44,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.support_agent_outlined, size: 18),
+                      label: const Text('Ask about this refund'),
+                      onPressed: () => context.push(
+                        context.read<AuthSessionCubit>().state.role ==
+                                UserRole.tourOperator
+                            ? AppRoutes.operatorSupportChat
+                            : AppRoutes.supportChat,
+                        extra: SupportChatContext(
+                          kind: 'refund',
+                          id: widget.bookingId,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -96,7 +120,8 @@ final class _Progress extends StatelessWidget {
           padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
             color: presentation.background,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.line),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,9 +203,11 @@ final class _DetailCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
     elevation: 0,
+    color: AppColors.cardBackground,
+    margin: EdgeInsets.zero,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(14),
-      side: const BorderSide(color: Color(0xFFE2E8F0)),
+      side: const BorderSide(color: AppColors.line),
     ),
     child: Padding(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -193,7 +220,10 @@ final class _DetailCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     rows[index].label,
-                    style: const TextStyle(color: AppColors.muted),
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      color: AppColors.muted,
+                    ),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.md),
@@ -202,6 +232,7 @@ final class _DetailCard extends StatelessWidget {
                     rows[index].value,
                     textAlign: TextAlign.end,
                     style: const TextStyle(
+                      fontSize: 13.5,
                       fontWeight: FontWeight.w700,
                       color: AppColors.ink,
                     ),
@@ -212,7 +243,7 @@ final class _DetailCard extends StatelessWidget {
             if (index != rows.length - 1)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                child: Divider(height: 1),
+                child: Divider(height: 1, color: AppColors.line),
               ),
           ],
         ],
@@ -266,86 +297,86 @@ _presentation(BookingRefundStatus status) => switch (status) {
     description:
         'Your refund request is awaiting confirmation from the tour operator.',
     badgeType: StatusBadgeType.info,
-    background: const Color(0xFFEFF6FF),
+    background: AppColors.primarySoft,
   ),
   BookingRefundStatus.awaitingPartnerReturn => (
     label: 'Awaiting partner return',
     description:
         'We are waiting for the tour operator to return their share before your refund can be processed.',
     badgeType: StatusBadgeType.info,
-    background: const Color(0xFFEFF6FF),
+    background: AppColors.primarySoft,
   ),
   BookingRefundStatus.returnReported => (
     label: 'Partner return reported',
     description:
         'The tour operator has reported returning their share. Our team is verifying receipt before processing your refund.',
     badgeType: StatusBadgeType.info,
-    background: const Color(0xFFEFF6FF),
+    background: AppColors.primarySoft,
   ),
   BookingRefundStatus.returnReceived => (
     label: 'Partner return received',
     description:
         'Our team has confirmed receipt of the partner return. Your refund is awaiting payment processing.',
     badgeType: StatusBadgeType.info,
-    background: const Color(0xFFEFF6FF),
+    background: AppColors.primarySoft,
   ),
   BookingRefundStatus.reconciliation => (
     label: 'Under reconciliation',
     description:
         'Our team is checking the refund records. Your refund has not been confirmed as completed.',
     badgeType: StatusBadgeType.warning,
-    background: const Color(0xFFFFF8E8),
+    background: const Color(0xFFFEF6E6),
   ),
   BookingRefundStatus.escalated => (
     label: 'Escalated for review',
     description:
         'Your refund needs further review by our team. It has not been confirmed as completed.',
     badgeType: StatusBadgeType.warning,
-    background: const Color(0xFFFFF8E8),
+    background: const Color(0xFFFEF6E6),
   ),
   BookingRefundStatus.processed => (
     label: 'Refund completed',
     description:
         'The refund has been completed through the original payment channel.',
     badgeType: StatusBadgeType.success,
-    background: const Color(0xFFEAF8F2),
+    background: const Color(0xFFE7F6F0),
   ),
   BookingRefundStatus.manualReview => (
     label: 'Under manual review',
     description: 'Our team is verifying this refund with the payment provider.',
     badgeType: StatusBadgeType.warning,
-    background: const Color(0xFFFFF8E8),
+    background: const Color(0xFFFEF6E6),
   ),
   BookingRefundStatus.failed => (
     label: 'Needs attention',
     description:
         'We could not complete the refund automatically. Support will follow up.',
     badgeType: StatusBadgeType.error,
-    background: const Color(0xFFFFF1F2),
+    background: const Color(0xFFFDEEEF),
   ),
   BookingRefundStatus.rejected => (
     label: 'Refund not approved',
     description: 'This refund was not approved under the applicable policy.',
     badgeType: StatusBadgeType.neutral,
-    background: const Color(0xFFF1F5F9),
+    background: const Color(0xFFEFECE4),
   ),
   BookingRefundStatus.retryPending => (
     label: 'Retry scheduled',
     description: 'We will retry the refund shortly.',
     badgeType: StatusBadgeType.info,
-    background: const Color(0xFFEFF6FF),
+    background: AppColors.primarySoft,
   ),
   BookingRefundStatus.processing => (
     label: 'Processing refund',
     description: 'The payment provider is processing your refund.',
     badgeType: StatusBadgeType.info,
-    background: const Color(0xFFEFF6FF),
+    background: AppColors.primarySoft,
   ),
   BookingRefundStatus.pending => (
     label: 'Refund requested',
     description: 'Your refund request has been received.',
     badgeType: StatusBadgeType.info,
-    background: const Color(0xFFEFF6FF),
+    background: AppColors.primarySoft,
   ),
 };
 

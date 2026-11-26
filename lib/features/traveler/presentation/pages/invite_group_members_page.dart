@@ -230,9 +230,9 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
             Container(
               padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.black12),
+                color: AppColors.cardBackground,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.line),
               ),
               child: Row(
                 children: [
@@ -246,7 +246,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
                     child: const Icon(
                       Icons.groups_rounded,
                       color: AppColors.primary,
-                      size: 26,
+                      size: 24,
                     ),
                   ),
                   const SizedBox(width: AppSpacing.md),
@@ -257,11 +257,14 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
                         Text(
                           invitation.groupName,
                           style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold),
+                              ?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.ink,
+                              ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 4),
                         const StatusBadge(
                           label: 'GROUP HOST',
                           type: StatusBadgeType.info,
@@ -272,32 +275,26 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: AppSpacing.md),
 
             // QR Code Section
             Center(
               child: Container(
-                padding: const EdgeInsets.all(AppSpacing.lg),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.cardBackground,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(15),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  border: Border.all(color: AppColors.line),
                 ),
                 child: Column(
                   children: [
                     QrImageView(
                       data: invitation.qrData,
                       version: QrVersions.auto,
-                      size: 200,
+                      size: 184,
                       backgroundColor: Colors.white,
                     ),
-                    const SizedBox(height: AppSpacing.sm),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(
                       'Scan QR to join group',
                       style: Theme.of(
@@ -308,15 +305,15 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: AppSpacing.md),
 
             // Invite Code Container
             Container(
               padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                color: AppColors.primarySoft,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.line),
               ),
               child: Column(
                 children: [
@@ -325,7 +322,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: AppColors.muted,
                       letterSpacing: 1.2,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xs),
@@ -336,14 +333,17 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
                         invitation.inviteCode,
                         style: Theme.of(context).textTheme.headlineMedium
                             ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 4,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 3.5,
                               color: AppColors.primary,
                             ),
                       ),
-                      const SizedBox(width: AppSpacing.sm),
+                      const SizedBox(width: AppSpacing.xs),
                       IconButton(
-                        icon: const Icon(Icons.copy_rounded),
+                        icon: const Icon(
+                          Icons.copy_rounded,
+                          color: AppColors.primary,
+                        ),
                         tooltip: 'Copy Code',
                         onPressed: isRegenerating
                             ? null
@@ -354,7 +354,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: AppSpacing.xs),
 
             // Expiration text
             Center(
@@ -365,7 +365,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
                 ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: AppSpacing.lg),
 
             // Action buttons
             AppButton(

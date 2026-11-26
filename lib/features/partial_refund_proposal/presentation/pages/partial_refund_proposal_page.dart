@@ -41,7 +41,16 @@ final class _PartialRefundProposalPageState
         const SnackBar(content: Text(PartialRefundProposalStrings.recorded)),
       ),
     builder: (context, state) => Scaffold(
-      appBar: AppBar(title: const Text(PartialRefundProposalStrings.title)),
+      backgroundColor: AppColors.surface,
+      appBar: AppBar(
+        title: const Text(PartialRefundProposalStrings.title),
+        backgroundColor: AppColors.cardBackground,
+        surfaceTintColor: Colors.transparent,
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, thickness: 1, color: AppColors.line),
+        ),
+      ),
       bottomNavigationBar: _actions(context, state),
       body: switch (state.loadStatus) {
         PartialRefundProposalLoadStatus.initial ||
@@ -64,44 +73,65 @@ final class _PartialRefundProposalPageState
     final proposal = state.proposal;
     if (proposal == null || !proposal.canRespond) return null;
     final busy = state.submitStatus == PartialRefundSubmitStatus.submitting;
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                key: const Key('partial_refund_decline'),
-                onPressed: busy
-                    ? null
-                    : () => _confirm(
-                        context,
-                        PartialRefundDecision.decline,
-                        proposal,
-                      ),
-                child: const Text(PartialRefundProposalStrings.decline),
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: AppColors.cardBackground,
+        border: Border(top: BorderSide(color: AppColors.line)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.sm,
+            AppSpacing.md,
+            AppSpacing.md,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 44,
+                  child: OutlinedButton(
+                    key: const Key('partial_refund_decline'),
+                    onPressed: busy
+                        ? null
+                        : () => _confirm(
+                            context,
+                            PartialRefundDecision.decline,
+                            proposal,
+                          ),
+                    child: const Text(PartialRefundProposalStrings.decline),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: FilledButton(
-                key: const Key('partial_refund_accept'),
-                onPressed: busy
-                    ? null
-                    : () => _confirm(
-                        context,
-                        PartialRefundDecision.accept,
-                        proposal,
-                      ),
-                child: busy
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text(PartialRefundProposalStrings.accept),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: SizedBox(
+                  height: 44,
+                  child: FilledButton(
+                    key: const Key('partial_refund_accept'),
+                    onPressed: busy
+                        ? null
+                        : () => _confirm(
+                            context,
+                            PartialRefundDecision.accept,
+                            proposal,
+                          ),
+                    child: busy
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(PartialRefundProposalStrings.accept),
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -165,7 +195,8 @@ final class _Proposal extends StatelessWidget {
           padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
             color: presentation.background,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.line),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,9 +244,11 @@ final class _Proposal extends StatelessWidget {
         const SizedBox(height: AppSpacing.md),
         Card(
           elevation: 0,
+          color: AppColors.cardBackground,
+          margin: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
-            side: const BorderSide(color: Color(0xFFE2E8F0)),
+            side: const BorderSide(color: AppColors.line),
           ),
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
@@ -224,10 +257,11 @@ final class _Proposal extends StatelessWidget {
                 _Row(
                   PartialRefundProposalStrings.proposedAmount,
                   TripFormatters.formatVnd(proposal.proposedAmount),
+                  highlight: true,
                 ),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                  child: Divider(height: 1),
+                  child: Divider(height: 1, color: AppColors.line),
                 ),
                 _Row(
                   PartialRefundProposalStrings.responseDeadline,
@@ -257,25 +291,30 @@ final class _Proposal extends StatelessWidget {
 }
 
 final class _Row extends StatelessWidget {
-  const _Row(this.label, this.value);
+  const _Row(this.label, this.value, {this.highlight = false});
   final String label;
   final String value;
+  final bool highlight;
 
   @override
   Widget build(BuildContext context) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Expanded(
-        child: Text(label, style: const TextStyle(color: AppColors.muted)),
+        child: Text(
+          label,
+          style: const TextStyle(fontSize: 13.5, color: AppColors.muted),
+        ),
       ),
       const SizedBox(width: AppSpacing.md),
       Flexible(
         child: Text(
           value,
           textAlign: TextAlign.end,
-          style: const TextStyle(
+          style: TextStyle(
+            fontSize: highlight ? 15 : 13.5,
             fontWeight: FontWeight.w700,
-            color: AppColors.ink,
+            color: highlight ? AppColors.primary : AppColors.ink,
           ),
         ),
       ),
@@ -321,36 +360,36 @@ _presentation(PartialRefundProposalStatus status) => switch (status) {
     label: PartialRefundProposalStrings.statusAwaitingTraveler,
     description: PartialRefundProposalStrings.descriptionAwaitingTraveler,
     badgeType: StatusBadgeType.warning,
-    background: const Color(0xFFFFF8E8),
+    background: const Color(0xFFFEF6E6),
   ),
   PartialRefundProposalStatus.approved => (
     label: PartialRefundProposalStrings.statusApproved,
     description: PartialRefundProposalStrings.descriptionApproved,
     badgeType: StatusBadgeType.success,
-    background: const Color(0xFFEAF8F2),
+    background: const Color(0xFFE7F6F0),
   ),
   PartialRefundProposalStatus.declined => (
     label: PartialRefundProposalStrings.statusDeclined,
     description: PartialRefundProposalStrings.descriptionDeclined,
     badgeType: StatusBadgeType.neutral,
-    background: const Color(0xFFF1F5F9),
+    background: const Color(0xFFEFECE4),
   ),
   PartialRefundProposalStatus.awaitingOperatorResponse => (
     label: PartialRefundProposalStrings.statusAwaitingOperator,
     description: PartialRefundProposalStrings.descriptionAwaitingOperator,
     badgeType: StatusBadgeType.info,
-    background: const Color(0xFFEFF6FF),
+    background: AppColors.primarySoft,
   ),
   PartialRefundProposalStatus.rejected => (
     label: PartialRefundProposalStrings.statusRejected,
     description: PartialRefundProposalStrings.descriptionRejected,
     badgeType: StatusBadgeType.neutral,
-    background: const Color(0xFFF1F5F9),
+    background: const Color(0xFFEFECE4),
   ),
   PartialRefundProposalStatus.expired => (
     label: PartialRefundProposalStrings.statusExpired,
     description: PartialRefundProposalStrings.descriptionExpired,
     badgeType: StatusBadgeType.neutral,
-    background: const Color(0xFFF1F5F9),
+    background: const Color(0xFFEFECE4),
   ),
 };
