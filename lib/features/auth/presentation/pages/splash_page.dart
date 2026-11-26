@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/tripmate_logo.dart';
 
@@ -281,6 +282,7 @@ class _SplashPageState extends State<SplashPage>
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   textStyle: const TextStyle(
+                                    fontFamily: AppTypography.uiFont,
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
                                   ),
