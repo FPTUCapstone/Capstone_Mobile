@@ -1,5 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trip_mate_mobile/app/theme/app_colors.dart';
+import 'package:trip_mate_mobile/app/theme/coastal_palette.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_session.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/mapbox_navigation_map.dart';
 
@@ -31,12 +32,19 @@ void main() {
     ], 2);
 
     expect(markers.map((marker) => marker.color), [
-      AppColors.muted,
-      AppColors.secondary,
-      AppColors.warning,
-      AppColors.primary,
+      CoastalPalette.light.success,
+      CoastalPalette.light.primary,
+      const Color(0xFFD97706),
+      CoastalPalette.light.secondary,
     ]);
-    expect(markers.map((marker) => marker.radius), [8, 11, 8, 8]);
+    expect(markers.map((marker) => marker.radius), [9, 12, 9, 9]);
+    expect(markers.map((marker) => marker.badge), ['✓', '2', '3', '4']);
+    expect(markers.map((marker) => marker.highlighted), [
+      false,
+      true,
+      false,
+      false,
+    ]);
     expect(markers.first.label, '1. Stop 1');
     expect(markers.first.coordinate.latitude, 16.01);
   });
