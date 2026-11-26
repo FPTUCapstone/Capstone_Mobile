@@ -148,6 +148,7 @@ class TripMap extends StatefulWidget {
     this.initialFocus,
     this.showUserLocation = true,
     this.styleUri,
+    this.fitPadding,
     this.onMarkerTap,
     this.mapWidgetKey = const ValueKey('mapbox-navigation-map'),
   });
@@ -161,6 +162,7 @@ class TripMap extends StatefulWidget {
   final NavigationCoordinate? initialFocus;
   final bool showUserLocation;
   final String? styleUri;
+  final EdgeInsets? fitPadding;
   final ValueChanged<int>? onMarkerTap;
 
   /// Key of the native map view; each kind of map uses its own.
@@ -278,8 +280,9 @@ class TripMapState extends State<TripMap> {
   /// Refits the camera to show all markers, routes, and search polygons.
   Future<void> fitAll() async {
     _pendingMapLoadedFit = false;
-    _releaseCamera();
-    await _fitCamera();
+    final wasFollowing = _isFollowing;
+    _isFollowing = false;
+    await _fitCamera(useViewportController: wasFollowing);
   }
 
   /// The Traveler panned the map: stop following so that [recenter] is a real
@@ -352,6 +355,7 @@ class TripMapState extends State<TripMap> {
         ),
       );
       await map.scaleBar.updateSettings(ScaleBarSettings(enabled: false));
+      await map.compass.updateSettings(CompassSettings(enabled: false));
       // Layer order bottom -> top: search-radius polygons, road white casing,
       // colored route lines, circle stops, badged numbered pins, floating labels.
       final polygonLayer = await map.annotations
@@ -406,7 +410,7 @@ class TripMapState extends State<TripMap> {
     _syncQueue = _syncQueue.then((_) => _fitCamera()).catchError((Object _) {});
   }
 
-  Future<void> _fitCamera() async {
+  Future<void> _fitCamera({bool useViewportController = false}) async {
     final map = _map;
     final markers = widget.markers;
     if (!mounted || map == null || markers.isEmpty) return;
@@ -435,17 +439,54 @@ class TripMapState extends State<TripMap> {
       }
     }
     if (fitPoints.length == 1) {
-      await map.setCamera(CameraOptions(center: fitPoints.first, zoom: 14.5));
+      if (useViewportController) {
+        _viewportController.moveTo(
+          CameraViewportState(
+            center: fitPoints.first,
+            zoom: 14.5,
+            bearing: 0,
+            pitch: 0,
+          ),
+          transition: const EasingViewportTransition(
+            curve: Curves.easeInOut,
+            duration: Duration(milliseconds: 500),
+          ),
+        );
+      } else {
+        await map.setCamera(CameraOptions(center: fitPoints.first, zoom: 14.5));
+      }
       return;
     }
+    final pad = widget.fitPadding;
     final camera = await map.cameraForCoordinatesPadding(
       fitPoints,
       CameraOptions(),
-      MbxEdgeInsets(top: 72, left: 60, bottom: 60, right: 60),
+      MbxEdgeInsets(
+        top: pad?.top ?? 72,
+        left: pad?.left ?? 60,
+        bottom: pad?.bottom ?? 60,
+        right: pad?.right ?? 60,
+      ),
       15.5,
       null,
     );
-    if (mounted) await map.setCamera(camera);
+    if (!mounted) return;
+    if (useViewportController) {
+      _viewportController.moveTo(
+        CameraViewportState(
+          center: camera.center,
+          zoom: camera.zoom,
+          bearing: 0,
+          pitch: 0,
+        ),
+        transition: const EasingViewportTransition(
+          curve: Curves.easeInOut,
+          duration: Duration(milliseconds: 500),
+        ),
+      );
+    } else {
+      await map.setCamera(camera);
+    }
   }
 
   Future<void> _sync({required bool fit}) async {

@@ -7,20 +7,28 @@ import '../../../../support/trip_alert_test_data.dart';
 
 void main() {
   group('RerouteProposalSheet formatArrivalTimeDiff', () {
-    test('formats negative diff as "X min earlier"', () {
-      expect(RerouteProposalSheet.formatArrivalTimeDiff(-30), '30 min earlier');
-      expect(RerouteProposalSheet.formatArrivalTimeDiff(-1), '1 min earlier');
+    test('formats negative diff as "Sớm hơn X phút"', () {
+      expect(
+        RerouteProposalSheet.formatArrivalTimeDiff(-30),
+        'Sớm hơn 30 phút',
+      );
+      expect(RerouteProposalSheet.formatArrivalTimeDiff(-1), 'Sớm hơn 1 phút');
+      expect(
+        RerouteProposalSheet.formatArrivalTimeDiff(-15),
+        'Sớm hơn 15 phút',
+      );
     });
 
-    test('formats positive diff as "X min later"', () {
-      expect(RerouteProposalSheet.formatArrivalTimeDiff(15), '15 min later');
-      expect(RerouteProposalSheet.formatArrivalTimeDiff(1), '1 min later');
+    test('formats positive diff as "Trễ hơn X phút"', () {
+      expect(RerouteProposalSheet.formatArrivalTimeDiff(15), 'Trễ hơn 15 phút');
+      expect(RerouteProposalSheet.formatArrivalTimeDiff(1), 'Trễ hơn 1 phút');
+      expect(RerouteProposalSheet.formatArrivalTimeDiff(45), 'Trễ hơn 45 phút');
     });
 
-    test('formats zero diff as "No arrival-time change"', () {
+    test('formats zero diff as "Không đổi giờ đến"', () {
       expect(
         RerouteProposalSheet.formatArrivalTimeDiff(0),
-        'No arrival-time change',
+        'Không đổi giờ đến',
       );
     });
   });
@@ -101,18 +109,18 @@ void main() {
       expect(find.text('Chợ Hàn'), findsOneWidget);
     });
 
-    testWidgets('renders "30 min earlier" when arrival diff is -30', (
+    testWidgets('renders "Sớm hơn 30 phút" when arrival diff is -30', (
       tester,
     ) async {
       await pumpSheet(tester);
 
-      expect(find.text('Arrival time adjustment'), findsOneWidget);
-      expect(find.text('30 min earlier'), findsOneWidget);
-      expect(find.text('-15 min'), findsOneWidget);
+      expect(find.text('Điều chỉnh giờ đến'), findsOneWidget);
+      expect(find.text('Sớm hơn 30 phút'), findsOneWidget);
+      expect(find.text('-15 phút'), findsOneWidget);
       expect(find.textContaining('Demo'), findsNothing);
     });
 
-    testWidgets('renders "15 min later" when arrival diff is 15', (
+    testWidgets('renders "Trễ hơn 15 phút" when arrival diff is 15', (
       tester,
     ) async {
       await pumpSheet(
@@ -122,10 +130,12 @@ void main() {
         ),
       );
 
-      expect(find.text('15 min later'), findsOneWidget);
+      expect(find.text('Điều chỉnh giờ đến'), findsOneWidget);
+      expect(find.text('Trễ hơn 15 phút'), findsOneWidget);
+      expect(find.textContaining('Sớm hơn 15 phút'), findsNothing);
     });
 
-    testWidgets('renders "No arrival-time change" when arrival diff is 0', (
+    testWidgets('renders "Không đổi giờ đến" when arrival diff is 0', (
       tester,
     ) async {
       await pumpSheet(
@@ -135,7 +145,8 @@ void main() {
         ),
       );
 
-      expect(find.text('No arrival-time change'), findsOneWidget);
+      expect(find.text('Điều chỉnh giờ đến'), findsOneWidget);
+      expect(find.text('Không đổi giờ đến'), findsOneWidget);
     });
 
     testWidgets('close icon calls onClose only', (tester) async {
@@ -147,12 +158,12 @@ void main() {
         onClose: () => calls.add('close'),
       );
 
-      await tester.tap(find.byTooltip('Close without changing plan'));
+      await tester.tap(find.byTooltip('Đóng mà không đổi lịch trình'));
 
       expect(calls, ['close']);
     });
 
-    testWidgets('Keep Current Route calls onDecline only', (tester) async {
+    testWidgets('Giữ lộ trình hiện tại calls onDecline only', (tester) async {
       final calls = <String>[];
       await pumpSheet(
         tester,
@@ -161,12 +172,12 @@ void main() {
         onClose: () => calls.add('close'),
       );
 
-      await tester.tap(find.text('Keep Current Route'));
+      await tester.tap(find.text('Giữ lộ trình hiện tại'));
 
       expect(calls, ['decline']);
     });
 
-    testWidgets('Accept Re-routing calls onAccept only', (tester) async {
+    testWidgets('Chấp nhận đổi lộ trình calls onAccept only', (tester) async {
       final calls = <String>[];
       await pumpSheet(
         tester,
@@ -175,7 +186,7 @@ void main() {
         onClose: () => calls.add('close'),
       );
 
-      await tester.tap(find.text('Accept Re-routing'));
+      await tester.tap(find.text('Chấp nhận đổi lộ trình'));
 
       expect(calls, ['accept']);
     });

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/coastal_palette.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/reroute_proposal.dart';
 
 class RerouteProposalSheet extends StatelessWidget {
@@ -45,11 +45,11 @@ class RerouteProposalSheet extends StatelessWidget {
 
   static String formatArrivalTimeDiff(int diffMinutes) {
     if (diffMinutes < 0) {
-      return '${diffMinutes.abs()} min earlier';
+      return 'Sớm hơn ${diffMinutes.abs()} phút';
     } else if (diffMinutes > 0) {
-      return '$diffMinutes min later';
+      return 'Trễ hơn $diffMinutes phút';
     } else {
-      return 'No arrival-time change';
+      return 'Không đổi giờ đến';
     }
   }
 
@@ -86,10 +86,11 @@ class RerouteProposalSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = CoastalPalette.of(context);
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: palette.canvas,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       constraints: BoxConstraints(
         maxHeight: MediaQuery.sizeOf(context).height * 0.88,
@@ -99,20 +100,17 @@ class RerouteProposalSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Drag handle
             Center(
               child: Container(
                 margin: const EdgeInsets.only(top: 12, bottom: 8),
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.line,
+                  color: palette.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
-
-            // Header
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.md,
@@ -122,51 +120,49 @@ class RerouteProposalSheet extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.alt_route_rounded,
-                    color: AppColors.primary,
+                    color: palette.primary,
                     size: 24,
                   ),
                   const SizedBox(width: AppSpacing.xs),
-                  Text(
-                    'Suggested Route Change',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.ink,
+                  Expanded(
+                    child: Text(
+                      'Đề xuất đổi lộ trình',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: palette.ink,
+                      ),
                     ),
                   ),
-                  const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.close),
-                    tooltip: 'Close without changing plan',
+                    icon: Icon(Icons.close_rounded, color: palette.ink),
+                    tooltip: 'Đóng mà không đổi lịch trình',
                     onPressed: onClose,
                   ),
                 ],
               ),
             ),
-            const Divider(height: 1),
-
-            // Scrollable Content
+            Divider(height: 1, color: palette.border),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 children: [
-                  // Disruption Reason Alert Card
                   Container(
                     padding: const EdgeInsets.all(AppSpacing.sm),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFDECEF),
-                      borderRadius: BorderRadius.circular(AppSpacing.sm),
+                      color: palette.errorBg,
+                      borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: AppColors.error.withValues(alpha: 0.3),
+                        color: palette.error.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.warning_amber_rounded,
-                          color: AppColors.error,
+                          color: palette.error,
                           size: 20,
                         ),
                         const SizedBox(width: AppSpacing.xs),
@@ -174,10 +170,10 @@ class RerouteProposalSheet extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Reason for Re-routing',
+                              Text(
+                                'Lý do đề xuất đổi tuyến',
                                 style: TextStyle(
-                                  color: AppColors.error,
+                                  color: palette.error,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 12,
                                 ),
@@ -185,8 +181,8 @@ class RerouteProposalSheet extends StatelessWidget {
                               const SizedBox(height: 2),
                               Text(
                                 reasonText(proposal.reason),
-                                style: const TextStyle(
-                                  color: AppColors.ink,
+                                style: TextStyle(
+                                  color: palette.ink,
                                   fontSize: 13,
                                 ),
                               ),
@@ -197,35 +193,32 @@ class RerouteProposalSheet extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),
-
-                  // Side-by-Side Comparison of Current vs Proposed
                   Text(
-                    'Compare Route Options',
+                    'So sánh phương án',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
+                      color: palette.ink,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xs),
-
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Current Plan Column
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.all(AppSpacing.sm),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(AppSpacing.sm),
-                            border: Border.all(color: AppColors.line),
+                            color: palette.surface,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: palette.border),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'CURRENT PLAN',
+                                'LỘ TRÌNH HIỆN TẠI',
                                 style: TextStyle(
-                                  color: AppColors.muted,
+                                  color: palette.secondary,
                                   fontSize: 11,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 0.5,
@@ -245,37 +238,38 @@ class RerouteProposalSheet extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: AppSpacing.sm),
-
-                      // Proposed Plan Column
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.all(AppSpacing.sm),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEAF1FE),
-                            borderRadius: BorderRadius.circular(AppSpacing.sm),
+                            color: palette.softAccent,
+                            borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                              color: AppColors.primary.withValues(alpha: 0.4),
+                              color: palette.primary.withValues(alpha: 0.45),
                               width: 1.5,
                             ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Row(
+                              Row(
                                 children: [
                                   Icon(
                                     Icons.check_circle_outline,
-                                    color: AppColors.primary,
+                                    color: palette.primary,
                                     size: 14,
                                   ),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'PROPOSED PLAN',
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 0.5,
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      'LỘ TRÌNH ĐỀ XUẤT',
+                                      style: TextStyle(
+                                        color: palette.primary,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.5,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
@@ -291,74 +285,72 @@ class RerouteProposalSheet extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: AppSpacing.md),
-
-                  // Impact Summary Card
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Estimated Impact',
-                            style: Theme.of(context).textTheme.titleSmall
-                                ?.copyWith(fontWeight: FontWeight.w700),
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: palette.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: palette.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Ảnh hưởng dự kiến',
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: palette.ink,
+                              ),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        _MetricRow(
+                          label: 'Thay đổi thời gian di chuyển',
+                          value:
+                              '${proposal.travelTimeDiffMinutes > 0 ? '+' : ''}${proposal.travelTimeDiffMinutes} phút',
+                          isPositive: proposal.travelTimeDiffMinutes <= 0,
+                        ),
+                        _MetricRow(
+                          label: 'Điều chỉnh giờ đến',
+                          value: formatArrivalTimeDiff(
+                            proposal.arrivalTimeDiffMinutes,
                           ),
-                          const SizedBox(height: AppSpacing.xs),
-                          _MetricRow(
-                            label: 'Travel time change',
-                            value:
-                                '${proposal.travelTimeDiffMinutes > 0 ? '+' : ''}${proposal.travelTimeDiffMinutes} min',
-                            isPositive: proposal.travelTimeDiffMinutes <= 0,
-                          ),
-                          _MetricRow(
-                            label: 'Arrival time adjustment',
-                            value: formatArrivalTimeDiff(
-                              proposal.arrivalTimeDiffMinutes,
-                            ),
-                            isPositive: proposal.arrivalTimeDiffMinutes <= 0,
-                          ),
-                        ],
-                      ),
+                          isPositive: proposal.arrivalTimeDiffMinutes <= 0,
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
-
                   if (proposal.removedStops.isNotEmpty) ...[
                     Text(
                       'Removed from your plan: '
                       '${proposal.removedStops.join(', ')}',
-                      style: const TextStyle(
-                        color: AppColors.muted,
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: palette.secondary, fontSize: 12),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                   ],
-
-                  // Important Consent Notice
                   Container(
                     padding: const EdgeInsets.all(AppSpacing.sm),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF4F7FC),
-                      borderRadius: BorderRadius.circular(AppSpacing.sm),
+                      color: palette.softAccent.withValues(alpha: 0.65),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.security_rounded,
                           size: 16,
-                          color: AppColors.muted,
+                          color: palette.secondary,
                         ),
                         const SizedBox(width: AppSpacing.xs),
                         Expanded(
                           child: Text(
-                            'Nothing changes until you accept. Keeping the current route leaves your itinerary exactly as planned.',
+                            'Lịch trình chỉ thay đổi khi bạn xác nhận. Giữ lộ trình hiện tại sẽ giữ nguyên toàn bộ kế hoạch ban đầu.',
                             style: TextStyle(
-                              color: AppColors.muted,
+                              color: palette.secondary,
                               fontSize: 11,
-                              height: 1.3,
+                              height: 1.35,
                             ),
                           ),
                         ),
@@ -368,8 +360,6 @@ class RerouteProposalSheet extends StatelessWidget {
                 ],
               ),
             ),
-
-            // Fixed Action Buttons
             Padding(
               padding: const EdgeInsets.all(AppSpacing.md),
               child: Column(
@@ -379,11 +369,13 @@ class RerouteProposalSheet extends StatelessWidget {
                   FilledButton(
                     onPressed: onAccept,
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.success,
+                      backgroundColor: palette.primary,
+                      foregroundColor: palette.onPrimary,
                       minimumSize: const Size.fromHeight(48),
+                      shape: const StadiumBorder(),
                     ),
                     child: const Text(
-                      'Accept Re-routing',
+                      'Chấp nhận đổi lộ trình',
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
@@ -392,12 +384,14 @@ class RerouteProposalSheet extends StatelessWidget {
                     onPressed: onDecline,
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size.fromHeight(48),
-                      side: const BorderSide(color: AppColors.line),
+                      side: BorderSide(color: palette.border),
+                      backgroundColor: palette.surface,
+                      shape: const StadiumBorder(),
                     ),
-                    child: const Text(
-                      'Keep Current Route',
+                    child: Text(
+                      'Giữ lộ trình hiện tại',
                       style: TextStyle(
-                        color: AppColors.ink,
+                        color: palette.ink,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -425,6 +419,7 @@ class _MetricRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = CoastalPalette.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -433,7 +428,7 @@ class _MetricRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(fontSize: 13, color: AppColors.ink),
+              style: TextStyle(fontSize: 13, color: palette.ink),
             ),
           ),
           const SizedBox(width: AppSpacing.xs),
@@ -443,7 +438,7 @@ class _MetricRow extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: isPositive ? AppColors.success : AppColors.ink,
+              color: isPositive ? palette.success : palette.ink,
             ),
           ),
         ],
@@ -460,6 +455,7 @@ class _StopLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = CoastalPalette.of(context);
     final change = stop.change;
     final tag = switch (change) {
       RerouteStopChange.added => 'New',
@@ -473,7 +469,7 @@ class _StopLine extends StatelessWidget {
         children: [
           Text(
             RerouteProposalSheet.formatTime(stop.plannedArrival),
-            style: const TextStyle(fontSize: 12, color: AppColors.muted),
+            style: TextStyle(fontSize: 12, color: palette.secondary),
           ),
           const SizedBox(width: AppSpacing.xs),
           Expanded(
@@ -482,10 +478,10 @@ class _StopLine extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 color: isRemoved
-                    ? AppColors.error
+                    ? palette.error
                     : (change == RerouteStopChange.added
-                          ? AppColors.success
-                          : AppColors.ink),
+                          ? palette.success
+                          : palette.ink),
                 fontWeight: change == null || change == RerouteStopChange.kept
                     ? FontWeight.normal
                     : FontWeight.w700,
@@ -498,10 +494,10 @@ class _StopLine extends StatelessWidget {
               padding: const EdgeInsets.only(left: 4),
               child: Text(
                 tag,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
+                  color: palette.primary,
                 ),
               ),
             ),

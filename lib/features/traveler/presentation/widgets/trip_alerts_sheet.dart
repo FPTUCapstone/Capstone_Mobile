@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/coastal_palette.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_state.dart';
@@ -71,10 +71,11 @@ class TripAlertsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = CoastalPalette.of(context);
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: palette.canvas,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       constraints: BoxConstraints(
         maxHeight: MediaQuery.sizeOf(context).height * 0.82,
@@ -85,20 +86,17 @@ class TripAlertsSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Drag handle
             Center(
               child: Container(
                 margin: const EdgeInsets.only(top: 12, bottom: 8),
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.line,
+                  color: palette.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
-
-            // Header
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.md,
@@ -108,75 +106,107 @@ class TripAlertsSheet extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Text(
-                    'Trip Alerts',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.ink,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            'Cảnh báo chuyến đi',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: palette.ink,
+                                ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: palette.softAccent,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${alerts.length}',
+                            style: TextStyle(
+                              color: palette.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.xs),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primarySoft,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${alerts.length}',
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: Icon(Icons.close_rounded, color: palette.ink),
+                    tooltip: 'Đóng',
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
               ),
             ),
-            const Divider(height: 1),
-
-            if (isLoading) const LinearProgressIndicator(minHeight: 2),
+            Divider(height: 1, color: palette.border),
+            if (isLoading)
+              LinearProgressIndicator(minHeight: 2, color: palette.primary),
             if (errorMessage != null)
               MaterialBanner(
-                content: Text(errorMessage!),
+                backgroundColor: palette.errorBg,
+                content: Text(
+                  errorMessage!,
+                  style: TextStyle(color: palette.ink),
+                ),
                 actions: [
                   if (onRetry != null)
-                    TextButton(onPressed: onRetry, child: const Text('Retry')),
+                    TextButton(
+                      onPressed: onRetry,
+                      child: const Text('Thử lại'),
+                    ),
                 ],
               ),
-
-            // List of alerts
             Expanded(
               child: alerts.isEmpty
                   ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.check_circle_outline_rounded,
-                            size: 48,
-                            color: AppColors.success,
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          Text(
-                            'No alerts for this trip',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: AppSpacing.xxs),
-                          const Text(
-                            'All routes and stops are operating normally.',
-                            style: TextStyle(color: AppColors.muted),
-                          ),
-                        ],
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                color: palette.softAccent,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.check_circle_outline_rounded,
+                                size: 36,
+                                color: palette.success,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            Text(
+                              'Chưa có cảnh báo nào',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: palette.ink,
+                                  ),
+                            ),
+                            const SizedBox(height: AppSpacing.xxs),
+                            Text(
+                              'Tất cả tuyến đường và điểm dừng đều đang ổn định.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: palette.secondary),
+                            ),
+                          ],
+                        ),
                       ),
                     )
                   : ListView.separated(
@@ -209,15 +239,13 @@ class TripAlertsSheet extends StatelessWidget {
                       },
                     ),
             ),
-
-            // Footer note
             Padding(
               padding: const EdgeInsets.all(AppSpacing.sm),
               child: Text(
-                'Alerts are retained for the duration of the active trip.',
+                'Cảnh báo được lưu lại trong suốt thời gian chuyến đi diễn ra.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.muted,
+                  color: palette.secondary,
                   fontSize: 11,
                 ),
               ),
@@ -246,21 +274,22 @@ class _AlertListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = CoastalPalette.of(context);
     final (borderColor, icon, severityLabel) = switch (alert.severity) {
       AlertSeverity.critical => (
-        AppColors.error,
+        palette.error,
         Icons.warning_amber_rounded,
-        'CRITICAL',
+        'KHẨN CẤP',
       ),
       AlertSeverity.warning => (
-        AppColors.warning,
+        palette.warningText,
         Icons.schedule_rounded,
-        'WARNING',
+        'CẢNH BÁO',
       ),
       AlertSeverity.info => (
-        AppColors.primary,
+        palette.primary,
         Icons.info_outline_rounded,
-        'NOTICE',
+        'THÔNG BÁO',
       ),
     };
 
@@ -268,13 +297,17 @@ class _AlertListCard extends StatelessWidget {
     final timeStr =
         '${localTimestamp.hour.toString().padLeft(2, '0')}:${localTimestamp.minute.toString().padLeft(2, '0')}';
 
-    return Card(
+    return Material(
+      color: palette.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: palette.border),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onOpen,
-        borderRadius: BorderRadius.circular(AppSpacing.md),
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppSpacing.md),
             border: Border(left: BorderSide(color: borderColor, width: 4)),
           ),
           padding: const EdgeInsets.all(AppSpacing.md),
@@ -296,19 +329,12 @@ class _AlertListCard extends StatelessWidget {
                   ),
                   if (alert.isRead) ...[
                     const SizedBox(width: AppSpacing.xs),
-                    const Icon(
-                      Icons.done_all,
-                      size: 15,
-                      color: AppColors.muted,
-                    ),
+                    Icon(Icons.done_all, size: 15, color: palette.secondary),
                   ],
                   const Spacer(),
                   Text(
                     timeStr,
-                    style: const TextStyle(
-                      color: AppColors.muted,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: palette.secondary, fontSize: 12),
                   ),
                 ],
               ),
@@ -317,43 +343,41 @@ class _AlertListCard extends StatelessWidget {
                 alert.title,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: AppColors.ink,
+                  color: palette.ink,
                 ),
               ),
               const SizedBox(height: AppSpacing.xxs),
               Text(
                 alert.description,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.ink,
-                  height: 1.3,
+                  color: palette.ink,
+                  height: 1.35,
                 ),
               ),
               if (alert.isResolved) ...[
                 const SizedBox(height: AppSpacing.xs),
-                const Text(
-                  'Resolved',
+                Text(
+                  'Đã xử lý',
                   style: TextStyle(
-                    color: AppColors.success,
+                    color: palette.success,
                     fontWeight: FontWeight.w600,
+                    fontSize: 12,
                   ),
                 ),
               ],
               const SizedBox(height: AppSpacing.xs),
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.place_outlined,
                     size: 14,
-                    color: AppColors.muted,
+                    color: palette.secondary,
                   ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       alert.affectedStopName,
-                      style: const TextStyle(
-                        color: AppColors.muted,
-                        fontSize: 11,
-                      ),
+                      style: TextStyle(color: palette.secondary, fontSize: 11),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -366,9 +390,15 @@ class _AlertListCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.sm),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: TextButton(
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: palette.primary,
+                      foregroundColor: palette.onPrimary,
+                      visualDensity: VisualDensity.compact,
+                      shape: const StadiumBorder(),
+                    ),
                     onPressed: onConfirmArrival,
-                    child: const Text("Confirm I've arrived"),
+                    child: const Text('Xác nhận đã đến'),
                   ),
                 ),
               ],
@@ -378,26 +408,32 @@ class _AlertListCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.sm),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: TextButton(
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: palette.primary,
+                      foregroundColor: palette.onPrimary,
+                      visualDensity: VisualDensity.compact,
+                      shape: const StadiumBorder(),
+                    ),
                     onPressed: onDepartStop,
-                    child: const Text('Leave this stop'),
+                    child: const Text('Rời điểm ngay'),
                   ),
                 ),
               ],
               if (alert.rerouteProposalAvailable &&
                   onReviewReroute != null) ...[
                 const SizedBox(height: AppSpacing.sm),
-                const Divider(height: 1),
+                Divider(height: 1, color: palette.border),
                 const SizedBox(height: AppSpacing.xs),
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton.icon(
                     onPressed: onReviewReroute,
                     icon: const Icon(Icons.alt_route_rounded, size: 16),
-                    label: const Text('Review Re-routing Proposal'),
+                    label: const Text('Xem đề xuất đổi lộ trình'),
                     style: TextButton.styleFrom(
                       visualDensity: VisualDensity.compact,
-                      foregroundColor: AppColors.primary,
+                      foregroundColor: palette.primary,
                     ),
                   ),
                 ),
