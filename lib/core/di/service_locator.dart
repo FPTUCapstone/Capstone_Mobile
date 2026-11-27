@@ -94,6 +94,11 @@ import 'package:trip_mate_mobile/features/operator_contracts/data/datasources/op
 import 'package:trip_mate_mobile/features/operator_contracts/data/repositories/operator_contract_repository_impl.dart';
 import 'package:trip_mate_mobile/features/operator_contracts/domain/repositories/operator_contract_repository.dart';
 import 'package:trip_mate_mobile/features/operator_contracts/presentation/cubit/operator_contract_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_payment_channel/data/datasources/operator_payment_channel_remote_data_source.dart';
+import 'package:trip_mate_mobile/features/operator_payment_channel/data/repositories/operator_payment_channel_repository_impl.dart';
+import 'package:trip_mate_mobile/features/operator_payment_channel/domain/repositories/operator_payment_channel_repository.dart';
+import 'package:trip_mate_mobile/features/operator_payment_channel/domain/usecases/operator_payment_channel_usecases.dart';
+import 'package:trip_mate_mobile/features/operator_payment_channel/presentation/cubit/operator_payment_channel_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_finance/data/datasources/operator_finance_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/operator_finance/data/repositories/demo_operator_finance_repository.dart';
 import 'package:trip_mate_mobile/features/operator_finance/data/repositories/operator_finance_repository_impl.dart';
@@ -847,6 +852,28 @@ Future<void> configureDependencies({AppConfig? config}) async {
     )
     ..registerFactory<OperatorContractCubit>(
       () => OperatorContractCubit(serviceLocator<OperatorContractRepository>()),
+    )
+    ..registerLazySingleton<OperatorPaymentChannelRemoteDataSource>(
+      () => DioOperatorPaymentChannelRemoteDataSource(serviceLocator()),
+    )
+    ..registerLazySingleton<OperatorPaymentChannelRepository>(
+      () => OperatorPaymentChannelRepositoryImpl(serviceLocator()),
+    )
+    ..registerFactory<GetPaymentChannelUseCase>(
+      () => GetPaymentChannelUseCase(serviceLocator()),
+    )
+    ..registerFactory<SubmitPaymentChannelCredentialsUseCase>(
+      () => SubmitPaymentChannelCredentialsUseCase(serviceLocator()),
+    )
+    ..registerFactory<VerifyPaymentChannelUseCase>(
+      () => VerifyPaymentChannelUseCase(serviceLocator()),
+    )
+    ..registerFactory<OperatorPaymentChannelCubit>(
+      () => OperatorPaymentChannelCubit(
+        getChannel: serviceLocator(),
+        submitCredentials: serviceLocator(),
+        verify: serviceLocator(),
+      ),
     )
     ..registerFactory<RegisterCubit>(
       () => RegisterCubit(serviceLocator(), serviceLocator()),

@@ -11,6 +11,8 @@ import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/core/platform/device_window.dart';
 import 'package:trip_mate_mobile/features/auth/change_password/presentation/cubit/change_password_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/change_password/presentation/pages/change_password_page.dart';
+import 'package:trip_mate_mobile/features/operator_payment_channel/presentation/cubit/operator_payment_channel_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_payment_channel/presentation/pages/operator_payment_channel_page.dart';
 import 'package:trip_mate_mobile/features/auth/domain/entities/user_role.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/cubit/password_recovery_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/password_recovery/presentation/pages/password_recovery_page.dart';
@@ -969,6 +971,14 @@ GoRouter createAppRouter(
         builder: (_, _) => BlocProvider(
           create: (_) => serviceLocator<ChangePasswordCubit>(),
           child: const ChangePasswordPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.operatorPaymentSettings,
+        name: AppRouteNames.operatorPaymentSettings,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<OperatorPaymentChannelCubit>(),
+          child: const OperatorPaymentChannelPage(),
         ),
       ),
       GoRoute(

@@ -92,12 +92,24 @@ class OperatorProfileView extends StatelessWidget {
             color: Colors.transparent,
             borderRadius: BorderRadius.circular(12),
             clipBehavior: Clip.antiAlias,
-            child: ListTile(
-              leading: const Icon(Icons.description_outlined),
-              title: const Text('Hợp đồng đối tác'),
-              subtitle: const Text('Xem và tải bản hợp đồng của doanh nghiệp'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push(AppRoutes.operatorContract),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.account_balance_wallet_outlined),
+                  title: const Text('Kênh thanh toán payOS'),
+                  subtitle: const Text('Thiết lập nhận tiền trực tiếp từ khách'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push(AppRoutes.operatorPaymentSettings),
+                ),
+                const Divider(height: 1, indent: 56),
+                ListTile(
+                  leading: const Icon(Icons.description_outlined),
+                  title: const Text('Hợp đồng đối tác'),
+                  subtitle: const Text('Xem và tải bản hợp đồng của doanh nghiệp'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push(AppRoutes.operatorContract),
+                ),
+              ],
             ),
           ),
         ),
