@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
+import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_member.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
@@ -9,6 +11,7 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_gro
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_state.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/helpers/session_identity_helper.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/remove_group_member_dialog.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/error_view.dart';
 
 /// Active group member list and UC-20 Host removal flow (Screen #59).
@@ -92,7 +95,16 @@ final class _TravelGroupMembersPageState extends State<TravelGroupMembersPage> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('Group members')),
+        backgroundColor: AppColors.surface,
+        appBar: AppBar(
+          title: const Text('Group members'),
+          backgroundColor: AppColors.cardBackground,
+          surfaceTintColor: Colors.transparent,
+          bottom: const PreferredSize(
+            preferredSize: Size.fromHeight(1),
+            child: Divider(height: 1, thickness: 1, color: AppColors.line),
+          ),
+        ),
         body: BlocBuilder<TravelGroupMembersCubit, TravelGroupMembersState>(
           builder: (context, state) => switch (state) {
             TravelGroupMembersInitial() || TravelGroupMembersLoading() =>
@@ -183,22 +195,58 @@ final class _MembersContent extends StatelessWidget {
         hosts.single.memberId == currentUserId;
 
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.md),
       itemCount: members.members.length + 1 + (notice == null ? 0 : 1),
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
       itemBuilder: (context, index) {
         if (index == 0) {
           return _MembersHeader(members: members);
         }
         if (notice != null && index == 1) {
-          return Row(
-            children: [
-              Expanded(child: Text(notice!)),
-              if (onRetry != null)
-                TextButton(onPressed: onRetry, child: const Text('Retry')),
-              if (onRefresh != null)
-                TextButton(onPressed: onRefresh, child: const Text('Refresh')),
-            ],
+          final isSuccess = notice!.contains('removed from the group');
+          return Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            decoration: BoxDecoration(
+              color: isSuccess
+                  ? AppColors.primarySoft
+                  : const Color(0xFFFDEEEF),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSuccess
+                    ? AppColors.primary.withValues(alpha: 0.25)
+                    : AppColors.error.withValues(alpha: 0.25),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isSuccess ? Icons.check_circle_outline : Icons.info_outline,
+                  size: 20,
+                  color: isSuccess ? AppColors.primary : AppColors.error,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    notice!,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: isSuccess ? AppColors.primary : AppColors.error,
+                    ),
+                  ),
+                ),
+                if (onRetry != null)
+                  TextButton(onPressed: onRetry, child: const Text('Retry')),
+                if (onRefresh != null)
+                  TextButton(
+                    onPressed: onRefresh,
+                    child: const Text('Refresh'),
+                  ),
+              ],
+            ),
           );
         }
         final memberIndex = index - 1 - (notice == null ? 0 : 1);
@@ -220,21 +268,82 @@ final class _MembersHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          members.groupName,
-          style: Theme.of(context).textTheme.headlineSmall,
-        ),
-        const SizedBox(height: 4),
-        Text('Itinerary #${members.itineraryId}'),
-        const SizedBox(height: 4),
-        Text(
-          '${members.memberCount} active member${members.memberCount == 1 ? '' : 's'}',
-        ),
-        const SizedBox(height: 8),
-      ],
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.groups_rounded,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  members.groupName,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.ink,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              const Icon(Icons.map_outlined, size: 14, color: AppColors.muted),
+              const SizedBox(width: 4),
+              InkWell(
+                onTap: () => context.push(
+                  AppRoutes.itineraryDetailPath(members.itineraryId),
+                ),
+                child: Text(
+                  'Itinerary #${members.itineraryId}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 3,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFECE4),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '${members.memberCount} active member${members.memberCount == 1 ? '' : 's'}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.ink,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -259,26 +368,54 @@ final class _MemberTile extends StatelessWidget {
     // BR-45: Only Group Host may remove members. Group Host cannot remove itself.
     final showRemoveAction = isViewerHost && !member.isHost && !isSelf;
 
-    return Card(
+    return AppCard(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xs,
+        vertical: AppSpacing.xs,
+      ),
       child: ListTile(
         isThreeLine: true,
         leading: CircleAvatar(
+          backgroundColor: AppColors.primarySoft,
           backgroundImage: avatarUrl == null ? null : NetworkImage(avatarUrl),
-          child: avatarUrl == null ? const Icon(Icons.person_outline) : null,
+          child: avatarUrl == null
+              ? const Icon(Icons.person_outline, color: AppColors.primary)
+              : null,
         ),
         title: Text(
           member.displayName,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+            color: AppColors.ink,
+          ),
         ),
         subtitle: Text(
           'Joined ${_formatDate(member.joinedAtUtc)}\n'
           'Location sharing: ${member.locationSharingEnabled ? 'Enabled' : 'Disabled'}',
+          style: const TextStyle(fontSize: 12, color: AppColors.muted),
         ),
         trailing: member.isHost
             ? const Chip(
-                avatar: Icon(Icons.star_outline, size: 18),
-                label: Text('Group Host'),
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                avatar: Icon(
+                  Icons.star_rounded,
+                  size: 16,
+                  color: AppColors.warning,
+                ),
+                backgroundColor: Color(0xFFFEF6E6),
+                side: BorderSide(color: Color(0xFFF3DCA9)),
+                label: Text(
+                  'Group Host',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11.5,
+                    color: AppColors.warning,
+                  ),
+                ),
               )
             : showRemoveAction
             ? TextButton(

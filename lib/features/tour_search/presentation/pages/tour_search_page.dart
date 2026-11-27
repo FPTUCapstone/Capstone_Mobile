@@ -63,24 +63,15 @@ class _TourSearchPageState extends State<TourSearchPage> {
                   isTraveler: widget.isTraveler,
                   showBackButton: widget.showBackButton,
                   useEnglish: useEnglish,
+                  showLocaleSelector: !cubit.devSearchEnabled,
+                  locale: locale,
+                  onLocaleChanged: (value) async {
+                    setState(() => _selection = value);
+                    await _preferences?.setString(_localeKey, value);
+                  },
+                  showHeaderFilterButton: cubit.devSearchEnabled,
                   onFilterTap: () => _openFilterSheet(context, cubit, locale),
                 ),
-                if (!cubit.devSearchEnabled)
-                  DropdownButton<String>(
-                    value: locale,
-                    hint: Text(
-                      publicSearchCopy(SearchText.language, useEnglish),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'vi', child: Text('Tiếng Việt')),
-                      DropdownMenuItem(value: 'en', child: Text('English')),
-                    ],
-                    onChanged: (value) async {
-                      if (value == null) return;
-                      setState(() => _selection = value);
-                      await _preferences?.setString(_localeKey, value);
-                    },
-                  ),
                 _ActiveFilters(
                   state: state,
                   cubit: cubit,
@@ -93,6 +84,7 @@ class _TourSearchPageState extends State<TourSearchPage> {
                     state: state,
                     cubit: cubit,
                     useEnglish: useEnglish,
+                    onFilterTap: () => _openFilterSheet(context, cubit, locale),
                   ),
                 if (state.validationFailure case final failure?)
                   _InlineNotice(
@@ -166,34 +158,49 @@ class _TourSearchHeader extends StatelessWidget {
     required this.onFilterTap,
     required this.useEnglish,
     required this.showBackButton,
+    required this.showLocaleSelector,
+    required this.locale,
+    required this.onLocaleChanged,
+    required this.showHeaderFilterButton,
   });
 
   final bool isTraveler;
   final VoidCallback onFilterTap;
   final bool useEnglish;
   final bool showBackButton;
+  final bool showLocaleSelector;
+  final String locale;
+  final ValueChanged<String> onLocaleChanged;
+  final bool showHeaderFilterButton;
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: TourSearchPalette.teal,
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: TourSearchPalette.line, width: 1),
+        ),
+      ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(
+        padding: EdgeInsets.fromLTRB(
+          showBackButton ? AppSpacing.xs : AppSpacing.md,
+          AppSpacing.xs,
           AppSpacing.md,
-          AppSpacing.sm,
-          AppSpacing.md,
-          AppSpacing.md,
+          AppSpacing.xs,
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
-                // Brand
                 if (showBackButton)
                   IconButton(
                     tooltip: useEnglish ? 'Back' : 'Quay lại',
-                    color: Colors.white,
-                    icon: const Icon(Icons.arrow_back),
+                    color: TourSearchPalette.navy,
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.arrow_back, size: 22),
                     onPressed: () {
                       if (context.canPop()) {
                         context.pop();
@@ -204,100 +211,115 @@ class _TourSearchHeader extends StatelessWidget {
                       }
                     },
                   ),
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: TourSearchPalette.navy,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.route, color: Colors.white, size: 22),
-                ),
-                const SizedBox(width: AppSpacing.xs),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'TripMate',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                            ),
+                        publicSearchCopy(SearchText.title, useEnglish),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: TourSearchPalette.navy,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       Text(
-                        publicSearchCopy(SearchText.title, useEnglish),
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodySmall?.copyWith(color: Colors.white70),
+                        'TripMate',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: TourSearchPalette.muted,
+                          fontSize: 11.5,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                // Tours badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xs,
-                    vertical: AppSpacing.xxs,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    'TOURS',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: TourSearchPalette.teal,
-                      fontWeight: FontWeight.w700,
+                if (showLocaleSelector) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    height: 34,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: TourSearchPalette.background,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: TourSearchPalette.cardBorder),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: locale,
+                        isDense: true,
+                        icon: const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          size: 16,
+                          color: TourSearchPalette.muted,
+                        ),
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: TourSearchPalette.navy,
+                          fontSize: 12,
+                        ),
+                        hint: Text(
+                          publicSearchCopy(SearchText.language, useEnglish),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'vi',
+                            child: Text('Tiếng Việt'),
+                          ),
+                          DropdownMenuItem(value: 'en', child: Text('English')),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) onLocaleChanged(value);
+                        },
+                      ),
                     ),
                   ),
-                ),
+                ],
                 if (!isTraveler) ...[
-                  const SizedBox(width: AppSpacing.xs),
-                  SizedBox(
-                    height: 40,
-                    child: FilledButton.icon(
-                      onPressed: () => context.go(AppRoutes.login),
-                      icon: const Icon(Icons.login, size: 18),
-                      label: Text(
-                        publicSearchCopy(SearchText.signIn, useEnglish),
+                  const SizedBox(width: 6),
+                  FilledButton(
+                    onPressed: () => context.go(AppRoutes.login),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 34),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      backgroundColor: TourSearchPalette.teal,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      style: FilledButton.styleFrom(
-                        minimumSize: Size.zero,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm,
-                        ),
-                        backgroundColor: TourSearchPalette.tealDark,
-                        foregroundColor: Colors.white,
-                        textStyle: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(fontWeight: FontWeight.w600),
+                      textStyle: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
                       ),
+                    ),
+                    child: Text(
+                      publicSearchCopy(SearchText.signIn, useEnglish),
                     ),
                   ),
                 ],
               ],
             ),
-            const SizedBox(height: AppSpacing.sm),
-            // Filter button
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: FilledButton.icon(
-                onPressed: onFilterTap,
-                icon: const Icon(Icons.tune, size: 20),
-                label: Text(
-                  publicSearchCopy(SearchText.filterAction, useEnglish),
-                ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: TourSearchPalette.navy,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+            if (showHeaderFilterButton) ...[
+              const SizedBox(height: AppSpacing.xs),
+              SizedBox(
+                width: double.infinity,
+                height: 40,
+                child: FilledButton.icon(
+                  onPressed: onFilterTap,
+                  icon: const Icon(Icons.tune, size: 17),
+                  label: Text(
+                    publicSearchCopy(SearchText.filterAction, useEnglish),
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: TourSearchPalette.teal,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),

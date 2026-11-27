@@ -23,6 +23,8 @@ Future<CreateTourPackageCubit> _loadedCubit(
     loadOptions: LoadTourPackageOptionsUseCase(repository),
     getTour: GetTourPackageUseCase(repository),
     updateTour: UpdateTourPackageUseCase(repository),
+    deleteTour: DeleteTourPackageUseCase(repository),
+    addDeparture: AddTourDepartureUseCase(repository),
     submitForReview: SubmitTourForReviewUseCase(repository),
     media: ManageTourMediaUseCase(repository),
   );
@@ -319,5 +321,116 @@ void main() {
 
       expect(find.text('create'), findsOneWidget);
     });
+
+    testWidgets('approved package with past publishedAtUtc shows Published', (
+      tester,
+    ) async {
+      final repository = FakeOperatorTourRepository()
+        ..allTours = [
+          TourPackageSummary(
+            id: 9,
+            title: 'Live Coastal Tour',
+            status: TourPackageStatus.approved,
+            publishedAtUtc: DateTime.utc(2026, 1, 1),
+            versionNo: 2,
+            basePrice: 1200000,
+            durationDays: 2,
+            destination: 'Da Nang',
+            upcomingDepartureCount: 3,
+          ),
+        ];
+      await pumpList(tester, repository);
+
+      expect(find.text('Live Coastal Tour'), findsOneWidget);
+      expect(find.textContaining('v2 · Published'), findsOneWidget);
+      expect(find.textContaining('3 upcoming departure(s)'), findsOneWidget);
+    });
+  });
+
+  group('deposit, packing tags, reopen, and version history', () {
+    testWidgets('packing checklist tags and deposit setup persist on save', (
+      tester,
+    ) async {
+      final repository = FakeOperatorTourRepository();
+      final cubit = await _loadedCubit(repository);
+      addTearDown(cubit.close);
+      await _pumpEditor(tester, cubit);
+
+      await tester.tap(find.widgetWithText(FilterChip, 'Sports shoes'));
+      await tester.tap(find.text('Allow deposit'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Preview & save'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Save draft'));
+      await tester.pumpAndSettle();
+
+      final saved = repository.updates.single.$2;
+      expect(saved.travellerRequirements, '- Sports shoes');
+      expect(saved.allowDeposit, isTrue);
+      expect(saved.depositPercent, 30);
+      expect(saved.balanceDueDaysBeforeDeparture, 7);
+    });
+
+    testWidgets(
+      'published tour shows reopen departure, clone v3, and version history',
+      (tester) async {
+        final base = sampleDetail(
+          id: 42,
+          status: TourPackageStatus.approved,
+          blockers: const [],
+        );
+        final liveDetail = TourPackageDetail(
+          id: 42,
+          title: base.title,
+          description: base.description,
+          status: TourPackageStatus.approved,
+          publishedAtUtc: DateTime.utc(2026, 1, 1),
+          versionNo: 2,
+          basePrice: base.basePrice,
+          durationDays: base.durationDays,
+          destinationIds: base.destinationIds,
+          destinationNames: base.destinationNames,
+          cancellationPolicyTemplateId: base.cancellationPolicyTemplateId,
+          itineraryItems: base.itineraryItems,
+          departures: base.departures,
+          reviewBlockers: const [],
+          warnings: const [],
+          canSubmitForReview: false,
+          hasPrimaryImage: true,
+          mediaCount: 1,
+          versions: const [
+            TourVersionHistoryItem(
+              tourId: 41,
+              versionNo: 1,
+              status: TourPackageStatus.inactive,
+            ),
+            TourVersionHistoryItem(
+              tourId: 42,
+              versionNo: 2,
+              status: TourPackageStatus.approved,
+            ),
+          ],
+        );
+        final cubit = await _loadedCubit(
+          FakeOperatorTourRepository(detail: liveDetail),
+        );
+        addTearDown(cubit.close);
+        await _pumpEditor(tester, cubit);
+
+        expect(find.text('Open new departure'), findsOneWidget);
+        expect(find.text('Create v3 draft'), findsOneWidget);
+
+        await tester.tap(find.text('Preview & save'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Version History'), findsOneWidget);
+        expect(find.textContaining('v1 · Inactive'), findsOneWidget);
+        expect(
+          find.textContaining('v2 · Approved (not published)'),
+          findsWidgets,
+        );
+      },
+    );
   });
 }

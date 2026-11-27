@@ -176,6 +176,7 @@ final class ActiveTripState extends Equatable {
     WeatherAdvisory? activeWeatherAdvisory,
     bool clearWeatherAdvisory = false,
     RerouteProposal? activeRerouteProposal,
+    bool clearRerouteProposal = false,
     bool? isRerouteSheetVisible,
     String? statusMessage,
   }) {
@@ -227,8 +228,9 @@ final class ActiveTripState extends Equatable {
       activeWeatherAdvisory: clearWeatherAdvisory
           ? null
           : (activeWeatherAdvisory ?? this.activeWeatherAdvisory),
-      activeRerouteProposal:
-          activeRerouteProposal ?? this.activeRerouteProposal,
+      activeRerouteProposal: clearRerouteProposal
+          ? null
+          : (activeRerouteProposal ?? this.activeRerouteProposal),
       isRerouteSheetVisible:
           isRerouteSheetVisible ?? this.isRerouteSheetVisible,
       statusMessage: statusMessage ?? this.statusMessage,

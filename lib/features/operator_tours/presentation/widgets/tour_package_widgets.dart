@@ -77,6 +77,8 @@ final class TourOptionsSection extends StatelessWidget {
     required this.onToggleDestination,
     required this.onPolicyChanged,
     required this.onRetry,
+    this.selectedCategoryId,
+    this.onCategoryChanged,
     super.key,
   });
   final CreateTourPackageState state;
@@ -86,6 +88,8 @@ final class TourOptionsSection extends StatelessWidget {
   final ValueChanged<int> onToggleDestination;
   final ValueChanged<int?> onPolicyChanged;
   final VoidCallback onRetry;
+  final int? selectedCategoryId;
+  final ValueChanged<int?>? onCategoryChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -139,6 +143,34 @@ final class TourOptionsSection extends StatelessWidget {
               ],
               onChanged: enabled ? onPolicyChanged : null,
             ),
+            if (options.categories.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.md),
+              DropdownButtonFormField<int?>(
+                initialValue:
+                    options.categories.any((c) => c.id == selectedCategoryId)
+                    ? selectedCategoryId
+                    : null,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Category (optional)',
+                ),
+                items: [
+                  const DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text('No category'),
+                  ),
+                  for (final category in options.categories)
+                    DropdownMenuItem<int?>(
+                      value: category.id,
+                      child: Text(
+                        category.name,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+                onChanged: enabled ? onCategoryChanged : null,
+              ),
+            ],
           ],
         );
     }
@@ -231,7 +263,11 @@ final class TourPreviewCard extends StatelessWidget {
     this.highlights = '',
     this.inclusions = '',
     this.exclusions = '',
+    this.travellerRequirements = '',
     this.policyName,
+    this.allowDeposit = false,
+    this.depositPercent,
+    this.balanceDueDaysBeforeDeparture,
     super.key,
   });
   final String title;
@@ -242,7 +278,11 @@ final class TourPreviewCard extends StatelessWidget {
   final String highlights;
   final String inclusions;
   final String exclusions;
+  final String travellerRequirements;
   final String? policyName;
+  final bool allowDeposit;
+  final num? depositPercent;
+  final int? balanceDueDaysBeforeDeparture;
   final Map<int, List<String>> days;
   final List<String> departures;
 
@@ -300,7 +340,16 @@ final class TourPreviewCard extends StatelessWidget {
                   section('Day ${entry.key}', entry.value.join(' → ')),
                 section('Included', inclusions),
                 section('Not included', exclusions),
+                section('Traveller requirements', travellerRequirements),
                 if (policyName != null) section('Cancellation', policyName!),
+                section(
+                  'Payment & deposit',
+                  allowDeposit &&
+                          depositPercent != null &&
+                          balanceDueDaysBeforeDeparture != null
+                      ? 'Deposit $depositPercent% at booking · Balance due $balanceDueDaysBeforeDeparture days before departure'
+                      : '100% upfront payment at booking',
+                ),
                 section('Departures', departures.join('\n')),
               ],
             ),

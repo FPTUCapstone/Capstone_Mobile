@@ -358,14 +358,8 @@ void main() {
           for (final name in names) tester.getTopLeft(find.text(name)).dy,
         ];
         expect([...tops]..sort(), tops, reason: 'stops follow the sequence');
-        expect(
-          find.text(TripHistoryStringsEn.stopVisited.toUpperCase()),
-          findsNWidgets(3),
-        );
-        expect(
-          find.text(TripHistoryStringsEn.stopSkipped.toUpperCase()),
-          findsOneWidget,
-        );
+        expect(find.text(TripHistoryStringsEn.stopVisited), findsNWidgets(3));
+        expect(find.text(TripHistoryStringsEn.stopSkipped), findsOneWidget);
         expect(
           find.text(TripHistoryStringsEn.formatReachedAt('20/09/2026 08:05')),
           findsOneWidget,
@@ -402,7 +396,7 @@ void main() {
         await _open(tester, cubit, title: 'Hue day trip');
 
         expect(
-          find.text(TripHistoryStringsEn.stopNotVisited.toUpperCase()),
+          find.text(TripHistoryStringsEn.stopNotVisited),
           findsNWidgets(2),
         );
         expect(
@@ -449,14 +443,8 @@ void main() {
           find.text(TripHistoryStringsEn.formatPlannedWindow('08:00', '09:00')),
           findsOneWidget,
         );
-        expect(
-          find.text(TripHistoryStringsEn.stopVisited.toUpperCase()),
-          findsNothing,
-        );
-        expect(
-          find.text(TripHistoryStringsEn.stopNotVisited.toUpperCase()),
-          findsNothing,
-        );
+        expect(find.text(TripHistoryStringsEn.stopVisited), findsNothing);
+        expect(find.text(TripHistoryStringsEn.stopNotVisited), findsNothing);
         expect(
           find.text(TripHistoryStringsEn.sessionSectionTitle),
           findsNothing,

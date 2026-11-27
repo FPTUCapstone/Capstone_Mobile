@@ -88,7 +88,7 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
               : const SizedBox.shrink(),
         2 =>
           _tourCubit != null
-              ? const TourSearchPage(isTraveler: false)
+              ? const TourSearchPage(isTraveler: false, showBackButton: false)
               : const SizedBox.shrink(),
         3 => _buildGuestAccountView(context),
         _ => _buildHomeFeed(context),
@@ -123,38 +123,38 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: AppSpacing.xs),
+            const SizedBox(height: 10),
             // Section A: Compact Welcome & Tagline
             _buildWelcomeSubheader(context),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: 10),
 
             // Visual Hero Rotating Banner Area
             const GuestHeroBanner(),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: 12),
 
-            // Section B: Primary Search Bar
+            // Section B: Compact Primary Search Bar
             _buildPrimarySearchBar(context),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: 10),
 
             // Section C: Quick Discovery Categories
             _buildDiscoveryCategories(context),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
 
             // Section D: Featured Destinations / POIs
             _buildFeaturedPoisSection(context),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
 
             // Section E: Trending Tours
             _buildTrendingToursSection(context),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
 
             // Section F: Smart Itinerary Call-to-Action
             _buildSmartItineraryCta(context),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
 
             // Section H: Why Choose TripMate
             _buildWhyTripMateSection(context),
-            const SizedBox(height: AppSpacing.xxl),
+            const SizedBox(height: AppSpacing.lg),
           ],
         ),
       ),
@@ -168,28 +168,33 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
         children: [
           Image.asset(
             'assets/images/logo/tripmate_logo_full_512.png',
-            height: 28,
+            height: 24,
             fit: BoxFit.contain,
           ),
         ],
+      ),
+      bottom: const PreferredSize(
+        preferredSize: Size.fromHeight(1),
+        child: Divider(height: 1, thickness: 1, color: AppColors.line),
       ),
       actions: [
         OutlinedButton(
           onPressed: () => context.push(AppRoutes.travelerRegistration),
           style: OutlinedButton.styleFrom(
-            minimumSize: const Size(0, 36),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            minimumSize: const Size(0, 34),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            padding: const EdgeInsets.symmetric(horizontal: 11),
             side: const BorderSide(color: AppColors.line),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
             ),
           ),
           child: const Text(
             'Đăng ký',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 12.5,
               fontWeight: FontWeight.w600,
-              color: AppColors.primary,
+              color: AppColors.ink,
             ),
           ),
         ),
@@ -197,18 +202,19 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
         TextButton(
           onPressed: () => context.push(AppRoutes.login),
           style: TextButton.styleFrom(
-            minimumSize: const Size(0, 36),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            backgroundColor: AppColors.secondary,
+            minimumSize: const Size(0, 34),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
             ),
           ),
           child: const Text(
             'Đăng nhập',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 12.5,
               fontWeight: FontWeight.w700,
               color: Colors.white,
             ),
@@ -225,19 +231,20 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
       children: [
         Text(
           'Hành trình trọn vẹn,\ntrải nghiệm thông minh',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w800,
-            color: AppColors.primary,
-            height: 1.25,
-            letterSpacing: -0.5,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: AppColors.ink,
+            height: 1.24,
+            letterSpacing: -0.3,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 3),
         Text(
           'Khám phá danh lam, ẩm thực và tour du lịch miền Trung cùng AI.',
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: AppColors.muted, fontSize: 13),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AppColors.muted,
+            fontSize: 12.5,
+          ),
         ),
       ],
     );
@@ -250,67 +257,45 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           onTap: () => setState(() => _currentTabIndex = 2),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            height: 46,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.line),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x0C00152A),
-                  blurRadius: 12,
-                  offset: Offset(0, 4),
-                ),
-              ],
             ),
             child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primarySoft,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.search,
-                    size: 20,
-                    color: AppColors.secondary,
-                  ),
+                const Icon(
+                  Icons.search_rounded,
+                  size: 19,
+                  color: AppColors.secondary,
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Bạn muốn khám phá nơi nào?',
-                        style: TextStyle(
-                          color: AppColors.ink,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Tìm tour Đà Nẵng, Hội An, Huế...',
-                        style: TextStyle(color: AppColors.muted, fontSize: 12),
-                      ),
-                    ],
+                  child: Text(
+                    'Tìm tour Đà Nẵng, Hội An, Huế...',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: AppColors.primarySoft,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
-                    Icons.tune,
-                    size: 18,
+                    Icons.tune_rounded,
+                    size: 16,
                     color: AppColors.secondary,
                   ),
                 ),
@@ -352,11 +337,11 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
     ];
 
     return SizedBox(
-      height: 42,
+      height: 36,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 6),
         itemBuilder: (context, index) {
           final item = categories[index];
           final isSelected = _selectedCategoryIndex == index;
@@ -365,7 +350,7 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
             showCheckmark: false,
             avatar: Icon(
               item.icon,
-              size: 16,
+              size: 15,
               color: isSelected ? Colors.white : AppColors.secondary,
             ),
             label: Text(item.label),
@@ -378,20 +363,19 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
                 _poiCubit?.selectCategory(null);
               }
             },
-            materialTapTargetSize: MaterialTapTargetSize.padded,
+            visualDensity: VisualDensity.compact,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             selectedColor: AppColors.secondary,
             backgroundColor: Colors.white,
             side: BorderSide(
               color: isSelected ? AppColors.secondary : AppColors.line,
             ),
             labelStyle: TextStyle(
-              fontSize: 13,
+              fontSize: 12.5,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               color: isSelected ? Colors.white : AppColors.ink,
             ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
+            shape: const StadiumBorder(),
           );
         },
       ),
@@ -474,18 +458,11 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
         itemBuilder: (context, index) {
           final poi = displayPois[index];
           return Container(
-            width: 200,
+            width: 196,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppColors.line),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x0A00152A),
-                  blurRadius: 8,
-                  offset: Offset(0, 3),
-                ),
-              ],
             ),
             clipBehavior: Clip.antiAlias,
             child: Material(
@@ -676,18 +653,11 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
         itemBuilder: (context, index) {
           final p = curatedPois[index];
           return Container(
-            width: 190,
+            width: 186,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppColors.line),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x0A00152A),
-                  blurRadius: 8,
-                  offset: Offset(0, 3),
-                ),
-              ],
             ),
             clipBehavior: Clip.antiAlias,
             child: Material(
@@ -951,18 +921,11 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
         itemBuilder: (context, index) {
           final tour = displayTours[index];
           return Container(
-            width: 230,
+            width: 220,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppColors.line),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x0A00152A),
-                  blurRadius: 10,
-                  offset: Offset(0, 3),
-                ),
-              ],
             ),
             clipBehavior: Clip.antiAlias,
             child: Material(
@@ -1217,15 +1180,8 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
             width: 220,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppColors.line),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x0A00152A),
-                  blurRadius: 10,
-                  offset: Offset(0, 3),
-                ),
-              ],
             ),
             clipBehavior: Clip.antiAlias,
             child: Material(
@@ -1320,18 +1276,22 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
                           ),
                           const SizedBox(height: 6),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                TripFormatters.formatCurrencyVnd(
-                                  t['price'] as int,
-                                ),
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.secondary,
+                              Expanded(
+                                child: Text(
+                                  TripFormatters.formatCurrencyVnd(
+                                    t['price'] as int,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.secondary,
+                                  ),
                                 ),
                               ),
+                              const SizedBox(width: 4),
                               const Icon(
                                 Icons.arrow_forward_ios,
                                 size: 12,
@@ -1413,83 +1373,76 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
 
   Widget _buildSmartItineraryCta(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF00152A), Color(0xFF004D40)],
+          colors: [Color(0xFFE8F0EA), Color(0xFFF3F6F1)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.2),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFC8D7CE)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
             decoration: BoxDecoration(
-              color: const Color(0xFF6DF5E1).withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(20),
+              color: AppColors.primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(999),
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.auto_awesome, size: 13, color: Color(0xFF6DF5E1)),
+                Icon(Icons.auto_awesome, size: 12, color: AppColors.primary),
                 SizedBox(width: 4),
                 Text(
                   'TỐI ƯU BỞI AI',
                   style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF6DF5E1),
-                    letterSpacing: 0.6,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                    letterSpacing: 0.4,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: 8),
           const Text(
             'Khám phá nhiều hơn,\nlên lịch trình thông minh hơn',
             style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
+              fontSize: 16.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.ink,
               height: 1.25,
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
+          const SizedBox(height: 4),
+          const Text(
             'Tự động tối ưu thứ tự tham quan, tránh tắc đường và cá nhân hóa chuyến đi theo sở thích của bạn.',
             style: TextStyle(
-              fontSize: 12,
-              color: Colors.white.withValues(alpha: 0.85),
+              fontSize: 12.5,
+              color: AppColors.muted,
               height: 1.4,
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
-          ElevatedButton.icon(
+          const SizedBox(height: 12),
+          FilledButton.icon(
             onPressed: () => context.push(
               Uri(
                 path: AppRoutes.login,
                 queryParameters: {'from': AppRoutes.createItinerary},
               ).toString(),
             ),
-            icon: const Icon(Icons.rocket_launch, size: 16),
+            icon: const Icon(Icons.auto_awesome_outlined, size: 16),
             label: const Text('Lên lịch trình cùng AI'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.secondary,
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
-              elevation: 0,
-              minimumSize: const Size(0, 44),
-              padding: const EdgeInsets.symmetric(horizontal: 18),
+              minimumSize: const Size(0, 40),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -1536,24 +1489,24 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.xs),
             child: AppCard(
-              padding: const EdgeInsets.all(AppSpacing.md),
+              padding: const EdgeInsets.all(12),
               borderRadius: 14,
               child: Row(
                 children: [
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: 38,
+                    height: 38,
                     decoration: BoxDecoration(
                       color: AppColors.primarySoft,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
                       item['icon'] as IconData,
-                      size: 22,
+                      size: 20,
                       color: AppColors.secondary,
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.md),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1562,7 +1515,7 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
                           item['title'] as String,
                           style: const TextStyle(
                             fontWeight: FontWeight.w700,
-                            fontSize: 13,
+                            fontSize: 13.5,
                             color: AppColors.ink,
                           ),
                         ),
@@ -1570,7 +1523,7 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
                         Text(
                           item['desc'] as String,
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             color: AppColors.muted,
                             height: 1.35,
                           ),
@@ -1641,47 +1594,58 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
         children: [
           // Profile card
           AppCard(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            borderRadius: 20,
+            padding: const EdgeInsets.all(AppSpacing.md),
+            borderRadius: 16,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    color: AppColors.primarySoft,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.secondary.withValues(alpha: 0.3),
-                      width: 2,
+                Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: AppColors.primarySoft,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.secondary.withValues(alpha: 0.25),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.person_rounded,
+                        size: 28,
+                        color: AppColors.secondary,
+                      ),
                     ),
-                  ),
-                  child: const Icon(
-                    Icons.person_rounded,
-                    size: 38,
-                    color: AppColors.secondary,
-                  ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Khách du lịch',
+                            style: TextStyle(
+                              fontSize: 16.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.ink,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Đăng nhập để đồng bộ lịch trình AI và đặt tour.',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: AppColors.muted,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                const Text(
-                  'Khách du lịch',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.ink,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Khám phá TripMate không cần tài khoản. Đăng nhập để đồng bộ lịch trình AI và đặt tour.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: AppColors.muted,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
@@ -1689,7 +1653,7 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
                         onPressed: () =>
                             context.push(AppRoutes.travelerRegistration),
                         style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(0, 44),
+                          minimumSize: const Size(0, 40),
                           side: const BorderSide(color: AppColors.secondary),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -1705,15 +1669,14 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.sm),
+                    const SizedBox(width: AppSpacing.xs),
                     Expanded(
-                      child: ElevatedButton(
+                      child: FilledButton(
                         onPressed: () => context.push(AppRoutes.login),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(0, 44),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(0, 40),
                           backgroundColor: AppColors.secondary,
                           foregroundColor: Colors.white,
-                          elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -1758,14 +1721,26 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
                   icon: Icons.language_rounded,
                   title: 'Ngôn ngữ',
                   subtitle: 'Tiếng Việt (VN)',
-                  onTap: () {},
+                  onTap: () => _showGuestInfoSheet(
+                    context,
+                    title: 'Ngôn ngữ hiển thị',
+                    message:
+                        'TripMate mặc định sử dụng Tiếng Việt. Bạn có thể chuyển đổi ngôn ngữ tìm kiếm tour trực tiếp trong mục Tour.',
+                  ),
                 ),
                 const Divider(height: 1, indent: 56, color: AppColors.line),
                 _buildSettingsTile(
                   icon: Icons.help_outline_rounded,
                   title: 'Hỗ trợ & Trợ giúp',
-                  subtitle: 'FAQ và liên hệ đội ngũ TripMate',
-                  onTap: () {},
+                  subtitle: 'Hướng dẫn sử dụng và trợ lý TripMate',
+                  onTap: () => _showGuestInfoSheet(
+                    context,
+                    title: 'Hỗ trợ TripMate',
+                    message:
+                        'Đăng nhập để trò chuyện trực tiếp với Trợ lý hỗ trợ TripMate, quản lý đặt chỗ và gửi yêu cầu khiếu nại sau chuyến đi.',
+                    actionLabel: 'Đăng nhập để được hỗ trợ',
+                    onAction: () => context.push(AppRoutes.login),
+                  ),
                 ),
               ],
             ),
@@ -1826,6 +1801,48 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
                 ),
               ),
               const Icon(Icons.chevron_right, size: 20, color: AppColors.muted),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showGuestInfoSheet(
+    BuildContext context, {
+    required String title,
+    required String message,
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+              ),
+              if (actionLabel != null && onAction != null) ...[
+                const SizedBox(height: 14),
+                FilledButton(
+                  onPressed: () {
+                    Navigator.pop(sheetContext);
+                    onAction();
+                  },
+                  child: Text(actionLabel),
+                ),
+              ],
             ],
           ),
         ),

@@ -99,6 +99,8 @@ final class FakeOperatorTourRepository implements OperatorTourRepository {
   TourPackageDetail detail;
   final createKeys = <String>[];
   final updates = <(int, TourPackageDraft)>[];
+  final addedDepartures = <(int, TourScheduleDraft, String)>[];
+  final deletedTourIds = <int>[];
   final submitted = <int>[];
   final uploads = <({String altText, bool makePrimary, String key})>[];
   final primaryCalls = <int>[];
@@ -165,6 +167,71 @@ final class FakeOperatorTourRepository implements OperatorTourRepository {
   Future<void> updateDraft(int tourId, TourPackageDraft draft) async {
     updates.add((tourId, draft));
     await updateGate?.future;
+  }
+
+  @override
+  Future<void> deleteTour(int tourId) async {
+    deletedTourIds.add(tourId);
+  }
+
+  @override
+  Future<TourDepartureDetail> addDeparture(
+    int tourId,
+    TourScheduleDraft departure,
+    String idempotencyKey,
+  ) async {
+    addedDepartures.add((tourId, departure, idempotencyKey));
+    final created = TourDepartureDetail(
+      id: 900 + addedDepartures.length,
+      status: 'Scheduled',
+      startAtUtc: departure.startAtUtc,
+      endAtUtc: departure.endAtUtc,
+      minimumCapacity: departure.minimumCapacity,
+      totalCapacity: departure.totalCapacity,
+      reservedCapacity: 0,
+      meetingPoint: departure.meetingPoint,
+      registrationDeadlineAtUtc: departure.registrationDeadlineAtUtc,
+      adultPrice: departure.adultPrice,
+      childPrice: departure.childPrice,
+      infantPrice: departure.infantPrice,
+      meetingLatitude: departure.meetingLatitude,
+      meetingLongitude: departure.meetingLongitude,
+    );
+    detail = TourPackageDetail(
+      id: detail.id,
+      title: detail.title,
+      description: detail.description,
+      status: detail.status,
+      basePrice: detail.basePrice,
+      durationDays: detail.durationDays,
+      destinationIds: detail.destinationIds,
+      destinationNames: detail.destinationNames,
+      cancellationPolicyTemplateId: detail.cancellationPolicyTemplateId,
+      cancellationFeeRules: detail.cancellationFeeRules,
+      itineraryItems: detail.itineraryItems,
+      departures: [...detail.departures, created],
+      reviewBlockers: detail.reviewBlockers,
+      warnings: detail.warnings,
+      canSubmitForReview: detail.canSubmitForReview,
+      hasPrimaryImage: detail.hasPrimaryImage,
+      mediaCount: detail.mediaCount,
+      versionNo: detail.versionNo,
+      publishedAtUtc: detail.publishedAtUtc,
+      allowDeposit: detail.allowDeposit,
+      depositPercent: detail.depositPercent,
+      balanceDueDaysBeforeDeparture: detail.balanceDueDaysBeforeDeparture,
+      versions: detail.versions,
+      categoryId: detail.categoryId,
+      timeZoneId: detail.timeZoneId,
+      highlights: detail.highlights,
+      inclusions: detail.inclusions,
+      exclusions: detail.exclusions,
+      travellerRequirements: detail.travellerRequirements,
+      rejectionReason: detail.rejectionReason,
+      submissionNote: detail.submissionNote,
+      submittedAtUtc: detail.submittedAtUtc,
+    );
+    return created;
   }
 
   @override

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/router/create_travel_group_route_args.dart';
+import 'package:trip_mate_mobile/app/router/notification_destinations.dart';
 import 'package:trip_mate_mobile/app/router/route_guards.dart';
 import 'package:trip_mate_mobile/app/router/travel_group_details_route_args.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
@@ -34,6 +35,9 @@ import 'package:trip_mate_mobile/features/booking/presentation/cubit/book_tour_c
 import 'package:trip_mate_mobile/features/booking/presentation/pages/book_tour_page.dart';
 import 'package:trip_mate_mobile/features/booking_refund/presentation/cubit/booking_refund_progress_cubit.dart';
 import 'package:trip_mate_mobile/features/booking_refund/presentation/pages/booking_refund_progress_page.dart';
+import 'package:trip_mate_mobile/features/commercial_services/presentation/commercial_booking_cubit.dart';
+import 'package:trip_mate_mobile/features/commercial_services/presentation/commercial_booking_page.dart';
+import 'package:trip_mate_mobile/features/commercial_services/presentation/commercial_booking_requests_page.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/cubit/create_coupon_cubit.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/pages/create_coupon_page.dart';
 import 'package:trip_mate_mobile/features/e_ticket/domain/usecases/get_e_ticket_use_case.dart';
@@ -41,6 +45,9 @@ import 'package:trip_mate_mobile/features/e_ticket/presentation/cubit/e_ticket_c
 import 'package:trip_mate_mobile/features/e_ticket/presentation/pages/e_ticket_page.dart';
 import 'package:trip_mate_mobile/features/e_ticket/resources/e_ticket_en.dart';
 import 'package:trip_mate_mobile/features/guest/presentation/pages/guest_landing_page.dart';
+import 'package:trip_mate_mobile/features/messaging/presentation/pages/messenger_page.dart';
+import 'package:trip_mate_mobile/features/notifications/presentation/cubit/in_app_inbox_cubit.dart';
+import 'package:trip_mate_mobile/features/notifications/presentation/pages/in_app_inbox_page.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/domain/entities/operator_booking.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/operator_booking_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/presentation/pages/operator_booking_detail_page.dart';
@@ -51,6 +58,7 @@ import 'package:trip_mate_mobile/features/operator_contracts/presentation/cubit/
 import 'package:trip_mate_mobile/features/operator_contracts/presentation/pages/operator_contract_page.dart';
 import 'package:trip_mate_mobile/features/operator_finance/presentation/cubit/operator_settlement_history_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_finance/presentation/pages/operator_settlement_history_page.dart';
+import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_detail.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/operator_tours_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/create_tour_package_page.dart';
@@ -80,6 +88,9 @@ import 'package:trip_mate_mobile/features/support_chat/domain/entities/support_c
 import 'package:trip_mate_mobile/features/support_chat/presentation/cubit/support_chat_cubit.dart';
 import 'package:trip_mate_mobile/features/support_chat/presentation/pages/support_chat_page.dart';
 import 'package:trip_mate_mobile/features/tour_detail/presentation/pages/tour_detail_page.dart';
+import 'package:trip_mate_mobile/features/tour_operator/domain/entities/operator_profile.dart';
+import 'package:trip_mate_mobile/features/tour_operator/presentation/cubit/operator_profile_cubit.dart';
+import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_profile_edit_page.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/pages/operator_shell_page.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/presentation/pages/tour_recommendations_page.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summary.dart';
@@ -93,7 +104,6 @@ import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_gr
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/address_search_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_itinerary_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/create_travel_group_cubit.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/cubit/in_app_inbox_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/invite_group_members_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/itinerary_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/join_travel_group_cubit.dart';
@@ -104,7 +114,6 @@ import 'package:trip_mate_mobile/features/traveler/presentation/pages/active_tri
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_itinerary_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/create_travel_group_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/group_location_sharing_page.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/pages/in_app_inbox_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/invite_group_members_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_detail_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/itinerary_result_page.dart';
@@ -229,8 +238,33 @@ GoRouter createAppRouter(
                 ..load(state.pathParameters['id'] ?? ''),
           child: PoiDetailPage(
             isTraveler: sessionCubit.state.role == UserRole.traveler,
+            itineraryId: _positiveId(state.uri.queryParameters['itineraryId']),
           ),
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.commercialBookingRequests,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<CommercialBookingCubit>(),
+          child: const CommercialBookingRequestsPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.commercialBookingPattern,
+        builder: (_, state) {
+          final poiId = _positiveId(state.pathParameters['poiId']);
+          if (poiId == null) return const _RouteNotFound();
+          return BlocProvider(
+            key: ValueKey(state.uri),
+            create: (_) => serviceLocator<CommercialBookingCubit>(),
+            child: CommercialBookingPage(
+              poiId: poiId,
+              itineraryId: _positiveId(
+                state.uri.queryParameters['itineraryId'],
+              ),
+            ),
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.tourSearch,
@@ -488,6 +522,8 @@ GoRouter createAppRouter(
             child: CreateTravelGroupPage(
               itineraryId: args.itineraryId,
               itineraryTitle: args.itineraryTitle,
+              destination: args.destination,
+              dateRange: args.dateRange,
             ),
           );
         },
@@ -512,7 +548,9 @@ GoRouter createAppRouter(
         name: AppRouteNames.inAppInbox,
         builder: (_, _) => BlocProvider(
           create: (_) => serviceLocator<InAppInboxCubit>()..load(),
-          child: const InAppInboxPage(),
+          child: const InAppInboxPage(
+            destinationFor: travelerNotificationDestination,
+          ),
         ),
       ),
       GoRoute(
@@ -566,6 +604,27 @@ GoRouter createAppRouter(
             child: TravelGroupMembersPage(groupId: groupId),
           );
         },
+      ),
+      GoRoute(
+        path: AppRoutes.travelGroupChat,
+        name: AppRouteNames.travelGroupChat,
+        builder: (_, state) {
+          final groupId = int.tryParse(state.pathParameters['groupId'] ?? '');
+          if (groupId == null || groupId <= 0) {
+            return const ErrorView(message: 'Page not found.');
+          }
+          return MessengerRoutePage(initialGroupId: groupId);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.travelerMessages,
+        name: AppRouteNames.travelerMessages,
+        builder: (_, _) => const MessengerRoutePage(),
+      ),
+      GoRoute(
+        path: AppRoutes.operatorMessages,
+        name: AppRouteNames.operatorMessages,
+        builder: (_, _) => const MessengerRoutePage(),
       ),
       GoRoute(
         path: AppRoutes.groupLocationSharing,
@@ -835,6 +894,16 @@ GoRouter createAppRouter(
         },
       ),
       GoRoute(
+        path: AppRoutes.operatorInbox,
+        name: AppRouteNames.operatorInbox,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<InAppInboxCubit>()..load(),
+          child: const InAppInboxPage(
+            destinationFor: operatorNotificationDestination,
+          ),
+        ),
+      ),
+      GoRoute(
         path: AppRoutes.operatorSettlementHistory,
         builder: (_, state) {
           final demo = isDebug && state.uri.queryParameters['demo'] == 'true';
@@ -942,6 +1011,7 @@ GoRouter createAppRouter(
         path: AppRoutes.editTourPackage,
         name: AppRouteNames.editTourPackage,
         builder: (_, state) => BlocProvider(
+          key: ValueKey('edit-tour-${state.pathParameters['tourId']}'),
           create: (_) => serviceLocator<CreateTourPackageCubit>(),
           child: EditTourPackagePage(
             tourId: int.tryParse(state.pathParameters['tourId'] ?? ''),
@@ -951,10 +1021,14 @@ GoRouter createAppRouter(
       GoRoute(
         path: AppRoutes.createTourPackage,
         name: AppRouteNames.createTourPackage,
-        builder: (_, _) => BlocProvider(
+        builder: (_, state) => BlocProvider(
           create: (_) =>
               serviceLocator<CreateTourPackageCubit>()..loadOptions(),
-          child: const CreateTourPackagePage(),
+          child: CreateTourPackagePage(
+            cloneFrom: state.extra is TourPackageDetail
+                ? state.extra as TourPackageDetail
+                : null,
+          ),
         ),
       ),
       GoRoute(
@@ -988,6 +1062,23 @@ GoRouter createAppRouter(
           create: (_) => serviceLocator<OperatorContractCubit>(),
           child: const OperatorContractPage(),
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.operatorProfileEdit,
+        name: AppRouteNames.operatorProfileEdit,
+        builder: (_, state) {
+          final isDemo = state.uri.queryParameters['demo'] == 'true';
+          final initialProfile = state.extra is OperatorProfile
+              ? state.extra as OperatorProfile
+              : null;
+          return BlocProvider(
+            create: (_) => serviceLocator<OperatorProfileCubit>(param1: isDemo),
+            child: OperatorProfileEditPage(
+              initialProfile: initialProfile,
+              isDemoMode: isDemo,
+            ),
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.operatorApplication,

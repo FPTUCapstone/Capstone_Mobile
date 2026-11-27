@@ -56,10 +56,39 @@ abstract final class TourDetailStrings {
       'No stops have been published for this day.';
   static String stayLine(String duration) => 'Stay: $duration';
 
-  // Services Section
+  // Services & Payment Terms Section
   static const String servicesTitle = 'Services & Amenities';
+  static const String highlightsTitle = 'Tour Highlights';
+  static const String travellerRequirementsTitle =
+      'What to Bring & Requirements';
   static const String inclusionsTitle = 'Inclusions';
   static const String exclusionsTitle = 'Exclusions';
+
+  // Deposit Policy
+  static String depositPolicyBadge(num percent, int daysBefore) {
+    final pct = percent == percent.truncate()
+        ? percent.toInt().toString()
+        : percent.toString();
+    return '$pct% deposit · Balance due $daysBefore days prior';
+  }
+
+  static String depositPolicyTitle(num percent) {
+    final pct = percent == percent.truncate()
+        ? percent.toInt().toString()
+        : percent.toString();
+    return '$pct% Deposit Option Available';
+  }
+
+  static String depositPolicyDescription(num percent, int daysBefore) {
+    final pct = percent == percent.truncate()
+        ? percent.toInt().toString()
+        : percent.toString();
+    final remNum = 100 - percent;
+    final rem = remNum == remNum.truncate()
+        ? remNum.toInt().toString()
+        : remNum.toString();
+    return 'Pay $pct% deposit when booking and settle the remaining $rem% at least $daysBefore days before departure. Bookings within $daysBefore days require 100% upfront payment.';
+  }
 
   // Cancellation Policy
   static const String cancellationPolicyTitle = 'Cancellation Policy';

@@ -56,6 +56,31 @@ final class _FakeNetworkImageRepository implements TourDetailRepository {
   }
 }
 
+final class _FakeDepositTourRepository implements TourDetailRepository {
+  @override
+  Future<TourDetail?> getTourDetail(
+    String tourId, {
+    TourSummary? initialSummary,
+  }) async {
+    return TourDetail(
+      tourId: tourId,
+      title: 'Coastal Deposit Tour',
+      description: 'Supports deposit setup.',
+      destinations: const ['Da Nang'],
+      durationDays: 2,
+      operatorName: 'Central Vietnam Travel',
+      basePrice: 2000000,
+      currency: 'VND',
+      cancellationPolicy: 'Standard policy.',
+      highlights: 'Sunset cruise along Han River',
+      travellerRequirements: const ['Sports shoes', 'ID card / Passport'],
+      allowDeposit: true,
+      depositPercent: 30,
+      balanceDueDaysBeforeDeparture: 7,
+    );
+  }
+}
+
 void main() {
   group('TourDetailPage', () {
     testWidgets('production mode displays pending integration truthfully', (
@@ -332,5 +357,27 @@ void main() {
         },
       );
     });
+
+    testWidgets(
+      'displays deposit policy, highlights, and packing requirements',
+      (tester) async {
+        await tester.pumpWidget(
+          _buildTestWidget(
+            tourId: 'dep-tour-1',
+            getTourDetail: GetTourDetail(_FakeDepositTourRepository()),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Sunset cruise along Han River'), findsOneWidget);
+        expect(find.text('Sports shoes'), findsOneWidget);
+        expect(
+          find.byKey(const Key('tour-detail-deposit-policy')),
+          findsOneWidget,
+        );
+        expect(find.text('30% Deposit Option Available'), findsOneWidget);
+        expect(find.textContaining('30% deposit'), findsWidgets);
+      },
+    );
   });
 }

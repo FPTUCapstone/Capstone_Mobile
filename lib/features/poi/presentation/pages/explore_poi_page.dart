@@ -127,73 +127,66 @@ class _ExploreHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: PoiPalette.teal,
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: PoiPalette.line, width: 1)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        'TripMate',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
                       Text(
                         'Khám phá miền Trung',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: PoiPalette.navy,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        'TripMate',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: PoiPalette.muted,
+                          fontSize: 11.5,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 10),
-                if (isTraveler) ...[
-                  const CircleAvatar(
-                    radius: 22,
-                    backgroundColor: Colors.white,
-                    foregroundColor: PoiPalette.teal,
-                    child: Text(
-                      'TM',
-                      style: TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                  ),
+                if (!isTraveler) ...[
                   const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      'Xin chào, Du khách',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.labelLarge?.copyWith(color: Colors.white),
-                    ),
-                  ),
-                ] else
-                  FilledButton.icon(
+                  FilledButton(
                     onPressed: () => context.go(AppRoutes.login),
-                    icon: const Icon(Icons.login),
-                    label: const Text('Đăng nhập'),
                     style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 48),
-                      backgroundColor: PoiPalette.tealDark,
+                      minimumSize: const Size(0, 34),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      backgroundColor: PoiPalette.teal,
                       foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      textStyle: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
+                    child: const Text('Đăng nhập'),
                   ),
+                ],
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 8),
             TextField(
               controller: controller,
               maxLength: 200,
@@ -203,25 +196,38 @@ class _ExploreHeader extends StatelessWidget {
               decoration: InputDecoration(
                 hintText: 'Tìm danh lam, bãi biển, hang động…',
                 counterText: '',
-                prefixIcon: const Icon(Icons.search),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  size: 19,
+                  color: PoiPalette.muted,
+                ),
                 suffixIcon: IconButton(
                   constraints: const BoxConstraints.tightFor(
-                    width: 48,
-                    height: 48,
+                    width: 40,
+                    height: 40,
                   ),
                   tooltip: 'Tìm kiếm',
                   onPressed: () => onSearch(controller.text),
-                  icon: const Icon(Icons.arrow_forward),
+                  icon: const Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 18,
+                    color: PoiPalette.teal,
+                  ),
                 ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: PoiPalette.background,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(28),
-                  borderSide: BorderSide.none,
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: PoiPalette.line),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(28),
-                  borderSide: BorderSide.none,
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: PoiPalette.line),
                 ),
               ),
             ),
@@ -248,7 +254,7 @@ class _ExploreControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -278,9 +284,14 @@ class _ExploreControls extends StatelessWidget {
                     cubit.setMapView(selection.first);
                   },
                   style: ButtonStyle(
-                    minimumSize: const WidgetStatePropertyAll(Size(0, 48)),
+                    minimumSize: const WidgetStatePropertyAll(Size(0, 38)),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
                     padding: const WidgetStatePropertyAll(
                       EdgeInsets.symmetric(horizontal: 6),
+                    ),
+                    side: const WidgetStatePropertyAll(
+                      BorderSide(color: PoiPalette.line),
                     ),
                     backgroundColor: WidgetStateProperty.resolveWith(
                       (states) => states.contains(WidgetState.selected)
@@ -297,27 +308,45 @@ class _ExploreControls extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
+                if (!showCategoryPreview) ...[
+                  _CategoryChip(
+                    label: 'Tất cả',
+                    selected: state.query.categoryId == null,
+                    onSelected: () => cubit.selectCategory(null),
+                  ),
+                  const SizedBox(width: 6),
+                ],
                 ActionChip(
-                  avatar: const Icon(Icons.tour_outlined, size: 18),
+                  avatar: const Icon(
+                    Icons.tour_outlined,
+                    size: 15,
+                    color: PoiPalette.teal,
+                  ),
                   label: const Text('Tìm tour'),
                   onPressed:
                       onOpenTours ?? () => context.push(AppRoutes.tourSearch),
-                  materialTapTargetSize: MaterialTapTargetSize.padded,
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 FilterChip(
                   label: const Text('Đang mở cửa'),
-                  avatar: const Icon(Icons.storefront_outlined, size: 18),
+                  avatar: const Icon(
+                    Icons.storefront_outlined,
+                    size: 15,
+                    color: PoiPalette.teal,
+                  ),
                   selected: state.query.openNow,
                   onSelected: cubit.setOpenNow,
-                  materialTapTargetSize: MaterialTapTargetSize.padded,
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 PopupMenuButton<PoiSort>(
                   onSelected: cubit.setSort,
                   itemBuilder: (_) => [
@@ -336,7 +365,7 @@ class _ExploreControls extends StatelessWidget {
                     ),
                   ],
                   child: _ControlChip(
-                    icon: Icons.sort,
+                    icon: Icons.sort_rounded,
                     label: switch (state.query.sort) {
                       PoiSort.name => 'Tên A–Z',
                       PoiSort.distance => 'Gần nhất',
@@ -345,7 +374,7 @@ class _ExploreControls extends StatelessWidget {
                   ),
                 ),
                 if (state.query.hasOrigin) ...[
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   const _ControlChip(
                     icon: Icons.near_me_outlined,
                     label: 'Có khoảng cách',
@@ -354,28 +383,29 @@ class _ExploreControls extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 10),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _CategoryChip(
-                  label: 'Tất cả',
-                  selected: state.query.categoryId == null,
-                  onSelected: () => cubit.selectCategory(null),
-                ),
-                if (showCategoryPreview)
+          if (showCategoryPreview) ...[
+            const SizedBox(height: 6),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _CategoryChip(
+                    label: 'Tất cả',
+                    selected: state.query.categoryId == null,
+                    onSelected: () => cubit.selectCategory(null),
+                  ),
                   for (final category in poiCategoryPreviewFixtures) ...[
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     _CategoryChip(
                       label: category.name,
                       selected: state.query.categoryId == category.id,
                       onSelected: () => cubit.selectCategory(category.id),
                     ),
                   ],
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -467,21 +497,28 @@ class _ControlChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 48),
+      constraints: const BoxConstraints(minHeight: 34),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(999),
           border: Border.all(color: PoiPalette.line),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 20),
-              const SizedBox(width: 8),
-              Text(label),
+              Icon(icon, size: 15, color: PoiPalette.teal),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: PoiPalette.navy,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ),
@@ -504,13 +541,19 @@ class _CategoryChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChoiceChip(
+      showCheckmark: false,
       label: Text(label),
       selected: selected,
       onSelected: (_) => onSelected(),
-      materialTapTargetSize: MaterialTapTargetSize.padded,
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       selectedColor: PoiPalette.teal,
+      backgroundColor: Colors.white,
+      side: BorderSide(color: selected ? PoiPalette.teal : PoiPalette.line),
+      shape: const StadiumBorder(),
       labelStyle: TextStyle(
         color: selected ? Colors.white : PoiPalette.navy,
+        fontSize: 12.5,
         fontWeight: FontWeight.w600,
       ),
     );

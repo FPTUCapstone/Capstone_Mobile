@@ -87,6 +87,8 @@ void main() {
             )
             .first,
       );
+      await tester.ensureVisible(find.text('Xem chi tiết số liệu'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Xem chi tiết số liệu'));
       await tester.pumpAndSettle();
       expect(find.text('Thực nhận đã quyết toán'), findsOneWidget);

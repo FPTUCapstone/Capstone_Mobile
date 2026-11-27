@@ -2,6 +2,14 @@ import 'package:equatable/equatable.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/cost_kind.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 
+typedef ItineraryBookedService = ({
+  int id,
+  String serviceName,
+  DateTime startsAt,
+  int quantity,
+  String status,
+});
+
 final class ItineraryDetail extends Equatable {
   const ItineraryDetail({
     required this.itineraryId,
@@ -15,6 +23,7 @@ final class ItineraryDetail extends Equatable {
     required this.totalEstimatedCost,
     required this.totalDurationMinutes,
     required this.items,
+    this.bookedServices = const [],
     this.isNavigationInProgress = false,
     this.transportMode,
     this.startLocation,
@@ -34,6 +43,7 @@ final class ItineraryDetail extends Equatable {
   final double totalEstimatedCost;
   final int totalDurationMinutes;
   final List<ItineraryDetailItem> items;
+  final List<ItineraryBookedService> bookedServices;
 
   /// Someone is navigating this trip on the app: it cannot be regenerated or
   /// adjusted until that navigation ends.
@@ -68,6 +78,7 @@ final class ItineraryDetail extends Equatable {
     totalEstimatedCost: totalEstimatedCost,
     totalDurationMinutes: totalDurationMinutes,
     items: items,
+    bookedServices: bookedServices,
     isNavigationInProgress: isNavigationInProgress,
     transportMode: transportMode,
     startLocation: startLocation,
@@ -96,6 +107,7 @@ final class ItineraryDetail extends Equatable {
     totalEstimatedCost,
     totalDurationMinutes,
     items,
+    bookedServices,
     isNavigationInProgress,
     transportMode,
     startLocation,

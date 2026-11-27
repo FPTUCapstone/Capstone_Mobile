@@ -189,6 +189,31 @@ void main() {
     });
 
     test(
+      'trip-level ExceedsEndTime without a failing poiId reports itinerary message',
+      () async {
+        final repository = _Repository(
+          loaded: _twoStops,
+          failure: const StopInfeasibleFailure(reason: 'ExceedsEndTime'),
+        );
+        final cubit = ItineraryDetailCubit(repository: repository);
+        addTearDown(cubit.close);
+        await cubit.load(10);
+
+        await cubit.insertStop(
+          afterPoiId: 201,
+          poiId: 909,
+          poiName: 'Bún chả cá Bà Lữ',
+        );
+
+        expect(cubit.state.status, ItineraryDetailStatus.failure);
+        expect(
+          cubit.state.message,
+          'Không thể lưu: lịch trình vượt giờ kết thúc.',
+        );
+      },
+    );
+
+    test(
       'closed-at-arrival names an existing stop and its closing time',
       () async {
         final repository = _Repository(

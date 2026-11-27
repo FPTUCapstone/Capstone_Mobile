@@ -368,6 +368,9 @@ final class ItineraryDetailCubit extends Cubit<ItineraryDetailState> {
       overflowMinutes: failure.overflowMinutes,
       overflowVnd: failure.overflowVnd,
     );
+    if (name == null && failure.reason == 'ExceedsEndTime') {
+      return 'Không thể lưu: lịch trình $reason.';
+    }
     return 'Không thể lưu: ${name ?? 'Một địa điểm'} $reason.';
   }
 

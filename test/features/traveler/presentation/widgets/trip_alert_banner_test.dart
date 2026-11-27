@@ -30,8 +30,8 @@ void main() {
       ),
     );
 
-    expect(find.text('Skip this stop'), findsOneWidget);
-    await tester.tap(find.text('Skip this stop'));
+    expect(find.text('Bỏ qua điểm này'), findsOneWidget);
+    await tester.tap(find.text('Bỏ qua điểm này'));
     expect(skipRequests, 1);
   });
 
@@ -60,7 +60,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Skip this stop'), findsNothing);
+    expect(find.text('Bỏ qua điểm này'), findsNothing);
   });
 
   testWidgets('reviewed Outdoor extreme rain offers the skip shortcut', (
@@ -89,7 +89,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Skip this stop'), findsOneWidget);
+    expect(find.text('Bỏ qua điểm này'), findsOneWidget);
   });
 
   testWidgets('thunderstorm at an unreviewed stop has no skip shortcut', (
@@ -118,7 +118,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Skip this stop'), findsNothing);
+    expect(find.text('Bỏ qua điểm này'), findsNothing);
   });
 
   testWidgets(
@@ -149,9 +149,9 @@ void main() {
         ),
       );
 
-      expect(find.text("Confirm I've arrived"), findsNothing);
-      expect(find.text('Leave this stop'), findsOneWidget);
-      await tester.tap(find.text('Leave this stop'));
+      expect(find.text('Xác nhận đã đến'), findsNothing);
+      expect(find.text('Rời điểm ngay'), findsOneWidget);
+      await tester.tap(find.text('Rời điểm ngay'));
       expect(departRequests, 1);
     },
   );
@@ -198,9 +198,9 @@ void main() {
         ),
       );
 
-      expect(find.text("Confirm I've arrived"), findsNothing);
-      expect(find.text('Leave this stop'), findsOneWidget);
-      await tester.tap(find.text('Leave this stop'));
+      expect(find.text('Xác nhận đã đến'), findsNothing);
+      expect(find.text('Rời điểm ngay'), findsOneWidget);
+      await tester.tap(find.text('Rời điểm ngay'));
       expect(departRequests, 1);
     },
   );

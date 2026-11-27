@@ -1,3 +1,4 @@
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_summary.dart';
 
 final class ItinerarySummaryPageModel {
@@ -46,6 +47,8 @@ final class ItinerarySummaryPageModel {
       canManage: value['canManage'] as bool,
       stopCount: value['stopCount'] as int,
       openNavigationSessionId: value['openNavigationSessionId'] as int?,
+      transportMode: _transportMode(value['transportMode']),
+      previewStopNames: _previewStopNames(value['previewStopNames']),
     );
   }
 
@@ -55,5 +58,25 @@ final class ItinerarySummaryPageModel {
       throw const FormatException('Invalid itinerary list date.');
     }
     return DateTime.parse(value);
+  }
+
+  static TransportMode? _transportMode(Object? value) {
+    if (value is! String) return null;
+    return switch (value.trim().toLowerCase()) {
+      'walking' => TransportMode.walking,
+      'motorbike' => TransportMode.motorbike,
+      'car' => TransportMode.car,
+      'publictransit' || 'public_transit' => TransportMode.publicTransit,
+      _ => null,
+    };
+  }
+
+  static List<String> _previewStopNames(Object? value) {
+    if (value is! List) return const [];
+    return value
+        .whereType<String>()
+        .map((name) => name.trim())
+        .where((name) => name.isNotEmpty)
+        .toList(growable: false);
   }
 }

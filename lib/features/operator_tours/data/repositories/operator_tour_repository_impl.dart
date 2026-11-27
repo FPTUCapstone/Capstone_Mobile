@@ -11,15 +11,40 @@ final class OperatorTourRepositoryImpl implements OperatorTourRepository {
   const OperatorTourRepositoryImpl(this._remote);
   final OperatorTourRemoteDataSource _remote;
 
+  String? _extractErrorCode(DioException error) {
+    final data = error.response?.data;
+    if (data is! Map) return null;
+    final extensions = data['extensions'];
+    if (data['errorCode'] is String) return data['errorCode'] as String;
+    if (data['code'] is String) return data['code'] as String;
+    if (extensions is Map && extensions['errorCode'] is String) {
+      return extensions['errorCode'] as String;
+    }
+    return null;
+  }
+
   /// Every remote failure is mapped to a user-safe [Failure]; raw backend text never reaches the UI.
   Future<T> _guard<T>(Future<T> Function() action) async {
     try {
       return await action();
     } on DioException catch (error) {
+      final errorCode = _extractErrorCode(error);
       // Do not display arbitrary backend validation strings or internal field names.
       if (error.response?.statusCode == 400) {
         throw const ValidationFailure(
           'Check the tour information and submission note, then try again.',
+        );
+      }
+      if (error.response?.statusCode == 409 &&
+          errorCode == 'operator_tour.duplicate_departure') {
+        throw const ConflictFailure(
+          'A departure schedule with that start date and time already exists for this tour.',
+        );
+      }
+      if (error.response?.statusCode == 422 &&
+          errorCode == 'operator_tour.departure_itinerary_mismatch') {
+        throw const ConstraintFailure(
+          'The itinerary is missing planned visit times for one or more stops. Create a new draft version, add planned times, and submit it for review before reopening departures.',
         );
       }
       if (error.response?.statusCode == 422) {
@@ -56,6 +81,17 @@ final class OperatorTourRepositoryImpl implements OperatorTourRepository {
   @override
   Future<void> updateDraft(int tourId, TourPackageDraft draft) =>
       _guard(() => _remote.updateDraft(tourId, draft));
+
+  @override
+  Future<void> deleteTour(int tourId) =>
+      _guard(() => _remote.deleteTour(tourId));
+
+  @override
+  Future<TourDepartureDetail> addDeparture(
+    int tourId,
+    TourScheduleDraft departure,
+    String idempotencyKey,
+  ) => _guard(() => _remote.addDeparture(tourId, departure, idempotencyKey));
 
   @override
   Future<TourReviewSubmission> submitForReview(

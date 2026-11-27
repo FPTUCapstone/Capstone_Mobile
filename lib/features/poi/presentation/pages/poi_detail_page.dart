@@ -14,10 +14,11 @@ import 'package:trip_mate_mobile/features/poi/presentation/widgets/poi_status_an
 import 'package:trip_mate_mobile/shared/formatters/visit_price_format.dart';
 
 class PoiDetailPage extends StatelessWidget {
-  const PoiDetailPage({this.isTraveler = false, super.key});
+  const PoiDetailPage({this.isTraveler = false, this.itineraryId, super.key});
 
   /// A signed-in traveler gets the favorite heart.
   final bool isTraveler;
+  final int? itineraryId;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +50,7 @@ class PoiDetailPage extends StatelessWidget {
           PoiDetailStatus.success => _PoiDetailContent(
             detail: state.detail!,
             isTraveler: isTraveler,
+            itineraryId: itineraryId,
           ),
         };
       },
@@ -65,10 +67,15 @@ class PoiDetailPage extends StatelessWidget {
 }
 
 class _PoiDetailContent extends StatelessWidget {
-  const _PoiDetailContent({required this.detail, required this.isTraveler});
+  const _PoiDetailContent({
+    required this.detail,
+    required this.isTraveler,
+    this.itineraryId,
+  });
 
   final PoiDetail detail;
   final bool isTraveler;
+  final int? itineraryId;
 
   @override
   Widget build(BuildContext context) {
@@ -78,15 +85,31 @@ class _PoiDetailContent extends StatelessWidget {
         slivers: [
           SliverAppBar(
             pinned: true,
-            expandedHeight: 310,
-            backgroundColor: PoiPalette.navy,
+            expandedHeight: 244,
+            backgroundColor: PoiPalette.teal,
             foregroundColor: Colors.white,
-            leading: IconButton(
-              onPressed: () => PoiDetailPage._backToExplore(context),
-              tooltip: 'Quay lại',
-              icon: const Icon(Icons.arrow_back),
+            leading: Padding(
+              padding: const EdgeInsets.all(8),
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  color: Color(0x66000000),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: () => PoiDetailPage._backToExplore(context),
+                  tooltip: 'Quay lại',
+                  icon: const Icon(Icons.arrow_back, size: 20),
+                ),
+              ),
             ),
-            actions: [if (isTraveler) _FavoriteButton(poiId: detail.id)],
+            actions: [
+              if (isTraveler)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _FavoriteButton(poiId: detail.id),
+                ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background: _PhotoGallery(
                 photos: detail.photos,
@@ -97,16 +120,40 @@ class _PoiDetailContent extends StatelessWidget {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 720),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (isTraveler &&
+                          const {
+                            'hotel',
+                            'vehicle rental',
+                            'vehicle',
+                            'restaurant',
+                          }.contains(
+                            detail.categoryName.trim().toLowerCase(),
+                          )) ...[
+                        SizedBox(
+                          width: double.infinity,
+                          height: 44,
+                          child: FilledButton(
+                            onPressed: () => context.push(
+                              AppRoutes.commercialBooking(
+                                detail.id,
+                                itineraryId: itineraryId,
+                              ),
+                            ),
+                            child: const Text('Xem dịch vụ và đặt chỗ'),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                      ],
                       Wrap(
                         spacing: 8,
-                        runSpacing: 8,
+                        runSpacing: 6,
                         children: [
                           _Tag(label: detail.categoryName, emphasized: true),
                           _Tag(
@@ -114,19 +161,20 @@ class _PoiDetailContent extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 10),
                       Text(
                         detail.name,
-                        style: Theme.of(context).textTheme.headlineMedium
+                        style: Theme.of(context).textTheme.headlineSmall
                             ?.copyWith(
                               color: PoiPalette.navy,
                               fontWeight: FontWeight.w800,
-                              height: 1.15,
+                              fontSize: 22,
+                              height: 1.2,
                             ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       Wrap(
-                        spacing: 16,
+                        spacing: 14,
                         runSpacing: 8,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
@@ -138,10 +186,10 @@ class _PoiDetailContent extends StatelessWidget {
                         ],
                       ),
                       if (detail.address case final address?) ...[
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         _IconText(icon: Icons.place_outlined, text: address),
                       ],
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       _IconText(
                         icon: Icons.payments_outlined,
                         text: visitPriceLabel(
@@ -149,7 +197,7 @@ class _PoiDetailContent extends StatelessWidget {
                           detail.costKind,
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
                       _SectionCard(
                         title: 'Đặc tính tham quan',
                         child: Wrap(
@@ -274,10 +322,20 @@ class _FavoriteButtonState extends State<_FavoriteButton> {
             content: Text('Chưa lưu được yêu thích. Vui lòng thử lại.'),
           ),
         ),
-      builder: (context, state) => IconButton(
-        tooltip: state.isFavorite ? 'Bỏ yêu thích' : 'Yêu thích',
-        onPressed: cubit.toggle,
-        icon: Icon(state.isFavorite ? Icons.favorite : Icons.favorite_border),
+      builder: (context, state) => DecoratedBox(
+        decoration: const BoxDecoration(
+          color: Color(0x66000000),
+          shape: BoxShape.circle,
+        ),
+        child: IconButton(
+          tooltip: state.isFavorite ? 'Bỏ yêu thích' : 'Yêu thích',
+          onPressed: cubit.toggle,
+          icon: Icon(
+            state.isFavorite ? Icons.favorite : Icons.favorite_border,
+            size: 20,
+            color: state.isFavorite ? const Color(0xFFFF8A8A) : Colors.white,
+          ),
+        ),
       ),
     );
   }
@@ -332,21 +390,25 @@ class _PhotoGalleryState extends State<_PhotoGallery> {
         ),
         if (photos.isNotEmpty)
           Positioned(
-            right: 16,
-            bottom: 18,
+            right: 12,
+            bottom: 12,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(18),
+                color: const Color(0x99000000),
+                borderRadius: BorderRadius.circular(999),
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+                  horizontal: 10,
+                  vertical: 5,
                 ),
                 child: Text(
                   '${_index + 1} / ${photos.length} ảnh',
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -364,27 +426,31 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: PoiPalette.line),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: PoiPalette.navy,
-                fontWeight: FontWeight.w800,
+    return SizedBox(
+      width: double.infinity,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: PoiPalette.line),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: PoiPalette.navy,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            child,
-          ],
+              const SizedBox(height: 10),
+              child,
+            ],
+          ),
         ),
       ),
     );
@@ -405,32 +471,35 @@ class _Attribute extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 120, maxWidth: 180),
+      constraints: const BoxConstraints(minWidth: 120, maxWidth: 168),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: PoiPalette.background,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: PoiPalette.line),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
           child: Row(
             children: [
-              Icon(icon, color: PoiPalette.teal),
-              const SizedBox(width: 10),
+              Icon(icon, size: 18, color: PoiPalette.teal),
+              const SizedBox(width: 8),
               Flexible(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       label,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: PoiPalette.muted),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: PoiPalette.muted,
+                        fontSize: 11.5,
+                      ),
                     ),
                     Text(
                       value,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w700,
+                        fontSize: 13,
                       ),
                     ),
                   ],
@@ -539,15 +608,18 @@ class _Tag extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: emphasized ? PoiPalette.tealSoft : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: PoiPalette.line),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: emphasized ? PoiPalette.tealSoft : PoiPalette.line,
+        ),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         child: Text(
           label,
           style: TextStyle(
             color: emphasized ? PoiPalette.teal : PoiPalette.navy,
+            fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
         ),

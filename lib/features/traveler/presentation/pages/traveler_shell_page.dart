@@ -153,26 +153,39 @@ class _TravelerShellPageState extends State<TravelerShellPage>
           ? null
           : AppBar(
               title: _buildAppBarTitle(_selectedIndex),
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(1),
+                child: Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outlineVariant.withValues(alpha: 0.7),
+                ),
+              ),
               actions: [
                 IconButton(
-                  tooltip: 'Support chat',
-                  icon: const Icon(Icons.support_agent),
+                  key: const Key('traveler_messages_nav_button'),
+                  tooltip: 'Tin nhắn',
+                  icon: const Icon(Icons.chat_bubble_outline, size: 21),
+                  onPressed: () => context.push(AppRoutes.travelerMessages),
+                ),
+                IconButton(
+                  tooltip: 'Hỗ trợ',
+                  icon: const Icon(Icons.support_agent_outlined, size: 22),
                   onPressed: () => context.push(AppRoutes.supportChat),
                 ),
                 if (_selectedIndex == 0)
                   IconButton(
-                    icon: const Icon(Icons.notifications_none_outlined),
+                    icon: const Icon(
+                      Icons.notifications_none_outlined,
+                      size: 22,
+                    ),
                     tooltip: 'Thông báo',
                     onPressed: () =>
                         context.pushNamed(AppRouteNames.inAppInbox),
                   ),
-                IconButton(
-                  onPressed: state.operation == AuthSessionOperation.signOut
-                      ? null
-                      : session.signOut,
-                  tooltip: 'Đăng xuất',
-                  icon: const Icon(Icons.logout),
-                ),
+                const SizedBox(width: 4),
               ],
             ),
       body: Column(
@@ -264,16 +277,13 @@ class _TravelerShellPageState extends State<TravelerShellPage>
         children: [
           Image.asset(
             'assets/images/logo/tripmate_logo_full_512.png',
-            height: 28,
+            height: 24,
             fit: BoxFit.contain,
           ),
         ],
       );
     }
-    return Text(
-      _destinations[index].label,
-      style: const TextStyle(fontWeight: FontWeight.w700),
-    );
+    return Text(_destinations[index].label);
   }
 }
 

@@ -1,16 +1,26 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:trip_mate_mobile/app/theme/app_colors.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' show MapboxStyles;
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/coastal_palette.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_route.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/itinerary_route_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/helpers/itinerary_map_data.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_map.dart';
 
+/// Color ramp matching Web's `mapboxStyle.ts` (`#174B4A` -> `#7C3AED`) so
+/// consecutive road legs show trip progression from start to end.
+Color itineraryRouteLegColor(int index, int count) {
+  const start = Color(0xFF174B4A);
+  const end = Color(0xFF7C3AED);
+  final t = count <= 1 ? 0.0 : (index / (count - 1)).clamp(0.0, 1.0);
+  return Color.lerp(start, end, t)!;
+}
+
 /// Itinerary overview map (D7): numbered stops coloured by type, start/end,
-/// and the route of every leg. Uses Mapbox when a token is configured,
-/// otherwise a drawn fallback with the same markers.
+/// and the route of every leg. Uses Mapbox (`streets-v12`) matching Web's
+/// custom styling when a token is configured, otherwise a drawn fallback.
 final class ItineraryMap extends StatelessWidget {
   const ItineraryMap({
     required this.data,
@@ -19,7 +29,7 @@ final class ItineraryMap extends StatelessWidget {
     this.highlightedMarkerId,
     this.onMarkerTap,
     this.mapKey,
-    this.height = 260,
+    this.height = 230,
     super.key,
   });
 
@@ -31,56 +41,232 @@ final class ItineraryMap extends StatelessWidget {
   final GlobalKey<TripMapState>? mapKey;
   final double height;
 
+  /// Matches Web `MARKER_COLORS` in `mapGeometry.ts`.
   static Color colorOf(ItineraryMarkerKind kind) => switch (kind) {
-    ItineraryMarkerKind.start => AppColors.success,
-    ItineraryMarkerKind.attraction => AppColors.primary,
-    ItineraryMarkerKind.food => AppColors.secondary,
-    ItineraryMarkerKind.end => AppColors.ink,
+    ItineraryMarkerKind.start => const Color(0xFF1C2928),
+    ItineraryMarkerKind.attraction => const Color(0xFF103B39),
+    ItineraryMarkerKind.food => const Color(0xFFD97706),
+    ItineraryMarkerKind.end => const Color(0xFF7C3AED),
+  };
+
+  static String badgeOf(ItineraryMapMarker marker) => switch (marker.kind) {
+    ItineraryMarkerKind.start => 'B',
+    ItineraryMarkerKind.end => 'K',
+    ItineraryMarkerKind.attraction || ItineraryMarkerKind.food => marker.label,
   };
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: SizedBox(
-        height: height,
-        child: useMapbox
-            ? TripMap(
-                key: mapKey,
-                mapWidgetKey: const ValueKey('mapbox-itinerary-map'),
-                camera: TripMapCamera.fitMarkers,
-                showUserLocation: false,
-                onMarkerTap: onMarkerTap,
-                markers: [
-                  for (final marker in data.markers)
-                    TripMapMarker(
-                      id: marker.id,
-                      coordinate: marker.coordinate,
-                      label: marker.itemId == null
-                          ? marker.label
-                          : '${marker.label}. ${marker.title}',
-                      color: colorOf(marker.kind),
-                      radius: marker.id == highlightedMarkerId ? 11 : 8,
-                    ),
-                ],
-                lines: [
-                  for (final line in lines)
-                    TripMapLine(
-                      points: line.points,
-                      color: line.isStraight
-                          ? AppColors.muted
-                          : AppColors.primary,
-                      width: line.isStraight ? 3 : 5,
-                    ),
-                ],
-              )
-            : ItineraryMapCanvas(
-                data: data,
-                lines: lines,
-                highlightedMarkerId: highlightedMarkerId,
-                onMarkerTap: onMarkerTap,
+    final palette = CoastalPalette.of(context);
+    final totalLegs = lines.length;
+    final hasStart = data.markers.any(
+      (m) => m.kind == ItineraryMarkerKind.start,
+    );
+    final hasFood = data.markers.any((m) => m.kind == ItineraryMarkerKind.food);
+    final hasEnd = data.markers.any((m) => m.kind == ItineraryMarkerKind.end);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            height: height,
+            child: useMapbox
+                ? Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      TripMap(
+                        key: mapKey,
+                        mapWidgetKey: const ValueKey('mapbox-itinerary-map'),
+                        styleUri: MapboxStyles.MAPBOX_STREETS,
+                        camera: TripMapCamera.fitMarkers,
+                        showUserLocation: false,
+                        onMarkerTap: onMarkerTap,
+                        markers: [
+                          for (final marker in data.markers)
+                            TripMapMarker(
+                              id: marker.id,
+                              coordinate: marker.coordinate,
+                              badge: badgeOf(marker),
+                              label: marker.itemId == null
+                                  ? marker.label
+                                  : '${marker.label}. ${marker.title}',
+                              color: colorOf(marker.kind),
+                              highlighted: marker.id == highlightedMarkerId,
+                              showLabel: marker.id == highlightedMarkerId,
+                            ),
+                        ],
+                        lines: [
+                          for (var i = 0; i < totalLegs; i++)
+                            TripMapLine(
+                              points: lines[i].points,
+                              color: lines[i].isStraight
+                                  ? const Color(0xFF174B4A)
+                                  : itineraryRouteLegColor(i, totalLegs),
+                              width: lines[i].isStraight ? 3.0 : 4.5,
+                              opacity: lines[i].isStraight ? 0.55 : 0.95,
+                              casingColor: lines[i].isStraight
+                                  ? null
+                                  : Colors.white,
+                              casingWidth: lines[i].isStraight ? null : 7.5,
+                            ),
+                        ],
+                      ),
+                      if (mapKey != null)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: _MapControlsPill(
+                            palette: palette,
+                            onZoomIn: () => mapKey!.currentState?.zoomBy(1.2),
+                            onZoomOut: () => mapKey!.currentState?.zoomBy(-1.2),
+                            onFitAll: () => mapKey!.currentState?.fitAll(),
+                          ),
+                        ),
+                    ],
+                  )
+                : ItineraryMapCanvas(
+                    data: data,
+                    lines: lines,
+                    highlightedMarkerId: highlightedMarkerId,
+                    onMarkerTap: onMarkerTap,
+                  ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 12,
+          runSpacing: 4,
+          children: [
+            if (hasStart)
+              _LegendDot(
+                color: colorOf(ItineraryMarkerKind.start),
+                badge: 'B',
+                label: 'Xuất phát',
+                textColor: palette.secondary,
               ),
+            _LegendDot(
+              color: colorOf(ItineraryMarkerKind.attraction),
+              badge: '1',
+              label: 'Tham quan',
+              textColor: palette.secondary,
+            ),
+            if (hasFood)
+              _LegendDot(
+                color: colorOf(ItineraryMarkerKind.food),
+                badge: '2',
+                label: 'Ăn uống',
+                textColor: palette.secondary,
+              ),
+            if (hasEnd)
+              _LegendDot(
+                color: colorOf(ItineraryMarkerKind.end),
+                badge: 'K',
+                label: 'Kết thúc',
+                textColor: palette.secondary,
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+final class _MapControlsPill extends StatelessWidget {
+  const _MapControlsPill({
+    required this.palette,
+    required this.onZoomIn,
+    required this.onZoomOut,
+    required this.onFitAll,
+  });
+
+  final CoastalPalette palette;
+  final VoidCallback onZoomIn;
+  final VoidCallback onZoomOut;
+  final VoidCallback onFitAll;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget button({
+      required IconData icon,
+      required String tooltip,
+      required VoidCallback onTap,
+    }) => Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox(
+          width: 30,
+          height: 30,
+          child: Icon(icon, size: 17, color: palette.ink),
+        ),
       ),
+    );
+
+    return Material(
+      color: palette.surface.withValues(alpha: 0.94),
+      elevation: 2,
+      shadowColor: const Color(0x26000000),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(9),
+        side: BorderSide(color: palette.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          button(icon: Icons.add, tooltip: 'Phóng to', onTap: onZoomIn),
+          Container(width: 30, height: 1, color: palette.border),
+          button(icon: Icons.remove, tooltip: 'Thu nhỏ', onTap: onZoomOut),
+          Container(width: 30, height: 1, color: palette.border),
+          button(
+            icon: Icons.center_focus_strong_outlined,
+            tooltip: 'Xem toàn bộ lộ trình',
+            onTap: onFitAll,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+final class _LegendDot extends StatelessWidget {
+  const _LegendDot({
+    required this.color,
+    required this.badge,
+    required this.label,
+    required this.textColor,
+  });
+
+  final Color color;
+  final String badge;
+  final String label;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 15,
+          height: 15,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          child: Text(
+            badge,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 8.5,
+              fontWeight: FontWeight.w800,
+              height: 1,
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(label, style: TextStyle(fontSize: 10.5, color: textColor)),
+      ],
     );
   }
 }
@@ -153,22 +339,14 @@ final class ItineraryMapCanvas extends StatelessWidget {
                             border: Border.all(color: Colors.white, width: 2),
                           ),
                           child: Center(
-                            child: marker.itemId == null
-                                ? Icon(
-                                    marker.kind == ItineraryMarkerKind.start
-                                        ? Icons.trip_origin
-                                        : Icons.flag,
-                                    size: 14,
-                                    color: Colors.white,
-                                  )
-                                : Text(
-                                    marker.label,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                            child: Text(
+                              ItineraryMap.badgeOf(marker),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -232,17 +410,31 @@ final class _RoutePainter extends CustomPainter {
       Offset.zero & size,
       Paint()..color = const Color(0xFFEFF3F8),
     );
-    for (final (points, isStraight) in lines) {
+    for (var i = 0; i < lines.length; i++) {
+      final (points, isStraight) = lines[i];
       if (points.length < 2) continue;
       final path = Path()..moveTo(points.first.dx, points.first.dy);
       for (final point in points.skip(1)) {
         path.lineTo(point.dx, point.dy);
       }
+      if (!isStraight) {
+        canvas.drawPath(
+          path,
+          Paint()
+            ..color = Colors.white
+            ..strokeWidth = 7.5
+            ..strokeCap = StrokeCap.round
+            ..strokeJoin = StrokeJoin.round
+            ..style = PaintingStyle.stroke,
+        );
+      }
       canvas.drawPath(
         path,
         Paint()
-          ..color = isStraight ? AppColors.muted : AppColors.primary
-          ..strokeWidth = isStraight ? 3 : 5
+          ..color = isStraight
+              ? const Color(0x8C174B4A)
+              : itineraryRouteLegColor(i, lines.length)
+          ..strokeWidth = isStraight ? 3 : 4.5
           ..strokeCap = StrokeCap.round
           ..strokeJoin = StrokeJoin.round
           ..style = PaintingStyle.stroke,

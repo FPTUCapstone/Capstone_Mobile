@@ -81,7 +81,7 @@ class _TripReviewPageState extends State<TripReviewPage> {
     showModalBottomSheet<void>(
       context: context,
       builder: (sheetCtx) => SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -175,8 +175,15 @@ class _TripReviewPageState extends State<TripReviewPage> {
       builder: (context, state) {
         if (state.trip == null && state.status == TripReviewStatus.failure) {
           return Scaffold(
+            backgroundColor: AppColors.surface,
             appBar: AppBar(
               title: const Text(TripHistoryStringsEn.tripReviewTitle),
+              backgroundColor: AppColors.cardBackground,
+              surfaceTintColor: Colors.transparent,
+              bottom: const PreferredSize(
+                preferredSize: Size.fromHeight(1),
+                child: Divider(height: 1, thickness: 1, color: AppColors.line),
+              ),
             ),
             body: ErrorView(
               message:
@@ -209,8 +216,15 @@ class _TripReviewPageState extends State<TripReviewPage> {
 
         if (state.status == TripReviewStatus.loading && trip == null) {
           return Scaffold(
+            backgroundColor: AppColors.surface,
             appBar: AppBar(
               title: const Text(TripHistoryStringsEn.tripReviewTitle),
+              backgroundColor: AppColors.cardBackground,
+              surfaceTintColor: Colors.transparent,
+              bottom: const PreferredSize(
+                preferredSize: Size.fromHeight(1),
+                child: Divider(height: 1, thickness: 1, color: AppColors.line),
+              ),
             ),
             body: const Center(child: LoadingIndicator()),
           );
@@ -218,8 +232,15 @@ class _TripReviewPageState extends State<TripReviewPage> {
 
         if (trip == null) {
           return Scaffold(
+            backgroundColor: AppColors.surface,
             appBar: AppBar(
               title: const Text(TripHistoryStringsEn.tripReviewTitle),
+              backgroundColor: AppColors.cardBackground,
+              surfaceTintColor: Colors.transparent,
+              bottom: const PreferredSize(
+                preferredSize: Size.fromHeight(1),
+                child: Divider(height: 1, thickness: 1, color: AppColors.line),
+              ),
             ),
             body: ErrorView(
               message:
@@ -242,7 +263,16 @@ class _TripReviewPageState extends State<TripReviewPage> {
             : TripHistoryStringsEn.actionSubmitReview;
 
         return Scaffold(
-          appBar: AppBar(title: Text(pageTitle)),
+          backgroundColor: AppColors.surface,
+          appBar: AppBar(
+            title: Text(pageTitle),
+            backgroundColor: AppColors.cardBackground,
+            surfaceTintColor: Colors.transparent,
+            bottom: const PreferredSize(
+              preferredSize: Size.fromHeight(1),
+              child: Divider(height: 1, thickness: 1, color: AppColors.line),
+            ),
+          ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(
@@ -251,10 +281,11 @@ class _TripReviewPageState extends State<TripReviewPage> {
                 // 1. Trip Information Summary Area
                 Card(
                   elevation: 0,
-                  color: AppColors.surface,
+                  margin: EdgeInsets.zero,
+                  color: AppColors.cardBackground,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    side: const BorderSide(color: Color(0xFFE2E8F0)),
+                    borderRadius: BorderRadius.circular(14),
+                    side: const BorderSide(color: AppColors.line),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(AppSpacing.md),
@@ -269,13 +300,15 @@ class _TripReviewPageState extends State<TripReviewPage> {
                               color: AppColors.primary,
                             ),
                             const SizedBox(width: AppSpacing.xs),
-                            Text(
-                              TripHistoryStringsEn.summarySectionTitle,
-                              style: Theme.of(context).textTheme.labelLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primary,
-                                  ),
+                            Expanded(
+                              child: Text(
+                                TripHistoryStringsEn.summarySectionTitle,
+                                style: Theme.of(context).textTheme.labelLarge
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primary,
+                                    ),
+                              ),
                             ),
                           ],
                         ),

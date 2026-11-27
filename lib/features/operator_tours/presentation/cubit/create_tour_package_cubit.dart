@@ -22,6 +22,8 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
     required LoadTourPackageOptionsUseCase loadOptions,
     GetTourPackageUseCase? getTour,
     UpdateTourPackageUseCase? updateTour,
+    DeleteTourPackageUseCase? deleteTour,
+    AddTourDepartureUseCase? addDeparture,
     SubmitTourForReviewUseCase? submitForReview,
     ManageTourMediaUseCase? media,
     GetPoiDetailUseCase? getPoiDetail,
@@ -30,6 +32,8 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
        _loadOptions = loadOptions,
        _getTour = getTour,
        _updateTour = updateTour,
+       _deleteTour = deleteTour,
+       _addDeparture = addDeparture,
        _submitForReview = submitForReview,
        _media = media,
        _getPoiDetail = getPoiDetail,
@@ -39,6 +43,8 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
   final LoadTourPackageOptionsUseCase _loadOptions;
   final GetTourPackageUseCase? _getTour;
   final UpdateTourPackageUseCase? _updateTour;
+  final DeleteTourPackageUseCase? _deleteTour;
+  final AddTourDepartureUseCase? _addDeparture;
   final SubmitTourForReviewUseCase? _submitForReview;
   final ManageTourMediaUseCase? _media;
   final GetPoiDetailUseCase? _getPoiDetail;
@@ -48,6 +54,8 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
   String? _pendingPayload;
   String? _pendingUploadKey;
   String? _pendingUploadFingerprint;
+  String? _pendingDepartureKey;
+  String? _pendingDeparturePayload;
 
   /// Loads the destination and cancellation-policy catalogues. Safe to retry.
   Future<void> loadOptions() async {
@@ -423,5 +431,86 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
       // The media mutation succeeded even if its follow-up refresh did not.
     }
     if (!isClosed) emit(state.copyWith(mediaBusy: false));
+  }
+
+  /// Reopens/adds a new departure on a live published package without cloning a new version.
+  Future<TourDepartureDetail?> reopenDeparture(
+    TourScheduleDraft departure,
+  ) async {
+    final detail = state.detail;
+    final addDeparture = _addDeparture;
+    if (isClosed ||
+        detail == null ||
+        !detail.isLivePublished ||
+        addDeparture == null ||
+        state.mutationBusy) {
+      return null;
+    }
+    _detailEpoch++;
+    emit(state.copyWith(departureBusy: true, departureFailure: null));
+    try {
+      final fingerprint = jsonEncode(departure.toJson());
+      if (_pendingDeparturePayload != fingerprint) {
+        _pendingDeparturePayload = fingerprint;
+        _pendingDepartureKey = const Uuid().v4();
+      }
+      final added = await addDeparture(
+        detail.id,
+        departure,
+        _pendingDepartureKey!,
+      );
+      _pendingDeparturePayload = null;
+      _pendingDepartureKey = null;
+      if (isClosed) return added;
+      try {
+        await _refreshDetail(detail.id);
+      } on Object {
+        // Departure creation already succeeded on server.
+      }
+      if (!isClosed) emit(state.copyWith(departureBusy: false));
+      return added;
+    } on Object catch (error) {
+      if (!isClosed) {
+        emit(
+          state.copyWith(
+            departureBusy: false,
+            departureFailure: ErrorMapper.toFailure(error),
+          ),
+        );
+      }
+      return null;
+    }
+  }
+
+  /// Deletes an editable Draft tour package.
+  Future<bool> deleteDraft() async {
+    final detail = state.detail;
+    final deleteTour = _deleteTour;
+    if (isClosed ||
+        detail == null ||
+        detail.status != TourPackageStatus.draft ||
+        deleteTour == null ||
+        state.mutationBusy) {
+      return false;
+    }
+    _detailEpoch++;
+    emit(state.copyWith(deleting: true, deleteFailure: null));
+    try {
+      await deleteTour(detail.id);
+      if (!isClosed) {
+        emit(state.copyWith(deleting: false, deleted: true));
+      }
+      return true;
+    } on Object catch (error) {
+      if (!isClosed) {
+        emit(
+          state.copyWith(
+            deleting: false,
+            deleteFailure: ErrorMapper.toFailure(error),
+          ),
+        );
+      }
+      return false;
+    }
   }
 }

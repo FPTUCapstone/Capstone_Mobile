@@ -8,18 +8,21 @@ import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_se
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_state.dart';
 
 import 'package:trip_mate_mobile/features/tour_search/presentation/resources/public_search_copy.dart';
+import 'package:trip_mate_mobile/features/tour_search/presentation/theme/tour_search_palette.dart';
 
 class PublicTourSearchControls extends StatefulWidget {
   const PublicTourSearchControls({
     required this.state,
     required this.cubit,
     this.useEnglish = false,
+    this.onFilterTap,
     super.key,
   });
 
   final TourSearchState state;
   final TourSearchCubit cubit;
   final bool useEnglish;
+  final VoidCallback? onFilterTap;
 
   @override
   State<PublicTourSearchControls> createState() =>
@@ -48,61 +51,127 @@ class _PublicTourSearchControlsState extends State<PublicTourSearchControls> {
   }
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(
-      AppSpacing.md,
-      AppSpacing.sm,
-      AppSpacing.md,
-      0,
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: const BoxDecoration(
+      color: Colors.white,
+      border: Border(
+        bottom: BorderSide(color: TourSearchPalette.line, width: 1),
+      ),
     ),
-    child: Column(
-      children: [
-        TextField(
-          key: const Key('public-search-keyword'),
-          controller: _keyword,
-          maxLength: 300,
-          textInputAction: TextInputAction.search,
-          decoration: InputDecoration(
-            labelText: copy(SearchText.keyword),
-            counterText: '',
-            prefixIcon: Icon(Icons.search),
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.md, 10, AppSpacing.md, 10),
+      child: Column(
+        children: [
+          TextField(
+            key: const Key('public-search-keyword'),
+            controller: _keyword,
+            maxLength: 300,
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              labelText: copy(SearchText.keyword),
+              counterText: '',
+              isDense: true,
+              filled: true,
+              fillColor: TourSearchPalette.background,
+              prefixIcon: const Icon(
+                Icons.search,
+                size: 19,
+                color: TourSearchPalette.muted,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
+            ),
+            onSubmitted: (value) => widget.cubit.applyPublicQuery(
+              widget.state.query.copyWith(keyword: value),
+            ),
           ),
-          onSubmitted: (value) => widget.cubit.applyPublicQuery(
-            widget.state.query.copyWith(keyword: value),
+          const SizedBox(height: AppSpacing.xs),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  key: ValueKey(widget.state.query.sort),
+                  initialValue: widget.state.query.sort,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: copy(SearchText.sort),
+                    isDense: true,
+                    filled: true,
+                    fillColor: TourSearchPalette.background,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 9,
+                    ),
+                  ),
+                  items: [
+                    DropdownMenuItem(
+                      value: 'relevance',
+                      child: Text(
+                        copy(SearchText.relevance),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'priceAsc',
+                      child: Text(
+                        copy(SearchText.priceAsc),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'priceDesc',
+                      child: Text(
+                        copy(SearchText.priceDesc),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'rating',
+                      child: Text(
+                        copy(SearchText.ratingSort),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'departureDate',
+                      child: Text(
+                        copy(SearchText.departure),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) => widget.cubit.applyPublicQuery(
+                    widget.state.query.copyWith(sort: value),
+                  ),
+                ),
+              ),
+              if (widget.onFilterTap != null) ...[
+                const SizedBox(width: AppSpacing.xs),
+                FilledButton.icon(
+                  onPressed: widget.onFilterTap,
+                  icon: const Icon(Icons.tune_rounded, size: 16),
+                  label: Text(copy(SearchText.filterAction)),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: TourSearchPalette.teal,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(0, 42),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
-        ),
-        DropdownButtonFormField<String>(
-          key: ValueKey(widget.state.query.sort),
-          initialValue: widget.state.query.sort,
-          decoration: InputDecoration(labelText: copy(SearchText.sort)),
-          items: [
-            DropdownMenuItem(
-              value: 'relevance',
-              child: Text(copy(SearchText.relevance)),
-            ),
-            DropdownMenuItem(
-              value: 'priceAsc',
-              child: Text(copy(SearchText.priceAsc)),
-            ),
-            DropdownMenuItem(
-              value: 'priceDesc',
-              child: Text(copy(SearchText.priceDesc)),
-            ),
-            DropdownMenuItem(
-              value: 'rating',
-              child: Text(copy(SearchText.ratingSort)),
-            ),
-            DropdownMenuItem(
-              value: 'departureDate',
-              child: Text(copy(SearchText.departure)),
-            ),
+          if (widget.state.isRefreshing) ...[
+            const SizedBox(height: 6),
+            const LinearProgressIndicator(color: TourSearchPalette.teal),
           ],
-          onChanged: (value) => widget.cubit.applyPublicQuery(
-            widget.state.query.copyWith(sort: value),
-          ),
-        ),
-        if (widget.state.isRefreshing) const LinearProgressIndicator(),
-      ],
+        ],
+      ),
     ),
   );
 }
@@ -175,7 +244,9 @@ class _PublicTourSearchFilterSheetState
               copy(SearchText.filters),
               style: Theme.of(context).textTheme.titleLarge,
             ),
+            const SizedBox(height: AppSpacing.sm),
             _field(_destination, copy(SearchText.destination)),
+            const SizedBox(height: AppSpacing.xs),
             _date(
               copy(SearchText.start),
               _start,
@@ -187,10 +258,15 @@ class _PublicTourSearchFilterSheetState
               (value) => setState(() => _end = value),
               errorText: _errorField == 'endDate' ? _error : null,
             ),
+            const SizedBox(height: AppSpacing.xs),
             _field(_min, copy(SearchText.min), number: true),
+            const SizedBox(height: AppSpacing.sm),
             _field(_max, copy(SearchText.max), number: true),
+            const SizedBox(height: AppSpacing.sm),
             _field(_duration, copy(SearchText.duration), number: true),
+            const SizedBox(height: AppSpacing.sm),
             _field(_rating, copy(SearchText.rating), decimal: true),
+            const SizedBox(height: AppSpacing.sm),
             if (state.categoriesLoading) const LinearProgressIndicator(),
             if (state.categoriesFailure != null)
               TextButton.icon(

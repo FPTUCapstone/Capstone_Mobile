@@ -15,6 +15,12 @@ abstract interface class OperatorTourRemoteDataSource {
   });
   Future<TourPackageDetail> getTour(int tourId);
   Future<void> updateDraft(int tourId, TourPackageDraft draft);
+  Future<void> deleteTour(int tourId);
+  Future<TourDepartureDetail> addDeparture(
+    int tourId,
+    TourScheduleDraft departure,
+    String idempotencyKey,
+  );
   Future<TourReviewSubmission> submitForReview(
     int tourId, {
     String? submissionNote,
@@ -58,11 +64,27 @@ final class DioOperatorTourRemoteDataSource
 
   @override
   Future<TourPackageOptions> loadOptions() async {
-    final responses = await Future.wait([
-      _dio.get<Object?>('/api/v1/destinations'),
-      _dio.get<Object?>('$_toursPath/cancellation-policies'),
-    ]);
-    return parseTourPackageOptions(responses[0].data, responses[1].data);
+    final destinationsFuture = _dio.get<Object?>('/api/v1/destinations');
+    final policiesFuture = _dio.get<Object?>(
+      '$_toursPath/cancellation-policies',
+    );
+    final categoriesFuture = _loadCategoriesBestEffort();
+    final responses = await Future.wait([destinationsFuture, policiesFuture]);
+    final categories = await categoriesFuture;
+    return parseTourPackageOptions(
+      responses[0].data,
+      responses[1].data,
+      categories,
+    );
+  }
+
+  Future<Object?> _loadCategoriesBestEffort() async {
+    try {
+      final response = await _dio.get<Object?>('/api/v1/tour-categories');
+      return response.data;
+    } on Object {
+      return null;
+    }
   }
 
   @override
@@ -87,6 +109,25 @@ final class DioOperatorTourRemoteDataSource
   @override
   Future<void> updateDraft(int tourId, TourPackageDraft draft) async {
     await _dio.put<Object?>('$_toursPath/$tourId', data: draft.toJson());
+  }
+
+  @override
+  Future<void> deleteTour(int tourId) async {
+    await _dio.delete<Object?>('$_toursPath/$tourId');
+  }
+
+  @override
+  Future<TourDepartureDetail> addDeparture(
+    int tourId,
+    TourScheduleDraft departure,
+    String idempotencyKey,
+  ) async {
+    final response = await _dio.post<Object?>(
+      '$_toursPath/$tourId/departures',
+      data: departure.toJson(),
+      options: Options(headers: {'Idempotency-Key': idempotencyKey}),
+    );
+    return parseAddedDeparture(response.data);
   }
 
   @override

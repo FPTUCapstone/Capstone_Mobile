@@ -176,4 +176,73 @@ void main() {
       throwsFormatException,
     );
   });
+
+  test(
+    'parses deposit terms, version history, categories, and added departure',
+    () {
+      final detail = parseTourPackageDetail({
+        ..._detailJson(),
+        'status': 'Approved',
+        'versionNo': 2,
+        'publishedAtUtc': '2026-11-20T00:00:00Z',
+        'allowDeposit': true,
+        'depositPercent': 30,
+        'balanceDueDaysBeforeDeparture': 7,
+        'versions': [
+          {
+            'tourId': 41,
+            'versionNo': 1,
+            'status': 'Inactive',
+            'createdAtUtc': '2026-11-01T00:00:00Z',
+            'publishedAtUtc': '2026-11-02T00:00:00Z',
+            'rejectionReason': null,
+          },
+          {
+            'tourId': 42,
+            'versionNo': 2,
+            'status': 'Approved',
+            'createdAtUtc': '2026-11-19T00:00:00Z',
+            'publishedAtUtc': '2026-11-20T00:00:00Z',
+            'rejectionReason': null,
+          },
+        ],
+      });
+      expect(detail.versionNo, 2);
+      expect(detail.allowDeposit, isTrue);
+      expect(detail.depositPercent, 30);
+      expect(detail.balanceDueDaysBeforeDeparture, 7);
+      expect(detail.versions.map((v) => v.versionNo), [1, 2]);
+      expect(detail.isLivePublished, isTrue);
+
+      final options = parseTourPackageOptions(
+        [
+          {'destinationId': 1, 'name': 'Da Nang'},
+        ],
+        [
+          {'id': 7, 'name': 'Standard'},
+        ],
+        [
+          {'categoryId': 3, 'code': 'BEACH', 'name': 'Coastal'},
+        ],
+      );
+      expect(options.categories.single.name, 'Coastal');
+
+      final departure = parseAddedDeparture({
+        'tourId': 42,
+        'scheduleId': 99,
+        'status': 'Scheduled',
+        'startAtUtc': '2027-06-01T01:00:00Z',
+        'endAtUtc': '2027-06-02T09:00:00Z',
+        'meetingPoint': 'Da Nang Airport',
+        'minimumCapacity': 2,
+        'totalCapacity': 20,
+        'reservedCapacity': 0,
+        'adultPrice': 2000000,
+        'meetingLatitude': 16.0544,
+        'meetingLongitude': 108.2022,
+      });
+      expect(departure.id, 99);
+      expect(departure.meetingLatitude, 16.0544);
+    },
+  );
 }

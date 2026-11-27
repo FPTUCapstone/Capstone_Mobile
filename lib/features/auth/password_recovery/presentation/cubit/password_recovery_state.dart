@@ -19,6 +19,8 @@ final class PasswordRecoveryState extends Equatable {
     this.errorMessage,
     this.fieldErrors = const <String, List<String>>{},
     this.cooldownSeconds = 0,
+    this.cooldownEmail,
+    this.isEditingEmail = false,
   });
 
   final PasswordRecoveryStatus status;
@@ -27,6 +29,8 @@ final class PasswordRecoveryState extends Equatable {
   final String? errorMessage;
   final Map<String, List<String>> fieldErrors;
   final int cooldownSeconds;
+  final String? cooldownEmail;
+  final bool isEditingEmail;
 
   bool get isBusy =>
       status == PasswordRecoveryStatus.requesting ||
@@ -34,7 +38,14 @@ final class PasswordRecoveryState extends Equatable {
       status == PasswordRecoveryStatus.resending;
 
   bool get hasAcceptedRequest =>
-      normalizedEmail != null && status != PasswordRecoveryStatus.requesting;
+      normalizedEmail != null &&
+      !isEditingEmail &&
+      status != PasswordRecoveryStatus.requesting;
+
+  bool hasActiveCooldownFor(String rawEmail) {
+    if (cooldownSeconds <= 0 || cooldownEmail == null) return false;
+    return rawEmail.trim().toLowerCase() == cooldownEmail;
+  }
 
   @override
   List<Object?> get props => [
@@ -44,5 +55,7 @@ final class PasswordRecoveryState extends Equatable {
     errorMessage,
     fieldErrors,
     cooldownSeconds,
+    cooldownEmail,
+    isEditingEmail,
   ];
 }

@@ -187,6 +187,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('operator-safety-alerts')), findsOneWidget);
+      expect(find.byTooltip('Notifications'), findsOneWidget);
       expect(find.text('2'), findsOneWidget);
       expect(realtime.starts, 1);
     });
@@ -214,6 +215,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('operator-safety-alerts')), findsNothing);
+      expect(find.byTooltip('Notifications'), findsNothing);
       expect(realtime.starts, 0);
       expect(safety.getReviewsCalls, 0);
     });
@@ -268,7 +270,18 @@ void main() {
     addTearDown(cubit.close);
     await _pumpShell(tester, cubit);
 
-    await tester.tap(find.widgetWithIcon(IconButton, Icons.logout));
+    await tester.tap(find.text('Hồ sơ'));
+    await tester.pumpAndSettle();
+
+    final signOutButton = find.byKey(
+      const Key('operator-profile-sign-out-button'),
+    );
+    await tester.scrollUntilVisible(
+      signOutButton,
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(signOutButton);
     await tester.pumpAndSettle();
 
     expect(repository.logoutCalls, 1);
@@ -284,10 +297,10 @@ void main() {
     addTearDown(cubit.close);
     await _pumpShell(tester, cubit);
 
-    await tester.tap(find.text('Profile'));
+    await tester.tap(find.text('Hồ sơ'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Change password'), findsOneWidget);
+    expect(find.text('Đổi mật khẩu'), findsOneWidget);
   });
 
   testWidgets('operator Tours tab offers the create-tour-package entry', (
@@ -297,10 +310,10 @@ void main() {
     addTearDown(cubit.close);
     await _pumpShell(tester, cubit);
 
-    await tester.tap(find.text('Tours'));
+    await tester.tap(find.text('Tour'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Create tour package'), findsOneWidget);
+    expect(find.text('Tạo gói tour mới'), findsOneWidget);
   });
 
   testWidgets('operator shell sign-out action is disabled while in flight', (
@@ -312,22 +325,25 @@ void main() {
     addTearDown(cubit.close);
     await _pumpShell(tester, cubit);
 
-    await tester.tap(find.widgetWithIcon(IconButton, Icons.logout));
+    await tester.tap(find.text('Hồ sơ'));
+    await tester.pumpAndSettle();
+
+    final signOutButton = find.byKey(
+      const Key('operator-profile-sign-out-button'),
+    );
+    await tester.scrollUntilVisible(
+      signOutButton,
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(signOutButton);
     await tester.pump();
 
     // Busy state is derived from the approved Cubit marker, not a page flag.
     expect(cubit.state.operation, AuthSessionOperation.signOut);
-    expect(
-      tester
-          .widget<IconButton>(find.widgetWithIcon(IconButton, Icons.logout))
-          .onPressed,
-      isNull,
-    );
+    expect(tester.widget<ButtonStyleButton>(signOutButton).onPressed, isNull);
 
-    await tester.tap(
-      find.widgetWithIcon(IconButton, Icons.logout),
-      warnIfMissed: false,
-    );
+    await tester.tap(signOutButton, warnIfMissed: false);
     await tester.pump();
     expect(repository.logoutCalls, 1);
 
@@ -395,7 +411,7 @@ void main() {
       expect(requestedDemoFlags, isEmpty);
 
       // Navigate to Bookings tab
-      await tester.tap(find.text('Bookings'));
+      await tester.tap(find.text('Đơn đặt'));
       await tester.pumpAndSettle();
 
       // The live bookings come from the backend repository; there is no pending notice and no fixture.
@@ -419,11 +435,14 @@ void main() {
       expect(find.textContaining('PENDING_BE_INTEGRATION'), findsNothing);
       expect(find.text('Rút tiền / Payout'), findsNothing);
 
-      // Navigate to Coupons tab
-      await tester.tap(find.text('Coupons'));
+      // Open Coupons screen from Tour hub
+      await tester.tap(find.text('Tour'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('operator-open-coupons-button')));
       await tester.pumpAndSettle();
 
       expect(find.text('Chưa có mã khuyến mãi'), findsOneWidget);
+      expect(find.textContaining('PENDING_BE_INTEGRATION'), findsNothing);
     },
   );
 
@@ -444,7 +463,7 @@ void main() {
       expect(find.text('38.500.000 VNĐ'), findsOneWidget);
 
       // Navigate to Bookings tab in demo mode
-      await tester.tap(find.text('Bookings'));
+      await tester.tap(find.text('Đơn đặt'));
       await tester.pumpAndSettle();
 
       expect(find.text(OperatorBookingsStringsEn.demoBanner), findsOneWidget);
@@ -465,8 +484,10 @@ void main() {
 
       expect(find.textContaining('DỮ LIỆU DEMO'), findsOneWidget);
 
-      // Navigate to Coupons tab in demo mode
-      await tester.tap(find.text('Coupons'));
+      // Open Coupons screen from Tour hub in demo mode
+      await tester.tap(find.text('Tour'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('operator-open-coupons-button')));
       await tester.pumpAndSettle();
 
       expect(

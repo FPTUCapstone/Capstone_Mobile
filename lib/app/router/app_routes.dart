@@ -10,6 +10,10 @@ abstract final class AppRoutes {
   static const explore = '/explore';
   static const guestHome = '/guest/home';
   static const poiDetailPattern = '/explore/poi/:id';
+  static const commercialBookingPattern =
+      '/traveler/commercial-services/:poiId/book';
+  static const commercialBookingRequests =
+      '/traveler/commercial-services/requests';
   static const tourSearch = '/explore/tours';
   static const tourDetailPattern = '/explore/tours/:tourId';
   static const bookTourPattern = '/explore/tours/:tourId/book';
@@ -62,6 +66,9 @@ abstract final class AppRoutes {
   static const travelGroupDetails = '/traveler/groups/:groupId';
   static const inviteGroupMembers = '/traveler/groups/:groupId/invitation';
   static const travelGroupMembers = '/traveler/groups/:groupId/members';
+  static const travelGroupChat = '/traveler/groups/:groupId/chat';
+  static const travelerMessages = '/traveler/messages';
+  static const operatorMessages = '/operator/messages';
   static const groupLocationSharing =
       '/traveler/groups/:groupId/location-sharing';
   static const activeTripLivePattern = '/traveler/trips/:itineraryId/live';
@@ -81,9 +88,13 @@ abstract final class AppRoutes {
   static const tripReviewPattern = '/traveler/trips/:tripId/review';
   static const canonicalTripReviewPattern = '/traveler/reviews/:kind/:id';
   static const operator = '/operator';
+  static const operatorInbox = '/operator/notifications';
   static const operatorSettlementHistory = '/operator/finance/settlements';
   static const operatorApplication = '/operator/application';
   static const operatorContract = '/operator/contract';
+  static const operatorProfileEdit = '/operator/profile/edit';
+  static String operatorProfileEditPath({bool isDemo = false}) =>
+      isDemo ? '$operatorProfileEdit?demo=true' : operatorProfileEdit;
   static const operatorApplicationResubmit = '/operator/application/resubmit';
   static const createCoupon = '/operator/coupons/create';
   static const operatorPaymentSettings = '/operator/payment-settings';
@@ -147,7 +158,20 @@ abstract final class AppRoutes {
       '/traveler/reviews/$kind/$id';
   static String groupLocationSharingPath(int groupId) =>
       '/traveler/groups/$groupId/location-sharing';
-  static String poiDetail(int id) => '/explore/poi/$id';
+  static String travelGroupChatPath(int groupId) =>
+      '/traveler/groups/$groupId/chat';
+  static String poiDetail(int id, {int? itineraryId}) => Uri(
+    path: '/explore/poi/$id',
+    queryParameters: itineraryId == null
+        ? null
+        : {'itineraryId': '$itineraryId'},
+  ).toString();
+  static String commercialBooking(int poiId, {int? itineraryId}) => Uri(
+    path: '/traveler/commercial-services/$poiId/book',
+    queryParameters: itineraryId == null
+        ? null
+        : {'itineraryId': '$itineraryId'},
+  ).toString();
   static String tourDetail(
     String tourId, {
     bool demo = false,
@@ -219,6 +243,9 @@ abstract final class AppRouteNames {
   static const travelGroupDetails = 'travel-group-details';
   static const inviteGroupMembers = 'invite-group-members';
   static const travelGroupMembers = 'travel-group-members';
+  static const travelGroupChat = 'travel-group-chat';
+  static const travelerMessages = 'traveler-messages';
+  static const operatorMessages = 'operator-messages';
   static const groupLocationSharing = 'group-location-sharing';
   static const activeTripLive = 'active-trip-live';
   static const tripAlerts = 'trip-alerts';
@@ -232,8 +259,10 @@ abstract final class AppRouteNames {
   static const travelerEmergency = 'traveler-emergency';
   static const tripReview = 'trip-review';
   static const operator = 'operator';
+  static const operatorInbox = 'operator-inbox';
   static const operatorApplication = 'operator-application';
   static const operatorContract = 'operator-contract';
+  static const operatorProfileEdit = 'operator-profile-edit';
   static const operatorApplicationResubmit = 'operator-application-resubmit';
   static const createCoupon = 'create-coupon';
   static const operatorChangePassword = 'operator-change-password';

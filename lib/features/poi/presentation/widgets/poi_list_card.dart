@@ -19,19 +19,23 @@ class PoiListCard extends StatelessWidget {
         key: Key('poi-card-${poi.id}'),
         clipBehavior: Clip.antiAlias,
         color: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: PoiPalette.line),
+        ),
         child: InkWell(
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final imageSize = constraints.maxWidth < 300 ? 72.0 : 84.0;
+                final imageSize = constraints.maxWidth < 300 ? 68.0 : 80.0;
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(10),
                       child: SizedBox.square(
                         dimension: imageSize,
                         child: PoiImage(
@@ -53,13 +57,13 @@ class PoiListCard extends StatelessWidget {
                                 ?.copyWith(
                                   color: PoiPalette.navy,
                                   fontWeight: FontWeight.w700,
-                                  height: 1.2,
+                                  height: 1.22,
                                 ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6),
                           Wrap(
                             spacing: 6,
-                            runSpacing: 6,
+                            runSpacing: 4,
                             children: [
                               _Badge(label: poi.categoryName),
                               if (poi.distanceKm != null)
@@ -70,10 +74,10 @@ class PoiListCard extends StatelessWidget {
                                 ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6),
                           Wrap(
-                            spacing: 12,
-                            runSpacing: 6,
+                            spacing: 10,
+                            runSpacing: 4,
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               PoiOpenStatus(isOpen: poi.isOpenNow),
@@ -108,14 +112,15 @@ class _Badge extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: neutral ? PoiPalette.background : PoiPalette.tealSoft,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         child: Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
             color: neutral ? PoiPalette.navy : PoiPalette.teal,
+            fontSize: 11.5,
             fontWeight: FontWeight.w600,
           ),
         ),

@@ -92,6 +92,62 @@ void main() {
     ]);
   });
 
+  testWidgets(
+    'selecting an overtime restaurant asks confirmation with extended end time '
+    'and preserves the sheet on cancel',
+    (tester) async {
+      const overtimeFood = ItinerarySuggestion(
+        poiId: 509,
+        name: 'Cơm gà Bà Buội',
+        costKind: CostKind.averageSpend,
+        estimatedCost: 55000,
+        closesAt: '14:00',
+        fitsItinerary: false,
+        openAtArrival: true,
+        unfitReason: 'ExceedsEndTime',
+        unfitPoiId: 509,
+        overflowMinutes: 51,
+      );
+      final (repository, suggestions) = await pump(
+        tester,
+        lunchPlan(),
+        suggestions: const ItinerarySuggestions(
+          itineraryId: 10,
+          kind: SuggestionKind.food,
+          searchRadiusKm: 15,
+          items: [overtimeFood],
+        ),
+      );
+
+      await tester.tap(find.text('Chọn quán'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cơm gà Bà Buội'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Kéo dài lịch trình thêm 51 phút?'), findsOneWidget);
+      expect(find.textContaining('15:00', findRichText: true), findsOneWidget);
+      expect(find.textContaining('15:51', findRichText: true), findsOneWidget);
+      expect(repository.sentStops, isEmpty);
+
+      await tester.tap(find.text('Quay lại'));
+      await tester.pumpAndSettle();
+      expect(suggestions.requests, hasLength(1));
+      expect(repository.sentStops, isEmpty);
+
+      await tester.tap(find.text('Cơm gà Bà Buội'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tiếp tục thêm quán'));
+      await tester.pumpAndSettle();
+
+      expect(repository.sentStops.single, const [
+        ItineraryStop(poiId: 1),
+        ItineraryStop(poiId: 2),
+        ItineraryStop(poiId: 509),
+        ItineraryStop(poiId: 3),
+      ]);
+    },
+  );
+
   testWidgets('no lunch card when a restaurant is planned', (tester) async {
     await pump(tester, editablePlan(validTo: vn(15, 0)));
 

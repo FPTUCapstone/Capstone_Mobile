@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
+import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/leave_travel_group_result.dart';
@@ -10,6 +13,7 @@ import 'package:trip_mate_mobile/features/traveler/domain/repositories/leave_tra
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/helpers/session_identity_helper.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/leave_travel_group_dialog.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
 
 /// Screen for viewing travel group details, inviting members, opening members
 /// list, and initiating the UC-21 Leave Travel Group flow (Screen #60).
@@ -154,13 +158,23 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
   Widget build(BuildContext context) {
     if (widget.repository != null && _authoritativeIsHost == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Travel Group')),
+        backgroundColor: AppColors.surface,
+        appBar: AppBar(
+          title: const Text('Travel Group'),
+          backgroundColor: AppColors.cardBackground,
+          surfaceTintColor: Colors.transparent,
+          bottom: const PreferredSize(
+            preferredSize: Size.fromHeight(1),
+            child: Divider(height: 1, thickness: 1, color: AppColors.line),
+          ),
+        ),
         body: Center(
           child: _membershipCheckFailed
               ? Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text('Could not confirm group membership.'),
+                    const SizedBox(height: AppSpacing.sm),
                     TextButton(
                       onPressed: _resolvedUserId == null
                           ? _resolveUserId
@@ -177,67 +191,208 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
         ? _resolvedGroup
         : null;
 
+    final groupName = currentGroup?.name ?? 'Travel Group #${widget.groupId}';
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Travel Group')),
+      backgroundColor: AppColors.surface,
+      appBar: AppBar(
+        title: const Text('Travel Group'),
+        backgroundColor: AppColors.cardBackground,
+        surfaceTintColor: Colors.transparent,
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, thickness: 1, color: AppColors.line),
+        ),
+      ),
       body: ListView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.md),
         children: [
-          Text(
-            currentGroup?.name ?? 'Travel Group #${widget.groupId}',
-            style: Theme.of(context).textTheme.headlineSmall,
+          AppCard(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: AppColors.primarySoft,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.groups_rounded,
+                        color: AppColors.primary,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            groupName,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 18,
+                                  color: AppColors.ink,
+                                ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (currentGroup != null) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              _isHost
+                                  ? 'You are the Group Host.'
+                                  : 'You are a Group Member.',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: _isHost
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
+                                color: _isHost
+                                    ? AppColors.primary
+                                    : AppColors.muted,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (currentGroup != null &&
+                    _isHost &&
+                    (currentGroup.inviteCode?.isNotEmpty ?? false)) ...[
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primarySoft,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.line),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.vpn_key_outlined,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: SelectableText(
+                            'Invite code: ${currentGroup.inviteCode}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.copy_rounded,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
+                          tooltip: 'Copy',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            Clipboard.setData(
+                              ClipboardData(text: currentGroup.inviteCode!),
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Đã sao chép mã mời "${currentGroup.inviteCode}"',
+                                ),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          if (currentGroup != null)
-            Text(
-              _isHost ? 'You are the Group Host.' : 'You are a Group Member.',
+          const SizedBox(height: AppSpacing.md),
+          AppCard(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                FilledButton.icon(
+                  onPressed: () => context.pushNamed(
+                    AppRouteNames.travelGroupMembers,
+                    pathParameters: {'groupId': widget.groupId.toString()},
+                    extra: _isHost,
+                  ),
+                  icon: const Icon(Icons.group_outlined, size: 18),
+                  label: const Text('View members'),
+                ),
+                const SizedBox(height: 10),
+                FilledButton.icon(
+                  key: const Key('open_group_chat_button'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.secondary,
+                  ),
+                  onPressed: () => context.pushNamed(
+                    AppRouteNames.travelGroupChat,
+                    pathParameters: {'groupId': widget.groupId.toString()},
+                    extra: currentGroup,
+                  ),
+                  icon: const Icon(Icons.forum_outlined, size: 18),
+                  label: const Text('Trò chuyện nhóm (Messenger)'),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  key: const Key('location_sharing_button'),
+                  onPressed: () => context.pushNamed(
+                    AppRouteNames.groupLocationSharing,
+                    pathParameters: {'groupId': widget.groupId.toString()},
+                    extra: currentGroup?.name,
+                  ),
+                  icon: const Icon(Icons.share_location_outlined, size: 18),
+                  label: const Text('Location Sharing'),
+                ),
+                if (currentGroup != null && _isHost) ...[
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: () => context.pushNamed(
+                      AppRouteNames.inviteGroupMembers,
+                      pathParameters: {'groupId': widget.groupId.toString()},
+                    ),
+                    icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
+                    label: const Text('Invite Members'),
+                  ),
+                ],
+              ],
             ),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: () => context.pushNamed(
-              AppRouteNames.travelGroupMembers,
-              pathParameters: {'groupId': widget.groupId.toString()},
-              extra: _isHost,
-            ),
-            icon: const Icon(Icons.group_outlined),
-            label: const Text('View members'),
           ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            key: const Key('location_sharing_button'),
-            onPressed: () => context.pushNamed(
-              AppRouteNames.groupLocationSharing,
-              pathParameters: {'groupId': widget.groupId.toString()},
-              extra: currentGroup?.name,
-            ),
-            icon: const Icon(Icons.share_location_outlined),
-            label: const Text('Location Sharing'),
-          ),
-          if (currentGroup != null && _isHost) ...[
-            if (currentGroup.inviteCode?.isNotEmpty ?? false) ...[
-              const SizedBox(height: 24),
-              SelectableText('Invite code: ${currentGroup.inviteCode}'),
-            ],
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: () => context.pushNamed(
-                AppRouteNames.inviteGroupMembers,
-                pathParameters: {'groupId': widget.groupId.toString()},
-              ),
-              icon: const Icon(Icons.person_add_alt_1_outlined),
-              label: const Text('Invite Members'),
-            ),
-          ],
-          const SizedBox(height: 32),
+          const SizedBox(height: AppSpacing.lg),
           // Danger Zone / Group actions: UC-21 Leave Group
           OutlinedButton.icon(
             key: const Key('leave_group_button'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-              side: BorderSide(color: Theme.of(context).colorScheme.error),
-              minimumSize: const Size(48, 48),
+              backgroundColor: const Color(0xFFFDEEEF),
+              foregroundColor: AppColors.error,
+              side: BorderSide(color: AppColors.error.withValues(alpha: 0.3)),
+              minimumSize: const Size(48, 46),
             ),
             onPressed: _openLeaveDialog,
-            icon: const Icon(Icons.exit_to_app_outlined),
+            icon: const Icon(Icons.exit_to_app_outlined, size: 18),
             label: const Text('Leave Group'),
           ),
         ],

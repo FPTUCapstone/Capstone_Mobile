@@ -21,6 +21,7 @@ import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/ope
 import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/operator_profile_view.dart';
 import 'package:trip_mate_mobile/features/tour_operator/presentation/widgets/operator_revenue_view.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_sliding_bottom_nav.dart';
 import 'package:trip_mate_mobile/shared/widgets/notification_permission_notice.dart';
 
 class OperatorShellPage extends StatefulWidget {
@@ -36,26 +37,32 @@ class _OperatorShellPageState extends State<OperatorShellPage>
     with WidgetsBindingObserver {
   static const _destinations = <_OperatorDestination>[
     _OperatorDestination(
-      'Dashboard',
+      'Tổng quan',
       Icons.dashboard_outlined,
-      Icons.dashboard,
+      Icons.dashboard_rounded,
     ),
-    _OperatorDestination('Tours', Icons.tour_outlined, Icons.tour),
+    _OperatorDestination('Tour', Icons.tour_outlined, Icons.tour_rounded),
     _OperatorDestination(
-      'Bookings',
+      'Đơn đặt',
       Icons.book_online_outlined,
-      Icons.book_online,
+      Icons.book_online_rounded,
     ),
-    _OperatorDestination('Tài chính', Icons.payments_outlined, Icons.payments),
     _OperatorDestination(
-      'Coupons',
-      Icons.confirmation_number_outlined,
-      Icons.confirmation_number,
+      'Tài chính',
+      Icons.payments_outlined,
+      Icons.payments_rounded,
     ),
-    _OperatorDestination('Profile', Icons.business_outlined, Icons.business),
+    _OperatorDestination(
+      'Hồ sơ',
+      Icons.business_outlined,
+      Icons.business_rounded,
+    ),
   ];
 
   static const _bookingsIndex = 2;
+  static const _financeIndex = 3;
+  static const _profileIndex = 4;
+  static const _couponsVirtualIndex = 4;
 
   var _selectedIndex = 0;
 
@@ -67,6 +74,7 @@ class _OperatorShellPageState extends State<OperatorShellPage>
   /// The Bookings tab (UC-40) loads from the backend only once the operator first opens it.
   var _bookingsOpened = false;
   var _financeOpened = false;
+  var _profileOpened = false;
 
   @override
   void initState() {
@@ -98,8 +106,39 @@ class _OperatorShellPageState extends State<OperatorShellPage>
     setState(() {
       _selectedIndex = index;
       if (index == _bookingsIndex) _bookingsOpened = true;
-      if (index == 3) _financeOpened = true;
+      if (index == _financeIndex) _financeOpened = true;
+      if (index == _profileIndex) _profileOpened = true;
     });
+  }
+
+  void _handleDashboardNavigation(int index) {
+    if (index == _couponsVirtualIndex) {
+      _openCoupons();
+      return;
+    }
+    if (index >= 0 && index < _destinations.length) {
+      _select(index);
+    }
+  }
+
+  void _openCoupons() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Scaffold(
+          backgroundColor: AppColors.surface,
+          appBar: AppBar(
+            title: const Text('Mã khuyến mãi'),
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+            bottom: const PreferredSize(
+              preferredSize: Size.fromHeight(1),
+              child: Divider(height: 1, thickness: 1, color: AppColors.line),
+            ),
+          ),
+          body: OperatorCouponsView(isDemoMode: widget.isDemoMode),
+        ),
+      ),
+    );
   }
 
   @override
@@ -114,23 +153,37 @@ class _OperatorShellPageState extends State<OperatorShellPage>
             AuthSessionCubit.signOutLocalCleanupFailureMessage;
 
     return Scaffold(
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         title: Text(
-          'Operator · ${_destinations[_selectedIndex].label}',
-          style: const TextStyle(fontWeight: FontWeight.w700),
+          'Đối tác · ${_destinations[_selectedIndex].label}',
+          style: const TextStyle(
+            fontSize: 16.5,
+            fontWeight: FontWeight.w700,
+            color: AppColors.ink,
+          ),
         ),
         actions: [
-          if (_safetyAlerts case final alerts?) _SafetyAlertsAction(alerts),
           IconButton(
-            // Busy state comes from the Cubit's own sign-out marker, so a
-            // second intent cannot be started while one is in flight.
-            onPressed: state.operation == AuthSessionOperation.signOut
-                ? null
-                : session.signOut,
-            tooltip: 'Sign out',
-            icon: const Icon(Icons.logout),
+            key: const Key('operator_messages_nav_button'),
+            tooltip: 'Tin nhắn',
+            icon: const Icon(Icons.chat_bubble_outline, size: 21),
+            onPressed: () => context.push(AppRoutes.operatorMessages),
           ),
+          if (!widget.isDemoMode)
+            IconButton(
+              onPressed: () => context.pushNamed(AppRouteNames.operatorInbox),
+              tooltip: 'Notifications',
+              icon: const Icon(Icons.notifications_outlined, size: 22),
+            ),
+          if (_safetyAlerts case final alerts?) _SafetyAlertsAction(alerts),
         ],
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, thickness: 1, color: AppColors.line),
+        ),
       ),
       body: Column(
         children: [
@@ -154,9 +207,9 @@ class _OperatorShellPageState extends State<OperatorShellPage>
                 OperatorDashboardView(
                   isDemoMode: widget.isDemoMode,
                   isActive: _selectedIndex == 0,
-                  onNavigateToTab: _select,
+                  onNavigateToTab: _handleDashboardNavigation,
                 ),
-                _OperatorToursHub(),
+                _OperatorToursHub(onOpenCoupons: _openCoupons),
                 if (_bookingsOpened)
                   BlocProvider<OperatorBookingsCubit>(
                     create: (_) => serviceLocator<OperatorBookingsCubit>(
@@ -171,25 +224,27 @@ class _OperatorShellPageState extends State<OperatorShellPage>
                 if (_financeOpened)
                   OperatorRevenueView(
                     isDemoMode: widget.isDemoMode,
-                    isActive: _selectedIndex == 3,
+                    isActive: _selectedIndex == _financeIndex,
                   )
                 else
                   const SizedBox.shrink(),
-                OperatorCouponsView(isDemoMode: widget.isDemoMode),
-                const OperatorProfileView(),
+                if (_profileOpened)
+                  OperatorProfileView(isDemoMode: widget.isDemoMode)
+                else
+                  const SizedBox.shrink(),
               ],
             ),
           ),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: AppSlidingBottomNav(
         selectedIndex: _selectedIndex,
         onDestinationSelected: _select,
         destinations: _destinations
             .map(
-              (destination) => NavigationDestination(
-                icon: Icon(destination.icon),
-                selectedIcon: Icon(destination.selectedIcon),
+              (destination) => AppNavDestination(
+                icon: destination.icon,
+                selectedIcon: destination.selectedIcon,
                 label: destination.label,
               ),
             )
@@ -226,57 +281,91 @@ class _SafetyAlertsAction extends StatelessWidget {
 }
 
 class _OperatorToursHub extends StatelessWidget {
+  const _OperatorToursHub({required this.onOpenCoupons});
+
+  final VoidCallback onOpenCoupons;
+
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: AppColors.primarySoft,
-                borderRadius: BorderRadius.circular(20),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(maxWidth: 400),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.line),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.tour_outlined,
+                  size: 28,
+                  color: AppColors.primary,
+                ),
               ),
-              child: const Icon(
-                Icons.tour_outlined,
-                size: 38,
-                color: AppColors.secondary,
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'Quản lý gói tour',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.ink,
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              'Manage tours',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppColors.ink,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 320),
-              child: const Text(
-                'Create a commercial tour package, keep editing your drafts and submit them for review.',
+              const SizedBox(height: AppSpacing.xs),
+              const Text(
+                'Tạo gói tour thương mại, chỉnh sửa bản nháp, gửi duyệt và quản lý mã ưu đãi cho khách.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.muted, height: 1.4),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppColors.muted,
+                  height: 1.45,
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            OutlinedButton.icon(
-              onPressed: () => context.push(AppRoutes.operatorTours),
-              icon: const Icon(Icons.list_alt_outlined),
-              label: const Text('My tour packages'),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            FilledButton.icon(
-              onPressed: () => context.push(AppRoutes.createTourPackage),
-              icon: const Icon(Icons.add),
-              label: const Text('Create tour package'),
-            ),
-          ],
+              const SizedBox(height: AppSpacing.md),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => context.push(AppRoutes.createTourPackage),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Tạo gói tour mới'),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => context.push(AppRoutes.operatorTours),
+                  icon: const Icon(Icons.list_alt_outlined, size: 18),
+                  label: const Text('Danh sách gói tour'),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  key: const Key('operator-open-coupons-button'),
+                  onPressed: onOpenCoupons,
+                  icon: const Icon(
+                    Icons.confirmation_number_outlined,
+                    size: 18,
+                  ),
+                  label: const Text('Mã khuyến mãi & Coupon'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

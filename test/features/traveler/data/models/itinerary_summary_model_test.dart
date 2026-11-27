@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/features/traveler/data/models/itinerary_summary_model.dart';
+import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
 
 Map<String, dynamic> itinerarySummaryJson({
   int itineraryId = 60014,
@@ -65,5 +66,30 @@ void main() {
       () => ItinerarySummaryPageModel.fromJson({'items': <Object>[]}),
       throwsFormatException,
     );
+  });
+
+  test('parses optional previewStopNames and transportMode safely', () {
+    final page = ItinerarySummaryPageModel.fromJson(
+      itinerarySummaryPageJson([
+        {
+          ...itinerarySummaryJson(),
+          'transportMode': 'Motorbike',
+          'previewStopNames': ['Chùa Cầu Hội An', '  ', 'Hội quán Quảng Đông'],
+        },
+        {
+          ...itinerarySummaryJson(itineraryId: 60015),
+          'transportMode': 'UnknownMode',
+          'previewStopNames': null,
+        },
+      ]),
+    ).toEntity();
+
+    expect(page.items.first.transportMode, TransportMode.motorbike);
+    expect(page.items.first.previewStopNames, [
+      'Chùa Cầu Hội An',
+      'Hội quán Quảng Đông',
+    ]);
+    expect(page.items.last.transportMode, isNull);
+    expect(page.items.last.previewStopNames, isEmpty);
   });
 }

@@ -7,13 +7,13 @@ import 'package:trip_mate_mobile/app/config/environment.dart';
 import 'package:trip_mate_mobile/core/constants/app_constants.dart';
 import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
-import 'package:trip_mate_mobile/features/traveler/data/repositories/in_app_notification_repository_impl.dart';
+import 'package:trip_mate_mobile/features/notifications/data/repositories/in_app_notification_repository_impl.dart';
+import 'package:trip_mate_mobile/features/notifications/presentation/cubit/in_app_inbox_cubit.dart';
+import 'package:trip_mate_mobile/features/notifications/presentation/cubit/in_app_inbox_state.dart';
+import 'package:trip_mate_mobile/features/notifications/presentation/pages/in_app_inbox_page.dart';
 import 'package:trip_mate_mobile/features/traveler/data/repositories/travel_group_repository_impl.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/cubit/in_app_inbox_cubit.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/cubit/in_app_inbox_state.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_state.dart';
-import 'package:trip_mate_mobile/features/traveler/presentation/pages/in_app_inbox_page.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/travel_group_members_page.dart';
 import 'package:uuid/uuid.dart';
 

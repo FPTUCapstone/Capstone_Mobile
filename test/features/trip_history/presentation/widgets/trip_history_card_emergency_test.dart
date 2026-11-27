@@ -58,10 +58,10 @@ void main() {
 
     await pump(tester, booking('Interrupted', TripStatus.cancelled));
     expect(label('đã dừng vì an toàn'), findsOneWidget);
-    expect(label('cancelled'), findsNothing);
+    expect(label('đã hủy'), findsNothing);
 
     await pump(tester, booking('Cancelled', TripStatus.cancelled));
-    expect(label('cancelled'), findsOneWidget);
+    expect(label('đã hủy'), findsOneWidget);
   });
 
   for (final status in ['Cancelled', 'Interrupted']) {

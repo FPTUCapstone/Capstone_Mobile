@@ -46,34 +46,37 @@ void main() {
       }
     });
 
-    test('pluralise participant counts', () {
-      expect(TripHistoryStringsEn.formatAdults(1), '1 adult');
-      expect(TripHistoryStringsEn.formatAdults(2), '2 adults');
-      expect(TripHistoryStringsEn.formatChildren(1), '1 child');
-      expect(TripHistoryStringsEn.formatChildren(3), '3 children');
-      expect(TripHistoryStringsEn.formatInfants(1), '1 infant');
-      expect(TripHistoryStringsEn.formatInfants(2), '2 infants');
+    test('format participant counts', () {
+      expect(TripHistoryStringsEn.formatAdults(1), '1 người lớn');
+      expect(TripHistoryStringsEn.formatAdults(2), '2 người lớn');
+      expect(TripHistoryStringsEn.formatChildren(1), '1 trẻ em');
+      expect(TripHistoryStringsEn.formatChildren(3), '3 trẻ em');
+      expect(TripHistoryStringsEn.formatInfants(1), '1 em bé');
+      expect(TripHistoryStringsEn.formatInfants(2), '2 em bé');
     });
 
     test('name the visit and refund states readably', () {
-      expect(TripHistoryStringsEn.refundStatusLabel('Processed'), 'Refunded');
-      expect(TripHistoryStringsEn.refundStatusLabel('Pending'), 'Pending');
+      expect(
+        TripHistoryStringsEn.refundStatusLabel('Processed'),
+        'Đã hoàn tiền',
+      );
+      expect(TripHistoryStringsEn.refundStatusLabel('Pending'), 'Đang chờ');
       expect(
         TripHistoryStringsEn.refundStatusLabel('ManualReview'),
-        'Under review',
+        'Đang xem xét',
       );
       expect(TripHistoryStringsEn.refundStatusLabel('Mystery'), 'Mystery');
       expect(
         TripHistoryStringsEn.completionReasonLabel('RouteFinished'),
-        'Route completed',
+        'Hoàn tất lộ trình',
       );
       expect(
         TripHistoryStringsEn.completionReasonLabel('TravelerStopped'),
-        'Stopped by you',
+        'Bạn đã dừng chuyến đi',
       );
       expect(
         TripHistoryStringsEn.completionReasonLabel('Expired'),
-        'Ended automatically when the trip time ran out',
+        'Tự động kết thúc khi hết thời gian',
       );
       expect(TripHistoryStringsEn.completionReasonLabel('Mystery'), 'Mystery');
     });

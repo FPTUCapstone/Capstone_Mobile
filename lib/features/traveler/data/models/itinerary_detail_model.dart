@@ -35,6 +35,18 @@ final class ItineraryDetailModel {
     items: (_json['items'] as List)
         .map((item) => _item(item as Map<String, dynamic>))
         .toList(growable: false),
+    bookedServices: (_json['bookedServices'] as List? ?? const [])
+        .cast<Map<String, dynamic>>()
+        .map(
+          (service) => (
+            id: service['id'] as int,
+            serviceName: service['serviceName'] as String,
+            startsAt: DateTime.parse(service['startAtUtc'] as String),
+            quantity: service['quantity'] as int,
+            status: service['status'] as String,
+          ),
+        )
+        .toList(growable: false),
     // Older Backends omit it; absent means nobody is navigating.
     isNavigationInProgress: _json['isNavigationInProgress'] == true,
     transportMode: parseTransportMode(_json['transportMode']),

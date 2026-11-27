@@ -38,7 +38,11 @@ void main() {
         );
         expect(find.text('80% match'), findsOneWidget);
         expect(
-          find.text('★ 4.5'),
+          find.byIcon(Icons.star_rounded),
+          rating == null ? findsNothing : findsOneWidget,
+        );
+        expect(
+          find.text('4.5'),
           rating == null ? findsNothing : findsOneWidget,
         );
         expect(find.textContaining('null'), findsNothing);
