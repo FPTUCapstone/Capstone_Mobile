@@ -588,11 +588,31 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
   }
 
   Widget _buildFeaturedPoisSection(BuildContext context) {
-    final pois = [
-      {'name': 'Cầu Rồng Đà Nẵng', 'cat': 'Danh lam', 'city': 'Đà Nẵng'},
-      {'name': 'Phố cổ Hội An', 'cat': 'Di sản', 'city': 'Quảng Nam'},
-      {'name': 'Đại nội Huế', 'cat': 'Lịch sử', 'city': 'Huế'},
-      {'name': 'Ngũ Hành Sơn', 'cat': 'Tâm linh', 'city': 'Đà Nẵng'},
+    const pois = [
+      (
+        name: 'Cầu Rồng Đà Nẵng',
+        cat: 'Danh lam',
+        city: 'Đà Nẵng',
+        asset: 'assets/images/destinations/danang_dragon_night.jpg',
+      ),
+      (
+        name: 'Phố cổ Hội An',
+        cat: 'Di sản',
+        city: 'Quảng Nam',
+        asset: 'assets/images/destinations/hoian_ancient_town.jpg',
+      ),
+      (
+        name: 'Đại nội Huế',
+        cat: 'Lịch sử',
+        city: 'Huế',
+        asset: 'assets/images/destinations/hue_ngo_mon.jpg',
+      ),
+      (
+        name: 'Ngũ Hành Sơn',
+        cat: 'Tâm linh',
+        city: 'Đà Nẵng',
+        asset: 'assets/images/destinations/marble_mountains.jpg',
+      ),
     ];
 
     return Column(
@@ -614,6 +634,7 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
             ),
           ],
         ),
+        const SizedBox(height: 6),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -621,37 +642,118 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
             crossAxisCount: 2,
             crossAxisSpacing: AppSpacing.sm,
             mainAxisSpacing: AppSpacing.sm,
-            childAspectRatio: 2.2,
+            childAspectRatio: 1.48,
           ),
           itemCount: pois.length,
           itemBuilder: (context, index) {
             final poi = pois[index];
-            return AppCard(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            return InkWell(
               onTap: () => _openExplore(context),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    poi['name']!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.ink,
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.line),
+                ),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.asset(
+                      poi.asset,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF174B4A), Color(0xFF0E3231)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${poi['cat']} · ${poi['city']}',
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: AppColors.muted,
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          stops: [0.0, 0.45, 1.0],
+                          colors: [
+                            Color(0x280A2423),
+                            Color(0x220A2423),
+                            Color(0xCC0A2423),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2.5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.42),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          poi.cat,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 10,
+                      right: 10,
+                      bottom: 9,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            poi.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              height: 1.2,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.location_on_outlined,
+                                size: 11,
+                                color: Colors.white.withValues(alpha: 0.85),
+                              ),
+                              const SizedBox(width: 2),
+                              Expanded(
+                                child: Text(
+                                  poi.city,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    color: Colors.white.withValues(alpha: 0.88),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },
