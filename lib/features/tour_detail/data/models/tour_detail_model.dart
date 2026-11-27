@@ -56,6 +56,16 @@ final class TourDetailModel {
         averageRating: ratingCount > 0 ? average : null,
         reviewCount: ratingCount,
         asOfUtc: _utc(json, 'asOfUtc'),
+        highlights: _optionalString(json, 'highlights')?.trim(),
+        travellerRequirements: _lines(
+          _optionalString(json, 'travellerRequirements'),
+        ),
+        allowDeposit: json['allowDeposit'] == true,
+        depositPercent: _optionalDouble(json, 'depositPercent'),
+        balanceDueDaysBeforeDeparture: _optionalWholeNumber(
+          json,
+          'balanceDueDaysBeforeDeparture',
+        ),
       ),
     );
   }

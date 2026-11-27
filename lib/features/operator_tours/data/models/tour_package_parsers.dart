@@ -63,8 +63,9 @@ TourPackageStatus _status(Map<String, Object?> json) {
 
 TourPackageOptions parseTourPackageOptions(
   Object? destinations,
-  Object? policies,
-) {
+  Object? policies, [
+  Object? categories,
+]) {
   return TourPackageOptions(
     destinations: _objects(destinations, 'Destination response')
         .map((item) {
@@ -90,6 +91,22 @@ TourPackageOptions parseTourPackageOptions(
           );
         })
         .toList(growable: false),
+    categories: categories == null
+        ? const []
+        : _objects(categories, 'Category response')
+              .map((item) {
+                final id = _int(item, 'categoryId');
+                final name = _string(item, 'name').trim();
+                if (id <= 0 || name.isEmpty) {
+                  throw const FormatException('Category item is invalid.');
+                }
+                return TourCategoryOption(
+                  id: id,
+                  code: _optString(item, 'code')?.trim() ?? '',
+                  name: name,
+                );
+              })
+              .toList(growable: false),
   );
 }
 
@@ -108,6 +125,19 @@ TourPackagePage parseTourPackagePage(Object? payload) {
             durationDays: _int(item, 'durationDays'),
             destination: _optString(item, 'destination') ?? '',
             nextDepartureAtUtc: _optDate(item, 'nextDepartureAtUtc'),
+            versionNo: item['versionNo'] is num
+                ? (item['versionNo']! as num).toInt()
+                : 1,
+            publishedAtUtc: _optDate(item, 'publishedAtUtc'),
+            upcomingDepartureCount: item['upcomingDepartureCount'] is num
+                ? (item['upcomingDepartureCount']! as num).toInt()
+                : null,
+            completedDepartureCount: item['completedDepartureCount'] is num
+                ? (item['completedDepartureCount']! as num).toInt()
+                : null,
+            totalDepartureCount: item['totalDepartureCount'] is num
+                ? (item['totalDepartureCount']! as num).toInt()
+                : null,
           );
         })
         .toList(growable: false),
@@ -167,6 +197,8 @@ TourPackageDetail parseTourPackageDetail(Object? payload) {
     departures: _objects(json['departures'], 'Departures')
         .map((item) {
           return TourDepartureDetail(
+            id: item['id'] is num ? (item['id']! as num).toInt() : null,
+            status: _optString(item, 'status'),
             startAtUtc: _date(item, 'startAtUtc'),
             endAtUtc: _date(item, 'endAtUtc'),
             minimumCapacity: _int(item, 'minimumCapacity'),
@@ -186,9 +218,41 @@ TourPackageDetail parseTourPackageDetail(Object? payload) {
             infantPrice: item['infantPrice'] is num
                 ? item['infantPrice']! as num
                 : null,
+            meetingLatitude: item['meetingLatitude'] is num
+                ? (item['meetingLatitude']! as num).toDouble()
+                : null,
+            meetingLongitude: item['meetingLongitude'] is num
+                ? (item['meetingLongitude']! as num).toDouble()
+                : null,
+            isCompleted: item['isCompleted'] == true,
           );
         })
         .toList(growable: false),
+    versionNo: json['versionNo'] is num
+        ? (json['versionNo']! as num).toInt()
+        : 1,
+    publishedAtUtc: _optDate(json, 'publishedAtUtc'),
+    allowDeposit: json['allowDeposit'] == true,
+    depositPercent: json['depositPercent'] is num
+        ? json['depositPercent']! as num
+        : null,
+    balanceDueDaysBeforeDeparture: json['balanceDueDaysBeforeDeparture'] is num
+        ? (json['balanceDueDaysBeforeDeparture']! as num).toInt()
+        : null,
+    versions: json['versions'] == null
+        ? const []
+        : _objects(json['versions'], 'Versions')
+              .map(
+                (item) => TourVersionHistoryItem(
+                  tourId: _int(item, 'tourId'),
+                  versionNo: _int(item, 'versionNo'),
+                  status: _status(item),
+                  createdAtUtc: _optDate(item, 'createdAtUtc'),
+                  publishedAtUtc: _optDate(item, 'publishedAtUtc'),
+                  rejectionReason: _optString(item, 'rejectionReason'),
+                ),
+              )
+              .toList(growable: false),
     reviewBlockers: [
       for (final code in (json['reviewBlockers'] as List? ?? const []))
         if (code is String) code,
@@ -241,5 +305,31 @@ TourReviewSubmission parseTourReviewSubmission(Object? payload, int tourId) {
   return TourReviewSubmission(
     tourId: tourId,
     submittedAtUtc: _optDate(json, 'submittedAtUtc'),
+  );
+}
+
+TourDepartureDetail parseAddedDeparture(Object? payload) {
+  final json = _object(payload, 'Add departure response');
+  return TourDepartureDetail(
+    id: _int(json, 'scheduleId'),
+    status: _optString(json, 'status') ?? 'Scheduled',
+    startAtUtc: _date(json, 'startAtUtc'),
+    endAtUtc: _date(json, 'endAtUtc'),
+    minimumCapacity: _int(json, 'minimumCapacity'),
+    totalCapacity: _int(json, 'totalCapacity'),
+    reservedCapacity: _int(json, 'reservedCapacity'),
+    meetingPoint: _optString(json, 'meetingPoint'),
+    registrationDeadlineAtUtc: _optDate(json, 'registrationDeadlineAtUtc'),
+    adultPrice: json['adultPrice'] is num ? json['adultPrice']! as num : null,
+    childPrice: json['childPrice'] is num ? json['childPrice']! as num : null,
+    infantPrice: json['infantPrice'] is num
+        ? json['infantPrice']! as num
+        : null,
+    meetingLatitude: json['meetingLatitude'] is num
+        ? (json['meetingLatitude']! as num).toDouble()
+        : null,
+    meetingLongitude: json['meetingLongitude'] is num
+        ? (json['meetingLongitude']! as num).toDouble()
+        : null,
   );
 }

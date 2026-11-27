@@ -514,6 +514,12 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerFactory<UpdateTourPackageUseCase>(
       () => UpdateTourPackageUseCase(serviceLocator()),
     )
+    ..registerFactory<DeleteTourPackageUseCase>(
+      () => DeleteTourPackageUseCase(serviceLocator()),
+    )
+    ..registerFactory<AddTourDepartureUseCase>(
+      () => AddTourDepartureUseCase(serviceLocator()),
+    )
     ..registerFactory<SubmitTourForReviewUseCase>(
       () => SubmitTourForReviewUseCase(serviceLocator()),
     )
@@ -591,6 +597,8 @@ Future<void> configureDependencies({AppConfig? config}) async {
         loadOptions: serviceLocator(),
         getTour: serviceLocator(),
         updateTour: serviceLocator(),
+        deleteTour: serviceLocator(),
+        addDeparture: serviceLocator(),
         submitForReview: serviceLocator(),
         media: serviceLocator(),
         getPoiDetail: serviceLocator(),
