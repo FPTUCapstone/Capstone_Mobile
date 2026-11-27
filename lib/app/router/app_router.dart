@@ -56,6 +56,7 @@ import 'package:trip_mate_mobile/features/operator_contracts/presentation/cubit/
 import 'package:trip_mate_mobile/features/operator_contracts/presentation/pages/operator_contract_page.dart';
 import 'package:trip_mate_mobile/features/operator_finance/presentation/cubit/operator_settlement_history_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_finance/presentation/pages/operator_settlement_history_page.dart';
+import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_detail.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/operator_tours_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/create_tour_package_page.dart';
@@ -1008,6 +1009,7 @@ GoRouter createAppRouter(
         path: AppRoutes.editTourPackage,
         name: AppRouteNames.editTourPackage,
         builder: (_, state) => BlocProvider(
+          key: ValueKey('edit-tour-${state.pathParameters['tourId']}'),
           create: (_) => serviceLocator<CreateTourPackageCubit>(),
           child: EditTourPackagePage(
             tourId: int.tryParse(state.pathParameters['tourId'] ?? ''),
@@ -1017,10 +1019,14 @@ GoRouter createAppRouter(
       GoRoute(
         path: AppRoutes.createTourPackage,
         name: AppRouteNames.createTourPackage,
-        builder: (_, _) => BlocProvider(
+        builder: (_, state) => BlocProvider(
           create: (_) =>
               serviceLocator<CreateTourPackageCubit>()..loadOptions(),
-          child: const CreateTourPackagePage(),
+          child: CreateTourPackagePage(
+            cloneFrom: state.extra is TourPackageDetail
+                ? state.extra as TourPackageDetail
+                : null,
+          ),
         ),
       ),
       GoRoute(

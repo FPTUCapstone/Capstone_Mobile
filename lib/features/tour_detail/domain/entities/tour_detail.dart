@@ -30,6 +30,11 @@ final class TourDetail extends Equatable {
     this.cancellationRules = const [],
     this.hasBookableSchedule,
     this.asOfUtc,
+    this.highlights,
+    this.travellerRequirements = const [],
+    this.allowDeposit = false,
+    this.depositPercent,
+    this.balanceDueDaysBeforeDeparture,
   });
 
   final String tourId;
@@ -64,6 +69,17 @@ final class TourDetail extends Equatable {
   /// When the slot figures were read (BR-59: a snapshot, not a reservation).
   final DateTime? asOfUtc;
 
+  final String? highlights;
+  final List<String> travellerRequirements;
+  final bool allowDeposit;
+  final double? depositPercent;
+  final int? balanceDueDaysBeforeDeparture;
+
+  bool get hasDepositPolicy =>
+      allowDeposit &&
+      depositPercent != null &&
+      balanceDueDaysBeforeDeparture != null;
+
   @override
   List<Object?> get props => [
     tourId,
@@ -89,5 +105,10 @@ final class TourDetail extends Equatable {
     cancellationRules,
     hasBookableSchedule,
     asOfUtc,
+    highlights,
+    travellerRequirements,
+    allowDeposit,
+    depositPercent,
+    balanceDueDaysBeforeDeparture,
   ];
 }

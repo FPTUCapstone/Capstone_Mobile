@@ -23,6 +23,20 @@ enum TourPackageStatus {
   }
 }
 
+/// True when a package is publicly live (`Published`, or `Approved` with `publishedAtUtc <= now`).
+bool isLivePublishedTour(
+  TourPackageStatus status,
+  DateTime? publishedAtUtc, {
+  DateTime? nowUtc,
+}) {
+  if (status == TourPackageStatus.published) return true;
+  if (status != TourPackageStatus.approved || publishedAtUtc == null) {
+    return false;
+  }
+  final referenceNow = (nowUtc ?? DateTime.now()).toUtc();
+  return !publishedAtUtc.toUtc().isAfter(referenceNow);
+}
+
 final class TourPackageSummary extends Equatable {
   const TourPackageSummary({
     required this.id,
@@ -32,6 +46,11 @@ final class TourPackageSummary extends Equatable {
     required this.durationDays,
     required this.destination,
     this.nextDepartureAtUtc,
+    this.versionNo = 1,
+    this.publishedAtUtc,
+    this.upcomingDepartureCount,
+    this.completedDepartureCount,
+    this.totalDepartureCount,
   });
   final int id;
   final String title;
@@ -40,6 +59,13 @@ final class TourPackageSummary extends Equatable {
   final int durationDays;
   final String destination;
   final DateTime? nextDepartureAtUtc;
+  final int versionNo;
+  final DateTime? publishedAtUtc;
+  final int? upcomingDepartureCount;
+  final int? completedDepartureCount;
+  final int? totalDepartureCount;
+
+  bool get isLivePublished => isLivePublishedTour(status, publishedAtUtc);
 
   @override
   List<Object?> get props => [
@@ -50,6 +76,11 @@ final class TourPackageSummary extends Equatable {
     durationDays,
     destination,
     nextDepartureAtUtc,
+    versionNo,
+    publishedAtUtc,
+    upcomingDepartureCount,
+    completedDepartureCount,
+    totalDepartureCount,
   ];
 }
 
@@ -74,12 +105,19 @@ final class TourDepartureDetail extends Equatable {
     required this.minimumCapacity,
     required this.totalCapacity,
     required this.reservedCapacity,
+    this.id,
+    this.status,
     this.meetingPoint,
     this.registrationDeadlineAtUtc,
     this.adultPrice,
     this.childPrice,
     this.infantPrice,
+    this.meetingLatitude,
+    this.meetingLongitude,
+    this.isCompleted = false,
   });
+  final int? id;
+  final String? status;
   final DateTime startAtUtc;
   final DateTime endAtUtc;
   final int minimumCapacity;
@@ -90,9 +128,14 @@ final class TourDepartureDetail extends Equatable {
   final num? adultPrice;
   final num? childPrice;
   final num? infantPrice;
+  final double? meetingLatitude;
+  final double? meetingLongitude;
+  final bool isCompleted;
 
   @override
   List<Object?> get props => [
+    id,
+    status,
     startAtUtc,
     endAtUtc,
     minimumCapacity,
@@ -103,6 +146,36 @@ final class TourDepartureDetail extends Equatable {
     adultPrice,
     childPrice,
     infantPrice,
+    meetingLatitude,
+    meetingLongitude,
+    isCompleted,
+  ];
+}
+
+final class TourVersionHistoryItem extends Equatable {
+  const TourVersionHistoryItem({
+    required this.tourId,
+    required this.versionNo,
+    required this.status,
+    this.createdAtUtc,
+    this.publishedAtUtc,
+    this.rejectionReason,
+  });
+  final int tourId;
+  final int versionNo;
+  final TourPackageStatus status;
+  final DateTime? createdAtUtc;
+  final DateTime? publishedAtUtc;
+  final String? rejectionReason;
+
+  @override
+  List<Object?> get props => [
+    tourId,
+    versionNo,
+    status,
+    createdAtUtc,
+    publishedAtUtc,
+    rejectionReason,
   ];
 }
 
@@ -194,6 +267,12 @@ final class TourPackageDetail extends Equatable {
     this.timeZoneId,
     this.cancellationPolicyTemplateId,
     this.cancellationFeeRules = const [],
+    this.versionNo = 1,
+    this.publishedAtUtc,
+    this.allowDeposit = false,
+    this.depositPercent,
+    this.balanceDueDaysBeforeDeparture,
+    this.versions = const [],
   });
   final int id;
   final String title;
@@ -223,6 +302,19 @@ final class TourPackageDetail extends Equatable {
   final bool canSubmitForReview;
   final bool hasPrimaryImage;
   final int mediaCount;
+  final int versionNo;
+  final DateTime? publishedAtUtc;
+  final bool allowDeposit;
+  final num? depositPercent;
+  final int? balanceDueDaysBeforeDeparture;
+  final List<TourVersionHistoryItem> versions;
+
+  bool get isLivePublished => isLivePublishedTour(status, publishedAtUtc);
+
+  bool get canCreateNewVersion =>
+      status == TourPackageStatus.approved ||
+      status == TourPackageStatus.published ||
+      status == TourPackageStatus.inactive;
 
   TourPackageDetail submitted({String? note, DateTime? atUtc}) =>
       TourPackageDetail(
@@ -246,6 +338,12 @@ final class TourPackageDetail extends Equatable {
         warnings: warnings,
         hasPrimaryImage: hasPrimaryImage,
         mediaCount: mediaCount,
+        versionNo: versionNo,
+        publishedAtUtc: publishedAtUtc,
+        allowDeposit: allowDeposit,
+        depositPercent: depositPercent,
+        balanceDueDaysBeforeDeparture: balanceDueDaysBeforeDeparture,
+        versions: versions,
         status: TourPackageStatus.pending,
         submissionNote: note,
         submittedAtUtc: atUtc,
@@ -281,6 +379,12 @@ final class TourPackageDetail extends Equatable {
     canSubmitForReview,
     hasPrimaryImage,
     mediaCount,
+    versionNo,
+    publishedAtUtc,
+    allowDeposit,
+    depositPercent,
+    balanceDueDaysBeforeDeparture,
+    versions,
   ];
 }
 

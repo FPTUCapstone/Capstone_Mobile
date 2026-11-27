@@ -23,6 +23,22 @@ final class UpdateTourPackageUseCase {
       _repository.updateDraft(tourId, draft);
 }
 
+final class DeleteTourPackageUseCase {
+  const DeleteTourPackageUseCase(this._repository);
+  final OperatorTourRepository _repository;
+  Future<void> call(int tourId) => _repository.deleteTour(tourId);
+}
+
+final class AddTourDepartureUseCase {
+  const AddTourDepartureUseCase(this._repository);
+  final OperatorTourRepository _repository;
+  Future<TourDepartureDetail> call(
+    int tourId,
+    TourScheduleDraft departure,
+    String idempotencyKey,
+  ) => _repository.addDeparture(tourId, departure, idempotencyKey);
+}
+
 final class SubmitTourForReviewUseCase {
   const SubmitTourForReviewUseCase(this._repository);
   final OperatorTourRepository _repository;

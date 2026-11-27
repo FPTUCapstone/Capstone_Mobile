@@ -15,6 +15,13 @@ String tourStatusLabel(TourPackageStatus status) => switch (status) {
   TourPackageStatus.inactive => 'Inactive',
 };
 
+String effectiveTourStatusLabel(
+  TourPackageStatus status,
+  DateTime? publishedAtUtc,
+) => isLivePublishedTour(status, publishedAtUtc)
+    ? tourStatusLabel(TourPackageStatus.published)
+    : tourStatusLabel(status);
+
 /// The operator's tour packages: filter by status, open one to resume or view it.
 final class OperatorToursPage extends StatelessWidget {
   const OperatorToursPage({super.key});
@@ -136,10 +143,16 @@ final class _Body extends StatelessWidget {
                   title: Text(tour.title),
                   subtitle: Text(
                     [
-                      tourStatusLabel(tour.status),
+                      'v${tour.versionNo}',
+                      effectiveTourStatusLabel(
+                        tour.status,
+                        tour.publishedAtUtc,
+                      ),
                       if (tour.destination.isNotEmpty) tour.destination,
                       '${tour.durationDays} day(s)',
                       '${tour.basePrice} VND',
+                      if (tour.upcomingDepartureCount != null)
+                        '${tour.upcomingDepartureCount} upcoming departure(s)',
                     ].join(' · '),
                   ),
                   trailing: const Icon(Icons.chevron_right),

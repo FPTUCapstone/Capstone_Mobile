@@ -11,6 +11,7 @@ import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/crea
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_state.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/operator_tours_page.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/widgets/submit_tour_dialog.dart';
+import 'package:trip_mate_mobile/features/operator_tours/presentation/widgets/tour_authoring_sections.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/widgets/tour_package_widgets.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_summary.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
@@ -22,8 +23,9 @@ const _reviewStep = 4;
 /// Four-step-plus-photos editor for one tour package. With [initial] it edits (or, for a package
 /// that is no longer a Draft/Rejected, only shows) an existing package; without it, it creates one.
 final class CreateTourPackagePage extends StatefulWidget {
-  const CreateTourPackagePage({this.initial, super.key});
+  const CreateTourPackagePage({this.initial, this.cloneFrom, super.key});
   final TourPackageDetail? initial;
+  final TourPackageDetail? cloneFrom;
   @override
   State<CreateTourPackagePage> createState() => _CreateTourPackagePageState();
 }
@@ -38,11 +40,16 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
   final _exclusions = TextEditingController();
   final _highlights = TextEditingController();
   final _requirements = TextEditingController();
+  final _depositPercent = TextEditingController(text: '30');
+  final _balanceDueDays = TextEditingController(text: '7');
   final List<_TourStop> _stops = [];
   final List<_Departure> _departures = [];
   // Catalogue ids in the order the operator chose them (the order is the display order).
   final List<int> _destinationIds = [];
   int? _policyId;
+  int? _categoryId;
+  int? _sourceTourId;
+  var _allowDeposit = false;
   var _step = 0;
 
   bool get _isEditing => widget.initial != null;
@@ -57,26 +64,35 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
   @override
   void initState() {
     super.initState();
-    final initial = widget.initial;
-    if (initial == null) {
-      final start = DateTime.now().add(const Duration(days: 1));
+    final seed = widget.initial ?? widget.cloneFrom;
+    if (seed == null) {
+      final now = DateTime.now();
+      final start = DateTime(now.year, now.month, now.day + 1, 8, 0);
       _departures.add(
         _Departure(start: start, end: start.add(const Duration(hours: 8))),
       );
       return;
     }
+    final isClone = widget.initial == null && widget.cloneFrom != null;
+    if (isClone) {
+      _sourceTourId = seed.id;
+    }
     final names = context.read<CreateTourPackageCubit>().state.poiNames;
-    _title.text = initial.title;
-    _description.text = initial.description;
-    _price.text = initial.basePrice.toString();
-    _duration.text = '${initial.durationDays}';
-    _inclusions.text = initial.inclusions ?? '';
-    _exclusions.text = initial.exclusions ?? '';
-    _highlights.text = initial.highlights ?? '';
-    _requirements.text = initial.travellerRequirements ?? '';
-    _destinationIds.addAll(initial.destinationIds);
-    _policyId = initial.cancellationPolicyTemplateId;
-    final ordered = [...initial.itineraryItems]
+    _title.text = seed.title;
+    _description.text = seed.description;
+    _price.text = seed.basePrice.toString();
+    _duration.text = '${seed.durationDays}';
+    _inclusions.text = seed.inclusions ?? '';
+    _exclusions.text = seed.exclusions ?? '';
+    _highlights.text = seed.highlights ?? '';
+    _requirements.text = seed.travellerRequirements ?? '';
+    _categoryId = seed.categoryId;
+    _allowDeposit = seed.allowDeposit;
+    _depositPercent.text = (seed.depositPercent ?? 30).toString();
+    _balanceDueDays.text = (seed.balanceDueDaysBeforeDeparture ?? 7).toString();
+    _destinationIds.addAll(seed.destinationIds);
+    _policyId = seed.cancellationPolicyTemplateId;
+    final ordered = [...seed.itineraryItems]
       ..sort((a, b) {
         final byDay = a.dayNo.compareTo(b.dayNo);
         return byDay != 0 ? byDay : a.sequenceNo.compareTo(b.sequenceNo);
@@ -93,7 +109,13 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
         ),
       );
     }
-    for (final departure in initial.departures) {
+    final nowUtc = DateTime.now().toUtc();
+    for (final departure in seed.departures) {
+      if (isClone &&
+          (departure.status == 'Cancelled' ||
+              !departure.startAtUtc.isAfter(nowUtc))) {
+        continue;
+      }
       _departures.add(
         _Departure(
           start: departure.startAtUtc.toLocal(),
@@ -105,6 +127,23 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
           infantPrice: departure.infantPrice,
           meetingPoint: departure.meetingPoint ?? '',
           registrationDeadline: departure.registrationDeadlineAtUtc?.toLocal(),
+          meetingLatitude: departure.meetingLatitude,
+          meetingLongitude: departure.meetingLongitude,
+        ),
+      );
+    }
+    if (isClone && _departures.isEmpty) {
+      final start = DateTime.now().add(const Duration(days: 7));
+      _departures.add(
+        _Departure(
+          start: DateTime(start.year, start.month, start.day, 8),
+          end: DateTime(start.year, start.month, start.day, 8).add(
+            Duration(
+              days: seed.durationDays > 1 ? seed.durationDays - 1 : 0,
+              hours: 8,
+            ),
+          ),
+          adultPrice: seed.basePrice,
         ),
       );
     }
@@ -121,6 +160,8 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
       _exclusions,
       _highlights,
       _requirements,
+      _depositPercent,
+      _balanceDueDays,
     ]) {
       controller.dispose();
     }
@@ -180,19 +221,62 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
       ),
     );
     if (mounted && poi != null) {
+      final stayMinutes = poi.averageVisitDurationMinutes > 0
+          ? poi.averageVisitDurationMinutes
+          : 60;
       setState(
         () => _stops.add(
           _TourStop(
             poiId: poi.id,
             name: poi.name,
             isOpenNow: poi.isOpenNow,
-            stayMinutes: poi.averageVisitDurationMinutes > 0
-                ? poi.averageVisitDurationMinutes
-                : 60,
+            stayMinutes: stayMinutes,
+            plannedTime: _defaultPlannedTimeForDay(1),
           ),
         ),
       );
     }
+  }
+
+  String _defaultPlannedTimeForDay(int dayNo) {
+    var nextMinutes = 9 * 60;
+    for (final stop in _stops.where((item) => item.dayNo == dayNo)) {
+      final startMinutes = _parsePlannedMinutes(stop.plannedTime);
+      if (startMinutes != null) {
+        final candidateEnd = startMinutes + stop.stayMinutes + 15;
+        if (candidateEnd > nextMinutes) {
+          nextMinutes = candidateEnd;
+        }
+      }
+    }
+    final clamped = nextMinutes.clamp(8 * 60, 22 * 60);
+    final hh = (clamped ~/ 60).toString().padLeft(2, '0');
+    final mm = (clamped % 60).toString().padLeft(2, '0');
+    return '$hh:$mm:00';
+  }
+
+  int? _parsePlannedMinutes(String? value) {
+    if (value == null) return null;
+    final match = RegExp(
+      r'^(\d{1,2}):(\d{2})(?::\d{2})?$',
+    ).firstMatch(value.trim());
+    if (match == null) return null;
+    final hh = int.tryParse(match.group(1)!);
+    final mm = int.tryParse(match.group(2)!);
+    if (hh == null || mm == null || hh < 0 || hh > 23 || mm < 0 || mm > 59) {
+      return null;
+    }
+    return hh * 60 + mm;
+  }
+
+  String? _normalizePlannedTime(String raw, String? fallback) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return fallback;
+    final mins = _parsePlannedMinutes(trimmed);
+    if (mins == null) return fallback;
+    final hh = (mins ~/ 60).toString().padLeft(2, '0');
+    final mm = (mins % 60).toString().padLeft(2, '0');
+    return '$hh:$mm:00';
   }
 
   Future<void> _editStop(int index) async {
@@ -200,6 +284,11 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
     final old = _stops[index];
     final day = TextEditingController(text: '${old.dayNo}');
     final stay = TextEditingController(text: '${old.stayMinutes}');
+    final planned = TextEditingController(
+      text: old.plannedTime != null && old.plannedTime!.length >= 5
+          ? old.plannedTime!.substring(0, 5)
+          : '09:00',
+    );
     final result = await showDialog<_TourStop>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -211,6 +300,14 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
               controller: day,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: 'Day number'),
+            ),
+            TextField(
+              controller: planned,
+              keyboardType: TextInputType.datetime,
+              decoration: const InputDecoration(
+                labelText: 'Planned start time (HH:mm)',
+                hintText: '09:00',
+              ),
             ),
             TextField(
               controller: stay,
@@ -232,6 +329,10 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
               old.copyWith(
                 dayNo: _positiveInt(day.text) ?? old.dayNo,
                 stayMinutes: _positiveInt(stay.text) ?? old.stayMinutes,
+                plannedTime: _normalizePlannedTime(
+                  planned.text,
+                  old.plannedTime,
+                ),
               ),
             ),
             child: const Text('Save'),
@@ -241,6 +342,7 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
     );
     day.dispose();
     stay.dispose();
+    planned.dispose();
     if (mounted && result != null) setState(() => _stops[index] = result);
   }
 
@@ -257,6 +359,12 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
     if (!mounted || date == null) return;
     final capacity = TextEditingController(text: '${old.capacity}');
     final meeting = TextEditingController(text: old.meetingPoint);
+    final meetingLat = TextEditingController(
+      text: old.meetingLatitude?.toString() ?? '',
+    );
+    final meetingLng = TextEditingController(
+      text: old.meetingLongitude?.toString() ?? '',
+    );
     final minimumCapacity = TextEditingController(
       text: '${old.minimumCapacity}',
     );
@@ -316,6 +424,35 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
                 TextField(
                   controller: meeting,
                   decoration: const InputDecoration(labelText: 'Meeting point'),
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: meetingLat,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                          signed: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Latitude (optional)',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: TextField(
+                        controller: meetingLng,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                          signed: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Longitude (optional)',
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Row(
@@ -384,6 +521,12 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
                         : num.tryParse(infantPrice.text.trim()),
                     meetingPoint: meeting.text,
                     registrationDeadline: deadline,
+                    meetingLatitude: meetingLat.text.trim().isEmpty
+                        ? null
+                        : double.tryParse(meetingLat.text.trim()),
+                    meetingLongitude: meetingLng.text.trim().isEmpty
+                        ? null
+                        : double.tryParse(meetingLng.text.trim()),
                   ),
                 );
               },
@@ -395,6 +538,8 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
     );
     capacity.dispose();
     meeting.dispose();
+    meetingLat.dispose();
+    meetingLng.dispose();
     minimumCapacity.dispose();
     adultPrice.dispose();
     childPrice.dispose();
@@ -455,6 +600,26 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
       _notice('Prices must be whole VND amounts.');
       return null;
     }
+    num? depositPercentValue;
+    int? balanceDaysValue;
+    if (_allowDeposit) {
+      depositPercentValue = num.tryParse(_depositPercent.text.trim());
+      balanceDaysValue = int.tryParse(_balanceDueDays.text.trim());
+      if (depositPercentValue == null ||
+          depositPercentValue < 10 ||
+          depositPercentValue > 90) {
+        _notice('Deposit percentage must be between 10% and 90%.');
+        return null;
+      }
+      if (balanceDaysValue == null ||
+          balanceDaysValue < 4 ||
+          balanceDaysValue > 180) {
+        _notice(
+          'Balance settlement deadline must be between 4 and 180 days before departure.',
+        );
+        return null;
+      }
+    }
     // Stops keep the order the operator arranged; sequence is per day, starting at 1.
     final sequenceByDay = <int, int>{};
     final initial = widget.initial;
@@ -463,8 +628,12 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
       description: _description.text,
       basePrice: price,
       durationDays: duration,
-      categoryId: initial?.categoryId,
-      timeZoneId: initial?.timeZoneId,
+      categoryId: _categoryId ?? initial?.categoryId,
+      timeZoneId: initial?.timeZoneId ?? widget.cloneFrom?.timeZoneId,
+      sourceTourId: _sourceTourId,
+      allowDeposit: _allowDeposit,
+      depositPercent: depositPercentValue,
+      balanceDueDaysBeforeDeparture: balanceDaysValue,
       inclusions: _inclusions.text,
       exclusions: _exclusions.text,
       highlights: _highlights.text,
@@ -498,6 +667,8 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
             childPrice: item.childPrice,
             infantPrice: item.infantPrice,
             meetingPoint: item.meetingPoint,
+            meetingLatitude: item.meetingLatitude,
+            meetingLongitude: item.meetingLongitude,
           ),
       ],
     );
@@ -521,6 +692,58 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
     _confirming = false;
     if (confirmed != null && mounted) {
       await cubit.saveAndSubmitForReview(draft, submissionNote: confirmed.note);
+    }
+  }
+
+  Future<void> _reopenDeparture(TourPackageDetail detail) async {
+    final draft = await showAddTourDepartureDialog(context, detail: detail);
+    if (!mounted || draft == null) return;
+    final added = await context.read<CreateTourPackageCubit>().reopenDeparture(
+      draft,
+    );
+    if (!mounted || added == null) return;
+    setState(() {
+      _departures.add(
+        _Departure(
+          start: added.startAtUtc.toLocal(),
+          end: added.endAtUtc.toLocal(),
+          capacity: added.totalCapacity,
+          minimumCapacity: added.minimumCapacity,
+          adultPrice: added.adultPrice,
+          childPrice: added.childPrice,
+          infantPrice: added.infantPrice,
+          meetingPoint: added.meetingPoint ?? '',
+          registrationDeadline: added.registrationDeadlineAtUtc?.toLocal(),
+          meetingLatitude: added.meetingLatitude,
+          meetingLongitude: added.meetingLongitude,
+        ),
+      );
+    });
+    _notice('New departure published.');
+  }
+
+  Future<void> _confirmDeleteDraft(TourPackageDetail detail) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete draft tour?'),
+        content: Text(
+          'Delete "${detail.title}"? This removes the unpublished draft permanently.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true && mounted) {
+      await context.read<CreateTourPackageCubit>().deleteDraft();
     }
   }
 
@@ -569,41 +792,126 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
             current.mediaFailure != null,
         listener: (context, state) => _notice(state.mediaFailure!.message),
       ),
+      BlocListener<CreateTourPackageCubit, CreateTourPackageState>(
+        listenWhen: (previous, current) =>
+            previous.departureFailure != current.departureFailure &&
+            current.departureFailure != null,
+        listener: (context, state) => _notice(state.departureFailure!.message),
+      ),
+      BlocListener<CreateTourPackageCubit, CreateTourPackageState>(
+        listenWhen: (previous, current) =>
+            previous.deleteFailure != current.deleteFailure &&
+            current.deleteFailure != null,
+        listener: (context, state) => _notice(state.deleteFailure!.message),
+      ),
+      BlocListener<CreateTourPackageCubit, CreateTourPackageState>(
+        listenWhen: (previous, current) => !previous.deleted && current.deleted,
+        listener: (context, state) {
+          _notice('Draft deleted.');
+          if (context.canPop()) context.pop();
+        },
+      ),
     ],
     child: BlocBuilder<CreateTourPackageCubit, CreateTourPackageState>(
-      builder: (context, state) => Scaffold(
-        appBar: AppBar(
-          title: Text(_isEditing ? 'Edit tour package' : 'Create tour package'),
-        ),
-        body: SafeArea(
-          child: Column(
-            children: [
-              if (widget.initial?.status == TourPackageStatus.rejected &&
-                  widget.initial?.rejectionReason != null)
-                TourPackageBanner(
-                  icon: Icons.report_gmailerrorred_outlined,
-                  message:
-                      'Rejected: ${widget.initial!.rejectionReason}. Fix the issues and submit again.',
-                ),
-              if (_readOnly)
-                TourPackageBanner(
-                  icon: Icons.lock_outline,
-                  message:
-                      'This package is ${tourStatusLabel(state.detail?.status ?? widget.initial!.status).toLowerCase()} and cannot be edited. Staff reviews submitted packages before approval and publication.',
-                ),
-              if (state.reviewStatus == TourReviewStatus.uncertain)
-                TextButton.icon(
-                  onPressed: () => context
-                      .read<CreateTourPackageCubit>()
-                      .loadDetail(state.detail!.id),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Reload submission status'),
-                ),
-              Expanded(child: _stepper(context, state)),
-            ],
+      builder: (context, state) {
+        final activeDetail = state.detail ?? widget.initial;
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(
+              _isEditing ? 'Edit tour package' : 'Create tour package',
+            ),
           ),
-        ),
-      ),
+          body: SafeArea(
+            child: Column(
+              children: [
+                if (widget.cloneFrom != null && !_isEditing)
+                  TourPackageBanner(
+                    icon: Icons.copy_all_outlined,
+                    message:
+                        'Creating draft v${widget.cloneFrom!.versionNo + 1} from v${widget.cloneFrom!.versionNo}. Approving this version supersedes the previous version.',
+                  ),
+                if (activeDetail != null &&
+                    activeDetail.status == TourPackageStatus.rejected &&
+                    activeDetail.rejectionReason != null)
+                  TourPackageBanner(
+                    icon: Icons.report_gmailerrorred_outlined,
+                    message:
+                        'Rejected: ${activeDetail.rejectionReason}. Fix the issues and submit again.',
+                  ),
+                if (_readOnly && activeDetail != null)
+                  TourPackageBanner(
+                    icon: Icons.lock_outline,
+                    message:
+                        'This package (v${activeDetail.versionNo}) is ${effectiveTourStatusLabel(activeDetail.status, activeDetail.publishedAtUtc).toLowerCase()} and cannot be edited. Staff reviews submitted packages before approval and publication.',
+                  ),
+                if (activeDetail != null &&
+                    (activeDetail.isLivePublished ||
+                        activeDetail.canCreateNewVersion ||
+                        activeDetail.status == TourPackageStatus.draft))
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md,
+                      AppSpacing.xs,
+                      AppSpacing.md,
+                      0,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Wrap(
+                        spacing: AppSpacing.xs,
+                        runSpacing: AppSpacing.xs,
+                        children: [
+                          if (activeDetail.isLivePublished)
+                            OutlinedButton.icon(
+                              onPressed: state.mutationBusy
+                                  ? null
+                                  : () => _reopenDeparture(activeDetail),
+                              icon: const Icon(Icons.event_available_outlined),
+                              label: Text(
+                                state.departureBusy
+                                    ? 'Publishing...'
+                                    : 'Open new departure',
+                              ),
+                            ),
+                          if (activeDetail.canCreateNewVersion)
+                            OutlinedButton.icon(
+                              onPressed: state.mutationBusy
+                                  ? null
+                                  : () => context.push(
+                                      AppRoutes.createTourPackage,
+                                      extra: activeDetail,
+                                    ),
+                              icon: const Icon(Icons.copy_all_outlined),
+                              label: Text(
+                                'Create v${activeDetail.versionNo + 1} draft',
+                              ),
+                            ),
+                          if (activeDetail.status == TourPackageStatus.draft)
+                            TextButton.icon(
+                              onPressed: state.mutationBusy
+                                  ? null
+                                  : () => _confirmDeleteDraft(activeDetail),
+                              icon: const Icon(Icons.delete_outline),
+                              label: const Text('Delete draft'),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (state.reviewStatus == TourReviewStatus.uncertain)
+                  TextButton.icon(
+                    onPressed: () => context
+                        .read<CreateTourPackageCubit>()
+                        .loadDetail(state.detail!.id),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Reload submission status'),
+                  ),
+                Expanded(child: _stepper(context, state)),
+              ],
+            ),
+          ),
+        );
+      },
     ),
   );
 
@@ -760,6 +1068,19 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
             maxLength: 4000,
             decoration: InputDecoration(labelText: label),
           ),
+          if (controller == _requirements) ...[
+            TourPackingChecklistTags(
+              requirementsText: _requirements.text,
+              enabled: !_readOnly,
+              onToggleTag: (tag) => setState(() {
+                _requirements.text = togglePackingChecklistTag(
+                  _requirements.text,
+                  tag,
+                );
+              }),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+          ],
           const SizedBox(height: AppSpacing.xs),
         ],
         const SizedBox(height: AppSpacing.sm),
@@ -768,6 +1089,7 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
           enabled: !_readOnly,
           selectedDestinationIds: _destinationIds,
           selectedPolicyId: _policyId,
+          selectedCategoryId: _categoryId,
           onToggleDestination: (id) => setState(() {
             if (_destinationIds.contains(id)) {
               _destinationIds.remove(id);
@@ -776,7 +1098,31 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
             }
           }),
           onPolicyChanged: (id) => setState(() => _policyId = id),
+          onCategoryChanged: (id) => setState(() => _categoryId = id),
           onRetry: () => context.read<CreateTourPackageCubit>().loadOptions(),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        TourDepositSettingsSection(
+          allowDeposit: _allowDeposit,
+          depositPercentController: _depositPercent,
+          balanceDueDaysController: _balanceDueDays,
+          basePrice: num.tryParse(_price.text.trim()),
+          enabled: !_readOnly,
+          onAllowDepositChanged: (value) => setState(() {
+            _allowDeposit = value;
+            if (value) {
+              if (_depositPercent.text.trim().isEmpty) {
+                _depositPercent.text = '30';
+              }
+              if (_balanceDueDays.text.trim().isEmpty) {
+                _balanceDueDays.text = '7';
+              }
+            }
+          }),
+          onSelectPercentPreset: (percent) =>
+              setState(() => _depositPercent.text = '$percent'),
+          onSelectBalanceDaysPreset: (days) =>
+              setState(() => _balanceDueDays.text = '$days'),
         ),
       ],
     ),
@@ -793,7 +1139,7 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
           leading: CircleAvatar(child: Text('${entry.key + 1}')),
           title: Text(entry.value.name),
           subtitle: Text(
-            'Day ${entry.value.dayNo} · ${entry.value.stayMinutes} min${entry.value.isOpenNow ? ' · Open now' : ''}',
+            'Day ${entry.value.dayNo}${entry.value.plannedTime == null ? '' : ' · ${entry.value.plannedTime!.length >= 5 ? entry.value.plannedTime!.substring(0, 5) : entry.value.plannedTime}'} · ${entry.value.stayMinutes} min${entry.value.isOpenNow ? ' · Open now' : ''}',
           ),
           onTap: () => _editStop(entry.key),
           trailing: _readOnly
@@ -892,7 +1238,13 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
           highlights: _highlights.text,
           inclusions: _inclusions.text,
           exclusions: _exclusions.text,
+          travellerRequirements: _requirements.text,
           policyName: policyName,
+          allowDeposit: _allowDeposit,
+          depositPercent: num.tryParse(_depositPercent.text.trim()),
+          balanceDueDaysBeforeDeparture: int.tryParse(
+            _balanceDueDays.text.trim(),
+          ),
           days: _previewDays(),
           departures: [
             for (final departure in _departures)
@@ -905,6 +1257,15 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
             blockers: detail.reviewBlockers,
             warnings: detail.warnings,
             poiNames: state.poiNames,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
+        if (detail != null) ...[
+          TourVersionHistorySection(
+            currentDetail: detail,
+            statusLabelBuilder: effectiveTourStatusLabel,
+            onOpenVersion: (tourId) =>
+                context.push(AppRoutes.editTourPackagePath(tourId)),
           ),
           const SizedBox(height: AppSpacing.sm),
         ],
@@ -953,15 +1314,16 @@ final class _TourStop {
   final bool isOpenNow;
   final String? plannedTime;
   final String? notes;
-  _TourStop copyWith({int? dayNo, int? stayMinutes}) => _TourStop(
-    poiId: poiId,
-    name: name,
-    dayNo: dayNo ?? this.dayNo,
-    stayMinutes: stayMinutes ?? this.stayMinutes,
-    isOpenNow: isOpenNow,
-    plannedTime: plannedTime,
-    notes: notes,
-  );
+  _TourStop copyWith({int? dayNo, int? stayMinutes, String? plannedTime}) =>
+      _TourStop(
+        poiId: poiId,
+        name: name,
+        dayNo: dayNo ?? this.dayNo,
+        stayMinutes: stayMinutes ?? this.stayMinutes,
+        isOpenNow: isOpenNow,
+        plannedTime: plannedTime ?? this.plannedTime,
+        notes: notes,
+      );
 }
 
 final class _Departure {
@@ -975,6 +1337,8 @@ final class _Departure {
     this.infantPrice,
     this.meetingPoint = '',
     this.registrationDeadline,
+    this.meetingLatitude,
+    this.meetingLongitude,
   });
   final DateTime start;
   final DateTime end;
@@ -985,6 +1349,8 @@ final class _Departure {
   final num? infantPrice;
   final String meetingPoint;
   final DateTime? registrationDeadline;
+  final double? meetingLatitude;
+  final double? meetingLongitude;
 }
 
 final class _PoiPickerSheet extends StatefulWidget {

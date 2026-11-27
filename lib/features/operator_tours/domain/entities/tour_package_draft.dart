@@ -35,6 +35,8 @@ final class TourScheduleDraft {
     this.childPrice,
     this.infantPrice,
     this.meetingPoint,
+    this.meetingLatitude,
+    this.meetingLongitude,
   });
   final DateTime startAtUtc;
   final DateTime endAtUtc;
@@ -45,6 +47,8 @@ final class TourScheduleDraft {
   final num? childPrice;
   final num? infantPrice;
   final String? meetingPoint;
+  final double? meetingLatitude;
+  final double? meetingLongitude;
 
   Map<String, Object?> toJson() => {
     'startAtUtc': startAtUtc.toUtc().toIso8601String(),
@@ -60,6 +64,8 @@ final class TourScheduleDraft {
     'meetingPoint': (meetingPoint?.trim().isEmpty ?? true)
         ? null
         : meetingPoint!.trim(),
+    'meetingLatitude': meetingLatitude,
+    'meetingLongitude': meetingLongitude,
   };
 }
 
@@ -79,6 +85,10 @@ final class TourPackageDraft {
     this.highlights,
     this.travellerRequirements,
     this.timeZoneId,
+    this.sourceTourId,
+    this.allowDeposit = false,
+    this.depositPercent,
+    this.balanceDueDaysBeforeDeparture,
   });
   final String title;
   final String description;
@@ -92,6 +102,14 @@ final class TourPackageDraft {
 
   /// Preserved from the loaded package; the backend defaults it when null.
   final String? timeZoneId;
+
+  /// Approved/Published/Inactive tour being superseded when creating v2+.
+  final int? sourceTourId;
+
+  /// Deposit setup (BR-154): optional upfront % and settlement deadline in days.
+  final bool allowDeposit;
+  final num? depositPercent;
+  final int? balanceDueDaysBeforeDeparture;
 
   /// Catalogue destinations in display order (1-10, unique).
   final List<int> destinationIds;
@@ -112,6 +130,12 @@ final class TourPackageDraft {
     'highlights': _blankToNull(highlights),
     'travellerRequirements': _blankToNull(travellerRequirements),
     'timeZoneId': timeZoneId,
+    if (sourceTourId != null) 'sourceTourId': sourceTourId,
+    'allowDeposit': allowDeposit,
+    'depositPercent': allowDeposit ? depositPercent : null,
+    'balanceDueDaysBeforeDeparture': allowDeposit
+        ? balanceDueDaysBeforeDeparture
+        : null,
     'destinationIds': destinationIds,
     'cancellationPolicyTemplateId': cancellationPolicyTemplateId,
     'itineraryItems': itineraryItems.map((item) => item.toJson()).toList(),
