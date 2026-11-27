@@ -1009,6 +1009,7 @@ GoRouter createAppRouter(
         path: AppRoutes.editTourPackage,
         name: AppRouteNames.editTourPackage,
         builder: (_, state) => BlocProvider(
+          key: ValueKey('edit-tour-${state.pathParameters['tourId']}'),
           create: (_) => serviceLocator<CreateTourPackageCubit>(),
           child: EditTourPackagePage(
             tourId: int.tryParse(state.pathParameters['tourId'] ?? ''),

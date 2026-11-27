@@ -66,7 +66,8 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
     super.initState();
     final seed = widget.initial ?? widget.cloneFrom;
     if (seed == null) {
-      final start = DateTime.now().add(const Duration(days: 1));
+      final now = DateTime.now();
+      final start = DateTime(now.year, now.month, now.day + 1, 8, 0);
       _departures.add(
         _Departure(start: start, end: start.add(const Duration(hours: 8))),
       );
@@ -220,19 +221,62 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
       ),
     );
     if (mounted && poi != null) {
+      final stayMinutes = poi.averageVisitDurationMinutes > 0
+          ? poi.averageVisitDurationMinutes
+          : 60;
       setState(
         () => _stops.add(
           _TourStop(
             poiId: poi.id,
             name: poi.name,
             isOpenNow: poi.isOpenNow,
-            stayMinutes: poi.averageVisitDurationMinutes > 0
-                ? poi.averageVisitDurationMinutes
-                : 60,
+            stayMinutes: stayMinutes,
+            plannedTime: _defaultPlannedTimeForDay(1),
           ),
         ),
       );
     }
+  }
+
+  String _defaultPlannedTimeForDay(int dayNo) {
+    var nextMinutes = 9 * 60;
+    for (final stop in _stops.where((item) => item.dayNo == dayNo)) {
+      final startMinutes = _parsePlannedMinutes(stop.plannedTime);
+      if (startMinutes != null) {
+        final candidateEnd = startMinutes + stop.stayMinutes + 15;
+        if (candidateEnd > nextMinutes) {
+          nextMinutes = candidateEnd;
+        }
+      }
+    }
+    final clamped = nextMinutes.clamp(8 * 60, 22 * 60);
+    final hh = (clamped ~/ 60).toString().padLeft(2, '0');
+    final mm = (clamped % 60).toString().padLeft(2, '0');
+    return '$hh:$mm:00';
+  }
+
+  int? _parsePlannedMinutes(String? value) {
+    if (value == null) return null;
+    final match = RegExp(
+      r'^(\d{1,2}):(\d{2})(?::\d{2})?$',
+    ).firstMatch(value.trim());
+    if (match == null) return null;
+    final hh = int.tryParse(match.group(1)!);
+    final mm = int.tryParse(match.group(2)!);
+    if (hh == null || mm == null || hh < 0 || hh > 23 || mm < 0 || mm > 59) {
+      return null;
+    }
+    return hh * 60 + mm;
+  }
+
+  String? _normalizePlannedTime(String raw, String? fallback) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return fallback;
+    final mins = _parsePlannedMinutes(trimmed);
+    if (mins == null) return fallback;
+    final hh = (mins ~/ 60).toString().padLeft(2, '0');
+    final mm = (mins % 60).toString().padLeft(2, '0');
+    return '$hh:$mm:00';
   }
 
   Future<void> _editStop(int index) async {
@@ -240,6 +284,11 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
     final old = _stops[index];
     final day = TextEditingController(text: '${old.dayNo}');
     final stay = TextEditingController(text: '${old.stayMinutes}');
+    final planned = TextEditingController(
+      text: old.plannedTime != null && old.plannedTime!.length >= 5
+          ? old.plannedTime!.substring(0, 5)
+          : '09:00',
+    );
     final result = await showDialog<_TourStop>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -251,6 +300,14 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
               controller: day,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: 'Day number'),
+            ),
+            TextField(
+              controller: planned,
+              keyboardType: TextInputType.datetime,
+              decoration: const InputDecoration(
+                labelText: 'Planned start time (HH:mm)',
+                hintText: '09:00',
+              ),
             ),
             TextField(
               controller: stay,
@@ -272,6 +329,10 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
               old.copyWith(
                 dayNo: _positiveInt(day.text) ?? old.dayNo,
                 stayMinutes: _positiveInt(stay.text) ?? old.stayMinutes,
+                plannedTime: _normalizePlannedTime(
+                  planned.text,
+                  old.plannedTime,
+                ),
               ),
             ),
             child: const Text('Save'),
@@ -281,6 +342,7 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
     );
     day.dispose();
     stay.dispose();
+    planned.dispose();
     if (mounted && result != null) setState(() => _stops[index] = result);
   }
 
@@ -1077,7 +1139,7 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
           leading: CircleAvatar(child: Text('${entry.key + 1}')),
           title: Text(entry.value.name),
           subtitle: Text(
-            'Day ${entry.value.dayNo} · ${entry.value.stayMinutes} min${entry.value.isOpenNow ? ' · Open now' : ''}',
+            'Day ${entry.value.dayNo}${entry.value.plannedTime == null ? '' : ' · ${entry.value.plannedTime!.length >= 5 ? entry.value.plannedTime!.substring(0, 5) : entry.value.plannedTime}'} · ${entry.value.stayMinutes} min${entry.value.isOpenNow ? ' · Open now' : ''}',
           ),
           onTap: () => _editStop(entry.key),
           trailing: _readOnly
@@ -1252,15 +1314,16 @@ final class _TourStop {
   final bool isOpenNow;
   final String? plannedTime;
   final String? notes;
-  _TourStop copyWith({int? dayNo, int? stayMinutes}) => _TourStop(
-    poiId: poiId,
-    name: name,
-    dayNo: dayNo ?? this.dayNo,
-    stayMinutes: stayMinutes ?? this.stayMinutes,
-    isOpenNow: isOpenNow,
-    plannedTime: plannedTime,
-    notes: notes,
-  );
+  _TourStop copyWith({int? dayNo, int? stayMinutes, String? plannedTime}) =>
+      _TourStop(
+        poiId: poiId,
+        name: name,
+        dayNo: dayNo ?? this.dayNo,
+        stayMinutes: stayMinutes ?? this.stayMinutes,
+        isOpenNow: isOpenNow,
+        plannedTime: plannedTime ?? this.plannedTime,
+        notes: notes,
+      );
 }
 
 final class _Departure {
