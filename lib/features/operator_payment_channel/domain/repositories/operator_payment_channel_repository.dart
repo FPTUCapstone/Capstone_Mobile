@@ -2,6 +2,8 @@ import 'package:trip_mate_mobile/features/operator_payment_channel/domain/entiti
 
 abstract interface class OperatorPaymentChannelRepository {
   Future<PaymentChannelStatus> getChannel();
-  Future<PaymentChannelStatus> submitCredentials(SubmitCredentialsRequest request);
+  Future<PaymentChannelStatus> submitCredentials(
+    SubmitCredentialsRequest request,
+  );
   Future<PaymentChannelStatus> verify();
 }

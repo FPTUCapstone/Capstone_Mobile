@@ -258,7 +258,10 @@ class _OperatorProfileViewState extends State<OperatorProfileView> {
                     'Thiết lập nhận tiền trực tiếp từ khách',
                     style: TextStyle(fontSize: 12, color: AppColors.muted),
                   ),
-                  trailing: const Icon(Icons.chevron_right, color: AppColors.muted),
+                  trailing: const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.muted,
+                  ),
                   onTap: () => context.push(AppRoutes.operatorPaymentSettings),
                 ),
                 const Divider(height: 1, indent: 56),
@@ -275,7 +278,10 @@ class _OperatorProfileViewState extends State<OperatorProfileView> {
                     'Xem và tải bản hợp đồng của doanh nghiệp',
                     style: TextStyle(fontSize: 12, color: AppColors.muted),
                   ),
-                  trailing: const Icon(Icons.chevron_right, color: AppColors.muted),
+                  trailing: const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.muted,
+                  ),
                   onTap: () => context.push(AppRoutes.operatorContract),
                 ),
               ],

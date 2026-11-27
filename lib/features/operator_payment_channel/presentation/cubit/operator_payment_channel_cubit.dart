@@ -9,10 +9,10 @@ final class OperatorPaymentChannelCubit
     required GetPaymentChannelUseCase getChannel,
     required SubmitPaymentChannelCredentialsUseCase submitCredentials,
     required VerifyPaymentChannelUseCase verify,
-  })  : _getChannel = getChannel,
-        _submitCredentials = submitCredentials,
-        _verify = verify,
-        super(const OperatorPaymentChannelState());
+  }) : _getChannel = getChannel,
+       _submitCredentials = submitCredentials,
+       _verify = verify,
+       super(const OperatorPaymentChannelState());
 
   final GetPaymentChannelUseCase _getChannel;
   final SubmitPaymentChannelCredentialsUseCase _submitCredentials;

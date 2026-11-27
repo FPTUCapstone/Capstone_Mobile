@@ -3,7 +3,13 @@ import 'package:trip_mate_mobile/features/operator_payment_channel/domain/entiti
 
 enum PaymentChannelLoadStatus { idle, loading, success, failure }
 
-enum PaymentChannelActionStatus { idle, submitting, verifying, success, failure }
+enum PaymentChannelActionStatus {
+  idle,
+  submitting,
+  verifying,
+  success,
+  failure,
+}
 
 final class OperatorPaymentChannelState extends Equatable {
   const OperatorPaymentChannelState({
@@ -21,7 +27,8 @@ final class OperatorPaymentChannelState extends Equatable {
   final String? actionError;
 
   bool get isLoading => loadStatus == PaymentChannelLoadStatus.loading;
-  bool get isSubmitting => actionStatus == PaymentChannelActionStatus.submitting;
+  bool get isSubmitting =>
+      actionStatus == PaymentChannelActionStatus.submitting;
   bool get isVerifying => actionStatus == PaymentChannelActionStatus.verifying;
   bool get isBusy => isSubmitting || isVerifying;
 

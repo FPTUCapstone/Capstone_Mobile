@@ -27,79 +27,85 @@ class _OperatorPaymentChannelPageState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Kênh thanh toán payOS')),
-      body: BlocBuilder<OperatorPaymentChannelCubit, OperatorPaymentChannelState>(
-        builder: (context, state) {
-          if (state.loadStatus == PaymentChannelLoadStatus.loading ||
-              state.loadStatus == PaymentChannelLoadStatus.idle) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (state.loadStatus == PaymentChannelLoadStatus.failure) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      state.loadError ?? 'Không thể tải thông tin kênh thanh toán.',
-                      textAlign: TextAlign.center,
+      body:
+          BlocBuilder<OperatorPaymentChannelCubit, OperatorPaymentChannelState>(
+            builder: (context, state) {
+              if (state.loadStatus == PaymentChannelLoadStatus.loading ||
+                  state.loadStatus == PaymentChannelLoadStatus.idle) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (state.loadStatus == PaymentChannelLoadStatus.failure) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          state.loadError ??
+                              'Không thể tải thông tin kênh thanh toán.',
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        FilledButton(
+                          onPressed: () => context
+                              .read<OperatorPaymentChannelCubit>()
+                              .load(),
+                          child: const Text('Thử lại'),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              final channel = state.channel;
+              if (channel == null) return const SizedBox.shrink();
+              return ListView(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                children: [
+                  _StatusCard(channel: channel),
+                  const SizedBox(height: AppSpacing.md),
+                  if (state.actionError != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      child: Text(
+                        state.actionError!,
+                        style: const TextStyle(color: AppColors.error),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  if (channel.canSubmitCredentials) ...[
+                    _CredentialsForm(
+                      isBusy: state.isBusy,
+                      onSubmit: (req) => context
+                          .read<OperatorPaymentChannelCubit>()
+                          .submitCredentials(req),
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    FilledButton(
-                      onPressed: () =>
-                          context.read<OperatorPaymentChannelCubit>().load(),
-                      child: const Text('Thử lại'),
-                    ),
                   ],
-                ),
-              ),
-            );
-          }
-          final channel = state.channel;
-          if (channel == null) return const SizedBox.shrink();
-          return ListView(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            children: [
-              _StatusCard(channel: channel),
-              const SizedBox(height: AppSpacing.md),
-              if (state.actionError != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: Text(
-                    state.actionError!,
-                    style: const TextStyle(color: AppColors.error),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              if (channel.canSubmitCredentials) ...[
-                _CredentialsForm(
-                  isBusy: state.isBusy,
-                  onSubmit: (req) =>
-                      context.read<OperatorPaymentChannelCubit>().submitCredentials(req),
-                ),
-                const SizedBox(height: AppSpacing.md),
-              ],
-              if (channel.canVerify)
-                FilledButton.icon(
-                  onPressed: state.isBusy
-                      ? null
-                      : () => context.read<OperatorPaymentChannelCubit>().verify(),
-                  icon: state.isVerifying
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.verified_outlined),
-                  label: const Text('Yêu cầu xác minh'),
-                ),
-            ],
-          );
-        },
-      ),
+                  if (channel.canVerify)
+                    FilledButton.icon(
+                      onPressed: state.isBusy
+                          ? null
+                          : () => context
+                                .read<OperatorPaymentChannelCubit>()
+                                .verify(),
+                      icon: state.isVerifying
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.verified_outlined),
+                      label: const Text('Yêu cầu xác minh'),
+                    ),
+                ],
+              );
+            },
+          ),
     );
   }
 }
@@ -112,7 +118,10 @@ class _StatusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final (label, color) = switch (channel.status) {
       PaymentChannelState.noChannel => ('Chưa thiết lập', AppColors.muted),
-      PaymentChannelState.pendingVerification => ('Chờ xác minh', Colors.orange),
+      PaymentChannelState.pendingVerification => (
+        'Chờ xác minh',
+        Colors.orange,
+      ),
       PaymentChannelState.pendingAdminApproval => ('Chờ duyệt', Colors.blue),
       PaymentChannelState.ready => ('Hoạt động', Colors.green),
       PaymentChannelState.disabled => ('Đã vô hiệu', AppColors.error),
@@ -128,13 +137,16 @@ class _StatusCard extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               Text(
                 'Trạng thái kênh',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
@@ -164,19 +176,16 @@ class _StatusCard extends StatelessWidget {
                 value: channel.beneficiaryAccountNumberMasked!,
               ),
             if (channel.beneficiaryBankCode != null)
-              _InfoRow(
-                label: 'Ngân hàng',
-                value: channel.beneficiaryBankCode!,
-              ),
+              _InfoRow(label: 'Ngân hàng', value: channel.beneficiaryBankCode!),
           ],
           if (channel.status == PaymentChannelState.pendingAdminApproval)
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.sm),
               child: Text(
                 'Thông tin đã được gửi. Vui lòng chờ Admin TripMate xác minh kênh thanh toán của bạn.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.muted,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
               ),
             ),
           if (channel.status == PaymentChannelState.ready)
@@ -184,9 +193,9 @@ class _StatusCard extends StatelessWidget {
               padding: const EdgeInsets.only(top: AppSpacing.sm),
               child: Text(
                 'Kênh thanh toán đã sẵn sàng. Khách hàng sẽ thanh toán trực tiếp vào tài khoản của bạn.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.muted,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
               ),
             ),
         ],
@@ -280,16 +289,16 @@ class _CredentialsFormState extends State<_CredentialsForm> {
           children: [
             Text(
               'Thông tin tích hợp payOS',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
               'Lấy từ dashboard.payos.vn → Thông tin tài khoản.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.muted,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
             ),
             const SizedBox(height: AppSpacing.md),
             _field(controller: _clientId, label: 'Client ID'),
@@ -307,9 +316,9 @@ class _CredentialsFormState extends State<_CredentialsForm> {
             const Divider(height: AppSpacing.xl),
             Text(
               'Tài khoản thụ hưởng',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: AppSpacing.sm),
             _field(controller: _accountNumber, label: 'Số tài khoản'),

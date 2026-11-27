@@ -4,14 +4,16 @@ import 'package:trip_mate_mobile/features/operator_payment_channel/domain/entiti
 
 abstract interface class OperatorPaymentChannelRemoteDataSource {
   Future<PaymentChannelStatus> getChannel();
-  Future<PaymentChannelStatus> submitCredentials(SubmitCredentialsRequest request);
+  Future<PaymentChannelStatus> submitCredentials(
+    SubmitCredentialsRequest request,
+  );
   Future<PaymentChannelStatus> verify();
 }
 
 final class DioOperatorPaymentChannelRemoteDataSource
     implements OperatorPaymentChannelRemoteDataSource {
   DioOperatorPaymentChannelRemoteDataSource(DioClient client)
-      : _dio = client.dio;
+    : _dio = client.dio;
   final Dio _dio;
 
   static const _path = '/api/v1/operator/payment-channel';
