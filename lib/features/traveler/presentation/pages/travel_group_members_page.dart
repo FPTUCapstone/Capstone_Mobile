@@ -95,7 +95,16 @@ final class _TravelGroupMembersPageState extends State<TravelGroupMembersPage> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('Group members')),
+        backgroundColor: AppColors.surface,
+        appBar: AppBar(
+          title: const Text('Group members'),
+          backgroundColor: AppColors.cardBackground,
+          surfaceTintColor: Colors.transparent,
+          bottom: const PreferredSize(
+            preferredSize: Size.fromHeight(1),
+            child: Divider(height: 1, thickness: 1, color: AppColors.line),
+          ),
+        ),
         body: BlocBuilder<TravelGroupMembersCubit, TravelGroupMembersState>(
           builder: (context, state) => switch (state) {
             TravelGroupMembersInitial() || TravelGroupMembersLoading() =>
@@ -202,13 +211,13 @@ final class _MembersContent extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               color: isSuccess
-                  ? const Color(0xFFF0FDF4)
-                  : const Color(0xFFFEF2F2),
-              borderRadius: BorderRadius.circular(10),
+                  ? AppColors.primarySoft
+                  : const Color(0xFFFDEEEF),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: isSuccess
-                    ? const Color(0xFFBBF7D0)
-                    : const Color(0xFFFECACA),
+                    ? AppColors.primary.withValues(alpha: 0.25)
+                    : AppColors.error.withValues(alpha: 0.25),
               ),
             ),
             child: Row(
@@ -216,9 +225,7 @@ final class _MembersContent extends StatelessWidget {
                 Icon(
                   isSuccess ? Icons.check_circle_outline : Icons.info_outline,
                   size: 20,
-                  color: isSuccess
-                      ? AppColors.success
-                      : Theme.of(context).colorScheme.error,
+                  color: isSuccess ? AppColors.primary : AppColors.error,
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
@@ -227,9 +234,7 @@ final class _MembersContent extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: isSuccess
-                          ? const Color(0xFF166534)
-                          : const Color(0xFF991B1B),
+                      color: isSuccess ? AppColors.primary : AppColors.error,
                     ),
                   ),
                 ),
@@ -318,17 +323,20 @@ final class _MembersHeader extends StatelessWidget {
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 3,
+                ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(12),
+                  color: const Color(0xFFEFECE4),
+                  borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
                   '${members.memberCount} active member${members.memberCount == 1 ? '' : 's'}',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF475569),
+                    color: AppColors.ink,
                   ),
                 ),
               ),
@@ -391,19 +399,21 @@ final class _MemberTile extends StatelessWidget {
         ),
         trailing: member.isHost
             ? const Chip(
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 avatar: Icon(
                   Icons.star_rounded,
-                  size: 18,
-                  color: Color(0xFFD97706),
+                  size: 16,
+                  color: AppColors.warning,
                 ),
-                backgroundColor: Color(0xFFFEF3C7),
-                side: BorderSide(color: Color(0xFFFDE68A)),
+                backgroundColor: Color(0xFFFEF6E6),
+                side: BorderSide(color: Color(0xFFF3DCA9)),
                 label: Text(
                   'Group Host',
                   style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    color: Color(0xFF92400E),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11.5,
+                    color: AppColors.warning,
                   ),
                 ),
               )

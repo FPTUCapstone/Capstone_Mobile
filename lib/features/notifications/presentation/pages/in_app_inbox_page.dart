@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
+import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/utils/calendar_date_format.dart';
 import 'package:trip_mate_mobile/features/notifications/domain/entities/in_app_notification.dart';
 import 'package:trip_mate_mobile/features/notifications/presentation/cubit/in_app_inbox_cubit.dart';
@@ -14,17 +16,44 @@ final class InAppInboxPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Notifications')),
+    backgroundColor: AppColors.surface,
+    appBar: AppBar(
+      title: const Text('Notifications'),
+      backgroundColor: AppColors.cardBackground,
+      surfaceTintColor: Colors.transparent,
+      bottom: const PreferredSize(
+        preferredSize: Size.fromHeight(1),
+        child: Divider(height: 1, thickness: 1, color: AppColors.line),
+      ),
+    ),
     body: BlocBuilder<InAppInboxCubit, InAppInboxState>(
       builder: (context, state) {
         final cubit = context.read<InAppInboxCubit>();
         return Column(
           children: [
-            SwitchListTile(
-              key: const Key('inbox_unread_filter'),
-              title: const Text('Unread only'),
-              value: state.unreadOnly,
-              onChanged: cubit.setUnreadOnly,
+            Material(
+              color: AppColors.cardBackground,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SwitchListTile(
+                    key: const Key('inbox_unread_filter'),
+                    dense: true,
+                    title: const Text(
+                      'Unread only',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                    activeThumbColor: AppColors.primary,
+                    value: state.unreadOnly,
+                    onChanged: cubit.setUnreadOnly,
+                  ),
+                  const Divider(height: 1, thickness: 1, color: AppColors.line),
+                ],
+              ),
             ),
             Expanded(child: _content(context, state, cubit)),
           ],
@@ -44,12 +73,26 @@ final class InAppInboxPage extends StatelessWidget {
     }
     if (state.status == InAppInboxStatus.error) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(state.errorMessage ?? 'Unable to load notifications.'),
-            TextButton(onPressed: cubit.retry, child: const Text('Retry')),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.notifications_off_outlined,
+                size: 40,
+                color: AppColors.muted,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                state.errorMessage ?? 'Unable to load notifications.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.ink),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              TextButton(onPressed: cubit.retry, child: const Text('Retry')),
+            ],
+          ),
         ),
       );
     }
@@ -64,10 +107,37 @@ final class InAppInboxPage extends StatelessWidget {
               SizedBox(
                 height: constraints.maxHeight,
                 child: Center(
-                  child: Text(
-                    state.unreadOnly
-                        ? 'No unread notifications.'
-                        : 'No notifications yet.',
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: const BoxDecoration(
+                            color: AppColors.primarySoft,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.notifications_none_rounded,
+                            size: 28,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Text(
+                          state.unreadOnly
+                              ? 'No unread notifications.'
+                              : 'No notifications yet.',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.ink,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -80,6 +150,7 @@ final class InAppInboxPage extends StatelessWidget {
       onRefresh: cubit.load,
       child: ListView.builder(
         key: const Key('inbox_items'),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         physics: const AlwaysScrollableScrollPhysics(),
         itemCount:
             state.items.length +
@@ -107,20 +178,26 @@ final class InAppInboxPage extends StatelessWidget {
           if (index == state.items.length && state.actionError != null) {
             return Padding(
               padding: const EdgeInsets.all(16),
-              child: Text(state.actionError!),
+              child: Text(
+                state.actionError!,
+                style: const TextStyle(color: AppColors.error),
+              ),
             );
           }
           return Center(
-            child: state.isLoadingMore
-                ? const CircularProgressIndicator()
-                : TextButton(
-                    onPressed: state.pageError == null
-                        ? cubit.loadMore
-                        : cubit.retry,
-                    child: Text(
-                      state.pageError == null ? 'Load more' : 'Retry',
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+              child: state.isLoadingMore
+                  ? const CircularProgressIndicator()
+                  : TextButton(
+                      onPressed: state.pageError == null
+                          ? cubit.loadMore
+                          : cubit.retry,
+                      child: Text(
+                        state.pageError == null ? 'Load more' : 'Retry',
+                      ),
                     ),
-                  ),
+            ),
           );
         },
       ),
@@ -142,47 +219,118 @@ final class _NotificationTile extends StatelessWidget {
   final VoidCallback? onOpen;
 
   @override
-  Widget build(BuildContext context) => Card(
-    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-    child: Padding(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            item.title ?? 'Notification',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          if (item.body case final body?) ...[
-            const SizedBox(height: 4),
-            Text(body),
-          ],
-          const SizedBox(height: 4),
-          Text(
-            formatCalendarDateTime(item.createdAtUtc.toLocal()),
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          if (!item.isRead)
-            Text('Unread', style: Theme.of(context).textTheme.labelMedium),
-          if (onOpen != null)
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: pending ? null : onOpen,
-                child: const Text('Open'),
-              ),
-            )
-          else if (!item.isRead)
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                key: Key('inbox_mark_read_${item.id}'),
-                onPressed: pending ? null : onMarkRead,
-                child: const Text('Mark as read'),
-              ),
-            ),
-        ],
+  Widget build(BuildContext context) {
+    final unread = !item.isRead;
+    return Card(
+      elevation: 0,
+      color: unread ? const Color(0xFFF2F7F4) : AppColors.cardBackground,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: unread
+              ? AppColors.primary.withValues(alpha: 0.28)
+              : AppColors.line,
+        ),
       ),
-    ),
-  );
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (unread)
+                  Container(
+                    width: 8,
+                    height: 8,
+                    margin: const EdgeInsets.only(top: 6, right: 8),
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                Expanded(
+                  child: Text(
+                    item.title ?? 'Notification',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink,
+                      fontSize: 14.5,
+                    ),
+                  ),
+                ),
+                if (unread) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primarySoft,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Text(
+                      'Unread',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            if (item.body case final body?) ...[
+              const SizedBox(height: 5),
+              Text(
+                body,
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  height: 1.4,
+                  color: AppColors.ink,
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    formatCalendarDateTime(item.createdAtUtc.toLocal()),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.muted,
+                    ),
+                  ),
+                ),
+                if (onOpen != null)
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    onPressed: pending ? null : onOpen,
+                    child: const Text('Open'),
+                  )
+                else if (unread)
+                  TextButton(
+                    key: Key('inbox_mark_read_${item.id}'),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    onPressed: pending ? null : onMarkRead,
+                    child: const Text('Mark as read'),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

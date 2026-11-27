@@ -77,14 +77,19 @@ class MessagingMessageTile extends StatelessWidget {
   }
 
   Widget _buildTextCard(BuildContext context) {
-    final bg = _isMine ? AppColors.secondary : AppColors.cardBackground;
+    final bg = _isMine ? AppColors.primary : AppColors.cardBackground;
     final fg = _isMine ? Colors.white : AppColors.ink;
     final metaColor = _isMine ? Colors.white70 : AppColors.muted;
 
     return DecoratedBox(
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.only(
+          topLeft: const Radius.circular(16),
+          topRight: const Radius.circular(16),
+          bottomLeft: Radius.circular(_isMine ? 16 : 4),
+          bottomRight: Radius.circular(_isMine ? 4 : 16),
+        ),
         border: _isMine ? null : Border.all(color: AppColors.line),
       ),
       child: Padding(
@@ -133,8 +138,8 @@ class MessagingMessageTile extends StatelessWidget {
 
     return _StructuredCard(
       badgeText: 'BÌNH CHỌN',
-      badgeBg: const Color(0xFFE0E7FF),
-      badgeFg: const Color(0xFF3730A3),
+      badgeBg: AppColors.primarySoft,
+      badgeFg: AppColors.primary,
       title: meta?.title?.trim().isNotEmpty == true
           ? meta!.title!
           : message.content,
