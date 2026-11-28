@@ -246,21 +246,48 @@ class _OperatorProfileViewState extends State<OperatorProfileView> {
             color: Colors.transparent,
             borderRadius: BorderRadius.circular(14),
             clipBehavior: Clip.antiAlias,
-            child: ListTile(
-              leading: const Icon(
-                Icons.description_outlined,
-                color: AppColors.primary,
-              ),
-              title: const Text(
-                'Hợp đồng đối tác',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-              ),
-              subtitle: const Text(
-                'Xem và tải bản hợp đồng của doanh nghiệp',
-                style: TextStyle(fontSize: 12, color: AppColors.muted),
-              ),
-              trailing: const Icon(Icons.chevron_right, color: AppColors.muted),
-              onTap: () => context.push(AppRoutes.operatorContract),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(
+                    Icons.account_balance_wallet_outlined,
+                    color: AppColors.primary,
+                  ),
+                  title: const Text(
+                    'Kênh thanh toán payOS',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: const Text(
+                    'Thiết lập nhận tiền trực tiếp từ khách',
+                    style: TextStyle(fontSize: 12, color: AppColors.muted),
+                  ),
+                  trailing: const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.muted,
+                  ),
+                  onTap: () => context.push(AppRoutes.operatorPaymentSettings),
+                ),
+                const Divider(height: 1, indent: 56),
+                ListTile(
+                  leading: const Icon(
+                    Icons.description_outlined,
+                    color: AppColors.primary,
+                  ),
+                  title: const Text(
+                    'Hợp đồng đối tác',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: const Text(
+                    'Xem và tải bản hợp đồng của doanh nghiệp',
+                    style: TextStyle(fontSize: 12, color: AppColors.muted),
+                  ),
+                  trailing: const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.muted,
+                  ),
+                  onTap: () => context.push(AppRoutes.operatorContract),
+                ),
+              ],
             ),
           ),
         ),
