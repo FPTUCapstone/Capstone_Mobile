@@ -52,7 +52,7 @@ final class CreateTravelGroupCubit extends Cubit<CreateTravelGroupState> {
     if (itineraryId <= 0) {
       emit(
         const CreateTravelGroupState.validationFailure(
-          'Please select an itinerary.',
+          'Vui lòng chọn một lịch trình.',
         ),
       );
       emit(const CreateTravelGroupState.initial());
@@ -62,7 +62,7 @@ final class CreateTravelGroupCubit extends Cubit<CreateTravelGroupState> {
     if (trimmed.isEmpty) {
       emit(
         const CreateTravelGroupState.validationFailure(
-          'This field is required.',
+          'Trường này là bắt buộc.',
         ),
       );
       emit(const CreateTravelGroupState.initial());
@@ -72,7 +72,7 @@ final class CreateTravelGroupCubit extends Cubit<CreateTravelGroupState> {
     if (trimmed.length > _maxNameLength) {
       emit(
         const CreateTravelGroupState.validationFailure(
-          'Group name must not exceed 150 characters.',
+          'Tên nhóm không được vượt quá 150 ký tự.',
         ),
       );
       emit(const CreateTravelGroupState.initial());
@@ -106,14 +106,13 @@ final class CreateTravelGroupCubit extends Cubit<CreateTravelGroupState> {
       if (isClosed) return;
       final message = switch (error) {
         AuthenticationFailure() =>
-          'Your session has expired. Please sign in again to continue.',
-        PermissionFailure() =>
-          'You do not have permission to access this function.',
+          'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.',
+        PermissionFailure() => 'Bạn không có quyền truy cập chức năng này.',
         NotFoundFailure(:final message) => message,
         ValidationFailure(:final message) => message,
         ConflictFailure(:final message) => message,
         _ =>
-          'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+          'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.',
       };
       if (error is ConflictFailure && error.isIdempotencyKeyPayloadMismatch) {
         _pendingOperation = null;

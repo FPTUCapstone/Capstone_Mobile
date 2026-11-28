@@ -89,10 +89,10 @@ void main() {
     await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
-    expect(find.text('Join Shared Group Trip'), findsOneWidget);
+    expect(find.text('Tham gia nhóm du lịch'), findsOneWidget);
     expect(find.byType(AppTextField), findsOneWidget);
-    expect(find.widgetWithText(AppButton, 'Join Group'), findsOneWidget);
-    expect(find.text('Scan QR Invitation'), findsOneWidget);
+    expect(find.widgetWithText(AppButton, 'Tham gia nhóm'), findsOneWidget);
+    expect(find.text('Quét mã QR lời mời'), findsOneWidget);
   });
 
   testWidgets(
@@ -101,10 +101,10 @@ void main() {
       await tester.pumpWidget(buildSubject());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(AppButton, 'Join Group'));
+      await tester.tap(find.widgetWithText(AppButton, 'Tham gia nhóm'));
       await tester.pumpAndSettle();
 
-      expect(find.text('This field is required.'), findsOneWidget);
+      expect(find.text('Trường này là bắt buộc.'), findsOneWidget);
       expect(repository.lastCode, isNull);
     },
   );
@@ -116,7 +116,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(AppTextField), 'A7K4P2QX');
-    await tester.tap(find.widgetWithText(AppButton, 'Join Group'));
+    await tester.tap(find.widgetWithText(AppButton, 'Tham gia nhóm'));
     await tester.pumpAndSettle();
 
     expect(repository.lastCode, 'A7K4P2QX');
@@ -191,7 +191,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Scan QR Invitation'));
+      await tester.tap(find.text('Quét mã QR lời mời'));
       await tester.pumpAndSettle();
 
       expect(repository.lastCode, 'QRJOIN99');
@@ -218,9 +218,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Scan QR Invitation'));
+    await tester.tap(find.text('Quét mã QR lời mời'));
     await tester.pump();
-    await tester.tap(find.text('Scan QR Invitation'), warnIfMissed: false);
+    await tester.tap(find.text('Quét mã QR lời mời'), warnIfMissed: false);
     await tester.pump();
 
     expect(scanLaunchCount, 1);
@@ -250,7 +250,7 @@ void main() {
 
     cubit.emit(const JoinTravelGroupState.submitting());
     await tester.pump();
-    await tester.tap(find.text('Scan QR Invitation'), warnIfMissed: false);
+    await tester.tap(find.text('Quét mã QR lời mời'), warnIfMissed: false);
     await tester.pump();
 
     expect(scanLaunchCount, 0);
@@ -289,7 +289,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(AppTextField), 'A7K4P2QX');
-      await tester.tap(find.widgetWithText(AppButton, 'Join Group'));
+      await tester.tap(find.widgetWithText(AppButton, 'Tham gia nhóm'));
       await tester.pumpAndSettle();
 
       expect(find.text('Group details for 42'), findsOneWidget);
@@ -331,7 +331,7 @@ void main() {
 
       await tester.tap(find.text('Go to Join'));
       await tester.pumpAndSettle();
-      expect(find.text('Join Shared Group Trip'), findsOneWidget);
+      expect(find.text('Tham gia nhóm du lịch'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('cancel_button')));
       await tester.pumpAndSettle();
@@ -471,21 +471,21 @@ void main() {
       await tester.tap(find.byKey(const Key('demo_controls_toggle_button')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('demo_controls_panel')), findsOneWidget);
-      expect(find.text('DEMO_ONLY Test Controls'), findsOneWidget);
+      expect(find.text('Điều khiển thử nghiệm (Demo)'), findsOneWidget);
 
-      await tester.tap(find.text('Simulate Valid (HOIAN8KP)'));
+      await tester.tap(find.text('Giả lập mã hợp lệ (HOIAN8KP)'));
       await tester.pumpAndSettle();
       expect(find.text('HOIAN8KP'), findsOneWidget);
 
-      await tester.tap(find.text('Simulate Expired (EXPIRED8)'));
+      await tester.tap(find.text('Giả lập mã hết hạn (EXPIRED8)'));
       await tester.pumpAndSettle();
       expect(find.text('EXPIRED8'), findsOneWidget);
 
-      await tester.tap(find.text('Simulate Already Member (ALREADY8)'));
+      await tester.tap(find.text('Giả lập đã là thành viên (ALREADY8)'));
       await tester.pumpAndSettle();
       expect(find.text('ALREADY8'), findsOneWidget);
 
-      await tester.tap(find.text('Simulate Server Error (SERVER12)'));
+      await tester.tap(find.text('Giả lập lỗi máy chủ (SERVER12)'));
       await tester.pumpAndSettle();
       expect(find.text('SERVER12'), findsOneWidget);
 
@@ -512,7 +512,7 @@ void main() {
         await tester.pumpWidget(buildSubject());
         await tester.pumpAndSettle();
 
-        expect(find.text('Join Shared Group Trip'), findsOneWidget);
+        expect(find.text('Tham gia nhóm du lịch'), findsOneWidget);
         expect(tester.takeException(), isNull);
       });
     }
@@ -536,7 +536,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Join Shared Group Trip'), findsOneWidget);
+      expect(find.text('Tham gia nhóm du lịch'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });

@@ -3,13 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/features/post_trip_complaints/domain/entities/post_trip_complaint.dart';
 import 'package:trip_mate_mobile/features/post_trip_complaints/domain/entities/selected_evidence.dart';
 import 'package:trip_mate_mobile/features/post_trip_complaints/domain/validation/post_trip_complaint_validation.dart';
 import 'package:trip_mate_mobile/features/post_trip_complaints/presentation/cubit/post_trip_complaint_cubit.dart';
 import 'package:trip_mate_mobile/features/post_trip_complaints/presentation/cubit/post_trip_complaint_state.dart';
 import 'package:trip_mate_mobile/features/post_trip_complaints/resources/post_trip_complaint_strings.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_coastal_app_bar.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_section_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/error_view.dart';
 
 String _formatLocalDateTime(DateTime value) {
   final local = value.toLocal();
@@ -38,24 +45,22 @@ final class _PostTripComplaintPageState extends State<PostTripComplaintPage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return Scaffold(
-      appBar: AppBar(
+      backgroundColor: c.canvas,
+      appBar: AppCoastalAppBar(
+        title: PostTripComplaintStrings.title,
         leading: IconButton(
-          tooltip: 'Back',
+          tooltip: 'Quay lại',
           icon: const Icon(Icons.arrow_back),
           onPressed: () => _goBack(context),
-        ),
-        title: const Text(
-          PostTripComplaintStrings.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
       ),
       body: BlocBuilder<PostTripComplaintCubit, PostTripComplaintState>(
         builder: (context, state) {
           final cubit = context.read<PostTripComplaintCubit>();
           if (state.phase == PostTripComplaintPhase.loading) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(child: CircularProgressIndicator(color: c.brandTeal));
           }
           if (state.phase == PostTripComplaintPhase.failure) {
             return _Failure(message: state.message, onRetry: cubit.load);
@@ -67,37 +72,27 @@ final class _PostTripComplaintPageState extends State<PostTripComplaintPage> {
               onRetry: cubit.load,
             );
           }
+          final isPositiveMessage =
+              state.message == PostTripComplaintStrings.submitted ||
+              state.message == PostTripComplaintStrings.evidenceAdded;
           return SafeArea(
             child: ListView(
               padding: const EdgeInsets.all(AppSpacing.md),
               children: [
                 _Summary(context: complaintContext),
-                if (state.message != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: AppSpacing.sm),
-                    child: Text(
-                      state.message!,
-                      style: TextStyle(
-                        color:
-                            (state.message ==
-                                    PostTripComplaintStrings.submitted ||
-                                state.message ==
-                                    PostTripComplaintStrings.evidenceAdded)
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.error,
-                      ),
-                    ),
+                if (state.message != null) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  AppAlert(
+                    type: isPositiveMessage
+                        ? AppAlertType.success
+                        : AppAlertType.error,
+                    message: state.message!,
                   ),
-                if (_pickerError != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: AppSpacing.sm),
-                    child: Text(
-                      _pickerError!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                  ),
+                ],
+                if (_pickerError != null) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  AppAlert(type: AppAlertType.error, message: _pickerError!),
+                ],
                 const SizedBox(height: AppSpacing.md),
                 if (state.phase == PostTripComplaintPhase.eligible ||
                     state.phase == PostTripComplaintPhase.submitting)
@@ -280,45 +275,68 @@ final class _PostTripComplaintPageState extends State<PostTripComplaintPage> {
 class _Summary extends StatelessWidget {
   const _Summary({required this.context});
   final PostTripComplaintContext context;
+
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(AppSpacing.md),
+  Widget build(BuildContext context) {
+    final c = context.tmColors;
+    return AppCard(
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            this.context.bookingCode ?? 'Booking',
-            style: Theme.of(context).textTheme.titleMedium,
+          Row(
+            children: [
+              Icon(
+                Icons.confirmation_number_outlined,
+                size: 18,
+                color: c.brandTeal,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: Text(
+                  this.context.bookingCode ?? 'Đơn đặt tour',
+                  style: TextStyle(
+                    fontFamily: AppTypography.displayFont,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: c.textPrimary,
+                  ),
+                ),
+              ),
+            ],
           ),
-          if (this.context.tourTitle != null) Text(this.context.tourTitle!),
-          const SizedBox(height: AppSpacing.xs),
+          if (this.context.tourTitle != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              this.context.tourTitle!,
+              style: TextStyle(fontSize: 13, color: c.textSecondary),
+            ),
+          ],
+          const SizedBox(height: 4),
           Text(
-            'Submit by ${_formatLocalDateTime(this.context.submissionDeadlineUtc)}',
+            'Hạn gửi: ${_formatLocalDateTime(this.context.submissionDeadlineUtc)}',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: c.textMuted,
+            ),
           ),
         ],
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _Failure extends StatelessWidget {
   const _Failure({this.message, required this.onRetry});
   final String? message;
   final VoidCallback onRetry;
+
   @override
-  Widget build(BuildContext context) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(message ?? PostTripComplaintStrings.systemError),
-        const SizedBox(height: AppSpacing.sm),
-        FilledButton(
-          onPressed: onRetry,
-          child: const Text(PostTripComplaintStrings.retry),
-        ),
-      ],
-    ),
+  Widget build(BuildContext context) => ErrorView(
+    message: message ?? PostTripComplaintStrings.systemError,
+    retryLabel: PostTripComplaintStrings.retry,
+    onRetry: onRetry,
   );
 }
 
@@ -326,19 +344,30 @@ class _Closed extends StatelessWidget {
   const _Closed({this.reason, required this.onBack});
   final String? reason;
   final VoidCallback onBack;
+
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      Text(switch (reason) {
-        'complaint.tour_not_ended' =>
-          'You can submit a complaint after the tour has ended.',
-        'complaint.booking_status_ineligible' =>
-          'Only confirmed or completed bookings are eligible for a post-trip complaint.',
-        _ => PostTripComplaintStrings.windowClosed,
-      }),
-      const SizedBox(height: AppSpacing.sm),
-      OutlinedButton(onPressed: onBack, child: const Text('Back to trips')),
-    ],
+  Widget build(BuildContext context) => AppCard(
+    padding: const EdgeInsets.all(AppSpacing.md),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AppAlert(
+          type: AppAlertType.info,
+          message: switch (reason) {
+            'complaint.tour_not_ended' =>
+              'Bạn có thể gửi khiếu nại sau khi tour kết thúc.',
+            'complaint.booking_status_ineligible' =>
+              'Chỉ đơn đặt tour đã xác nhận hoặc đã hoàn thành mới đủ điều kiện gửi khiếu nại sau chuyến đi.',
+            _ => PostTripComplaintStrings.windowClosed,
+          },
+        ),
+        const SizedBox(height: AppSpacing.md),
+        OutlinedButton(
+          onPressed: onBack,
+          child: const Text('Quay lại Chuyến đi'),
+        ),
+      ],
+    ),
   );
 }
 
@@ -353,73 +382,120 @@ class _Form extends StatelessWidget {
   final TextEditingController detail;
   final VoidCallback onPick;
   final VoidCallback onSubmit;
+
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final busy = state.isBusy;
     final cubit = context.read<PostTripComplaintCubit>();
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        DropdownButtonFormField<PostTripComplaintReasonCategory>(
-          isExpanded: true,
-          initialValue: state.category,
-          decoration: const InputDecoration(labelText: 'Reason category'),
-          items: PostTripComplaintReasonCategory.values
-              .map(
-                (item) => DropdownMenuItem(
-                  value: item,
-                  child: Text(
-                    item.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+        AppCard(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              DropdownButtonFormField<PostTripComplaintReasonCategory>(
+                isExpanded: true,
+                initialValue: state.category,
+                decoration: const InputDecoration(labelText: 'Danh mục lý do'),
+                items: PostTripComplaintReasonCategory.values
+                    .map(
+                      (item) => DropdownMenuItem(
+                        value: item,
+                        child: Text(
+                          item.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: busy ? null : cubit.setCategory,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              TextField(
+                controller: detail,
+                enabled: !busy,
+                maxLength: 2000,
+                minLines: 4,
+                maxLines: 8,
+                decoration: const InputDecoration(
+                  labelText: 'Chi tiết lý do',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: cubit.setDetail,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: busy ? null : onPick,
+                  icon: const Icon(Icons.attach_file),
+                  label: const Text('Chọn minh chứng'),
+                ),
+              ),
+              Text(
+                'Không bắt buộc: tối đa 5 tệp JPG, PNG, WebP hoặc PDF. Tối đa 10 MB mỗi tệp và tổng cộng 30 MB.',
+                style: TextStyle(fontSize: 12, color: c.textMuted, height: 1.4),
+              ),
+              if (state.evidence.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.sm),
+                ...state.evidence.asMap().entries.map(
+                  (entry) => Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: c.canvas,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: c.borderSubtle),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        child: ListTile(
+                          dense: true,
+                          leading: Icon(
+                            Icons.insert_drive_file_outlined,
+                            size: 18,
+                            color: c.brandTeal,
+                          ),
+                          title: Text(
+                            entry.value.name,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: c.textPrimary,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '${entry.value.sizeBytes} byte',
+                            style: TextStyle(color: c.textMuted),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.close),
+                            tooltip: 'Xóa minh chứng',
+                            onPressed: busy
+                                ? null
+                                : () {
+                                    final copied = [...state.evidence]
+                                      ..removeAt(entry.key);
+                                    cubit.setEvidence(copied);
+                                  },
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              )
-              .toList(),
-          onChanged: busy ? null : cubit.setCategory,
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        TextField(
-          controller: detail,
-          enabled: !busy,
-          maxLength: 2000,
-          minLines: 4,
-          maxLines: 8,
-          decoration: const InputDecoration(
-            labelText: 'Reason details',
-            border: OutlineInputBorder(),
-          ),
-          onChanged: cubit.setDetail,
-        ),
-        TextButton.icon(
-          onPressed: busy ? null : onPick,
-          icon: const Icon(Icons.attach_file),
-          label: const Text('Choose evidence'),
-        ),
-        const Text(
-          'Optional: up to 5 JPG, PNG, WebP or PDF files. Maximum 10 MB per file and 30 MB total.',
-        ),
-        ...state.evidence.asMap().entries.map(
-          (entry) => ListTile(
-            dense: true,
-            title: Text(entry.value.name),
-            subtitle: Text('${entry.value.sizeBytes} bytes'),
-            trailing: IconButton(
-              icon: const Icon(Icons.close),
-              tooltip: 'Remove evidence',
-              onPressed: busy
-                  ? null
-                  : () {
-                      final copied = [...state.evidence]..removeAt(entry.key);
-                      cubit.setEvidence(copied);
-                    },
-            ),
+              ],
+            ],
           ),
         ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: AppSpacing.md),
         FilledButton(
           onPressed: busy ? null : onSubmit,
-          child: Text(busy ? 'Submitting...' : PostTripComplaintStrings.submit),
+          child: Text(busy ? 'Đang gửi...' : PostTripComplaintStrings.submit),
         ),
       ],
     );
@@ -443,70 +519,126 @@ class _Existing extends StatelessWidget {
   final ValueChanged<int> onDownload;
   final bool busy;
   final ValueChanged<int> onRemove;
+
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final complaint = this.context.complaint!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Complaint details',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        Text(
-          'Status: ${complaint.status.replaceAllMapped(RegExp(r'([a-z])([A-Z])'), (m) => '${m[1]} ${m[2]}')}',
-        ),
-        Text(
-          'Operator response deadline: ${_formatLocalDateTime(complaint.responseDeadlineUtc)}',
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(complaint.reasonDetail),
-        const SizedBox(height: AppSpacing.sm),
-        ...complaint.evidence.map(
-          (item) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.fileName,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text('${item.sizeBytes} bytes'),
-                TextButton.icon(
-                  onPressed: () => onDownload(item.id),
-                  icon: const Icon(Icons.download_outlined),
-                  label: const Text(PostTripComplaintStrings.download),
-                ),
-              ],
+    return AppSectionCard(
+      title: 'Chi tiết khiếu nại',
+      icon: Icons.assignment_outlined,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Trạng thái: ${PostTripComplaintStrings.statusLabel(complaint.status)}',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: c.brandTeal,
+              fontSize: 13.5,
             ),
           ),
-        ),
-        if (this.context.canAmendEvidence) ...[
-          const Divider(),
-          TextButton.icon(
-            onPressed: busy ? null : onPick,
-            icon: const Icon(Icons.add),
-            label: const Text('Choose additional files'),
+          const SizedBox(height: 4),
+          Text(
+            'Hạn phản hồi của đơn vị điều hành: ${_formatLocalDateTime(complaint.responseDeadlineUtc)}',
+            style: TextStyle(fontSize: 12.5, color: c.textSecondary),
           ),
-          ...amendment.asMap().entries.map(
-            (entry) => ListTile(
-              title: Text(entry.value.name),
-              subtitle: Text('${entry.value.sizeBytes} bytes'),
-              trailing: IconButton(
-                tooltip: 'Remove evidence',
-                icon: const Icon(Icons.close),
-                onPressed: busy ? null : () => onRemove(entry.key),
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: c.canvas,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: c.borderSubtle),
+            ),
+            child: Text(
+              complaint.reasonDetail,
+              style: TextStyle(color: c.textPrimary, height: 1.45),
+            ),
+          ),
+          if (complaint.evidence.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            ...complaint.evidence.map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                child: Container(
+                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: c.canvas,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: c.borderSubtle),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.fileName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: c.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        '${item.sizeBytes} byte',
+                        style: TextStyle(fontSize: 12, color: c.textMuted),
+                      ),
+                      TextButton.icon(
+                        onPressed: () => onDownload(item.id),
+                        icon: const Icon(Icons.download_outlined, size: 18),
+                        label: const Text(PostTripComplaintStrings.download),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-          FilledButton(
-            onPressed: busy || amendment.isEmpty ? null : onAmend,
-            child: Text(busy ? 'Uploading...' : 'Submit additional evidence'),
-          ),
+          ],
+          if (this.context.canAmendEvidence) ...[
+            Divider(height: 24, color: c.borderSubtle),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: busy ? null : onPick,
+                icon: const Icon(Icons.add),
+                label: const Text('Chọn thêm tệp'),
+              ),
+            ),
+            ...amendment.asMap().entries.map(
+              (entry) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: c.canvas,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: c.borderSubtle),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                    child: ListTile(
+                      dense: true,
+                      title: Text(entry.value.name),
+                      subtitle: Text('${entry.value.sizeBytes} byte'),
+                      trailing: IconButton(
+                        tooltip: 'Xóa minh chứng',
+                        icon: const Icon(Icons.close),
+                        onPressed: busy ? null : () => onRemove(entry.key),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            FilledButton(
+              onPressed: busy || amendment.isEmpty ? null : onAmend,
+              child: Text(busy ? 'Đang tải lên...' : 'Gửi minh chứng bổ sung'),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }

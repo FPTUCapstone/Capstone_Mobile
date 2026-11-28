@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/core/utils/calendar_date_format.dart';
@@ -11,10 +12,13 @@ import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/crea
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_state.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/operator_tours_page.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/widgets/submit_tour_dialog.dart';
+import 'package:trip_mate_mobile/features/operator_tours/presentation/widgets/tour_authoring_sections.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/widgets/tour_package_widgets.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_summary.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_state.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_coastal_app_bar.dart';
 
 const _photosStep = 3;
 const _reviewStep = 4;
@@ -22,8 +26,9 @@ const _reviewStep = 4;
 /// Four-step-plus-photos editor for one tour package. With [initial] it edits (or, for a package
 /// that is no longer a Draft/Rejected, only shows) an existing package; without it, it creates one.
 final class CreateTourPackagePage extends StatefulWidget {
-  const CreateTourPackagePage({this.initial, super.key});
+  const CreateTourPackagePage({this.initial, this.cloneFrom, super.key});
   final TourPackageDetail? initial;
+  final TourPackageDetail? cloneFrom;
   @override
   State<CreateTourPackagePage> createState() => _CreateTourPackagePageState();
 }
@@ -38,11 +43,16 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
   final _exclusions = TextEditingController();
   final _highlights = TextEditingController();
   final _requirements = TextEditingController();
+  final _depositPercent = TextEditingController(text: '30');
+  final _balanceDueDays = TextEditingController(text: '7');
   final List<_TourStop> _stops = [];
   final List<_Departure> _departures = [];
   // Catalogue ids in the order the operator chose them (the order is the display order).
   final List<int> _destinationIds = [];
   int? _policyId;
+  int? _categoryId;
+  int? _sourceTourId;
+  var _allowDeposit = false;
   var _step = 0;
 
   bool get _isEditing => widget.initial != null;
@@ -57,26 +67,35 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
   @override
   void initState() {
     super.initState();
-    final initial = widget.initial;
-    if (initial == null) {
-      final start = DateTime.now().add(const Duration(days: 1));
+    final seed = widget.initial ?? widget.cloneFrom;
+    if (seed == null) {
+      final now = DateTime.now();
+      final start = DateTime(now.year, now.month, now.day + 1, 8, 0);
       _departures.add(
         _Departure(start: start, end: start.add(const Duration(hours: 8))),
       );
       return;
     }
+    final isClone = widget.initial == null && widget.cloneFrom != null;
+    if (isClone) {
+      _sourceTourId = seed.id;
+    }
     final names = context.read<CreateTourPackageCubit>().state.poiNames;
-    _title.text = initial.title;
-    _description.text = initial.description;
-    _price.text = initial.basePrice.toString();
-    _duration.text = '${initial.durationDays}';
-    _inclusions.text = initial.inclusions ?? '';
-    _exclusions.text = initial.exclusions ?? '';
-    _highlights.text = initial.highlights ?? '';
-    _requirements.text = initial.travellerRequirements ?? '';
-    _destinationIds.addAll(initial.destinationIds);
-    _policyId = initial.cancellationPolicyTemplateId;
-    final ordered = [...initial.itineraryItems]
+    _title.text = seed.title;
+    _description.text = seed.description;
+    _price.text = seed.basePrice.toString();
+    _duration.text = '${seed.durationDays}';
+    _inclusions.text = seed.inclusions ?? '';
+    _exclusions.text = seed.exclusions ?? '';
+    _highlights.text = seed.highlights ?? '';
+    _requirements.text = seed.travellerRequirements ?? '';
+    _categoryId = seed.categoryId;
+    _allowDeposit = seed.allowDeposit;
+    _depositPercent.text = (seed.depositPercent ?? 30).toString();
+    _balanceDueDays.text = (seed.balanceDueDaysBeforeDeparture ?? 7).toString();
+    _destinationIds.addAll(seed.destinationIds);
+    _policyId = seed.cancellationPolicyTemplateId;
+    final ordered = [...seed.itineraryItems]
       ..sort((a, b) {
         final byDay = a.dayNo.compareTo(b.dayNo);
         return byDay != 0 ? byDay : a.sequenceNo.compareTo(b.sequenceNo);
@@ -85,7 +104,7 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
       _stops.add(
         _TourStop(
           poiId: item.poiId,
-          name: names[item.poiId] ?? 'Point of interest #${item.poiId}',
+          name: names[item.poiId] ?? 'Địa điểm #${item.poiId}',
           dayNo: item.dayNo,
           stayMinutes: item.stayDurationMinutes,
           plannedTime: item.plannedTime,
@@ -93,7 +112,13 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
         ),
       );
     }
-    for (final departure in initial.departures) {
+    final nowUtc = DateTime.now().toUtc();
+    for (final departure in seed.departures) {
+      if (isClone &&
+          (departure.status == 'Cancelled' ||
+              !departure.startAtUtc.isAfter(nowUtc))) {
+        continue;
+      }
       _departures.add(
         _Departure(
           start: departure.startAtUtc.toLocal(),
@@ -105,6 +130,23 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
           infantPrice: departure.infantPrice,
           meetingPoint: departure.meetingPoint ?? '',
           registrationDeadline: departure.registrationDeadlineAtUtc?.toLocal(),
+          meetingLatitude: departure.meetingLatitude,
+          meetingLongitude: departure.meetingLongitude,
+        ),
+      );
+    }
+    if (isClone && _departures.isEmpty) {
+      final start = DateTime.now().add(const Duration(days: 7));
+      _departures.add(
+        _Departure(
+          start: DateTime(start.year, start.month, start.day, 8),
+          end: DateTime(start.year, start.month, start.day, 8).add(
+            Duration(
+              days: seed.durationDays > 1 ? seed.durationDays - 1 : 0,
+              hours: 8,
+            ),
+          ),
+          adultPrice: seed.basePrice,
         ),
       );
     }
@@ -121,6 +163,8 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
       _exclusions,
       _highlights,
       _requirements,
+      _depositPercent,
+      _balanceDueDays,
     ]) {
       controller.dispose();
     }
@@ -133,7 +177,7 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
   }
 
   String? _required(String? value, String label) =>
-      value == null || value.trim().isEmpty ? '$label is required.' : null;
+      value == null || value.trim().isEmpty ? '$label là bắt buộc.' : null;
 
   bool _isWholeVnd(num? value) => value == null || value == value.truncate();
 
@@ -141,24 +185,24 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
     if (_step == 0) {
       if (!_formKey.currentState!.validate()) return false;
       if (_destinationIds.isEmpty) {
-        return _notice('Select at least one destination.');
+        return _notice('Vui lòng chọn ít nhất một điểm đến.');
       }
       if (_policyId == null) {
-        return _notice('Select a cancellation policy.');
+        return _notice('Vui lòng chọn chính sách hủy.');
       }
       return true;
     }
     if (_step == 1 && _stops.isEmpty) {
-      return _notice('Add at least one point of interest.');
+      return _notice('Vui lòng thêm ít nhất một điểm tham quan.');
     }
     if (_step == 1) {
       final duration = _positiveInt(_duration.text) ?? 1;
       if (_stops.any((stop) => stop.dayNo > duration)) {
-        return _notice('Each stop must be on a day within the tour duration.');
+        return _notice('Mỗi điểm dừng phải nằm trong số ngày của tour.');
       }
     }
     if (_step == 2 && _departures.isEmpty) {
-      return _notice('Add at least one departure schedule.');
+      return _notice('Vui lòng thêm ít nhất một lịch khởi hành.');
     }
     return true;
   }
@@ -180,19 +224,62 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
       ),
     );
     if (mounted && poi != null) {
+      final stayMinutes = poi.averageVisitDurationMinutes > 0
+          ? poi.averageVisitDurationMinutes
+          : 60;
       setState(
         () => _stops.add(
           _TourStop(
             poiId: poi.id,
             name: poi.name,
             isOpenNow: poi.isOpenNow,
-            stayMinutes: poi.averageVisitDurationMinutes > 0
-                ? poi.averageVisitDurationMinutes
-                : 60,
+            stayMinutes: stayMinutes,
+            plannedTime: _defaultPlannedTimeForDay(1),
           ),
         ),
       );
     }
+  }
+
+  String _defaultPlannedTimeForDay(int dayNo) {
+    var nextMinutes = 9 * 60;
+    for (final stop in _stops.where((item) => item.dayNo == dayNo)) {
+      final startMinutes = _parsePlannedMinutes(stop.plannedTime);
+      if (startMinutes != null) {
+        final candidateEnd = startMinutes + stop.stayMinutes + 15;
+        if (candidateEnd > nextMinutes) {
+          nextMinutes = candidateEnd;
+        }
+      }
+    }
+    final clamped = nextMinutes.clamp(8 * 60, 22 * 60);
+    final hh = (clamped ~/ 60).toString().padLeft(2, '0');
+    final mm = (clamped % 60).toString().padLeft(2, '0');
+    return '$hh:$mm:00';
+  }
+
+  int? _parsePlannedMinutes(String? value) {
+    if (value == null) return null;
+    final match = RegExp(
+      r'^(\d{1,2}):(\d{2})(?::\d{2})?$',
+    ).firstMatch(value.trim());
+    if (match == null) return null;
+    final hh = int.tryParse(match.group(1)!);
+    final mm = int.tryParse(match.group(2)!);
+    if (hh == null || mm == null || hh < 0 || hh > 23 || mm < 0 || mm > 59) {
+      return null;
+    }
+    return hh * 60 + mm;
+  }
+
+  String? _normalizePlannedTime(String raw, String? fallback) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return fallback;
+    final mins = _parsePlannedMinutes(trimmed);
+    if (mins == null) return fallback;
+    final hh = (mins ~/ 60).toString().padLeft(2, '0');
+    final mm = (mins % 60).toString().padLeft(2, '0');
+    return '$hh:$mm:00';
   }
 
   Future<void> _editStop(int index) async {
@@ -200,6 +287,11 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
     final old = _stops[index];
     final day = TextEditingController(text: '${old.dayNo}');
     final stay = TextEditingController(text: '${old.stayMinutes}');
+    final planned = TextEditingController(
+      text: old.plannedTime != null && old.plannedTime!.length >= 5
+          ? old.plannedTime!.substring(0, 5)
+          : '09:00',
+    );
     final result = await showDialog<_TourStop>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -210,13 +302,21 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
             TextField(
               controller: day,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Day number'),
+              decoration: const InputDecoration(labelText: 'Ngày thứ'),
+            ),
+            TextField(
+              controller: planned,
+              keyboardType: TextInputType.datetime,
+              decoration: const InputDecoration(
+                labelText: 'Giờ bắt đầu dự kiến (HH:mm)',
+                hintText: '09:00',
+              ),
             ),
             TextField(
               controller: stay,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: 'Stay duration (minutes)',
+                labelText: 'Thời lượng dừng (phút)',
               ),
             ),
           ],
@@ -224,7 +324,7 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
+            child: const Text('Hủy'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(
@@ -232,15 +332,20 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
               old.copyWith(
                 dayNo: _positiveInt(day.text) ?? old.dayNo,
                 stayMinutes: _positiveInt(stay.text) ?? old.stayMinutes,
+                plannedTime: _normalizePlannedTime(
+                  planned.text,
+                  old.plannedTime,
+                ),
               ),
             ),
-            child: const Text('Save'),
+            child: const Text('Lưu'),
           ),
         ],
       ),
     );
     day.dispose();
     stay.dispose();
+    planned.dispose();
     if (mounted && result != null) setState(() => _stops[index] = result);
   }
 
@@ -257,6 +362,12 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
     if (!mounted || date == null) return;
     final capacity = TextEditingController(text: '${old.capacity}');
     final meeting = TextEditingController(text: old.meetingPoint);
+    final meetingLat = TextEditingController(
+      text: old.meetingLatitude?.toString() ?? '',
+    );
+    final meetingLng = TextEditingController(
+      text: old.meetingLongitude?.toString() ?? '',
+    );
     final minimumCapacity = TextEditingController(
       text: '${old.minimumCapacity}',
     );
@@ -274,7 +385,7 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('Departure schedule'),
+          title: const Text('Lịch khởi hành'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -283,39 +394,68 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
                 TextField(
                   controller: capacity,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Capacity'),
+                  decoration: const InputDecoration(labelText: 'Tổng số chỗ'),
                 ),
                 TextField(
                   controller: minimumCapacity,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Minimum passengers',
+                    labelText: 'Số khách tối thiểu',
                   ),
                 ),
                 TextField(
                   controller: adultPrice,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Adult price (whole VND)',
+                    labelText: 'Giá người lớn (VND nguyên)',
                   ),
                 ),
                 TextField(
                   controller: childPrice,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Child price (optional)',
+                    labelText: 'Giá trẻ em (tùy chọn)',
                   ),
                 ),
                 TextField(
                   controller: infantPrice,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Infant price (optional)',
+                    labelText: 'Giá em bé (tùy chọn)',
                   ),
                 ),
                 TextField(
                   controller: meeting,
-                  decoration: const InputDecoration(labelText: 'Meeting point'),
+                  decoration: const InputDecoration(labelText: 'Điểm đón'),
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: meetingLat,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                          signed: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Vĩ độ (tùy chọn)',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: TextField(
+                        controller: meetingLng,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                          signed: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Kinh độ (tùy chọn)',
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Row(
@@ -323,8 +463,8 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
                     Expanded(
                       child: Text(
                         deadline == null
-                            ? 'No registration deadline'
-                            : 'Register by ${MaterialLocalizations.of(context).formatMediumDate(deadline!)}',
+                            ? 'Không có hạn đăng ký'
+                            : 'Hạn đăng ký: ${MaterialLocalizations.of(context).formatMediumDate(deadline!)}',
                       ),
                     ),
                     TextButton(
@@ -339,12 +479,12 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
                           setDialogState(() => deadline = picked);
                         }
                       },
-                      child: const Text('Set'),
+                      child: const Text('Đặt'),
                     ),
                     if (deadline != null)
                       TextButton(
                         onPressed: () => setDialogState(() => deadline = null),
-                        child: const Text('Clear'),
+                        child: const Text('Xóa'),
                       ),
                   ],
                 ),
@@ -354,7 +494,7 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
+              child: const Text('Hủy'),
             ),
             FilledButton(
               onPressed: () {
@@ -384,10 +524,16 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
                         : num.tryParse(infantPrice.text.trim()),
                     meetingPoint: meeting.text,
                     registrationDeadline: deadline,
+                    meetingLatitude: meetingLat.text.trim().isEmpty
+                        ? null
+                        : double.tryParse(meetingLat.text.trim()),
+                    meetingLongitude: meetingLng.text.trim().isEmpty
+                        ? null
+                        : double.tryParse(meetingLng.text.trim()),
                   ),
                 );
               },
-              child: const Text('Save'),
+              child: const Text('Lưu'),
             ),
           ],
         ),
@@ -395,6 +541,8 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
     );
     capacity.dispose();
     meeting.dispose();
+    meetingLat.dispose();
+    meetingLng.dispose();
     minimumCapacity.dispose();
     adultPrice.dispose();
     childPrice.dispose();
@@ -413,19 +561,21 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
         price <= 0 ||
         duration == null ||
         policyId == null) {
-      _notice('Complete the basic information first.');
+      _notice('Vui lòng hoàn thiện thông tin cơ bản trước.');
       return null;
     }
     if (_destinationIds.isEmpty) {
-      _notice('Select at least one destination.');
+      _notice('Vui lòng chọn ít nhất một điểm đến.');
       return null;
     }
     if (_stops.isEmpty || _departures.isEmpty) {
-      _notice('Add at least one itinerary stop and one departure schedule.');
+      _notice(
+        'Vui lòng thêm ít nhất một điểm dừng lịch trình và một lịch khởi hành.',
+      );
       return null;
     }
     if (_stops.any((stop) => stop.dayNo > duration)) {
-      _notice('Each stop must be on a day within the tour duration.');
+      _notice('Mỗi điểm dừng phải nằm trong số ngày của tour.');
       return null;
     }
     final invalidDeparture = _departures.any(
@@ -439,7 +589,7 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
     );
     if (invalidDeparture) {
       _notice(
-        'Each departure needs a positive adult price, a minimum capacity no greater than capacity, and a registration deadline before it starts.',
+        'Mỗi lịch khởi hành cần có giá người lớn lớn hơn 0, số khách tối thiểu không vượt quá tổng số chỗ và hạn đăng ký trước ngày khởi hành.',
       );
       return null;
     }
@@ -452,8 +602,28 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
       ],
     ];
     if (!prices.every(_isWholeVnd)) {
-      _notice('Prices must be whole VND amounts.');
+      _notice('Giá phải là số tiền VND nguyên.');
       return null;
+    }
+    num? depositPercentValue;
+    int? balanceDaysValue;
+    if (_allowDeposit) {
+      depositPercentValue = num.tryParse(_depositPercent.text.trim());
+      balanceDaysValue = int.tryParse(_balanceDueDays.text.trim());
+      if (depositPercentValue == null ||
+          depositPercentValue < 10 ||
+          depositPercentValue > 90) {
+        _notice('Tỷ lệ đặt cọc phải từ 10% đến 90%.');
+        return null;
+      }
+      if (balanceDaysValue == null ||
+          balanceDaysValue < 4 ||
+          balanceDaysValue > 180) {
+        _notice(
+          'Hạn thanh toán phần còn lại phải từ 4 đến 180 ngày trước khởi hành.',
+        );
+        return null;
+      }
     }
     // Stops keep the order the operator arranged; sequence is per day, starting at 1.
     final sequenceByDay = <int, int>{};
@@ -463,8 +633,12 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
       description: _description.text,
       basePrice: price,
       durationDays: duration,
-      categoryId: initial?.categoryId,
-      timeZoneId: initial?.timeZoneId,
+      categoryId: _categoryId ?? initial?.categoryId,
+      timeZoneId: initial?.timeZoneId ?? widget.cloneFrom?.timeZoneId,
+      sourceTourId: _sourceTourId,
+      allowDeposit: _allowDeposit,
+      depositPercent: depositPercentValue,
+      balanceDueDaysBeforeDeparture: balanceDaysValue,
       inclusions: _inclusions.text,
       exclusions: _exclusions.text,
       highlights: _highlights.text,
@@ -498,6 +672,8 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
             childPrice: item.childPrice,
             infantPrice: item.infantPrice,
             meetingPoint: item.meetingPoint,
+            meetingLatitude: item.meetingLatitude,
+            meetingLongitude: item.meetingLongitude,
           ),
       ],
     );
@@ -524,6 +700,58 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
     }
   }
 
+  Future<void> _reopenDeparture(TourPackageDetail detail) async {
+    final draft = await showAddTourDepartureDialog(context, detail: detail);
+    if (!mounted || draft == null) return;
+    final added = await context.read<CreateTourPackageCubit>().reopenDeparture(
+      draft,
+    );
+    if (!mounted || added == null) return;
+    setState(() {
+      _departures.add(
+        _Departure(
+          start: added.startAtUtc.toLocal(),
+          end: added.endAtUtc.toLocal(),
+          capacity: added.totalCapacity,
+          minimumCapacity: added.minimumCapacity,
+          adultPrice: added.adultPrice,
+          childPrice: added.childPrice,
+          infantPrice: added.infantPrice,
+          meetingPoint: added.meetingPoint ?? '',
+          registrationDeadline: added.registrationDeadlineAtUtc?.toLocal(),
+          meetingLatitude: added.meetingLatitude,
+          meetingLongitude: added.meetingLongitude,
+        ),
+      );
+    });
+    _notice('Đã mở lịch khởi hành mới.');
+  }
+
+  Future<void> _confirmDeleteDraft(TourPackageDetail detail) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Xóa bản nháp tour?'),
+        content: Text(
+          'Xóa "${detail.title}"? Bản nháp chưa đăng này sẽ bị xóa vĩnh viễn.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true && mounted) {
+      await context.read<CreateTourPackageCubit>().deleteDraft();
+    }
+  }
+
   @override
   Widget build(BuildContext context) => MultiBlocListener(
     listeners: [
@@ -536,10 +764,10 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
           }
           if (state.status == CreateTourPackageStatus.success) {
             if (_isEditing) {
-              _notice('Changes saved.');
+              _notice('Đã lưu thay đổi.');
             } else {
               _notice(
-                'Tour draft saved. Add a cover photo, then submit it for review.',
+                'Đã lưu bản nháp tour. Hãy thêm ảnh bìa rồi gửi phê duyệt.',
               );
               context.pushReplacement(
                 AppRoutes.editTourPackagePath(state.tourId!),
@@ -558,7 +786,7 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
             _notice(state.reviewFailure!.message);
           }
           if (state.reviewStatus == TourReviewStatus.submitted) {
-            _notice('Submitted for review.');
+            _notice('Đã gửi phê duyệt.');
             if (context.canPop()) context.pop();
           }
         },
@@ -569,41 +797,126 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
             current.mediaFailure != null,
         listener: (context, state) => _notice(state.mediaFailure!.message),
       ),
+      BlocListener<CreateTourPackageCubit, CreateTourPackageState>(
+        listenWhen: (previous, current) =>
+            previous.departureFailure != current.departureFailure &&
+            current.departureFailure != null,
+        listener: (context, state) => _notice(state.departureFailure!.message),
+      ),
+      BlocListener<CreateTourPackageCubit, CreateTourPackageState>(
+        listenWhen: (previous, current) =>
+            previous.deleteFailure != current.deleteFailure &&
+            current.deleteFailure != null,
+        listener: (context, state) => _notice(state.deleteFailure!.message),
+      ),
+      BlocListener<CreateTourPackageCubit, CreateTourPackageState>(
+        listenWhen: (previous, current) => !previous.deleted && current.deleted,
+        listener: (context, state) {
+          _notice('Đã xóa bản nháp.');
+          if (context.canPop()) context.pop();
+        },
+      ),
     ],
     child: BlocBuilder<CreateTourPackageCubit, CreateTourPackageState>(
-      builder: (context, state) => Scaffold(
-        appBar: AppBar(
-          title: Text(_isEditing ? 'Edit tour package' : 'Create tour package'),
-        ),
-        body: SafeArea(
-          child: Column(
-            children: [
-              if (widget.initial?.status == TourPackageStatus.rejected &&
-                  widget.initial?.rejectionReason != null)
-                TourPackageBanner(
-                  icon: Icons.report_gmailerrorred_outlined,
-                  message:
-                      'Rejected: ${widget.initial!.rejectionReason}. Fix the issues and submit again.',
-                ),
-              if (_readOnly)
-                TourPackageBanner(
-                  icon: Icons.lock_outline,
-                  message:
-                      'This package is ${tourStatusLabel(state.detail?.status ?? widget.initial!.status).toLowerCase()} and cannot be edited. Staff reviews submitted packages before approval and publication.',
-                ),
-              if (state.reviewStatus == TourReviewStatus.uncertain)
-                TextButton.icon(
-                  onPressed: () => context
-                      .read<CreateTourPackageCubit>()
-                      .loadDetail(state.detail!.id),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Reload submission status'),
-                ),
-              Expanded(child: _stepper(context, state)),
-            ],
+      builder: (context, state) {
+        final c = context.tmColors;
+        final activeDetail = state.detail ?? widget.initial;
+        return Scaffold(
+          backgroundColor: c.canvas,
+          appBar: AppCoastalAppBar(
+            title: _isEditing ? 'Chỉnh sửa gói tour' : 'Tạo gói tour',
           ),
-        ),
-      ),
+          body: SafeArea(
+            child: Column(
+              children: [
+                if (widget.cloneFrom != null && !_isEditing)
+                  TourPackageBanner(
+                    icon: Icons.copy_all_outlined,
+                    message:
+                        'Đang tạo bản nháp v${widget.cloneFrom!.versionNo + 1} từ v${widget.cloneFrom!.versionNo}. Khi phiên bản này được duyệt sẽ thay thế phiên bản trước.',
+                  ),
+                if (activeDetail != null &&
+                    activeDetail.status == TourPackageStatus.rejected &&
+                    activeDetail.rejectionReason != null)
+                  TourPackageBanner(
+                    icon: Icons.report_gmailerrorred_outlined,
+                    message:
+                        'Bị từ chối: ${activeDetail.rejectionReason}. Vui lòng chỉnh sửa và gửi duyệt lại.',
+                  ),
+                if (_readOnly && activeDetail != null)
+                  TourPackageBanner(
+                    icon: Icons.lock_outline,
+                    message:
+                        'Gói tour này (v${activeDetail.versionNo}) đang ở trạng thái ${effectiveTourStatusLabel(activeDetail.status, activeDetail.publishedAtUtc).toLowerCase()} và không thể chỉnh sửa. Nhân viên sẽ xét duyệt các gói đã gửi trước khi phê duyệt và đăng bán.',
+                  ),
+                if (activeDetail != null &&
+                    (activeDetail.isLivePublished ||
+                        activeDetail.canCreateNewVersion ||
+                        activeDetail.status == TourPackageStatus.draft))
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md,
+                      AppSpacing.xs,
+                      AppSpacing.md,
+                      0,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Wrap(
+                        spacing: AppSpacing.xs,
+                        runSpacing: AppSpacing.xs,
+                        children: [
+                          if (activeDetail.isLivePublished)
+                            OutlinedButton.icon(
+                              onPressed: state.mutationBusy
+                                  ? null
+                                  : () => _reopenDeparture(activeDetail),
+                              icon: const Icon(Icons.event_available_outlined),
+                              label: Text(
+                                state.departureBusy
+                                    ? 'Đang mở bán...'
+                                    : 'Mở lịch khởi hành mới',
+                              ),
+                            ),
+                          if (activeDetail.canCreateNewVersion)
+                            OutlinedButton.icon(
+                              onPressed: state.mutationBusy
+                                  ? null
+                                  : () => context.push(
+                                      AppRoutes.createTourPackage,
+                                      extra: activeDetail,
+                                    ),
+                              icon: const Icon(Icons.copy_all_outlined),
+                              label: Text(
+                                'Tạo bản nháp v${activeDetail.versionNo + 1}',
+                              ),
+                            ),
+                          if (activeDetail.status == TourPackageStatus.draft)
+                            TextButton.icon(
+                              onPressed: state.mutationBusy
+                                  ? null
+                                  : () => _confirmDeleteDraft(activeDetail),
+                              icon: const Icon(Icons.delete_outline),
+                              label: const Text('Xóa bản nháp'),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (state.reviewStatus == TourReviewStatus.uncertain)
+                  TextButton.icon(
+                    onPressed: () => context
+                        .read<CreateTourPackageCubit>()
+                        .loadDetail(state.detail!.id),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Tải lại trạng thái gửi duyệt'),
+                  ),
+                Expanded(child: _stepper(context, state)),
+              ],
+            ),
+          ),
+        );
+      },
     ),
   );
 
@@ -635,48 +948,46 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
                   if (_step < _reviewStep)
                     FilledButton(
                       onPressed: details.onStepContinue,
-                      child: const Text('Continue'),
+                      child: const Text('Tiếp tục'),
                     )
                   else if (!_readOnly) ...[
                     FilledButton(
                       onPressed: busy ? null : _save,
-                      child: Text(saving ? 'Saving...' : 'Save draft'),
+                      child: Text(saving ? 'Đang lưu...' : 'Lưu bản nháp'),
                     ),
                     if (_isEditing)
                       OutlinedButton(
                         onPressed: busy ? null : _submitForReview,
                         child: Text(
-                          submittingReview
-                              ? 'Submitting...'
-                              : 'Submit for review',
+                          submittingReview ? 'Đang gửi...' : 'Gửi phê duyệt',
                         ),
                       ),
                   ],
                   TextButton(
                     onPressed: details.onStepCancel,
-                    child: Text(_step == 0 ? 'Cancel' : 'Back'),
+                    child: Text(_step == 0 ? 'Hủy' : 'Quay lại'),
                   ),
                 ],
               ),
             ),
       steps: [
         Step(
-          title: const Text('Basic information'),
+          title: const Text('Thông tin cơ bản'),
           content: _basicStep(state),
           isActive: _step >= 0,
         ),
         Step(
-          title: Text('Itinerary (${_stops.length})'),
+          title: Text('Lịch trình (${_stops.length})'),
           content: _itineraryStep(),
           isActive: _step >= 1,
         ),
         Step(
-          title: Text('Schedules (${_departures.length})'),
+          title: Text('Lịch khởi hành (${_departures.length})'),
           content: _scheduleStep(),
           isActive: _step >= 2,
         ),
         Step(
-          title: const Text('Photos'),
+          title: const Text('Hình ảnh'),
           content: _isEditing
               ? TourPhotosSection(
                   media: state.media,
@@ -691,12 +1002,12 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
                       context.read<CreateTourPackageCubit>().deleteImage(id),
                 )
               : const Text(
-                  'Save the draft first. You can add the cover photo on the next screen.',
+                  'Hãy lưu bản nháp trước. Bạn có thể thêm ảnh bìa ở màn hình tiếp theo.',
                 ),
           isActive: _step >= _photosStep,
         ),
         Step(
-          title: const Text('Preview & save'),
+          title: const Text('Xem trước & lưu'),
           content: _reviewStep_(state),
           isActive: _step >= _reviewStep,
         ),
@@ -711,8 +1022,8 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
         TextFormField(
           controller: _title,
           enabled: !_readOnly,
-          decoration: const InputDecoration(labelText: 'Tour title'),
-          validator: (value) => _required(value, 'Tour title'),
+          decoration: const InputDecoration(labelText: 'Tên gói tour'),
+          validator: (value) => _required(value, 'Tên gói tour'),
         ),
         const SizedBox(height: AppSpacing.sm),
         TextFormField(
@@ -720,19 +1031,23 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
           enabled: !_readOnly,
           minLines: 3,
           maxLines: 5,
-          decoration: const InputDecoration(labelText: 'Description'),
-          validator: (value) => _required(value, 'Description'),
+          decoration: const InputDecoration(labelText: 'Mô tả'),
+          validator: (value) => _required(value, 'Mô tả'),
         ),
         const SizedBox(height: AppSpacing.sm),
         TextFormField(
           controller: _price,
           enabled: !_readOnly,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(labelText: 'Base price (VND)'),
+          decoration: const InputDecoration(labelText: 'Giá cơ bản (VND)'),
           validator: (value) {
             final price = num.tryParse(value ?? '');
-            if (price == null || price <= 0) return 'Enter a positive price.';
-            return _isWholeVnd(price) ? null : 'Enter a whole VND amount.';
+            if (price == null || price <= 0) {
+              return 'Vui lòng nhập mức giá lớn hơn 0.';
+            }
+            return _isWholeVnd(price)
+                ? null
+                : 'Vui lòng nhập số tiền VND nguyên.';
           },
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -740,17 +1055,17 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
           controller: _duration,
           enabled: !_readOnly,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'Duration (days)'),
+          decoration: const InputDecoration(labelText: 'Thời lượng (ngày)'),
           validator: (value) => _positiveInt(value ?? '') == null
-              ? 'Enter a positive number of days.'
+              ? 'Vui lòng nhập số ngày lớn hơn 0.'
               : null,
         ),
         const SizedBox(height: AppSpacing.sm),
         for (final (controller, label) in [
-          (_highlights, 'Highlights (optional)'),
-          (_inclusions, 'Inclusions (optional)'),
-          (_exclusions, 'Exclusions (optional)'),
-          (_requirements, 'Traveller requirements (optional)'),
+          (_highlights, 'Điểm nổi bật (tùy chọn)'),
+          (_inclusions, 'Bao gồm (tùy chọn)'),
+          (_exclusions, 'Không bao gồm (tùy chọn)'),
+          (_requirements, 'Yêu cầu đối với du khách (tùy chọn)'),
         ]) ...[
           TextFormField(
             controller: controller,
@@ -760,6 +1075,19 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
             maxLength: 4000,
             decoration: InputDecoration(labelText: label),
           ),
+          if (controller == _requirements) ...[
+            TourPackingChecklistTags(
+              requirementsText: _requirements.text,
+              enabled: !_readOnly,
+              onToggleTag: (tag) => setState(() {
+                _requirements.text = togglePackingChecklistTag(
+                  _requirements.text,
+                  tag,
+                );
+              }),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+          ],
           const SizedBox(height: AppSpacing.xs),
         ],
         const SizedBox(height: AppSpacing.sm),
@@ -768,6 +1096,7 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
           enabled: !_readOnly,
           selectedDestinationIds: _destinationIds,
           selectedPolicyId: _policyId,
+          selectedCategoryId: _categoryId,
           onToggleDestination: (id) => setState(() {
             if (_destinationIds.contains(id)) {
               _destinationIds.remove(id);
@@ -776,93 +1105,184 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
             }
           }),
           onPolicyChanged: (id) => setState(() => _policyId = id),
+          onCategoryChanged: (id) => setState(() => _categoryId = id),
           onRetry: () => context.read<CreateTourPackageCubit>().loadOptions(),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        TourDepositSettingsSection(
+          allowDeposit: _allowDeposit,
+          depositPercentController: _depositPercent,
+          balanceDueDaysController: _balanceDueDays,
+          basePrice: num.tryParse(_price.text.trim()),
+          enabled: !_readOnly,
+          onAllowDepositChanged: (value) => setState(() {
+            _allowDeposit = value;
+            if (value) {
+              if (_depositPercent.text.trim().isEmpty) {
+                _depositPercent.text = '30';
+              }
+              if (_balanceDueDays.text.trim().isEmpty) {
+                _balanceDueDays.text = '7';
+              }
+            }
+          }),
+          onSelectPercentPreset: (percent) =>
+              setState(() => _depositPercent.text = '$percent'),
+          onSelectBalanceDaysPreset: (days) =>
+              setState(() => _balanceDueDays.text = '$days'),
         ),
       ],
     ),
   );
 
-  Widget _itineraryStep() => Column(
-    children: [
-      const Text(
-        'Choose active locations from the TripMate catalogue, then adjust each visit.',
-      ),
-      for (final entry in _stops.asMap().entries)
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: CircleAvatar(child: Text('${entry.key + 1}')),
-          title: Text(entry.value.name),
-          subtitle: Text(
-            'Day ${entry.value.dayNo} · ${entry.value.stayMinutes} min${entry.value.isOpenNow ? ' · Open now' : ''}',
-          ),
-          onTap: () => _editStop(entry.key),
-          trailing: _readOnly
-              ? null
-              : IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  tooltip: 'Remove stop',
-                  onPressed: () => setState(() => _stops.removeAt(entry.key)),
-                ),
+  Widget _itineraryStep() {
+    final c = context.tmColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Chọn các địa điểm đang hoạt động từ danh mục TripMate rồi điều chỉnh từng chặng.',
+          style: TextStyle(fontSize: 13, color: c.textSecondary, height: 1.4),
         ),
-      if (!_readOnly)
-        Align(
-          alignment: Alignment.centerLeft,
-          child: OutlinedButton.icon(
-            onPressed: _choosePoi,
-            icon: const Icon(Icons.add_location_alt_outlined),
-            label: const Text('Add point of interest'),
-          ),
-        ),
-    ],
-  );
-
-  Widget _scheduleStep() => Column(
-    children: [
-      const Text(
-        'Add every departure you intend to sell. Capacity is managed per departure.',
-      ),
-      for (final entry in _departures.asMap().entries)
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          title: Text(
-            MaterialLocalizations.of(
-              context,
-            ).formatMediumDate(entry.value.start),
-          ),
-          subtitle: Text(
-            '${entry.value.capacity} seats · Adult ${entry.value.adultPrice ?? _price.text} VND${entry.value.meetingPoint.trim().isEmpty ? '' : ' · ${entry.value.meetingPoint}'}',
-          ),
-          onTap: () => _editDeparture(entry.key),
-          trailing: _readOnly || _departures.length == 1
-              ? null
-              : IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  tooltip: 'Remove departure',
-                  onPressed: () =>
-                      setState(() => _departures.removeAt(entry.key)),
-                ),
-        ),
-      if (!_readOnly)
-        Align(
-          alignment: Alignment.centerLeft,
-          child: OutlinedButton.icon(
-            onPressed: () {
-              final start = _departures.last.start.add(const Duration(days: 7));
-              setState(
-                () => _departures.add(
-                  _Departure(
-                    start: start,
-                    end: start.add(const Duration(hours: 8)),
+        const SizedBox(height: AppSpacing.sm),
+        for (final entry in _stops.asMap().entries)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+            child: AppCard(
+              padding: EdgeInsets.zero,
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(TripMateRadius.lg),
+                clipBehavior: Clip.antiAlias,
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: c.tealSoftContainer,
+                    foregroundColor: c.brandTeal,
+                    child: Text(
+                      '${entry.key + 1}',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
                   ),
+                  title: Text(
+                    entry.value.name,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: c.textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Ngày ${entry.value.dayNo}${entry.value.plannedTime == null ? '' : ' · ${entry.value.plannedTime!.length >= 5 ? entry.value.plannedTime!.substring(0, 5) : entry.value.plannedTime}'} · ${entry.value.stayMinutes} phút${entry.value.isOpenNow ? ' · Đang mở cửa' : ''}',
+                    style: TextStyle(fontSize: 12.5, color: c.textSecondary),
+                  ),
+                  onTap: () => _editStop(entry.key),
+                  trailing: _readOnly
+                      ? null
+                      : IconButton(
+                          icon: Icon(Icons.delete_outline, color: c.error),
+                          tooltip: 'Xóa điểm dừng',
+                          onPressed: () =>
+                              setState(() => _stops.removeAt(entry.key)),
+                        ),
                 ),
-              );
-            },
-            icon: const Icon(Icons.add),
-            label: const Text('Add departure'),
+              ),
+            ),
           ),
+        if (!_readOnly)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: _choosePoi,
+              icon: const Icon(Icons.add_location_alt_outlined),
+              label: const Text('Thêm điểm tham quan'),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _scheduleStep() {
+    final c = context.tmColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Thêm tất cả lịch khởi hành bạn dự định mở bán. Sức chứa được quản lý theo từng đợt khởi hành.',
+          style: TextStyle(fontSize: 13, color: c.textSecondary, height: 1.4),
         ),
-    ],
-  );
+        const SizedBox(height: AppSpacing.sm),
+        for (final entry in _departures.asMap().entries)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+            child: AppCard(
+              padding: EdgeInsets.zero,
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(TripMateRadius.lg),
+                clipBehavior: Clip.antiAlias,
+                child: ListTile(
+                  leading: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: c.tealSoftContainer,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.event_outlined,
+                      size: 18,
+                      color: c.brandTeal,
+                    ),
+                  ),
+                  title: Text(
+                    MaterialLocalizations.of(
+                      context,
+                    ).formatMediumDate(entry.value.start),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: c.textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '${entry.value.capacity} chỗ · Người lớn ${entry.value.adultPrice ?? _price.text} VND${entry.value.meetingPoint.trim().isEmpty ? '' : ' · ${entry.value.meetingPoint}'}',
+                    style: TextStyle(fontSize: 12.5, color: c.textSecondary),
+                  ),
+                  onTap: () => _editDeparture(entry.key),
+                  trailing: _readOnly || _departures.length == 1
+                      ? null
+                      : IconButton(
+                          icon: Icon(Icons.delete_outline, color: c.error),
+                          tooltip: 'Xóa lịch khởi hành',
+                          onPressed: () =>
+                              setState(() => _departures.removeAt(entry.key)),
+                        ),
+                ),
+              ),
+            ),
+          ),
+        if (!_readOnly)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                final start = _departures.last.start.add(
+                  const Duration(days: 7),
+                );
+                setState(
+                  () => _departures.add(
+                    _Departure(
+                      start: start,
+                      end: start.add(const Duration(hours: 8)),
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Thêm lịch khởi hành'),
+            ),
+          ),
+      ],
+    );
+  }
 
   Widget _reviewStep_(CreateTourPackageState state) {
     final detail = state.detail;
@@ -873,7 +1293,7 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
                 .where((destination) => destination.id == id)
                 .map((destination) => destination.name)
                 .firstOrNull ??
-            'Destination #$id',
+            'Điểm đến #$id',
     ];
     final policyName = options?.policies
         .where((policy) => policy.id == _policyId)
@@ -884,7 +1304,7 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TourPreviewCard(
-          title: _title.text.trim().isEmpty ? 'Untitled tour' : _title.text,
+          title: _title.text.trim().isEmpty ? 'Tour chưa đặt tên' : _title.text,
           coverUrl: cover?.url,
           destinations: destinationNames,
           durationDays: _positiveInt(_duration.text),
@@ -892,11 +1312,17 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
           highlights: _highlights.text,
           inclusions: _inclusions.text,
           exclusions: _exclusions.text,
+          travellerRequirements: _requirements.text,
           policyName: policyName,
+          allowDeposit: _allowDeposit,
+          depositPercent: num.tryParse(_depositPercent.text.trim()),
+          balanceDueDaysBeforeDeparture: int.tryParse(
+            _balanceDueDays.text.trim(),
+          ),
           days: _previewDays(),
           departures: [
             for (final departure in _departures)
-              '${MaterialLocalizations.of(context).formatMediumDate(departure.start)} · ${departure.capacity} seats · Adult ${departure.adultPrice ?? _price.text} VND',
+              '${MaterialLocalizations.of(context).formatMediumDate(departure.start)} · ${departure.capacity} chỗ · Người lớn ${departure.adultPrice ?? _price.text} VND',
           ],
         ),
         const SizedBox(height: AppSpacing.md),
@@ -908,18 +1334,27 @@ final class _CreateTourPackagePageState extends State<CreateTourPackagePage> {
           ),
           const SizedBox(height: AppSpacing.sm),
         ],
+        if (detail != null) ...[
+          TourVersionHistorySection(
+            currentDetail: detail,
+            statusLabelBuilder: effectiveTourStatusLabel,
+            onOpenVersion: (tourId) =>
+                context.push(AppRoutes.editTourPackagePath(tourId)),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
         if (detail?.submissionNote != null)
-          Text('Submission note: ${detail!.submissionNote}'),
+          Text('Ghi chú gửi duyệt: ${detail!.submissionNote}'),
         if (detail?.submittedAtUtc != null)
           Text(
-            'Submitted at: ${formatCalendarDateTime(detail!.submittedAtUtc!.toUtc())} (UTC)',
+            'Thời điểm gửi duyệt: ${formatCalendarDateTime(detail!.submittedAtUtc!.toUtc())} (UTC)',
           ),
         Text(
           state.detail?.status == TourPackageStatus.pending
-              ? 'Pending tours remain unavailable for public discovery and bookings until Staff approval and publication.'
+              ? 'Tour đang chờ duyệt sẽ chưa hiển thị công khai và chưa nhận đặt chỗ cho đến khi được nhân viên phê duyệt và đăng bán.'
               : _isEditing
-              ? 'Readiness and warnings reflect the last saved version.'
-              : 'This is saved as a Draft. Add a cover photo, then submit it for review.',
+              ? 'Mức độ sẵn sàng và các cảnh báo phản ánh phiên bản đã lưu gần nhất.'
+              : 'Gói tour được lưu dưới dạng Bản nháp. Hãy thêm ảnh bìa rồi gửi phê duyệt.',
         ),
       ],
     );
@@ -953,15 +1388,16 @@ final class _TourStop {
   final bool isOpenNow;
   final String? plannedTime;
   final String? notes;
-  _TourStop copyWith({int? dayNo, int? stayMinutes}) => _TourStop(
-    poiId: poiId,
-    name: name,
-    dayNo: dayNo ?? this.dayNo,
-    stayMinutes: stayMinutes ?? this.stayMinutes,
-    isOpenNow: isOpenNow,
-    plannedTime: plannedTime,
-    notes: notes,
-  );
+  _TourStop copyWith({int? dayNo, int? stayMinutes, String? plannedTime}) =>
+      _TourStop(
+        poiId: poiId,
+        name: name,
+        dayNo: dayNo ?? this.dayNo,
+        stayMinutes: stayMinutes ?? this.stayMinutes,
+        isOpenNow: isOpenNow,
+        plannedTime: plannedTime ?? this.plannedTime,
+        notes: notes,
+      );
 }
 
 final class _Departure {
@@ -975,6 +1411,8 @@ final class _Departure {
     this.infantPrice,
     this.meetingPoint = '',
     this.registrationDeadline,
+    this.meetingLatitude,
+    this.meetingLongitude,
   });
   final DateTime start;
   final DateTime end;
@@ -985,6 +1423,8 @@ final class _Departure {
   final num? infantPrice;
   final String meetingPoint;
   final DateTime? registrationDeadline;
+  final double? meetingLatitude;
+  final double? meetingLongitude;
 }
 
 final class _PoiPickerSheet extends StatefulWidget {
@@ -1002,63 +1442,92 @@ final class _PoiPickerSheetState extends State<_PoiPickerSheet> {
   }
 
   @override
-  Widget build(BuildContext context) => SafeArea(
-    child: SizedBox(
-      height: MediaQuery.sizeOf(context).height * .75,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: TextField(
-              controller: _search,
-              decoration: InputDecoration(
-                labelText: 'Search points of interest',
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.search),
-                  onPressed: () =>
-                      context.read<PoiListCubit>().submitSearch(_search.text),
+  Widget build(BuildContext context) {
+    final c = context.tmColors;
+    return Container(
+      decoration: BoxDecoration(
+        color: c.surfaceCard,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(TripMateRadius.xl),
+        ),
+      ),
+      child: SafeArea(
+        child: SizedBox(
+          height: MediaQuery.sizeOf(context).height * .75,
+          child: Column(
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: c.borderStrong,
+                  borderRadius: BorderRadius.circular(999),
                 ),
               ),
-              onSubmitted: context.read<PoiListCubit>().submitSearch,
-            ),
-          ),
-          Expanded(
-            child: BlocBuilder<PoiListCubit, PoiListState>(
-              builder: (_, state) {
-                if (state.status == PoiListStatus.loading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (state.status == PoiListStatus.failure) {
-                  return Center(
-                    child: Text(
-                      state.failure?.message ?? 'Could not load locations.',
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: TextField(
+                  controller: _search,
+                  decoration: InputDecoration(
+                    labelText: 'Tìm điểm tham quan',
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.search),
+                      onPressed: () => context
+                          .read<PoiListCubit>()
+                          .submitSearch(_search.text),
                     ),
-                  );
-                }
-                if (state.items.isEmpty) {
-                  return const Center(
-                    child: Text('No active points of interest found.'),
-                  );
-                }
-                return ListView.builder(
-                  itemCount: state.items.length,
-                  itemBuilder: (_, index) {
-                    final poi = state.items[index];
-                    return ListTile(
-                      title: Text(poi.name),
-                      subtitle: Text(
-                        '${poi.categoryName}${poi.isOpenNow ? ' · Open now' : ''}',
-                      ),
-                      trailing: const Icon(Icons.add_circle_outline),
-                      onTap: () => Navigator.pop(context, poi),
+                  ),
+                  onSubmitted: context.read<PoiListCubit>().submitSearch,
+                ),
+              ),
+              Expanded(
+                child: BlocBuilder<PoiListCubit, PoiListState>(
+                  builder: (_, state) {
+                    if (state.status == PoiListStatus.loading) {
+                      return Center(
+                        child: CircularProgressIndicator(color: c.brandTeal),
+                      );
+                    }
+                    if (state.status == PoiListStatus.failure) {
+                      return Center(
+                        child: Text(
+                          state.failure?.message ??
+                              'Không thể tải danh sách địa điểm.',
+                        ),
+                      );
+                    }
+                    if (state.items.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          'Không tìm thấy điểm tham quan đang hoạt động nào.',
+                        ),
+                      );
+                    }
+                    return ListView.builder(
+                      itemCount: state.items.length,
+                      itemBuilder: (_, index) {
+                        final poi = state.items[index];
+                        return ListTile(
+                          title: Text(poi.name),
+                          subtitle: Text(
+                            '${poi.categoryName}${poi.isOpenNow ? ' · Đang mở cửa' : ''}',
+                          ),
+                          trailing: Icon(
+                            Icons.add_circle_outline,
+                            color: c.brandTeal,
+                          ),
+                          onTap: () => Navigator.pop(context, poi),
+                        );
+                      },
                     );
                   },
-                );
-              },
-            ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }

@@ -51,7 +51,7 @@ Finder refreshButton() =>
     find.widgetWithText(FilledButton, ETicketStrings.refresh);
 
 Finder cancelBookingButton() =>
-    find.widgetWithText(FilledButton, 'Cancel booking');
+    find.widgetWithText(FilledButton, 'Hủy đặt tour');
 
 void main() {
   late FakeETicketRepository repository;
@@ -81,7 +81,7 @@ void main() {
     expect(find.text('BK-20261017-00001'), findsOneWidget);
     expect(find.text('30/10/2026 08:00'), findsOneWidget);
     expect(find.text('Old Town gate'), findsOneWidget);
-    expect(find.text('2 adults, 1 child (3 travellers)'), findsOneWidget);
+    expect(find.text('2 người lớn, 1 trẻ em (3 du khách)'), findsOneWidget);
     expect(
       find.text(ETicketStrings.validityNote('30/10/2026')),
       findsOneWidget,

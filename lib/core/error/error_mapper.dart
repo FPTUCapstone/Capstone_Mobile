@@ -29,36 +29,36 @@ abstract final class ErrorMapper {
       final code = extractErrorCode(responseData);
       if (code == 'tour_booking.idempotency_key_required') {
         return const ValidationFailure(
-          'Something went wrong preparing this request. Please try again.',
+          'Có lỗi khi chuẩn bị yêu cầu đặt tour. Vui lòng thử lại.',
         );
       }
       if (code == 'PAYMENT_BOOKING_NOT_ELIGIBLE') {
         return const ValidationFailure(
-          'This booking is not eligible for payment.',
+          'Đơn đặt tour này không đủ điều kiện thanh toán.',
         );
       }
       if (code == 'PAYMENT_BOOKING_EXPIRED') {
         return const ValidationFailure(
-          'This booking has expired. Please book a new departure.',
+          'Đơn đặt tour đã hết hạn thanh toán. Vui lòng đặt chuyến khởi hành mới.',
         );
       }
       if (code == 'PAYMENT_MOCK_DISABLED') {
         return const ValidationFailure(
-          'Mock payment is not enabled in this environment.',
+          'Thanh toán mô phỏng không khả dụng trong môi trường này.',
         );
       }
       if (code == 'PAYMENT_GATEWAY_UNAVAILABLE') {
         return const ServerFailure(
-          'The payment gateway is temporarily unavailable. Please try again later.',
+          'Cổng thanh toán hiện đang gián đoạn. Vui lòng thử lại sau.',
         );
       }
       if (code == 'PAYMENT_CALLBACK_INVALID') {
-        return const ValidationFailure('The payment response is invalid.');
+        return const ValidationFailure('Phản hồi thanh toán không hợp lệ.');
       }
       return ValidationFailure(
         _extractValidationMessage(responseData) ??
             _safeTitle(responseData) ??
-            'The input provided is invalid.',
+            'Dữ liệu nhập không hợp lệ.',
         fieldErrors: _fieldErrors(responseData),
       );
     }
@@ -66,28 +66,28 @@ abstract final class ErrorMapper {
       final errorCode = extractErrorCode(responseData);
       if (errorCode == 'Poi.NotFound') return const NotFoundFailure();
       if (errorCode == 'PAYMENT_NOT_FOUND') {
-        return const NotFoundFailure('The payment transaction was not found.');
+        return const NotFoundFailure('Không tìm thấy giao dịch thanh toán.');
       }
       if (errorCode == 'travel_group.group_not_found') {
         return const NotFoundFailure();
       }
       if (errorCode == 'travel_group.itinerary_not_found') {
         return const NotFoundFailure(
-          'The selected itinerary was not found. Please choose another itinerary.',
+          'Không tìm thấy lịch trình đã chọn. Vui lòng chọn lịch trình khác.',
         );
       }
       if (errorCode == 'coupon.tour_not_found') {
         return const NotFoundFailure(
-          'One or more selected tours are no longer available.',
+          'Một hoặc nhiều tour đã chọn không còn khả dụng.',
         );
       }
       if (errorCode == 'tour_booking.schedule_not_found') {
         return const NotFoundFailure(
-          'This tour departure is no longer available.',
+          'Chuyến khởi hành này không còn khả dụng.',
         );
       }
       if (errorCode == 'tour_booking.voucher_not_found') {
-        return const NotFoundFailure('The voucher code was not found.');
+        return const NotFoundFailure('Không tìm thấy mã ưu đãi này.');
       }
       return const NotFoundFailure();
     }
@@ -96,51 +96,49 @@ abstract final class ErrorMapper {
     if (statusCode == 404) return const NotFoundFailure();
     if (statusCode == 409) {
       if (extractErrorCode(responseData) == 'coupon.code_conflict') {
-        return const ConflictFailure('This coupon code is already in use.');
+        return const ConflictFailure('Mã ưu đãi này đã được sử dụng.');
       }
       final operatorTourCode = extractErrorCode(responseData);
       if (operatorTourCode == 'operator_tour.edit_locked' ||
           operatorTourCode == 'operator_tour.invalid_state') {
         return const ConflictFailure(
-          'This tour package can no longer be changed. Only Draft or Rejected packages are editable.',
+          'Gói tour này không thể chỉnh sửa. Chỉ có thể sửa gói ở trạng thái Bản nháp hoặc Bị từ chối.',
         );
       }
       if (operatorTourCode ==
           'operator_tour.idempotency_key_payload_mismatch') {
         return const ConflictFailure(
-          'This request conflicts with an earlier save. Please reopen the form and try again.',
+          'Yêu cầu này xung đột với lần lưu trước đó. Vui lòng mở lại biểu mẫu và thử lại.',
         );
       }
       if (operatorTourCode == 'tour_booking.idempotency_key_payload_mismatch') {
         return const ConflictFailure(
-          'The previous booking request did not finish. Please try again.',
+          'Yêu cầu đặt tour trước chưa hoàn tất. Vui lòng thử lại.',
           null,
           true,
         );
       }
       if (operatorTourCode == 'tour_booking.schedule_not_open') {
         return const ConflictFailure(
-          'This tour departure is no longer open for booking.',
+          'Chuyến khởi hành này đã ngừng nhận đặt chỗ.',
         );
       }
       if (operatorTourCode == 'tour_booking.insufficient_capacity') {
         return const ConflictFailure(
-          'Not enough slots remain for this departure. Please reduce the number of travelers.',
+          'Không đủ chỗ trống cho chuyến khởi hành này. Vui lòng giảm số lượng khách.',
         );
       }
       if (operatorTourCode == 'tour_booking.voucher_usage_limit_reached') {
-        return const ConflictFailure(
-          'This voucher has reached its usage limit.',
-        );
+        return const ConflictFailure('Mã ưu đãi này đã hết lượt sử dụng.');
       }
       if (operatorTourCode == 'tour_booking.too_many_unpaid_bookings') {
         return const ConflictFailure(
-          'You have too many pending bookings. Complete payment or cancel one to continue.',
+          'Bạn đang có quá nhiều đơn chờ thanh toán. Vui lòng thanh toán hoặc hủy bớt để tiếp tục.',
         );
       }
       final (message, groupId) = _extractConflictDetails(responseData);
       return ConflictFailure(
-        message ?? 'Conflict occurred. Please try again.',
+        message ?? 'Đã xảy ra xung đột dữ liệu. Vui lòng thử lại.',
         groupId,
         extractErrorCode(responseData) ==
             'travel_group.idempotency_key_payload_mismatch',
@@ -151,12 +149,12 @@ abstract final class ErrorMapper {
       final errorCode = data is Map ? extractErrorCode(data) : null;
       if (errorCode == 'operator_tour.review_prerequisites_missing') {
         return const ConstraintFailure(
-          'This tour is not ready for review yet. Add a cover photo, a future departure, a destination and a cancellation policy, then try again.',
+          'Gói tour chưa đủ điều kiện gửi duyệt. Vui lòng bổ sung ảnh bìa, lịch khởi hành tương lai, điểm đến và chính sách hủy rồi thử lại.',
         );
       }
       if (errorCode == 'coupon.tour_not_eligible') {
         return const ConstraintFailure(
-          'A selected tour is not approved for coupons. Refresh and choose another tour.',
+          'Một tour đã chọn chưa đủ điều kiện áp dụng mã ưu đãi. Vui lòng tải lại và chọn tour khác.',
         );
       }
       if (errorCode == 'itinerary.stop_infeasible') {
@@ -164,7 +162,7 @@ abstract final class ErrorMapper {
       }
       if (errorCode == 'itinerary.no_alternative') {
         return const ConstraintFailure(
-          'No other places fit this trip\'s time, area and budget. Your current itinerary is already the best option.',
+          'Không còn địa điểm nào khác phù hợp với thời gian, khu vực và ngân sách. Lịch trình hiện tại đã là phương án tối ưu nhất.',
         );
       }
       if (errorCode == 'planning.constraints_infeasible' ||
@@ -174,16 +172,16 @@ abstract final class ErrorMapper {
       }
       if (errorCode == 'tour_booking.voucher_not_eligible') {
         return const ConstraintFailure(
-          'This voucher does not apply to the selected tour or is not currently active.',
+          'Mã ưu đãi này không áp dụng cho tour đã chọn hoặc hiện chưa có hiệu lực.',
         );
       }
       if (errorCode == 'tour_booking.voucher_minimum_not_met') {
         return const ConstraintFailure(
-          'This voucher requires a higher order amount. Add more travelers or remove the voucher.',
+          'Đơn hàng chưa đạt giá trị tối thiểu để dùng mã ưu đãi này. Hãy thêm khách hoặc gỡ mã.',
         );
       }
       if (errorCode == 'tour_booking.participants_required') {
-        return const ConstraintFailure('At least one traveler is required.');
+        return const ConstraintFailure('Cần ít nhất một du khách.');
       }
       return const ConstraintFailure();
     }
@@ -194,8 +192,8 @@ abstract final class ErrorMapper {
       if (errorCode == 'planning.generation_timeout' ||
           errorCode == 'itinerary.generation_timeout') {
         return const ServerFailure(
-          'Your itinerary could not be generated in time. Your request is '
-          'still valid, so please try again in a moment.',
+          'Không thể tạo lịch trình kịp thời gian quy định. Yêu cầu của bạn '
+          'vẫn hợp lệ, vui lòng thử lại sau giây lát.',
         );
       }
     }
@@ -215,10 +213,10 @@ abstract final class ErrorMapper {
 
     final errorCode = extractErrorCode(data);
     if (errorCode == 'travel_group.invitation_unavailable') {
-      return 'This invitation is invalid, expired, or no longer available. Please check the invitation and try again.';
+      return 'Lời mời này không hợp lệ, đã hết hạn hoặc không còn khả dụng. Vui lòng kiểm tra lại và thử lại.';
     }
     if (errorCode == 'travel_group.idempotency_key_payload_mismatch') {
-      return 'A conflicting request with different request data is already in progress. Please try again.';
+      return 'Một yêu cầu trùng lặp với dữ liệu khác đang được xử lý. Vui lòng thử lại.';
     }
 
     final errors = data['errors'];
@@ -286,11 +284,11 @@ abstract final class ErrorMapper {
     final errorCode = extractErrorCode(data);
     final groupId = _extractGroupId(data);
     if (errorCode == 'travel_group.already_active_member') {
-      return ('You are already a member of this travel group.', groupId);
+      return ('Bạn đã là thành viên của nhóm du lịch này.', groupId);
     }
     if (errorCode == 'travel_group.idempotency_key_payload_mismatch') {
       return (
-        'A conflicting request with different request data is already in progress. Please try again.',
+        'Một yêu cầu trùng lặp với dữ liệu khác đang được xử lý. Vui lòng thử lại.',
         groupId,
       );
     }

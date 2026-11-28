@@ -37,7 +37,7 @@ void main() {
           _testApp(cubit: cubit, email: 'new.traveler@example.com'),
         );
 
-        expect(find.text('Verify your email'), findsOneWidget);
+        expect(find.text('Xác minh email'), findsOneWidget);
         expect(find.text('n***@example.com'), findsOneWidget);
         expect(
           find.text('Invalid email or password. Please try again.'),
@@ -138,16 +138,16 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('I verified my email'), findsOneWidget);
-      expect(find.text('Resend Verification Email'), findsOneWidget);
+      expect(find.text('Tôi đã xác minh email'), findsOneWidget);
+      expect(find.text('Gửi lại email xác minh'), findsOneWidget);
       expect(find.textContaining('@'), findsNothing);
 
-      await tester.tap(find.text('Resend Verification Email'));
+      await tester.tap(find.text('Gửi lại email xác minh'));
       await tester.pump();
 
       expect(
         find.text(
-          'Your verification session has expired. Please sign in to request a new verification link.',
+          'Phiên xác minh đã hết hạn. Vui lòng đăng nhập để yêu cầu liên kết xác minh mới.',
         ),
         findsOneWidget,
       );
@@ -168,26 +168,26 @@ void main() {
       );
       await tester.pump();
 
-      await tester.tap(find.text('Resend Verification Email'));
+      await tester.tap(find.text('Gửi lại email xác minh'));
       await tester.pump();
 
       expect(firebase.sendEmailVerificationCalls, 1);
       expect(
         find.text(
-          'A fresh verification link has been sent to your email address.',
+          'Liên kết xác minh mới đã được gửi đến địa chỉ email của bạn.',
         ),
         findsOneWidget,
       );
-      expect(find.text('Resend Email (60s)'), findsOneWidget);
+      expect(find.text('Gửi lại email (60s)'), findsOneWidget);
       expect(
         tester.widget<FilledButton>(find.byType(FilledButton).first).onPressed,
         isNull,
       );
       await tester.pump(const Duration(seconds: 1));
-      expect(find.text('Resend Email (59s)'), findsOneWidget);
+      expect(find.text('Gửi lại email (59s)'), findsOneWidget);
 
       await tester.pump(const Duration(seconds: 59));
-      expect(find.text('Resend Verification Email'), findsOneWidget);
+      expect(find.text('Gửi lại email xác minh'), findsOneWidget);
       expect(
         tester.widget<FilledButton>(find.byType(FilledButton).first).onPressed,
         isNotNull,
@@ -210,7 +210,7 @@ void main() {
       );
       await tester.pump();
 
-      await tester.tap(find.text('Resend Verification Email'));
+      await tester.tap(find.text('Gửi lại email xác minh'));
       await tester.pump();
       await tester.tap(find.byType(FilledButton).first);
       await tester.pump();
@@ -246,7 +246,7 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.tap(find.text('Resend Verification Email'));
+      await tester.tap(find.text('Gửi lại email xác minh'));
       await tester.pump();
 
       await tester.pumpWidget(const MaterialApp(home: SizedBox()));
@@ -273,16 +273,16 @@ void main() {
       );
       await tester.pump();
 
-      await tester.tap(find.text('Resend Verification Email'));
+      await tester.tap(find.text('Gửi lại email xác minh'));
       await tester.pump();
 
       expect(
         find.text(
-          'Too many resend attempts. Please wait a few minutes before trying again.',
+          'Bạn đã gửi lại quá nhiều lần. Vui lòng đợi vài phút rồi thử lại.',
         ),
         findsOneWidget,
       );
-      expect(find.text('Resend Email (60s)'), findsOneWidget);
+      expect(find.text('Gửi lại email (60s)'), findsOneWidget);
     });
 
     testWidgets('network failure while resending shows a safe error', (
@@ -303,16 +303,16 @@ void main() {
       );
       await tester.pump();
 
-      await tester.tap(find.text('Resend Verification Email'));
+      await tester.tap(find.text('Gửi lại email xác minh'));
       await tester.pump();
 
       expect(
         find.text(
-          'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+          'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.',
         ),
         findsOneWidget,
       );
-      expect(find.text('Resend Verification Email'), findsOneWidget);
+      expect(find.text('Gửi lại email xác minh'), findsOneWidget);
     });
 
     testWidgets('unverified email stays on the page with an actionable error', (
@@ -325,13 +325,13 @@ void main() {
       );
       await tester.pumpWidget(_routerTestApp(cubit));
 
-      await tester.tap(find.text('I verified my email'));
+      await tester.tap(find.text('Tôi đã xác minh email'));
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Verify your email'), findsOneWidget);
+      expect(find.text('Xác minh email'), findsOneWidget);
       expect(
-        find.text('Please verify your email before continuing.'),
+        find.text('Vui lòng xác minh email trước khi tiếp tục.'),
         findsOneWidget,
       );
     });
@@ -347,24 +347,24 @@ void main() {
         );
         await tester.pumpWidget(_routerTestApp(cubit));
 
-        await tester.tap(find.text('Resend Verification Email'));
+        await tester.tap(find.text('Gửi lại email xác minh'));
         await tester.pump();
         await tester.pump(const Duration(seconds: 7));
-        expect(find.text('Resend Email (53s)'), findsOneWidget);
+        expect(find.text('Gửi lại email (53s)'), findsOneWidget);
 
-        await tester.tap(find.text('I verified my email'));
+        await tester.tap(find.text('Tôi đã xác minh email'));
         await tester.pump();
 
         expect(cubit.state.isLoading, isFalse);
         expect(
-          find.text('Please verify your email before continuing.'),
+          find.text('Vui lòng xác minh email trước khi tiếp tục.'),
           findsOneWidget,
         );
-        expect(find.text('I verified my email'), findsOneWidget);
+        expect(find.text('Tôi đã xác minh email'), findsOneWidget);
         expect(repository.verifyEmailCalls, 0);
 
         await tester.pump(const Duration(seconds: 1));
-        expect(find.text('Resend Email (52s)'), findsOneWidget);
+        expect(find.text('Gửi lại email (52s)'), findsOneWidget);
       },
     );
 
@@ -375,7 +375,7 @@ void main() {
       final cubit = AuthSessionCubit(
         FakeAuthRepository(
           verifyEmailError: const ServerException(
-            'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+            'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.',
             'MSG127',
             500,
           ),
@@ -385,14 +385,14 @@ void main() {
       );
       await tester.pumpWidget(_routerTestApp(cubit));
 
-      await tester.tap(find.text('I verified my email'));
+      await tester.tap(find.text('Tôi đã xác minh email'));
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Verify your email'), findsOneWidget);
+      expect(find.text('Xác minh email'), findsOneWidget);
       expect(
         find.text(
-          'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+          'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.',
         ),
         findsOneWidget,
       );
@@ -409,7 +409,7 @@ void main() {
       );
       await tester.pumpWidget(_routerTestApp(cubit));
 
-      await tester.tap(find.text('I verified my email'));
+      await tester.tap(find.text('Tôi đã xác minh email'));
       await tester.pumpAndSettle();
 
       expect(find.text('Traveler destination'), findsOneWidget);
@@ -425,7 +425,7 @@ void main() {
       );
       await tester.pumpWidget(_routerTestApp(cubit));
 
-      await tester.tap(find.text('Back to sign in'));
+      await tester.tap(find.text('Quay lại đăng nhập'));
       await tester.pumpAndSettle();
 
       expect(find.text('Sign in destination'), findsOneWidget);

@@ -67,7 +67,7 @@ void main() {
     expect(failure, isA<NotFoundFailure>());
     expect(
       failure.message,
-      'The selected itinerary was not found. Please choose another itinerary.',
+      'Không tìm thấy lịch trình đã chọn. Vui lòng chọn lịch trình khác.',
     );
   });
 
@@ -84,7 +84,7 @@ void main() {
     );
 
     expect(failure, isA<NotFoundFailure>());
-    expect(failure.message, 'The requested resource could not be found.');
+    expect(failure.message, 'Không tìm thấy nội dung yêu cầu.');
   });
 
   test('maps HTTP 401 to AuthenticationFailure', () {
@@ -129,7 +129,7 @@ void main() {
     expect(failure, isA<ValidationFailure>());
     expect(
       failure.message,
-      'A conflicting request with different request data is already in progress. Please try again.',
+      'Một yêu cầu trùng lặp với dữ liệu khác đang được xử lý. Vui lòng thử lại.',
     );
   });
 
@@ -139,7 +139,7 @@ void main() {
       final failure = ErrorMapper.toFailure(responseError(statusCode: 400));
 
       expect(failure, isA<ValidationFailure>());
-      expect(failure.message, 'The input provided is invalid.');
+      expect(failure.message, 'Dữ liệu nhập không hợp lệ.');
     },
   );
 
@@ -156,7 +156,7 @@ void main() {
     );
 
     expect(failure, isA<ValidationFailure>());
-    expect(failure.message, 'The input provided is invalid.');
+    expect(failure.message, 'Dữ liệu nhập không hợp lệ.');
   });
 
   test('maps a connection failure to NetworkFailure', () {
@@ -185,7 +185,7 @@ void main() {
 
     expect(failure, isA<ConflictFailure>());
     final conflict = failure as ConflictFailure;
-    expect(conflict.message, 'You are already a member of this travel group.');
+    expect(conflict.message, 'Bạn đã là thành viên của nhóm du lịch này.');
     expect(conflict.groupId, 42);
   });
 
@@ -200,7 +200,7 @@ void main() {
     expect(failure, isA<ConflictFailure>());
     expect(
       failure.message,
-      'A conflicting request with different request data is already in progress. Please try again.',
+      'Một yêu cầu trùng lặp với dữ liệu khác đang được xử lý. Vui lòng thử lại.',
     );
     expect(
       (failure as ConflictFailure).isIdempotencyKeyPayloadMismatch,
@@ -220,7 +220,7 @@ void main() {
     );
 
     expect(failure, isA<ConflictFailure>());
-    expect(failure.message, 'Conflict occurred. Please try again.');
+    expect(failure.message, 'Đã xảy ra xung đột dữ liệu. Vui lòng thử lại.');
   });
 
   test('maps HTTP >= 500 to ServerFailure', () {
@@ -269,7 +269,7 @@ void main() {
     );
 
     expect(failure, isA<NotFoundFailure>());
-    expect(failure.message, 'The requested resource could not be found.');
+    expect(failure.message, 'Không tìm thấy nội dung yêu cầu.');
   });
 
   test('maps planning HTTP outcomes to safe business failures', () {
@@ -311,8 +311,8 @@ void main() {
       );
 
       expect(failure, isA<ServerFailure>());
-      expect(failure.message, contains('could not be generated in time'));
-      expect(failure.message, contains('try again'));
+      expect(failure.message, contains('Không thể tạo lịch trình kịp'));
+      expect(failure.message, contains('thử lại'));
     }
   });
 
@@ -412,6 +412,6 @@ void main() {
     );
 
     expect(failure, isA<ConstraintFailure>());
-    expect(failure.message, contains('already the best option'));
+    expect(failure.message, contains('phương án tối ưu nhất'));
   });
 }

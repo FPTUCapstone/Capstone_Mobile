@@ -7,9 +7,13 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/features/payment/domain/entities/payment_link.dart';
 import 'package:trip_mate_mobile/features/payment/presentation/cubit/payment_cubit.dart';
 import 'package:trip_mate_mobile/features/payment/presentation/cubit/payment_state.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_bottom_sheet_scaffold.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_coastal_app_bar.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_section_card.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 String _formatMoney(int amount, String currency) {
@@ -163,62 +167,45 @@ final class _PaymentPageState extends State<PaymentPage>
     }
 
     if (!mounted) return;
-    await showModalBottomSheet<void>(
+    await showAppModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppSpacing.sm,
-          AppSpacing.lg,
-          AppSpacing.xl,
-        ),
-        child: Column(
+      title: 'Mở ứng dụng ngân hàng',
+      builder: (sheetContext) {
+        final c = sheetContext.tmColors;
+        return Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Mở ứng dụng ngân hàng',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            const Text(
+            Text(
               'TripMate không thu thập thông tin ngân hàng. Hãy mở ứng dụng ngân hàng của bạn, chọn Quét QR và quét mã VietQR trên màn hình này.',
-              style: TextStyle(fontSize: 14, color: Color(0xFF475569)),
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.45,
+                color: c.textSecondary,
+              ),
             ),
             const SizedBox(height: AppSpacing.lg),
             FilledButton(
               onPressed: () => Navigator.of(sheetContext).pop(),
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(48),
-                backgroundColor: AppColors.primary,
               ),
               child: const Text('Đã hiểu'),
             ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return Scaffold(
-      backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        title: const Text(
-          'Thanh Toán Điện Tử',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
-        ),
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        foregroundColor: AppColors.ink,
-        elevation: 0,
+      backgroundColor: c.canvas,
+      appBar: const AppCoastalAppBar(
+        title: 'Thanh Toán Điện Tử',
         centerTitle: true,
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, thickness: 1, color: AppColors.line),
-        ),
       ),
       body: BlocConsumer<PaymentCubit, PaymentState>(
         listener: (context, state) {
@@ -229,7 +216,7 @@ final class _PaymentPageState extends State<PaymentPage>
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.failure!.message),
-                backgroundColor: AppColors.error,
+                backgroundColor: context.tmColors.error,
               ),
             );
           }
@@ -243,15 +230,15 @@ final class _PaymentPageState extends State<PaymentPage>
         },
         builder: (context, state) {
           if (state.isLoading && state.paymentStatus == null) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(color: AppColors.primary),
-                  SizedBox(height: AppSpacing.md),
+                  CircularProgressIndicator(color: c.brandTeal),
+                  const SizedBox(height: AppSpacing.md),
                   Text(
                     'Đang kết nối cổng thanh toán…',
-                    style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+                    style: TextStyle(fontSize: 14, color: c.textSecondary),
                   ),
                 ],
               ),
@@ -366,40 +353,38 @@ final class _BookingSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.line),
-      ),
+    final c = context.tmColors;
+    return AppSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'MÃ ĐẶT TOUR',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF94A3B8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'MÃ ĐẶT TOUR',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                        color: c.textMuted,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    bookingCode,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F1B2D),
+                    const SizedBox(height: 2),
+                    Text(
+                      bookingCode,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: c.textPrimary,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -407,58 +392,41 @@ final class _BookingSummaryCard extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEF3C7),
-                  borderRadius: BorderRadius.circular(8),
+                  color: c.warningContainer,
+                  borderRadius: BorderRadius.circular(TripMateRadius.pill),
                 ),
-                child: const Text(
+                child: Text(
                   'Chờ thanh toán',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF92400E),
+                    color: c.warning,
                   ),
                 ),
               ),
             ],
           ),
-          const Divider(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Tổng thanh toán:',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF475569),
-                ),
-              ),
-              Text(
-                _formatMoney(amount, currency),
-                style: const TextStyle(
-                  fontSize: 18.5,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
-                ),
-              ),
-            ],
+          Divider(height: 24, color: c.borderSubtle),
+          AppKeyValueRow(
+            label: 'Tổng thanh toán:',
+            value: _formatMoney(amount, currency),
+            isPrice: true,
+            isProminent: true,
           ),
           if (expiresAt != null) ...[
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(
-                  Icons.timer_outlined,
-                  size: 14,
-                  color: Color(0xFFE02D4D),
-                ),
+                Icon(Icons.timer_outlined, size: 14, color: c.error),
                 const SizedBox(width: 4),
-                Text(
-                  'Hạn giữ chỗ: ${_formatDateTime(expiresAt!)}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFFE02D4D),
+                Flexible(
+                  child: Text(
+                    'Hạn giữ chỗ: ${_formatDateTime(expiresAt!)}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: c.error,
+                    ),
                   ),
                 ),
               ],
@@ -485,73 +453,37 @@ final class _MockGatewayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF99F6E4)),
-      ),
+    final c = context.tmColors;
+    return AppSectionCard(
+      title: 'Cổng thanh toán mô phỏng TripMate',
+      subtitle: 'Môi trường giả lập kiểm thử giao dịch',
+      icon: Icons.developer_mode,
+      borderColor: c.brandTeal.withValues(alpha: 0.35),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFCCFBF1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.developer_mode,
-                  color: Color(0xFF0F766E),
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'TripMate Mock Gateway',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 15,
-                      ),
-                    ),
-                    Text(
-                      'Môi trường giả lập kiểm thử giao dịch',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          const Text(
+          Text(
             'Chọn kết quả mô phỏng giao dịch:',
             style: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 13,
-              color: Color(0xFF334155),
+              color: c.textSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
           FilledButton.icon(
             onPressed: isLoading ? null : () => onSubmit('Success'),
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF059669),
+              backgroundColor: c.success,
+              foregroundColor: c.textOnBrand,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(TripMateRadius.sm),
               ),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
             icon: const Icon(Icons.check_circle_outline, size: 18),
             label: const Text(
-              'Thanh toán thành công (Success)',
+              'Thanh toán thành công',
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
@@ -559,15 +491,16 @@ final class _MockGatewayCard extends StatelessWidget {
           FilledButton.icon(
             onPressed: isLoading ? null : () => onSubmit('Cancelled'),
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFD97706),
+              backgroundColor: c.warning,
+              foregroundColor: c.textOnBrand,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(TripMateRadius.sm),
               ),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
             icon: const Icon(Icons.cancel_outlined, size: 18),
             label: const Text(
-              'Hủy thanh toán (Cancel)',
+              'Hủy thanh toán',
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
@@ -598,79 +531,49 @@ final class _PayOsGatewayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.line),
-      ),
+    final c = context.tmColors;
+    return AppSectionCard(
+      title: 'PayOS — Cổng thanh toán trực tuyến',
+      subtitle: 'VietQR quét mã thanh toán 30+ ngân hàng',
+      icon: Icons.qr_code_2,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE0F2FE),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.qr_code_2,
-                  color: Color(0xFF0369A1),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'PayOS — Cổng Thanh Toán Online',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 15,
-                      ),
-                    ),
-                    Text(
-                      'VietQR quét mã thanh toán 30+ ngân hàng',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
           if (qrCode != null && qrCode!.isNotEmpty) ...[
-            const Text(
+            Text(
               'Quét VietQR để thanh toán',
               textAlign: TextAlign.center,
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+                color: c.textPrimary,
+              ),
             ),
             const SizedBox(height: AppSpacing.sm),
             Center(
               child: Container(
                 padding: const EdgeInsets.all(12),
-                color: Colors.white,
+                decoration: BoxDecoration(
+                  // QR codes require a crisp white quiet-zone for camera contrast.
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(TripMateRadius.sm),
+                  border: Border.all(color: c.borderSubtle),
+                ),
                 child: QrImageView(data: qrCode!, size: 220),
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
-            const Text(
-              'Mở ứng dụng ngân hàng để quét mã. TripMate sẽ tự xác nhận khi PayOS gửi webhook.',
+            Text(
+              'Mở ứng dụng ngân hàng để quét mã. TripMate sẽ tự động xác nhận ngay khi thanh toán thành công.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              style: TextStyle(fontSize: 12, color: c.textSecondary),
             ),
             const SizedBox(height: AppSpacing.lg),
             FilledButton.icon(
               onPressed: isLoading ? null : onOpenBankApp,
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(TripMateRadius.sm),
                 ),
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
@@ -686,9 +589,8 @@ final class _PayOsGatewayCard extends StatelessWidget {
             FilledButton.icon(
               onPressed: isLoading || checkoutUrl.isEmpty ? null : onOpenUrl,
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(TripMateRadius.sm),
                 ),
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
@@ -702,10 +604,10 @@ final class _PayOsGatewayCard extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: isLoading ? null : onCancel,
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFFDC2626),
-              side: const BorderSide(color: Color(0xFFFCA5A5)),
+              foregroundColor: c.error,
+              side: BorderSide(color: c.error.withValues(alpha: 0.45)),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(TripMateRadius.sm),
               ),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
@@ -719,10 +621,8 @@ final class _PayOsGatewayCard extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: onGoHome,
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF334155),
-              side: const BorderSide(color: Color(0xFFCBD5E1)),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(TripMateRadius.sm),
               ),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
@@ -747,6 +647,7 @@ final class _PaidSuccessView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
@@ -755,29 +656,26 @@ final class _PaidSuccessView extends StatelessWidget {
           Container(
             height: 80,
             width: 80,
-            decoration: const BoxDecoration(
-              color: Color(0xFFD1FAE5),
+            decoration: BoxDecoration(
+              color: c.successContainer,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.check_circle_rounded,
-              color: Color(0xFF059669),
-              size: 48,
-            ),
+            child: Icon(Icons.check_circle_rounded, color: c.success, size: 48),
           ),
           const SizedBox(height: AppSpacing.md),
-          const Text(
+          Text(
             'Thanh Toán Thành Công!',
             style: TextStyle(
+              fontFamily: AppTypography.displayFont,
               fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF0F1B2D),
+              fontWeight: FontWeight.w800,
+              color: c.textPrimary,
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
             'Đơn đặt tour ${status.bookingCode} đã hoàn tất thanh toán.',
-            style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+            style: TextStyle(fontSize: 13.5, color: c.textSecondary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.xl),
@@ -785,9 +683,8 @@ final class _PaidSuccessView extends StatelessWidget {
             FilledButton.icon(
               onPressed: () => context.go(AppRoutes.bookingETicket(id)),
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(TripMateRadius.sm),
                 ),
                 minimumSize: const Size.fromHeight(50),
               ),
@@ -802,10 +699,10 @@ final class _PaidSuccessView extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: () => context.go(AppRoutes.tripHistoryPath()),
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primary,
-              side: const BorderSide(color: Color(0xFFCBD5E1)),
+              foregroundColor: c.brandTeal,
+              side: BorderSide(color: c.borderStrong),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(TripMateRadius.sm),
               ),
               minimumSize: const Size.fromHeight(50),
             ),
@@ -819,10 +716,8 @@ final class _PaidSuccessView extends StatelessWidget {
           OutlinedButton(
             onPressed: () => context.go(AppRoutes.home),
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF475569),
-              side: const BorderSide(color: Color(0xFFCBD5E1)),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(TripMateRadius.sm),
               ),
               minimumSize: const Size.fromHeight(50),
             ),
@@ -843,6 +738,7 @@ final class _ExpiredView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
@@ -851,38 +747,34 @@ final class _ExpiredView extends StatelessWidget {
           Container(
             height: 80,
             width: 80,
-            decoration: const BoxDecoration(
-              color: Color(0xFFFEE2E2),
+            decoration: BoxDecoration(
+              color: c.errorContainer,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.timer_off_outlined,
-              color: Color(0xFFDC2626),
-              size: 48,
-            ),
+            child: Icon(Icons.timer_off_outlined, color: c.error, size: 48),
           ),
           const SizedBox(height: AppSpacing.md),
-          const Text(
+          Text(
             'Đơn Tour Đã Hết Hạn',
             style: TextStyle(
+              fontFamily: AppTypography.displayFont,
               fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF0F1B2D),
+              fontWeight: FontWeight.w800,
+              color: c.textPrimary,
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
             'Thời gian giữ chỗ cho đơn ${status.bookingCode} đã kết thúc. Chỗ ngồi đã được giải phóng.',
-            style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+            style: TextStyle(fontSize: 13.5, color: c.textSecondary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.xl),
           FilledButton(
             onPressed: () => context.go(AppRoutes.tourSearch),
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(TripMateRadius.sm),
               ),
               minimumSize: const Size.fromHeight(50),
             ),
@@ -905,6 +797,7 @@ final class _CancelledView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
@@ -913,38 +806,34 @@ final class _CancelledView extends StatelessWidget {
           Container(
             height: 80,
             width: 80,
-            decoration: const BoxDecoration(
-              color: Color(0xFFFEF3C7),
+            decoration: BoxDecoration(
+              color: c.warningContainer,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.cancel_outlined,
-              color: Color(0xFFD97706),
-              size: 48,
-            ),
+            child: Icon(Icons.cancel_outlined, color: c.warning, size: 48),
           ),
           const SizedBox(height: AppSpacing.md),
-          const Text(
+          Text(
             'Giao Dịch Đã Hủy',
             style: TextStyle(
+              fontFamily: AppTypography.displayFont,
               fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF0F1B2D),
+              fontWeight: FontWeight.w800,
+              color: c.textPrimary,
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
             'Bạn đã hủy thao tác tại cổng thanh toán. Chỗ giữ cho đơn ${status.bookingCode} vẫn được bảo lưu đến ${_formatDateTime(status.paymentExpiresAt)}.',
-            style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+            style: TextStyle(fontSize: 13.5, color: c.textSecondary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.xl),
           FilledButton.icon(
             onPressed: onRetry,
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(TripMateRadius.sm),
               ),
               minimumSize: const Size.fromHeight(50),
             ),
@@ -958,15 +847,13 @@ final class _CancelledView extends StatelessWidget {
           OutlinedButton(
             onPressed: () => context.go(AppRoutes.home),
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF475569),
-              side: const BorderSide(color: Color(0xFFCBD5E1)),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(TripMateRadius.sm),
               ),
               minimumSize: const Size.fromHeight(50),
             ),
             child: const Text(
-              'Về trang chủ',
+              'Về Trang Chủ',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
           ),

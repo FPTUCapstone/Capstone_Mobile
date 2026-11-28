@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
+import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/core/network/network_info.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
@@ -9,6 +12,11 @@ import 'package:trip_mate_mobile/features/traveler/domain/repositories/offline_t
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/live_offline_package_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/offline_confirmation_dialog.dart';
 import 'package:trip_mate_mobile/features/traveler/resources/offline_ui_text.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_coastal_app_bar.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_section_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
 class LiveOfflinePackagePage extends StatelessWidget {
   const LiveOfflinePackagePage({
@@ -55,6 +63,7 @@ class _LiveOfflinePackageView extends StatelessWidget {
       ),
     ),
     builder: (context, state) {
+      final c = context.tmColors;
       final cubit = context.read<LiveOfflinePackageCubit>();
       final manifest = state.manifest;
       final progress = state.progress;
@@ -65,6 +74,7 @@ class _LiveOfflinePackageView extends StatelessWidget {
           manifest != null &&
           !manifest.locked &&
           manifest.mapResourcesAvailable;
+
       return PopScope(
         canPop: !state.isDownloading,
         onPopInvokedWithResult: (popped, _) async {
@@ -87,172 +97,339 @@ class _LiveOfflinePackageView extends StatelessWidget {
           }
         },
         child: Scaffold(
-          appBar: AppBar(title: const Text(OfflineUiText.accessTitle)),
+          backgroundColor: c.canvas,
+          appBar: const AppCoastalAppBar(title: OfflineUiText.accessTitle),
           body: state.isLoading && manifest == null
-              ? const Center(child: CircularProgressIndicator())
+              ? Center(child: CircularProgressIndicator(color: c.brandTeal))
               : SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(AppSpacing.md),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        manifest?.title ?? title ?? 'Lịch trình #$itineraryId',
-                        style: Theme.of(context).textTheme.headlineSmall,
+                      AppCard(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: c.tealSoftContainer,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    manifest != null
+                                        ? Icons.offline_pin_outlined
+                                        : Icons.cloud_download_outlined,
+                                    color: c.brandTeal,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        manifest?.title ??
+                                            title ??
+                                            'Lịch trình #$itineraryId',
+                                        style: TextStyle(
+                                          fontFamily: AppTypography.displayFont,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w700,
+                                          color: c.textPrimary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        OfflineUiText.sizeLimit,
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          color: c.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (manifest != null) ...[
+                                  const SizedBox(width: AppSpacing.xs),
+                                  StatusBadge(
+                                    label: manifest.locked
+                                        ? 'Đã khóa'
+                                        : !manifest.mapResourcesAvailable
+                                        ? 'Thiếu bản đồ'
+                                        : manifest.superseded
+                                        ? 'Có bản mới'
+                                        : 'Sẵn sàng',
+                                    type:
+                                        manifest.locked ||
+                                            !manifest.mapResourcesAvailable
+                                        ? StatusBadgeType.error
+                                        : manifest.superseded
+                                        ? StatusBadgeType.warning
+                                        : StatusBadgeType.success,
+                                  ),
+                                ],
+                              ],
+                            ),
+                            if (manifest != null) ...[
+                              Divider(height: 22, color: c.borderSubtle),
+                              Text(
+                                'Phiên bản ${manifest.version} · ${OfflineUiText.bytes(manifest.totalBytes)}',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: c.brandTeal,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Đã tải: ${OfflineUiText.date(manifest.downloadedAtUtc)}',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  color: c.textSecondary,
+                                ),
+                              ),
+                              if (manifest.snapshot.itinerary.validFrom
+                                  case final from?)
+                                Text(
+                                  'Từ ${OfflineUiText.date(from)}',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: c.textSecondary,
+                                  ),
+                                ),
+                              if (manifest.snapshot.itinerary.validTo
+                                  case final to?)
+                                Text(
+                                  'Đến ${OfflineUiText.date(to)}',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: c.textSecondary,
+                                  ),
+                                ),
+                              const SizedBox(height: AppSpacing.sm),
+                              if (manifest.locked)
+                                const AppAlert(
+                                  type: AppAlertType.error,
+                                  message: OfflineUiText.locked,
+                                )
+                              else if (!manifest.mapResourcesAvailable)
+                                const AppAlert(
+                                  type: AppAlertType.error,
+                                  message:
+                                      'Dữ liệu bản đồ bị thiếu hoặc hỏng. Hãy tải lại gói trước khi mở ngoại tuyến.',
+                                )
+                              else
+                                AppAlert(
+                                  type: manifest.superseded
+                                      ? AppAlertType.warning
+                                      : AppAlertType.success,
+                                  message: manifest.superseded
+                                      ? OfflineUiText.superseded
+                                      : OfflineUiText.ready,
+                                ),
+                            ],
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      const Text(OfflineUiText.sizeLimit),
-                      if (offlineReadOnly)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: Text(
-                            'Đăng nhập lại để tải hoặc cập nhật. Các gói đã tải vẫn có thể đọc offline.',
-                          ),
+                      if (offlineReadOnly) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        const AppAlert(
+                          type: AppAlertType.info,
+                          message:
+                              'Đăng nhập lại để tải hoặc cập nhật. Các gói đã tải vẫn có thể đọc ngoại tuyến.',
                         ),
-                      if (manifest != null) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          'Phiên bản ${manifest.version} · ${OfflineUiText.bytes(manifest.totalBytes)}',
-                        ),
-                        Text(
-                          'Đã tải: ${OfflineUiText.date(manifest.downloadedAtUtc)}',
-                        ),
-                        if (manifest.snapshot.itinerary.validFrom
-                            case final from?)
-                          Text('Từ ${OfflineUiText.date(from)}'),
-                        if (manifest.snapshot.itinerary.validTo case final to?)
-                          Text('Đến ${OfflineUiText.date(to)}'),
-                        const SizedBox(height: 12),
-                        if (manifest.locked)
-                          const Text(OfflineUiText.locked)
-                        else if (!manifest.mapResourcesAvailable)
-                          const Text(
-                            'Dữ liệu bản đồ bị thiếu hoặc hỏng. Hãy tải lại gói trước khi mở offline.',
-                          )
-                        else
-                          Text(
-                            manifest.superseded
-                                ? OfflineUiText.superseded
-                                : OfflineUiText.ready,
-                          ),
                       ],
-                      const SizedBox(height: 16),
-                      if (state.error != null)
-                        Card(
-                          color: Theme.of(context).colorScheme.errorContainer,
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Text(state.error!),
-                          ),
+                      if (state.error != null) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        AppAlert(
+                          type: AppAlertType.error,
+                          message: state.error!,
                         ),
+                      ],
+                      const SizedBox(height: AppSpacing.md),
                       if (state.isDownloading) ...[
-                        Text(_phase(progress?.phase)),
-                        const SizedBox(height: 8),
-                        _component(
-                          context,
-                          'Lịch trình',
-                          progress?.phase != null &&
-                              progress!.phase != OfflineTransferPhase.preparing,
-                        ),
-                        _component(
-                          context,
-                          'Thông tin điểm đến',
-                          progress?.phase != null &&
-                              progress!.phase != OfflineTransferPhase.preparing,
-                        ),
-                        _component(
-                          context,
-                          'Bản đồ và tuyến đường',
-                          progress?.phase == OfflineTransferPhase.verifying ||
-                              progress?.phase ==
-                                  OfflineTransferPhase.publishing,
-                        ),
-                        const SizedBox(height: 8),
-                        LinearProgressIndicator(
-                          value: progress?.fraction.clamp(0.0, 1.0).toDouble(),
-                          semanticsLabel: 'Tiến độ tải dữ liệu offline',
-                        ),
-                        const SizedBox(height: 8),
-                        if (progress?.estimatedBytes case final size?)
-                          Text('Ước tính: ${OfflineUiText.bytes(size)}')
-                        else
-                          const Text(OfflineUiText.estimateUnknown),
-                        if (progress != null && progress.completedBytes > 0)
-                          Text(
-                            'Đã tải: ${OfflineUiText.bytes(progress.completedBytes)}',
-                          ),
-                        if (manifest != null)
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            child: Text(OfflineUiText.updateHint),
-                          ),
-                        OutlinedButton.icon(
-                          onPressed:
-                              state.isCancelling ||
-                                  progress?.phase ==
-                                      OfflineTransferPhase.publishing
-                              ? null
-                              : () async {
-                                  if (await confirmOfflineAction(
-                                        context,
-                                        title: 'Hủy tải dữ liệu?',
-                                        description:
-                                            'Gói đang tải sẽ bị hủy. Bản đã tải hoàn tất trước đó vẫn được giữ.',
-                                        action: OfflineUiText.cancel,
-                                      ) &&
-                                      context.mounted) {
-                                    await cubit.cancel();
-                                  }
-                                },
-                          icon: const Icon(Icons.close),
-                          label: Text(
-                            state.isCancelling
-                                ? 'Đang hủy…'
-                                : OfflineUiText.cancel,
+                        AppSectionCard(
+                          title: _phase(progress?.phase),
+                          icon: Icons.downloading_rounded,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _component(
+                                context,
+                                'Lịch trình',
+                                progress?.phase != null &&
+                                    progress!.phase !=
+                                        OfflineTransferPhase.preparing,
+                              ),
+                              _component(
+                                context,
+                                'Thông tin điểm đến',
+                                progress?.phase != null &&
+                                    progress!.phase !=
+                                        OfflineTransferPhase.preparing,
+                              ),
+                              _component(
+                                context,
+                                'Bản đồ và tuyến đường',
+                                progress?.phase ==
+                                        OfflineTransferPhase.verifying ||
+                                    progress?.phase ==
+                                        OfflineTransferPhase.publishing,
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(999),
+                                child: LinearProgressIndicator(
+                                  minHeight: 7,
+                                  backgroundColor: c.surfaceElevated,
+                                  color: c.brandTeal,
+                                  value: progress?.fraction
+                                      .clamp(0.0, 1.0)
+                                      .toDouble(),
+                                  semanticsLabel:
+                                      'Tiến độ tải dữ liệu ngoại tuyến',
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+                              if (progress?.estimatedBytes case final size?)
+                                Text(
+                                  'Ước tính: ${OfflineUiText.bytes(size)}',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: c.textSecondary,
+                                  ),
+                                )
+                              else
+                                Text(
+                                  OfflineUiText.estimateUnknown,
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: c.textSecondary,
+                                  ),
+                                ),
+                              if (progress != null &&
+                                  progress.completedBytes > 0)
+                                Text(
+                                  'Đã tải: ${OfflineUiText.bytes(progress.completedBytes)}',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: c.brandTeal,
+                                  ),
+                                ),
+                              if (manifest != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: AppSpacing.sm,
+                                  ),
+                                  child: Text(
+                                    OfflineUiText.updateHint,
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      color: c.textSecondary,
+                                    ),
+                                  ),
+                                ),
+                              const SizedBox(height: AppSpacing.md),
+                              OutlinedButton.icon(
+                                onPressed:
+                                    state.isCancelling ||
+                                        progress?.phase ==
+                                            OfflineTransferPhase.publishing
+                                    ? null
+                                    : () async {
+                                        if (await confirmOfflineAction(
+                                              context,
+                                              title: 'Hủy tải dữ liệu?',
+                                              description:
+                                                  'Gói đang tải sẽ bị hủy. Bản đã tải hoàn tất trước đó vẫn được giữ.',
+                                              action: OfflineUiText.cancel,
+                                            ) &&
+                                            context.mounted) {
+                                          await cubit.cancel();
+                                        }
+                                      },
+                                icon: const Icon(Icons.close),
+                                label: Text(
+                                  state.isCancelling
+                                      ? 'Đang hủy…'
+                                      : OfflineUiText.cancel,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ] else if (manifest?.locked != true) ...[
-                        if (manifest == null)
-                          const Text(OfflineUiText.estimateUnknown),
-                        if (manifest != null)
-                          const Text(OfflineUiText.updateHint),
-                        const SizedBox(height: 12),
-                        FilledButton.icon(
-                          onPressed: busy || offlineReadOnly
-                              ? null
-                              : () async {
-                                  if (!await confirmOfflineAction(
-                                    context,
-                                    title: manifest == null
-                                        ? 'Tải lịch trình để dùng offline?'
-                                        : 'Tải lại phiên bản mới nhất?',
-                                    description: manifest == null
-                                        ? 'Lưu lịch trình, điểm đến, tuyến đường và bản đồ trên điện thoại. Giới hạn mỗi gói là 150 MB.'
-                                        : OfflineUiText.updateHint,
-                                    action: manifest == null
-                                        ? 'Tải xuống'
-                                        : OfflineUiText.update,
-                                  )) {
-                                    return;
-                                  }
-                                  if (context.mounted) await cubit.download();
-                                },
-                          icon: const Icon(Icons.download_outlined),
-                          label: Text(
-                            manifest == null
-                                ? OfflineUiText.download
-                                : OfflineUiText.update,
+                        AppSectionCard(
+                          title: manifest == null
+                              ? 'Tải gói ngoại tuyến'
+                              : 'Cập nhật dữ liệu',
+                          icon: Icons.download_for_offline_outlined,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                manifest == null
+                                    ? OfflineUiText.estimateUnknown
+                                    : OfflineUiText.updateHint,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: c.textSecondary,
+                                  height: 1.4,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              FilledButton.icon(
+                                onPressed: busy || offlineReadOnly
+                                    ? null
+                                    : () async {
+                                        if (!await confirmOfflineAction(
+                                          context,
+                                          title: manifest == null
+                                              ? 'Tải lịch trình để dùng ngoại tuyến?'
+                                              : 'Tải lại phiên bản mới nhất?',
+                                          description: manifest == null
+                                              ? 'Lưu lịch trình, điểm đến, tuyến đường và bản đồ trên điện thoại. Giới hạn mỗi gói là 150 MB.'
+                                              : OfflineUiText.updateHint,
+                                          action: manifest == null
+                                              ? 'Tải xuống'
+                                              : OfflineUiText.update,
+                                        )) {
+                                          return;
+                                        }
+                                        if (context.mounted) {
+                                          await cubit.download();
+                                        }
+                                      },
+                                icon: const Icon(Icons.download_outlined),
+                                label: Text(
+                                  manifest == null
+                                      ? OfflineUiText.download
+                                      : OfflineUiText.update,
+                                ),
+                              ),
+                              if (manifest != null) ...[
+                                const SizedBox(height: AppSpacing.xs),
+                                TextButton(
+                                  onPressed: busy || offlineReadOnly
+                                      ? null
+                                      : cubit.checkForUpdate,
+                                  child: const Text('Kiểm tra phiên bản mới'),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
-                        if (manifest != null)
-                          TextButton(
-                            onPressed: busy || offlineReadOnly
-                                ? null
-                                : cubit.checkForUpdate,
-                            child: const Text('Kiểm tra phiên bản mới'),
-                          ),
                       ],
                       if (readable) ...[
-                        const SizedBox(height: 12),
+                        const SizedBox(height: AppSpacing.md),
                         FilledButton.tonalIcon(
                           onPressed: () => context.push(
                             AppRoutes.offlineItinerary(itineraryId),
@@ -260,6 +437,7 @@ class _LiveOfflinePackageView extends StatelessWidget {
                           icon: const Icon(Icons.list_alt),
                           label: const Text(OfflineUiText.open),
                         ),
+                        const SizedBox(height: AppSpacing.xs),
                         OutlinedButton.icon(
                           onPressed: () =>
                               context.push(AppRoutes.offlineMap(itineraryId)),
@@ -268,7 +446,7 @@ class _LiveOfflinePackageView extends StatelessWidget {
                         ),
                       ],
                       if (manifest != null && !state.isDownloading) ...[
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.md),
                         OutlinedButton.icon(
                           onPressed: busy
                               ? null
@@ -284,15 +462,23 @@ class _LiveOfflinePackageView extends StatelessWidget {
                                     await cubit.remove();
                                   }
                                 },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: c.error,
+                            side: BorderSide(
+                              color: c.error.withValues(alpha: 0.45),
+                            ),
+                          ),
                           icon: const Icon(Icons.delete_outline),
                           label: const Text(OfflineUiText.remove),
                         ),
                       ],
-                      if (state.error != null && !busy)
+                      if (state.error != null && !busy) ...[
+                        const SizedBox(height: AppSpacing.xs),
                         TextButton(
                           onPressed: cubit.load,
                           child: const Text('Thử lại'),
                         ),
+                      ],
                     ],
                   ),
                 ),
@@ -311,20 +497,30 @@ class _LiveOfflinePackageView extends StatelessWidget {
     OfflineTransferPhase.publishing => 'Đang lưu gói dữ liệu…',
   };
 
-  static Widget _component(BuildContext context, String label, bool complete) =>
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          children: [
-            Icon(
-              complete ? Icons.check_circle_outline : Icons.more_horiz,
-              size: 20,
+  static Widget _component(BuildContext context, String label, bool complete) {
+    final c = context.tmColors;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(
+            complete ? Icons.check_circle_outline : Icons.more_horiz,
+            size: 20,
+            color: complete ? c.success : c.textMuted,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '$label: ${complete ? 'đã tải' : 'đang chờ'}',
+              style: TextStyle(
+                fontSize: 13,
+                color: complete ? c.textPrimary : c.textSecondary,
+                fontWeight: complete ? FontWeight.w600 : FontWeight.w400,
+              ),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text('$label: ${complete ? 'đã tải' : 'đang chờ'}'),
-            ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
+  }
 }

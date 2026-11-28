@@ -12,6 +12,7 @@ import 'package:trip_mate_mobile/features/traveler/utils/qr_invitation_parser.da
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_section_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
 
 /// Screen for UC-23: Join Shared Group Trip (Screen #62).
@@ -101,6 +102,7 @@ class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return BlocConsumer<JoinTravelGroupCubit, JoinTravelGroupState>(
       listener: (context, state) {
         switch (state.status) {
@@ -113,9 +115,9 @@ class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
                 SnackBar(
                   content: Text(
                     state.errorMessage ??
-                        'You are already a member of this travel group.',
+                        'Bạn đã là thành viên của nhóm du lịch này.',
                   ),
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: c.brandTeal,
                   duration: const Duration(seconds: 3),
                 ),
               );
@@ -134,8 +136,8 @@ class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
             if (group != null) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('You have joined "${group.name}"!'),
-                  backgroundColor: AppColors.success,
+                  content: Text('Bạn đã tham gia "${group.name}"!'),
+                  backgroundColor: c.success,
                   duration: const Duration(seconds: 3),
                 ),
               );
@@ -157,119 +159,125 @@ class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
         final isSubmitting = state.isSubmitting;
 
         return AppPageScaffold(
-          title: 'Join Shared Group Trip',
+          title: 'Tham gia nhóm du lịch',
           actions: [
             if (widget.isDemoMode)
               IconButton(
                 key: const Key('demo_controls_toggle_button'),
                 icon: Icon(
                   _showDemoPanel ? Icons.bug_report : Icons.bug_report_outlined,
-                  color: _showDemoPanel ? Colors.amber.shade800 : null,
+                  color: _showDemoPanel ? c.warning : null,
                 ),
-                tooltip: 'Demo controls',
+                tooltip: 'Bảng điều khiển demo',
                 onPressed: () {
                   setState(() => _showDemoPanel = !_showDemoPanel);
                 },
               ),
           ],
           content: [
-            if (widget.isDemoMode && _showDemoPanel) _buildDemoControlsPanel(),
+            if (widget.isDemoMode && _showDemoPanel)
+              _buildDemoControlsPanel(context),
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: c.tealSoftContainer,
+                    borderRadius: BorderRadius.circular(TripMateRadius.md),
+                  ),
+                  child: Icon(
+                    Icons.groups_rounded,
+                    size: 26,
+                    color: c.brandTeal,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text(
+                    'Tham gia nhóm du lịch bằng mã mời 8 ký tự hoặc quét mã QR lời mời.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: c.textSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: AppSpacing.md),
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: const BoxDecoration(
-                  color: AppColors.primarySoft,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.groups_rounded,
-                  size: 56,
-                  color: AppColors.primary,
-                ),
+            AppSectionCard(
+              title: 'Nhập mã mời',
+              icon: Icons.vpn_key_outlined,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AppTextField(
+                    label: 'Mã mời',
+                    controller: _codeController,
+                    enabled: !isSubmitting,
+                    helperText: 'Nhập mã gồm 8 ký tự (VD: HOIAN8KP)',
+                    keyboardType: TextInputType.text,
+                    textCapitalization: TextCapitalization.characters,
+                    inputFormatters: [
+                      LengthLimitingTextInputFormatter(8),
+                      FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+                      _UpperCaseTextFormatter(),
+                    ],
+                    suffix: IconButton(
+                      tooltip: 'Dán từ bộ nhớ tạm',
+                      icon: const Icon(Icons.content_paste_rounded, size: 20),
+                      onPressed: isSubmitting
+                          ? null
+                          : _handlePasteFromClipboard,
+                    ),
+                    textInputAction: TextInputAction.done,
+                  ),
+                  if (_inlineError != null) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    AppAlert(message: _inlineError!, type: AppAlertType.error),
+                  ],
+                  const SizedBox(height: AppSpacing.md),
+                  AppButton(
+                    label: 'Tham gia nhóm',
+                    isLoading: isSubmitting,
+                    onPressed: isSubmitting ? null : _handleManualSubmit,
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Join your travel group using an 8-character invitation code or scan a QR invitation.',
-              textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.ink),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-
-            // Manual code input
-            AppTextField(
-              label: 'Invitation code',
-              controller: _codeController,
-              enabled: !isSubmitting,
-              helperText: 'Enter 8-character code (e.g. HOIAN8KP)',
-              keyboardType: TextInputType.text,
-              textCapitalization: TextCapitalization.characters,
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(8),
-                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
-                _UpperCaseTextFormatter(),
-              ],
-              suffix: IconButton(
-                tooltip: 'Paste from clipboard',
-                icon: const Icon(Icons.content_paste_rounded, size: 20),
-                onPressed: isSubmitting ? null : _handlePasteFromClipboard,
-              ),
-              textInputAction: TextInputAction.done,
-            ),
-            if (_inlineError != null) ...[
-              const SizedBox(height: AppSpacing.sm),
-              AppAlert(message: _inlineError!, type: AppAlertType.error),
-            ],
-            const SizedBox(height: AppSpacing.md),
-
-            // Primary Join Button
-            AppButton(
-              label: 'Join Group',
-              isLoading: isSubmitting,
-              onPressed: isSubmitting ? null : _handleManualSubmit,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-
-            // Centered "or" separator
             Row(
               children: [
-                const Expanded(child: Divider()),
+                Expanded(child: Divider(color: c.borderSubtle)),
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.md,
                   ),
                   child: Text(
-                    'or',
+                    'hoặc',
                     style: Theme.of(
                       context,
-                    ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                    ).textTheme.bodySmall?.copyWith(color: c.textMuted),
                   ),
                 ),
-                const Expanded(child: Divider()),
+                Expanded(child: Divider(color: c.borderSubtle)),
               ],
             ),
-            const SizedBox(height: AppSpacing.lg),
-
-            // Secondary Scan QR Action Card
+            const SizedBox(height: AppSpacing.sm),
             OutlinedButton.icon(
               onPressed: isSubmitting || _isScanning ? null : _handleScanQr,
               icon: const Icon(Icons.qr_code_scanner_rounded),
-              label: const Text('Scan QR Invitation'),
+              label: const Text('Quét mã QR lời mời'),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                 side: BorderSide(
                   color: isSubmitting || _isScanning
-                      ? AppColors.line
-                      : AppColors.primary,
+                      ? c.borderSubtle
+                      : c.brandTeal,
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
-
-            // Cancel Button
+            const SizedBox(height: AppSpacing.xs),
             TextButton(
               key: const Key('cancel_button'),
               onPressed: isSubmitting
@@ -281,7 +289,7 @@ class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
                         context.go(AppRoutes.traveler);
                       }
                     },
-              child: const Text('Cancel'),
+              child: const Text('Hủy'),
             ),
           ],
         );
@@ -289,34 +297,31 @@ class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
     );
   }
 
-  Widget _buildDemoControlsPanel() {
+  Widget _buildDemoControlsPanel(BuildContext context) {
+    final c = context.tmColors;
     return Container(
       key: const Key('demo_controls_panel'),
       padding: const EdgeInsets.all(AppSpacing.md),
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       decoration: BoxDecoration(
-        color: Colors.amber.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.amber.shade300),
+        color: c.warningContainer,
+        borderRadius: BorderRadius.circular(TripMateRadius.lg),
+        border: Border.all(color: c.warning.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
-                Icons.build_circle_outlined,
-                color: Colors.amber.shade800,
-                size: 20,
-              ),
+              Icon(Icons.build_circle_outlined, color: c.warning, size: 20),
               const SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: Text(
-                  'DEMO_ONLY Test Controls',
+                  'Điều khiển thử nghiệm (Demo)',
                   style: TextStyle(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
                     fontSize: 13,
-                    color: Colors.amber.shade900,
+                    color: c.warning,
                   ),
                 ),
               ),
@@ -328,28 +333,28 @@ class _JoinTravelGroupPageState extends State<JoinTravelGroupPage> {
             runSpacing: AppSpacing.xs,
             children: [
               ActionChip(
-                label: const Text('Simulate Valid (HOIAN8KP)'),
+                label: const Text('Giả lập mã hợp lệ (HOIAN8KP)'),
                 onPressed: () {
                   _codeController.text = 'HOIAN8KP';
                   setState(() => _inlineError = null);
                 },
               ),
               ActionChip(
-                label: const Text('Simulate Expired (EXPIRED8)'),
+                label: const Text('Giả lập mã hết hạn (EXPIRED8)'),
                 onPressed: () {
                   _codeController.text = 'EXPIRED8';
                   setState(() => _inlineError = null);
                 },
               ),
               ActionChip(
-                label: const Text('Simulate Already Member (ALREADY8)'),
+                label: const Text('Giả lập đã là thành viên (ALREADY8)'),
                 onPressed: () {
                   _codeController.text = 'ALREADY8';
                   setState(() => _inlineError = null);
                 },
               ),
               ActionChip(
-                label: const Text('Simulate Server Error (SERVER12)'),
+                label: const Text('Giả lập lỗi máy chủ (SERVER12)'),
                 onPressed: () {
                   _codeController.text = 'SERVER12';
                   setState(() => _inlineError = null);

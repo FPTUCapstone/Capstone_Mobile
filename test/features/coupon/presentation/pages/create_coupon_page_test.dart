@@ -28,23 +28,23 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Code'),
+      find.widgetWithText(TextFormField, 'Mã ưu đãi'),
       'TRIP10',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Discount (%)'),
+      find.widgetWithText(TextFormField, 'Mức giảm (%)'),
       '10',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Maximum discount (VND)'),
+      find.widgetWithText(TextFormField, 'Mức giảm tối đa (VND)'),
       '100000',
     );
     await tester.tap(find.byType(CheckboxListTile));
     await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, 'Create coupon'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Tạo mã giảm giá'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Create another'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Tạo mã khác'));
     await tester.pumpAndSettle();
 
     expect(
@@ -64,37 +64,37 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Code'),
+        find.widgetWithText(TextFormField, 'Mã ưu đãi'),
         'TRIP10',
       );
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Discount (%)'),
+        find.widgetWithText(TextFormField, 'Mức giảm (%)'),
         '10',
       );
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Maximum discount (VND)'),
+        find.widgetWithText(TextFormField, 'Mức giảm tối đa (VND)'),
         '100000',
       );
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Minimum order (VND)'),
+        find.widgetWithText(TextFormField, 'Đơn hàng tối thiểu (VND)'),
         '200000',
       );
-      await tester.tap(find.text('Optional usage limits'));
+      await tester.tap(find.text('Giới hạn lượt sử dụng (tùy chọn)'));
       await tester.pumpAndSettle();
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Total redemptions'),
+        find.widgetWithText(TextFormField, 'Tổng số lượt dùng'),
         '10',
       );
       await tester.tap(find.byType(CheckboxListTile));
-      await tester.tap(find.widgetWithText(FilledButton, 'Create coupon'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Tạo mã giảm giá'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Create another'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Tạo mã khác'));
       await tester.pumpAndSettle();
 
       expect(
         tester
             .widget<TextFormField>(
-              find.widgetWithText(TextFormField, 'Minimum order (VND)'),
+              find.widgetWithText(TextFormField, 'Đơn hàng tối thiểu (VND)'),
             )
             .controller!
             .text,
@@ -103,7 +103,7 @@ void main() {
       expect(
         tester
             .widget<TextFormField>(
-              find.widgetWithText(TextFormField, 'Total redemptions'),
+              find.widgetWithText(TextFormField, 'Tổng số lượt dùng'),
             )
             .controller!
             .text,
@@ -126,34 +126,32 @@ void main() {
     await tester.pumpWidget(
       page(
         _CouponRepository(
-          createFailure: const ConflictFailure(
-            'This coupon code already exists.',
-          ),
+          createFailure: const ConflictFailure('Mã giảm giá này đã tồn tại.'),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Code'),
+      find.widgetWithText(TextFormField, 'Mã ưu đãi'),
       'TRIP10',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Discount (%)'),
+      find.widgetWithText(TextFormField, 'Mức giảm (%)'),
       '10',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Maximum discount (VND)'),
+      find.widgetWithText(TextFormField, 'Mức giảm tối đa (VND)'),
       '100000',
     );
     await tester.tap(find.byType(CheckboxListTile));
-    await tester.tap(find.widgetWithText(FilledButton, 'Create coupon'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Tạo mã giảm giá'));
     await tester.pumpAndSettle();
 
-    expect(find.text('This coupon code already exists.'), findsOneWidget);
+    expect(find.text('Mã giảm giá này đã tồn tại.'), findsOneWidget);
     expect(find.byType(CheckboxListTile), findsOneWidget);
     expect(
-      find.textContaining('could not load your approved tours'),
+      find.textContaining('Không thể tải danh sách tour đã duyệt'),
       findsNothing,
     );
   });
@@ -169,16 +167,16 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Discount (%)'),
+      find.widgetWithText(TextFormField, 'Mức giảm (%)'),
       '15',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Maximum discount (VND)'),
+      find.widgetWithText(TextFormField, 'Mức giảm tối đa (VND)'),
       '100000',
     );
     await tester.pump();
 
-    expect(find.textContaining('15% off, up to ₫100,000'), findsOneWidget);
+    expect(find.textContaining('Giảm 15%, tối đa ₫100,000'), findsOneWidget);
   });
 
   testWidgets('offers a retry action when eligible tours cannot be loaded', (
@@ -204,7 +202,7 @@ void main() {
 
     expect(cubit.state.status, CreateCouponStatus.tourLoadFailure);
 
-    expect(find.text('Try again'), findsOneWidget);
+    expect(find.text('Thử lại'), findsOneWidget);
   });
 }
 

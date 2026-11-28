@@ -163,7 +163,7 @@ void main() {
       ).toEntity().itineraryDays.single;
 
       expect(day.dayNumber, 1);
-      expect(day.title, 'Day 1');
+      expect(day.title, 'Ngày 1');
       expect(day.stops.map((stop) => stop.poiName), [
         'Marble Mountains',
         'Dragon Bridge',
@@ -560,4 +560,30 @@ void main() {
       );
     });
   });
+
+  test(
+    'parses deposit terms, highlights, and traveller requirements when present',
+    () {
+      final entity = TourDetailModel.fromJson(
+        _payload(
+          tweak: (json) => json
+            ..['highlights'] = 'Sunset cruise'
+            ..['travellerRequirements'] = '- Sports shoes\n- ID card / Passport'
+            ..['allowDeposit'] = true
+            ..['depositPercent'] = 30
+            ..['balanceDueDaysBeforeDeparture'] = 7,
+        ),
+      ).toEntity();
+
+      expect(entity.highlights, 'Sunset cruise');
+      expect(entity.travellerRequirements, [
+        'Sports shoes',
+        'ID card / Passport',
+      ]);
+      expect(entity.allowDeposit, isTrue);
+      expect(entity.depositPercent, 30);
+      expect(entity.balanceDueDaysBeforeDeparture, 7);
+      expect(entity.hasDepositPolicy, isTrue);
+    },
+  );
 }

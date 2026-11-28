@@ -47,20 +47,21 @@ final class GroupLocationSharingCubit extends Cubit<GroupLocationSharingState> {
   final SecureStorageService? _secureStorage;
 
   static const String pendingBeIntegrationMessage =
-      'Location sharing configuration is pending server integration. '
-      'Settings cannot be updated at this time.';
+      'Cấu hình chia sẻ vị trí đang chờ tích hợp máy chủ. '
+      'Hiện chưa thể cập nhật cài đặt.';
 
   static const String inactiveMemberMessage =
-      'Only active members of this travel group can configure location sharing.';
+      'Chỉ thành viên đang hoạt động của nhóm du lịch này mới có thể cấu hình chia sẻ vị trí.';
 
   static const String permissionRequiredMessage =
-      'Location permission is required for real-time navigation and trip tracking. '
-      'Please enable it in Settings.';
+      'Cần cấp quyền vị trí để dẫn đường và theo dõi hành trình theo thời gian thực. '
+      'Vui lòng bật trong Cài đặt.';
 
   static const String sharingEnabledNotice =
-      'Live location sharing is now active with group members.';
+      'Đã bật chia sẻ vị trí trực tiếp với thành viên nhóm.';
 
-  static const String sharingDisabledNotice = 'Live location sharing disabled.';
+  static const String sharingDisabledNotice =
+      'Đã tắt chia sẻ vị trí trực tiếp.';
 
   DeviceLocationService get _effectiveLocationService {
     if (_locationService != null) return _locationService;

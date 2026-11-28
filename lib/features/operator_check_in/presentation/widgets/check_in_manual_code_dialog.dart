@@ -47,7 +47,7 @@ class _CheckInManualCodeDialogState extends State<CheckInManualCodeDialog> {
           Icon(Icons.edit_note_rounded, color: AppColors.primary),
           SizedBox(width: AppSpacing.sm),
           Text(
-            'Manual Check-in',
+            'Điểm danh thủ công',
             style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
           ),
         ],
@@ -59,17 +59,17 @@ class _CheckInManualCodeDialogState extends State<CheckInManualCodeDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'Enter the traveler\'s booking code (e.g. BK-20261030-001) or ticket code (TK-0000000001):',
+              'Nhập mã đơn đặt tour (ví dụ: BK-20261030-001) hoặc mã vé (TK-0000000001):',
               style: TextStyle(fontSize: 13, color: AppColors.ink),
             ),
             const SizedBox(height: AppSpacing.md),
             AppTextField(
-              label: 'Booking or Ticket Code',
+              label: 'Mã đơn hoặc mã vé',
               controller: _controller,
               textCapitalization: TextCapitalization.characters,
               validator: (val) {
                 if (val == null || val.trim().isEmpty) {
-                  return 'Please enter a booking or ticket code';
+                  return 'Vui lòng nhập mã đơn đặt tour hoặc mã vé';
                 }
                 return null;
               },
@@ -80,9 +80,9 @@ class _CheckInManualCodeDialogState extends State<CheckInManualCodeDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: const Text('Hủy'),
         ),
-        AppButton(label: 'Check In', onPressed: _submit, minimumHeight: 40),
+        AppButton(label: 'Điểm danh', onPressed: _submit, minimumHeight: 40),
       ],
     );
   }

@@ -62,24 +62,24 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await pumpPage(tester);
 
-    expect(find.text('1. Account'), findsOneWidget);
-    expect(find.text('Company name'), findsNothing);
-    expect(find.text('Choose business licence'), findsNothing);
+    expect(find.text('1. Tài khoản'), findsOneWidget);
+    expect(find.text('Tên doanh nghiệp'), findsNothing);
+    expect(find.text('Chọn giấy phép kinh doanh'), findsNothing);
     expect(find.text('Resend email for an existing account'), findsNothing);
-    expect(find.text("I've verified my email"), findsNothing);
-    await enter(tester, 'Email address', 'owner@example.com');
-    await enter(tester, 'Password', 'Secure123!');
-    await enter(tester, 'Confirm password', 'Secure123!');
-    await tester.ensureVisible(find.text('Next'));
-    await tester.tap(find.text('Next'));
+    expect(find.text('Tôi đã xác minh email'), findsNothing);
+    await enter(tester, 'Địa chỉ email', 'owner@example.com');
+    await enter(tester, 'Mật khẩu', 'Secure123!');
+    await enter(tester, 'Xác nhận mật khẩu', 'Secure123!');
+    await tester.ensureVisible(find.text('Tiếp theo'));
+    await tester.tap(find.text('Tiếp theo'));
     await tester.pumpAndSettle();
 
-    expect(find.text('2. Company'), findsOneWidget);
-    expect(find.text('Email address'), findsNothing);
-    expect(find.text('Choose business licence'), findsNothing);
-    await tester.tap(find.text('Back'));
+    expect(find.text('2. Doanh nghiệp'), findsOneWidget);
+    expect(find.text('Địa chỉ email'), findsNothing);
+    expect(find.text('Chọn giấy phép kinh doanh'), findsNothing);
+    await tester.tap(find.text('Quay lại'));
     await tester.pumpAndSettle();
-    expect(find.text('1. Account'), findsOneWidget);
+    expect(find.text('1. Tài khoản'), findsOneWidget);
     expect(cubit.state.values['email'], 'owner@example.com');
     expect(find.text('owner@example.com'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -89,25 +89,29 @@ void main() {
     tester,
   ) async {
     await pumpPage(tester);
-    await enter(tester, 'Email address', 'owner@example.com');
-    await enter(tester, 'Password', 'Secure123!');
-    await enter(tester, 'Confirm password', 'Secure123!');
-    await tester.ensureVisible(find.text('Next'));
-    await tester.tap(find.text('Next'));
+    await enter(tester, 'Địa chỉ email', 'owner@example.com');
+    await enter(tester, 'Mật khẩu', 'Secure123!');
+    await enter(tester, 'Xác nhận mật khẩu', 'Secure123!');
+    await tester.ensureVisible(find.text('Tiếp theo'));
+    await tester.tap(find.text('Tiếp theo'));
     await tester.pumpAndSettle();
 
     const company = 'Công ty Du lịch Đà Nẵng';
     const contact = 'Nguyễn Thị Ánh';
     const address = '123 đường Trần Phú, Đà Nẵng';
-    await enter(tester, 'Company name', company);
-    await enter(tester, 'Business licence number', '79-0123/2026/TCDL-GPLHQT');
-    await enter(tester, 'Tax code', '1234567890');
-    await enter(tester, 'Contact person', contact);
-    await enter(tester, 'Business address (optional)', address);
-    await tester.ensureVisible(find.text('Next'));
-    await tester.tap(find.text('Next'));
+    await enter(tester, 'Tên doanh nghiệp', company);
+    await enter(
+      tester,
+      'Số giấy phép kinh doanh lữ hành',
+      '79-0123/2026/TCDL-GPLHQT',
+    );
+    await enter(tester, 'Mã số thuế', '1234567890');
+    await enter(tester, 'Người liên hệ', contact);
+    await enter(tester, 'Địa chỉ kinh doanh (không bắt buộc)', address);
+    await tester.ensureVisible(find.text('Tiếp theo'));
+    await tester.tap(find.text('Tiếp theo'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Back'));
+    await tester.tap(find.text('Quay lại'));
     await tester.pumpAndSettle();
 
     expect(cubit.state.values['companyName'], company);
@@ -126,13 +130,13 @@ void main() {
     tester,
   ) async {
     await pumpPage(tester);
-    await enter(tester, 'Email address', 'owner@example.com');
-    await enter(tester, 'Password', 'Secure123!');
-    await enter(tester, 'Confirm password', 'Secure123!');
-    await tester.tap(find.text('Next'));
+    await enter(tester, 'Địa chỉ email', 'owner@example.com');
+    await enter(tester, 'Mật khẩu', 'Secure123!');
+    await enter(tester, 'Xác nhận mật khẩu', 'Secure123!');
+    await tester.tap(find.text('Tiếp theo'));
     await tester.pumpAndSettle();
 
-    final companyField = find.widgetWithText(TextFormField, 'Company name');
+    final companyField = find.widgetWithText(TextFormField, 'Tên doanh nghiệp');
     await tester.showKeyboard(companyField);
     tester.testTextInput.updateEditingValue(
       const TextEditingValue(
@@ -163,16 +167,16 @@ void main() {
     tester,
   ) async {
     await pumpPage(tester);
-    await enter(tester, 'Email address', 'owner@example.com');
-    await enter(tester, 'Password', 'Secure123!');
-    await enter(tester, 'Confirm password', 'Secure123!');
-    await tester.tap(find.text('Next'));
+    await enter(tester, 'Địa chỉ email', 'owner@example.com');
+    await enter(tester, 'Mật khẩu', 'Secure123!');
+    await enter(tester, 'Xác nhận mật khẩu', 'Secure123!');
+    await tester.tap(find.text('Tiếp theo'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Next'));
+    await tester.tap(find.text('Tiếp theo'));
     await tester.pump();
     expect(cubit.state.errors['companyName'], isNotNull);
 
-    final companyField = find.widgetWithText(TextFormField, 'Company name');
+    final companyField = find.widgetWithText(TextFormField, 'Tên doanh nghiệp');
     await tester.showKeyboard(companyField);
     tester.testTextInput.updateEditingValue(
       const TextEditingValue(
@@ -208,68 +212,69 @@ void main() {
     tester,
   ) async {
     await pumpPage(tester);
-    await enter(tester, 'Email address', 'owner@example.com');
-    await enter(tester, 'Password', 'Secure123!');
-    await enter(tester, 'Confirm password', 'Secure123!');
-    await tester.ensureVisible(find.text('Next'));
-    await tester.tap(find.text('Next'));
+    await enter(tester, 'Địa chỉ email', 'owner@example.com');
+    await enter(tester, 'Mật khẩu', 'Secure123!');
+    await enter(tester, 'Xác nhận mật khẩu', 'Secure123!');
+    await tester.ensureVisible(find.text('Tiếp theo'));
+    await tester.tap(find.text('Tiếp theo'));
     await tester.pumpAndSettle();
 
-    await enter(tester, 'Company name', 'TripMate Tours');
-    await enter(tester, 'Business licence number', '79-0123/2026/TCDL-GPLHQT');
-    await enter(tester, 'Tax code', '1234567890');
-    await enter(tester, 'Contact person', 'Operator Owner');
-    await tester.ensureVisible(find.text('Next'));
-    await tester.tap(find.text('Next'));
+    await enter(tester, 'Tên doanh nghiệp', 'TripMate Tours');
+    await enter(
+      tester,
+      'Số giấy phép kinh doanh lữ hành',
+      '79-0123/2026/TCDL-GPLHQT',
+    );
+    await enter(tester, 'Mã số thuế', '1234567890');
+    await enter(tester, 'Người liên hệ', 'Operator Owner');
+    await tester.ensureVisible(find.text('Tiếp theo'));
+    await tester.tap(find.text('Tiếp theo'));
     await tester.pumpAndSettle();
 
-    expect(find.text('3. Documents and terms'), findsOneWidget);
-    expect(find.text('Company name'), findsNothing);
-    await tester.ensureVisible(find.text('Choose business licence'));
-    await tester.tap(find.text('Choose business licence'));
+    expect(find.text('3. Hồ sơ pháp lý'), findsOneWidget);
+    expect(find.text('Tên doanh nghiệp'), findsNothing);
+    await tester.ensureVisible(find.text('Chọn giấy phép kinh doanh'));
+    await tester.tap(find.text('Chọn giấy phép kinh doanh'));
     await tester.pumpAndSettle();
     expect(find.text('licence.pdf'), findsOneWidget);
     await tester.ensureVisible(
-      find.text('Choose supporting documents (optional, up to 5)'),
+      find.text('Chọn tài liệu bổ sung (không bắt buộc, tối đa 5 tệp)'),
     );
     await tester.tap(
-      find.text('Choose supporting documents (optional, up to 5)'),
+      find.text('Chọn tài liệu bổ sung (không bắt buộc, tối đa 5 tệp)'),
     );
     await tester.pumpAndSettle();
     expect(picker.calls, [false, true]);
     await tester.ensureVisible(find.byType(CheckboxListTile));
     await tester.tap(find.byType(CheckboxListTile));
     await tester.pump();
-    await tester.ensureVisible(find.text('Verify email first'));
-    await tester.tap(find.text('Verify email first'));
+    await tester.ensureVisible(find.text('Xác minh email trước'));
+    await tester.tap(find.text('Xác minh email trước'));
     await tester.pumpAndSettle();
 
     expect(repository.posts, 0);
-    expect(find.text('Application not submitted yet'), findsOneWidget);
-    expect(find.text('Check your email'), findsOneWidget);
+    expect(find.text('Hồ sơ chưa được gửi'), findsOneWidget);
+    expect(find.text('Kiểm tra hộp thư của bạn'), findsOneWidget);
     expect(find.text('o***@example.com'), findsOneWidget);
-    expect(find.text('Resend verification email'), findsOneWidget);
-    expect(
-      find.text('I verified my email — submit application'),
-      findsOneWidget,
-    );
+    expect(find.text('Gửi lại email xác minh'), findsOneWidget);
+    expect(find.text('Tôi đã xác minh email — Gửi hồ sơ'), findsOneWidget);
     expect(find.text('Mock selection'), findsNothing);
 
-    await tester.tap(find.text('Resend verification email'));
+    await tester.tap(find.text('Gửi lại email xác minh'));
     await tester.pump();
     expect(identity.sentEmails, 2);
-    expect(find.text('Resend in 60s'), findsOneWidget);
+    expect(find.text('Gửi lại sau 60s'), findsOneWidget);
     expect(
       tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
       isNull,
     );
 
     identity.verified = true;
-    await tester.tap(find.text('I verified my email — submit application'));
+    await tester.tap(find.text('Tôi đã xác minh email — Gửi hồ sơ'));
     await tester.pumpAndSettle();
     expect(repository.posts, 1);
-    expect(find.text('Application submitted'), findsOneWidget);
-    expect(find.text('Pending Approval'), findsOneWidget);
+    expect(find.text('Đã gửi hồ sơ đăng ký'), findsOneWidget);
+    expect(find.text('Chờ phê duyệt'), findsOneWidget);
   });
 
   testWidgets('verified submit removes stale email instruction and warning', (
@@ -290,15 +295,15 @@ void main() {
     await cubit.submit();
     expect(cubit.state.emailSent, isFalse);
     await pumpPage(tester);
-    expect(find.text('Application not submitted yet'), findsOneWidget);
+    expect(find.text('Hồ sơ chưa được gửi'), findsOneWidget);
 
     identity.verified = true;
-    await tester.tap(find.text('I verified my email — submit application'));
+    await tester.tap(find.text('Tôi đã xác minh email — Gửi hồ sơ'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Application submitted'), findsOneWidget);
-    expect(find.text('Check your email'), findsNothing);
-    expect(find.text('Pending Approval'), findsOneWidget);
+    expect(find.text('Đã gửi hồ sơ đăng ký'), findsOneWidget);
+    expect(find.text('Kiểm tra hộp thư của bạn'), findsNothing);
+    expect(find.text('Chờ phê duyệt'), findsOneWidget);
     expect(repository.posts, 1);
   });
 }

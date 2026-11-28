@@ -29,6 +29,11 @@ final class CreateTourPackageState extends Equatable {
     this.mediaFailure,
     this.reviewStatus = TourReviewStatus.idle,
     this.reviewFailure,
+    this.departureBusy = false,
+    this.departureFailure,
+    this.deleting = false,
+    this.deleted = false,
+    this.deleteFailure,
     this.poiNames = const {},
   });
   final CreateTourPackageStatus status;
@@ -47,6 +52,11 @@ final class CreateTourPackageState extends Equatable {
   final Failure? mediaFailure;
   final TourReviewStatus reviewStatus;
   final Failure? reviewFailure;
+  final bool departureBusy;
+  final Failure? departureFailure;
+  final bool deleting;
+  final bool deleted;
+  final Failure? deleteFailure;
 
   /// Display names for the POIs already in the loaded itinerary (best effort).
   final Map<int, String> poiNames;
@@ -55,7 +65,9 @@ final class CreateTourPackageState extends Equatable {
       detailStatus == TourPackageDetailStatus.loading ||
       status == CreateTourPackageStatus.submitting ||
       reviewStatus == TourReviewStatus.submitting ||
-      mediaBusy;
+      mediaBusy ||
+      departureBusy ||
+      deleting;
   bool get locked =>
       detail != null &&
       (!detail!.status.isEditable ||
@@ -78,6 +90,11 @@ final class CreateTourPackageState extends Equatable {
     Object? mediaFailure = _keep,
     TourReviewStatus? reviewStatus,
     Object? reviewFailure = _keep,
+    bool? departureBusy,
+    Object? departureFailure = _keep,
+    bool? deleting,
+    bool? deleted,
+    Object? deleteFailure = _keep,
     Map<int, String>? poiNames,
   }) => CreateTourPackageState(
     status: status ?? this.status,
@@ -102,6 +119,15 @@ final class CreateTourPackageState extends Equatable {
     reviewFailure: identical(reviewFailure, _keep)
         ? this.reviewFailure
         : reviewFailure as Failure?,
+    departureBusy: departureBusy ?? this.departureBusy,
+    departureFailure: identical(departureFailure, _keep)
+        ? this.departureFailure
+        : departureFailure as Failure?,
+    deleting: deleting ?? this.deleting,
+    deleted: deleted ?? this.deleted,
+    deleteFailure: identical(deleteFailure, _keep)
+        ? this.deleteFailure
+        : deleteFailure as Failure?,
     poiNames: poiNames ?? this.poiNames,
   );
 
@@ -121,6 +147,11 @@ final class CreateTourPackageState extends Equatable {
     mediaFailure,
     reviewStatus,
     reviewFailure,
+    departureBusy,
+    departureFailure,
+    deleting,
+    deleted,
+    deleteFailure,
     poiNames,
   ];
 }

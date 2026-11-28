@@ -11,6 +11,10 @@ import 'package:trip_mate_mobile/features/traveler/presentation/cubit/offline_tr
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/offline_trip_package_state.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/pages/live_offline_package_page.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_bottom_sheet_scaffold.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_coastal_app_bar.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_section_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
 class OfflineTripPackagePage extends StatefulWidget {
@@ -55,7 +59,7 @@ class _OfflineTripPackagePageState extends State<OfflineTripPackagePage> {
     if (widget.isDemoMode || hasInitialTitle || widget.cubit != null) {
       _isLoadingMetadata = false;
       _resolvedTitle =
-          widget.title ?? (widget.isDemoMode ? 'Đà Nẵng City Explorer' : null);
+          widget.title ?? (widget.isDemoMode ? 'Khám phá Đà Nẵng' : null);
     } else {
       _isLoadingMetadata = true;
       _fetchMetadata();
@@ -80,14 +84,14 @@ class _OfflineTripPackagePageState extends State<OfflineTripPackagePage> {
       if (!mounted) return;
       setState(() {
         _isLoadingMetadata = false;
-        _resolvedTitle = detail.title ?? 'Trip #${widget.itineraryId}';
+        _resolvedTitle = detail.title ?? 'Chuyến đi #${widget.itineraryId}';
         _resolvedVersion = detail.version;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _isLoadingMetadata = false;
-        _metadataError = 'Trip information unavailable.';
+        _metadataError = 'Không thể tải thông tin chuyến đi.';
       });
     }
   }
@@ -102,16 +106,21 @@ class _OfflineTripPackagePageState extends State<OfflineTripPackagePage> {
         title: widget.title,
       );
     }
+    final c = context.tmColors;
     if (_isLoadingMetadata) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Offline Access')),
-        body: const Center(
+        backgroundColor: c.canvas,
+        appBar: const AppCoastalAppBar(title: 'Truy cập ngoại tuyến'),
+        body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(),
-              SizedBox(height: AppSpacing.md),
-              Text('Loading trip information...'),
+              CircularProgressIndicator(color: c.brandTeal),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'Đang tải thông tin chuyến đi...',
+                style: TextStyle(color: c.textSecondary),
+              ),
             ],
           ),
         ),
@@ -120,30 +129,38 @@ class _OfflineTripPackagePageState extends State<OfflineTripPackagePage> {
 
     if (_metadataError != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Offline Access')),
+        backgroundColor: c.canvas,
+        appBar: const AppCoastalAppBar(title: 'Truy cập ngoại tuyến'),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.error_outline,
-                  size: 48,
-                  color: AppColors.error,
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: c.errorContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.error_outline, size: 32, color: c.error),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
                   _metadataError!,
-                  style: Theme.of(context).textTheme.titleMedium,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: c.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'Could not load itinerary #${widget.itineraryId}.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                  'Không thể tải lịch trình #${widget.itineraryId}.',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: c.textSecondary),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Row(
@@ -151,12 +168,12 @@ class _OfflineTripPackagePageState extends State<OfflineTripPackagePage> {
                   children: [
                     OutlinedButton(
                       onPressed: () => context.pop(),
-                      child: const Text('Go back'),
+                      child: const Text('Quay lại'),
                     ),
                     const SizedBox(width: AppSpacing.md),
                     FilledButton(
                       onPressed: _fetchMetadata,
-                      child: const Text('Retry'),
+                      child: const Text('Thử lại'),
                     ),
                   ],
                 ),
@@ -177,7 +194,7 @@ class _OfflineTripPackagePageState extends State<OfflineTripPackagePage> {
     return BlocProvider(
       create: (_) => OfflineTripPackageCubit(
         itineraryId: widget.itineraryId,
-        title: _resolvedTitle ?? 'Trip #${widget.itineraryId}',
+        title: _resolvedTitle ?? 'Chuyến đi #${widget.itineraryId}',
         version: _resolvedVersion ?? 1,
         isDemoMode: widget.isDemoMode,
       ),
@@ -191,15 +208,16 @@ class _OfflineTripPackageView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return BlocConsumer<OfflineTripPackageCubit, OfflineTripPackageState>(
       listener: (context, state) {
         if (state.package.status == OfflinePackageStatus.available) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Trip package downloaded! Itinerary is now available offline without internet.',
+            SnackBar(
+              content: const Text(
+                'Đã tải gói lịch trình! Lịch trình hiện có thể xem ngoại tuyến không cần mạng.',
               ),
-              backgroundColor: AppColors.success,
+              backgroundColor: c.success,
             ),
           );
         }
@@ -209,16 +227,14 @@ class _OfflineTripPackageView extends StatelessWidget {
         final isDemo = state.isDemoMode;
 
         return Scaffold(
-          appBar: AppBar(
-            title: const Text('Offline Access'),
+          backgroundColor: c.canvas,
+          appBar: AppCoastalAppBar(
+            title: 'Truy cập ngoại tuyến',
             actions: [
               if (isDemo)
                 IconButton(
-                  icon: const Icon(
-                    Icons.build_circle_outlined,
-                    color: AppColors.warning,
-                  ),
-                  tooltip: 'DEMO_ONLY Controls',
+                  icon: Icon(Icons.build_circle_outlined, color: c.warning),
+                  tooltip: 'Điều khiển demo',
                   onPressed: () => _showDemoControls(context, cubit),
                 ),
             ],
@@ -232,63 +248,38 @@ class _OfflineTripPackageView extends StatelessWidget {
   }
 
   void _showDemoControls(BuildContext context, OfflineTripPackageCubit cubit) {
-    showModalBottomSheet<void>(
+    showAppModalBottomSheet<void>(
       context: context,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.bug_report_outlined,
-                    color: AppColors.warning,
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  Text(
-                    'DEMO_ONLY Test Controls',
-                    style: Theme.of(sheetContext).textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-              const Divider(height: 20),
-              Wrap(
-                spacing: AppSpacing.xs,
-                runSpacing: AppSpacing.xs,
-                children: [
-                  ActionChip(
-                    avatar: const Icon(Icons.wifi_off, size: 16),
-                    label: const Text('Simulate Network Loss (MSG106)'),
-                    onPressed: () {
-                      Navigator.pop(sheetContext);
-                      cubit.demoSimulateNetworkInterruption();
-                    },
-                  ),
-                  ActionChip(
-                    avatar: const Icon(Icons.warning, size: 16),
-                    label: const Text('Simulate Package > 150MB (MSG107)'),
-                    onPressed: () {
-                      Navigator.pop(sheetContext);
-                      cubit.demoSimulateOversizePackage();
-                    },
-                  ),
-                  ActionChip(
-                    avatar: const Icon(Icons.update, size: 16),
-                    label: const Text('Simulate Superseded Update'),
-                    onPressed: () {
-                      Navigator.pop(sheetContext);
-                      cubit.demoSimulateSuperseded();
-                    },
-                  ),
-                ],
-              ),
-            ],
+      title: 'Điều khiển thử nghiệm (Demo)',
+      builder: (sheetContext) => Wrap(
+        spacing: AppSpacing.xs,
+        runSpacing: AppSpacing.xs,
+        children: [
+          ActionChip(
+            avatar: const Icon(Icons.wifi_off, size: 16),
+            label: const Text('Giả lập mất kết nối (MSG106)'),
+            onPressed: () {
+              Navigator.pop(sheetContext);
+              cubit.demoSimulateNetworkInterruption();
+            },
           ),
-        ),
+          ActionChip(
+            avatar: const Icon(Icons.warning, size: 16),
+            label: const Text('Giả lập gói > 150 MB (MSG107)'),
+            onPressed: () {
+              Navigator.pop(sheetContext);
+              cubit.demoSimulateOversizePackage();
+            },
+          ),
+          ActionChip(
+            avatar: const Icon(Icons.update, size: 16),
+            label: const Text('Giả lập có bản cập nhật mới'),
+            onPressed: () {
+              Navigator.pop(sheetContext);
+              cubit.demoSimulateSuperseded();
+            },
+          ),
+        ],
       ),
     );
   }
@@ -302,101 +293,92 @@ class _ProductionUnavailableView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final pkg = state.package;
 
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
-        // 1. Trip Identity Header Card
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: AppColors.primarySoft,
-                  child: const Icon(
-                    Icons.offline_pin_outlined,
-                    color: AppColors.primary,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        pkg.title,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
+        AppCard(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: c.tealSoftContainer,
+                child: Icon(Icons.offline_pin_outlined, color: c.brandTeal),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      pkg.title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: c.textPrimary,
                       ),
-                      const SizedBox(height: AppSpacing.xxs),
-                      Text(
-                        'Itinerary #${pkg.itineraryId} · Version ${pkg.version}',
-                        style: const TextStyle(
-                          color: AppColors.muted,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: AppSpacing.xxs),
+                    Text(
+                      'Lịch trình #${pkg.itineraryId} · Phiên bản ${pkg.version}',
+                      style: TextStyle(color: c.textSecondary, fontSize: 13),
+                    ),
+                  ],
                 ),
-                const StatusBadge(
-                  label: 'Unavailable',
-                  type: StatusBadgeType.warning,
+              ),
+              const StatusBadge(
+                label: 'Không khả dụng',
+                type: StatusBadgeType.warning,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        AppCard(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: c.surfaceElevated,
+                  shape: BoxShape.circle,
                 ),
-              ],
-            ),
+                child: Icon(
+                  Icons.cloud_off_rounded,
+                  size: 32,
+                  color: c.textMuted,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'Gói ngoại tuyến hiện chưa khả dụng',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: c.textPrimary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Tính năng tải bản đồ và lịch trình ngoại tuyến hiện chưa khả dụng do dịch vụ gói chuyến đi và lưu trữ cục bộ chưa được kết nối.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: c.textSecondary,
+                  height: 1.45,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
-
-        // 2. Main Unavailable Notice Card
-        Card(
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: Theme.of(context).colorScheme.outlineVariant,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              children: [
-                const Icon(
-                  Icons.cloud_off_rounded,
-                  size: 48,
-                  color: AppColors.muted,
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  'Offline package is not available yet',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  'Offline map and itinerary download is not currently available because the required trip-package service and local persistence integration are not yet connected.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-
-        // 3. Actions
         OutlinedButton.icon(
           onPressed: () => Navigator.of(context).maybePop(),
           icon: const Icon(Icons.arrow_back),
-          label: const Text('Back to itinerary'),
+          label: const Text('Quay lại lịch trình'),
           style: OutlinedButton.styleFrom(
             minimumSize: const Size.fromHeight(50),
           ),
@@ -452,19 +434,19 @@ class _DemoPackageContentView extends StatelessWidget {
                       status: isRefreshing
                           ? OfflinePackageStatus.downloading
                           : pkg.status,
-                      customLabel: isRefreshing ? 'UPDATING...' : null,
+                      customLabel: isRefreshing ? 'ĐANG CẬP NHẬT...' : null,
                     ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.xxs),
                 Text(
-                  '${pkg.dateRange ?? 'Upcoming Trip'} · ${pkg.stopsCount} scheduled stops',
+                  '${pkg.dateRange ?? 'Chuyến đi sắp tới'} · ${pkg.stopsCount} điểm dừng dự kiến',
                   style: const TextStyle(color: AppColors.muted, fontSize: 13),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 if (pkg.lastDownloadedAt != null)
                   Text(
-                    'Last downloaded: ${_formatDateTime(pkg.lastDownloadedAt!)} (v${pkg.version})',
+                    'Tải lần cuối: ${_formatDateTime(pkg.lastDownloadedAt!)} (v${pkg.version})',
                     style: const TextStyle(
                       fontSize: 11,
                       color: AppColors.muted,
@@ -483,7 +465,7 @@ class _DemoPackageContentView extends StatelessWidget {
             type: AppAlertType.error,
             message:
                 state.replacementPackage?.errorMessage ??
-                'Insufficient storage space. At least 150MB free space required for offline map data.',
+                'Không đủ dung lượng bộ nhớ. Cần ít nhất 150 MB trống để lưu dữ liệu bản đồ ngoại tuyến.',
           ),
           const SizedBox(height: AppSpacing.md),
         ] else if (state.replacementPackage?.status ==
@@ -492,14 +474,14 @@ class _DemoPackageContentView extends StatelessWidget {
             type: AppAlertType.warning,
             message:
                 state.replacementPackage?.errorMessage ??
-                'Download interrupted due to connection loss. Existing offline data remains usable.',
+                'Tải xuống bị gián đoạn do mất kết nối. Dữ liệu ngoại tuyến hiện có vẫn dùng được.',
           ),
           const SizedBox(height: AppSpacing.md),
         ] else if (isRefreshing) ...[
           AppAlert(
             type: AppAlertType.info,
             message:
-                'Downloading updated version (v${state.replacementPackage!.version}). Your current offline package (v${pkg.version}) remains usable.',
+                'Đang tải phiên bản mới (v${state.replacementPackage!.version}). Gói ngoại tuyến hiện tại (v${pkg.version}) vẫn có thể sử dụng.',
           ),
           const SizedBox(height: AppSpacing.md),
         ] else if (pkg.status == OfflinePackageStatus.insufficientStorage) ...[
@@ -507,7 +489,7 @@ class _DemoPackageContentView extends StatelessWidget {
             type: AppAlertType.error,
             message:
                 pkg.errorMessage ??
-                'Insufficient storage space. At least 150MB free space required for offline map data.',
+                'Không đủ dung lượng bộ nhớ. Cần ít nhất 150 MB trống để lưu dữ liệu bản đồ ngoại tuyến.',
           ),
           const SizedBox(height: AppSpacing.md),
         ] else if (pkg.status == OfflinePackageStatus.networkInterrupted) ...[
@@ -515,98 +497,104 @@ class _DemoPackageContentView extends StatelessWidget {
             type: AppAlertType.warning,
             message:
                 pkg.errorMessage ??
-                'Download interrupted due to connection loss. Partial download discarded. Please retry.',
+                'Tải xuống bị gián đoạn do mất kết nối. Dữ liệu tải dở đã bị hủy. Vui lòng thử lại.',
           ),
           const SizedBox(height: AppSpacing.md),
         ] else if (pkg.status == OfflinePackageStatus.superseded) ...[
           const AppAlert(
             type: AppAlertType.info,
             message:
-                'A newer itinerary version exists on the server. Your existing offline copy remains usable.',
+                'Có phiên bản lịch trình mới hơn trên máy chủ. Bản sao ngoại tuyến hiện tại vẫn dùng được.',
           ),
           const SizedBox(height: AppSpacing.md),
         ],
 
         // 3. Package Contents Breakdown Card (DEMO_ONLY)
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Package Contents',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                const _ComponentRow(
-                  title: 'Map area tiles (Zoom 12-16)',
-                  subtitle: '18 km radius around itinerary stops',
-                  size: '85.0 MB',
-                  icon: Icons.map_outlined,
-                ),
-                const Divider(height: 16),
-                const _ComponentRow(
-                  title: 'Itinerary schedule & route geometry',
-                  subtitle: 'Turn points, timelines, visit durations',
-                  size: '2.5 MB',
-                  icon: Icons.alt_route_rounded,
-                ),
-                const Divider(height: 16),
-                const _ComponentRow(
-                  title: 'POI descriptions & entry guides',
-                  subtitle: 'Key attraction data and opening hours',
-                  size: '31.0 MB',
-                  icon: Icons.place_outlined,
-                ),
-              ],
-            ),
+        AppSectionCard(
+          title: 'Nội dung gói dữ liệu',
+          icon: Icons.inventory_2_outlined,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _ComponentRow(
+                title: 'Bản đồ khu vực (Mức thu phóng 12–16)',
+                subtitle: 'Bán kính 18 km quanh các điểm dừng',
+                size: '85.0 MB',
+                icon: Icons.map_outlined,
+              ),
+              Divider(height: 16, color: context.tmColors.borderSubtle),
+              const _ComponentRow(
+                title: 'Lịch trình & dữ liệu tuyến đường',
+                subtitle: 'Điểm rẽ, mốc thời gian, thời lượng tham quan',
+                size: '2.5 MB',
+                icon: Icons.alt_route_rounded,
+              ),
+              Divider(height: 16, color: context.tmColors.borderSubtle),
+              const _ComponentRow(
+                title: 'Mô tả điểm đến & hướng dẫn vào cửa',
+                subtitle: 'Thông tin địa điểm chính và giờ mở cửa',
+                size: '31.0 MB',
+                icon: Icons.place_outlined,
+              ),
+            ],
           ),
         ),
         const SizedBox(height: AppSpacing.md),
 
         // 4. Storage & Ceiling Verification Card (DEMO_ONLY)
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Estimated Package Size',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+        AppCard(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Dung lượng gói ước tính',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: context.tmColors.textPrimary,
                     ),
-                    Text(
-                      '${pkg.totalSizeMb.toStringAsFixed(1)} MB',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    '${pkg.totalSizeMb.toStringAsFixed(1)} MB',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: context.tmColors.brandTeal,
                     ),
-                  ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xxs),
+              Text(
+                'Giới hạn dung lượng cho phép: tối đa ${pkg.maxLimitMb.toInt()} MB',
+                style: TextStyle(
+                  color: context.tmColors.textSecondary,
+                  fontSize: 12,
                 ),
-                const SizedBox(height: AppSpacing.xxs),
-                Text(
-                  'Configured storage ceiling: ${pkg.maxLimitMb.toInt()} MB limit (BR-37)',
-                  style: const TextStyle(color: AppColors.muted, fontSize: 12),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                LinearProgressIndicator(
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  minHeight: 7,
                   value: (pkg.totalSizeMb / pkg.maxLimitMb).clamp(0.0, 1.0),
-                  backgroundColor: AppColors.line,
+                  backgroundColor: context.tmColors.surfaceElevated,
                   color: pkg.totalSizeMb > pkg.maxLimitMb
-                      ? AppColors.error
-                      : AppColors.primary,
+                      ? context.tmColors.error
+                      : context.tmColors.brandTeal,
                 ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'Device free space: ${(state.deviceFreeStorageMb / 1024).toStringAsFixed(1)} GB available',
-                  style: const TextStyle(fontSize: 11, color: AppColors.muted),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Dung lượng trống trên thiết bị: còn ${(state.deviceFreeStorageMb / 1024).toStringAsFixed(1)} GB',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  color: context.tmColors.textMuted,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -659,7 +647,7 @@ class _DemoPackageContentView extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: () => cubit.cancelDownload(),
             icon: const Icon(Icons.close),
-            label: Text(isRefreshing ? 'Cancel Update' : 'Cancel Download'),
+            label: Text(isRefreshing ? 'Hủy cập nhật' : 'Hủy tải'),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
             ),
@@ -670,7 +658,7 @@ class _DemoPackageContentView extends StatelessWidget {
           FilledButton.icon(
             onPressed: isDownloading ? null : () => cubit.startDownload(),
             icon: const Icon(Icons.download_rounded),
-            label: const Text('Download for Offline Use'),
+            label: const Text('Tải về xem ngoại tuyến'),
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
             ),
@@ -680,7 +668,7 @@ class _DemoPackageContentView extends StatelessWidget {
             onPressed: () => _confirmRemove(context, cubit),
             icon: const Icon(Icons.delete_outline, color: AppColors.error),
             label: const Text(
-              'Remove Offline Data',
+              'Xóa dữ liệu ngoại tuyến',
               style: TextStyle(color: AppColors.error),
             ),
             style: OutlinedButton.styleFrom(
@@ -692,7 +680,7 @@ class _DemoPackageContentView extends StatelessWidget {
           FilledButton.icon(
             onPressed: () => cubit.refreshSupersededPackage(),
             icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Refresh Offline Data'),
+            label: const Text('Cập nhật dữ liệu ngoại tuyến'),
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
             ),
@@ -702,7 +690,7 @@ class _DemoPackageContentView extends StatelessWidget {
             onPressed: () => _confirmRemove(context, cubit),
             icon: const Icon(Icons.delete_outline, color: AppColors.error),
             label: const Text(
-              'Remove Offline Data',
+              'Xóa dữ liệu ngoại tuyến',
               style: TextStyle(color: AppColors.error),
             ),
             style: OutlinedButton.styleFrom(
@@ -719,14 +707,14 @@ class _DemoPackageContentView extends StatelessWidget {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Remove offline data?'),
+        title: const Text('Xóa dữ liệu ngoại tuyến?'),
         content: const Text(
-          'This itinerary and cached map tiles will no longer be available without an internet connection.',
+          'Lịch trình và dữ liệu bản đồ đã lưu sẽ không còn khả dụng khi không có kết nối mạng.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
+            child: const Text('Hủy'),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
@@ -734,7 +722,7 @@ class _DemoPackageContentView extends StatelessWidget {
               Navigator.pop(dialogContext);
               cubit.removeOfflineData();
             },
-            child: const Text('Remove'),
+            child: const Text('Xóa'),
           ),
         ],
       ),
@@ -759,30 +747,30 @@ class _StatusBadgeForPackage extends StatelessWidget {
     }
     return switch (status) {
       OfflinePackageStatus.available => const StatusBadge(
-        label: 'AVAILABLE OFFLINE',
+        label: 'SẴN SÀNG NGOẠI TUYẾN',
         type: StatusBadgeType.success,
       ),
       OfflinePackageStatus.downloading ||
       OfflinePackageStatus.checkingStorage => const StatusBadge(
-        label: 'DOWNLOADING',
+        label: 'ĐANG TẢI',
         type: StatusBadgeType.info,
       ),
       OfflinePackageStatus.superseded => const StatusBadge(
-        label: 'UPDATE AVAILABLE',
+        label: 'CÓ BẢN CẬP NHẬT',
         type: StatusBadgeType.warning,
       ),
       OfflinePackageStatus.insufficientStorage ||
       OfflinePackageStatus.networkInterrupted ||
       OfflinePackageStatus.error => const StatusBadge(
-        label: 'FAILED / INCOMPLETE',
+        label: 'LỖI / CHƯA HOÀN TẤT',
         type: StatusBadgeType.error,
       ),
       OfflinePackageStatus.notDownloaded => const StatusBadge(
-        label: 'NOT DOWNLOADED',
+        label: 'CHƯA TẢI',
         type: StatusBadgeType.neutral,
       ),
       OfflinePackageStatus.unavailable => const StatusBadge(
-        label: 'UNAVAILABLE',
+        label: 'KHÔNG KHẢ DỤNG',
         type: StatusBadgeType.warning,
       ),
     };
@@ -804,9 +792,18 @@ class _ComponentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return Row(
       children: [
-        Icon(icon, size: 20, color: AppColors.primary),
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: c.tealSoftContainer,
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Icon(icon, size: 18, color: c.brandTeal),
+        ),
         const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: Column(
@@ -814,24 +811,25 @@ class _ComponentRow extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
+                  color: c.textPrimary,
                 ),
               ),
               Text(
                 subtitle,
-                style: const TextStyle(color: AppColors.muted, fontSize: 11),
+                style: TextStyle(color: c.textSecondary, fontSize: 11.5),
               ),
             ],
           ),
         ),
         Text(
           size,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
             fontSize: 12,
-            color: AppColors.ink,
+            color: c.textPrimary,
           ),
         ),
       ],

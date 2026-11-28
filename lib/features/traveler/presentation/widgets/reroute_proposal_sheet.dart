@@ -27,11 +27,13 @@ class RerouteProposalSheet extends StatelessWidget {
     final poi = name == null || name.isEmpty ? null : name;
     return switch (reason.code) {
       'trip_alert.severe_weather' =>
-        'Severe weather is expected at ${poi ?? 'your next stop'}.',
-      'trip_alert.poi_closure' => '${poi ?? 'Your next stop'} is closed.',
-      'trip_alert.schedule_delay' => 'Your trip is running behind schedule.',
-      'trip_alert.route_deviation' => 'You have left the planned route.',
-      _ => 'Your plan needs a change.',
+        'Dự báo thời tiết xấu tại ${poi ?? 'điểm dừng tiếp theo'}.',
+      'trip_alert.poi_closure' =>
+        '${poi ?? 'Điểm dừng tiếp theo'} hiện đang đóng cửa.',
+      'trip_alert.schedule_delay' =>
+        'Chuyến đi của bạn đang trễ so với lịch trình.',
+      'trip_alert.route_deviation' => 'Bạn đã đi lệch khỏi lộ trình dự kiến.',
+      _ => 'Lịch trình của bạn cần được điều chỉnh.',
     };
   }
 
@@ -323,7 +325,7 @@ class RerouteProposalSheet extends StatelessWidget {
                   const SizedBox(height: AppSpacing.sm),
                   if (proposal.removedStops.isNotEmpty) ...[
                     Text(
-                      'Removed from your plan: '
+                      'Đã loại khỏi lịch trình: '
                       '${proposal.removedStops.join(', ')}',
                       style: TextStyle(color: palette.secondary, fontSize: 12),
                     ),
@@ -458,8 +460,8 @@ class _StopLine extends StatelessWidget {
     final palette = CoastalPalette.of(context);
     final change = stop.change;
     final tag = switch (change) {
-      RerouteStopChange.added => 'New',
-      RerouteStopChange.moved => 'Moved',
+      RerouteStopChange.added => 'Mới',
+      RerouteStopChange.moved => 'Đổi giờ',
       _ => null,
     };
     return Padding(

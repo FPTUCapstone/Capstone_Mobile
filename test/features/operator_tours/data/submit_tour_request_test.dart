@@ -8,6 +8,7 @@ import 'package:trip_mate_mobile/core/network/dio_client.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/operator_tours/data/datasources/operator_tour_remote_data_source.dart';
 import 'package:trip_mate_mobile/features/operator_tours/data/repositories/operator_tour_repository_impl.dart';
+import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_draft.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/usecases/tour_package_use_cases.dart';
 
 final class _Storage implements SecureStorageService {
@@ -53,6 +54,7 @@ final class _Adapter implements HttpClientAdapter {
 
 void main() {
   late _Adapter adapter;
+  late OperatorTourRepositoryImpl repository;
   late SubmitTourForReviewUseCase submit;
   setUp(() {
     adapter = _Adapter(
@@ -68,9 +70,10 @@ void main() {
     );
     client.dio.interceptors.clear();
     client.dio.httpClientAdapter = adapter;
-    submit = SubmitTourForReviewUseCase(
-      OperatorTourRepositoryImpl(DioOperatorTourRemoteDataSource(client)),
+    repository = OperatorTourRepositoryImpl(
+      DioOperatorTourRemoteDataSource(client),
     );
+    submit = SubmitTourForReviewUseCase(repository);
   });
   test('posts trimmed optional note and parses acknowledgement', () async {
     final result = await submit(42, submissionNote: '  Staff context  ');
@@ -108,7 +111,7 @@ void main() {
         isA<NetworkFailure>().having(
           (failure) => failure.message,
           'message',
-          'Please check your connection.',
+          'Vui lòng kiểm tra kết nối mạng.',
         ),
       ),
     );
@@ -127,4 +130,65 @@ void main() {
       }
     });
   }
+
+  test('reopen departure sends Idempotency-Key and parses response', () async {
+    adapter.status = 201;
+    adapter.body =
+        '{"tourId":42,"scheduleId":88,"status":"Scheduled","startAtUtc":"2027-07-01T01:00:00Z","endAtUtc":"2027-07-02T09:00:00Z","meetingPoint":"Airport","minimumCapacity":2,"totalCapacity":20,"reservedCapacity":0,"adultPrice":2500000,"meetingLatitude":16.05,"meetingLongitude":108.20}';
+    final addDeparture = AddTourDepartureUseCase(repository);
+    final added = await addDeparture(
+      42,
+      TourScheduleDraft(
+        startAtUtc: DateTime.utc(2027, 7, 1, 1),
+        endAtUtc: DateTime.utc(2027, 7, 2, 9),
+        totalCapacity: 20,
+        minimumCapacity: 2,
+        adultPrice: 2500000,
+        meetingPoint: 'Airport',
+        meetingLatitude: 16.05,
+        meetingLongitude: 108.20,
+      ),
+      'idem-dep-1',
+    );
+    expect(
+      adapter.requests.single.path,
+      '/api/v1/operator/tours/42/departures',
+    );
+    expect(adapter.requests.single.headers['Idempotency-Key'], 'idem-dep-1');
+    expect(added.id, 88);
+    expect(added.meetingPoint, 'Airport');
+  });
+
+  test('maps departure_itinerary_mismatch 422 cleanly', () async {
+    adapter.status = 422;
+    adapter.body =
+        '{"extensions":{"errorCode":"operator_tour.departure_itinerary_mismatch"}}';
+    final addDeparture = AddTourDepartureUseCase(repository);
+    await expectLater(
+      () => addDeparture(
+        42,
+        TourScheduleDraft(
+          startAtUtc: DateTime.utc(2027, 7, 1, 1),
+          endAtUtc: DateTime.utc(2027, 7, 2, 9),
+          totalCapacity: 20,
+        ),
+        'idem-dep-2',
+      ),
+      throwsA(
+        isA<ConstraintFailure>().having(
+          (f) => f.message,
+          'message',
+          contains('thời gian tham quan dự kiến'),
+        ),
+      ),
+    );
+  });
+
+  test('deleteTour calls DELETE endpoint', () async {
+    adapter.status = 204;
+    adapter.body = '';
+    await DeleteTourPackageUseCase(repository)(42);
+    expect(adapter.requests.single.method, 'DELETE');
+    expect(adapter.requests.single.path, '/api/v1/operator/tours/42');
+  });
 }

@@ -40,14 +40,13 @@ final class MyPostTripComplaintsCubit extends Cubit<MyPostTripComplaintsState> {
           MyPostTripComplaintsState(
             phase: MyPostTripComplaintsPhase.failure,
             message: switch (error) {
-              NetworkFailure() =>
-                'Check your internet connection and try again.',
+              NetworkFailure() => 'Vui lòng kiểm tra kết nối mạng và thử lại.',
               AuthenticationFailure() =>
-                'Your session has expired. Please sign in again.',
+                'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
               PermissionFailure() =>
-                'You do not have access to these complaints.',
+                'Bạn không có quyền xem các khiếu nại này.',
               RateLimitFailure() =>
-                'Too many requests. Please wait a moment and try again.',
+                'Bạn thao tác quá nhiều lần. Vui lòng đợi một chút rồi thử lại.',
               _ => PostTripComplaintStrings.systemError,
             },
           ),

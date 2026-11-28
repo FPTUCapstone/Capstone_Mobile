@@ -3,55 +3,54 @@ import 'package:trip_mate_mobile/features/e_ticket/domain/entities/e_ticket.dart
 /// UC-29 copy. MSG numbers follow Report 3; MSG138–MSG140 come from the UC-29
 /// Backend spec §8. Worded for the Traveler who views the ticket.
 abstract final class ETicketStrings {
-  static const title = 'E-ticket';
+  static const title = 'Vé điện tử';
   static const msg93 =
-      'Your encrypted QR ticket is ready. Present this code at the tour gate.';
+      'Vé QR mã hóa của bạn đã sẵn sàng. Vui lòng xuất trình mã này tại điểm đón tour.';
   static String msg95(String checkedInAt) =>
-      'This QR ticket was already used for check-in at $checkedInAt.';
+      'Vé QR này đã được sử dụng để check-in lúc $checkedInAt.';
   static String msg98(String departureDate) =>
-      'This ticket is valid only on departure date: $departureDate.';
-  static const msg126 = 'You do not have permission to access this function.';
+      'Vé này chỉ có hiệu lực vào ngày khởi hành: $departureDate.';
+  static const msg126 = 'Bạn không có quyền truy cập chức năng này.';
   static const msg127 =
-      'TripMate is temporarily unable to process your request. Please check your connection and try again.';
+      'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối và thử lại.';
   static const msg138 =
-      'Your e-ticket will be available once the payment for this booking is confirmed.';
+      'Vé điện tử sẽ hiển thị sau khi thanh toán cho đơn đặt tour này được xác nhận.';
   static String msg139(String bookingCode) =>
-      'This e-ticket was cancelled together with booking $bookingCode and cannot be used for check-in.';
+      'Vé điện tử này đã bị hủy cùng đơn đặt tour $bookingCode và không thể dùng để check-in.';
   static String msg140(String departureDate) =>
-      'This e-ticket expired after the departure date $departureDate.';
+      'Vé điện tử này đã hết hạn sau ngày khởi hành $departureDate.';
 
-  static const signIn = 'Your session has expired. Please sign in again.';
-  static const notFound = 'The e-ticket was not found.';
+  static const signIn = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+  static const notFound = 'Không tìm thấy vé điện tử.';
   static const staleQr =
-      'The QR code on screen may no longer work. Reload the ticket when you are back online.';
-  static const offline =
-      'You are offline — the QR code cannot be refreshed now.';
-  static const meetingPointMissing = 'Not provided yet';
+      'Mã QR trên màn hình có thể không còn hiệu lực. Vui lòng tải lại vé khi có kết nối mạng.';
+  static const offline = 'Bạn đang ngoại tuyến — hiện không thể làm mới mã QR.';
+  static const meetingPointMissing = 'Chưa cập nhật';
   static String validityNote(String departureDate) =>
-      'Valid only on the departure date $departureDate.';
+      'Chỉ có hiệu lực vào ngày khởi hành $departureDate.';
 
-  static const refresh = 'Refresh QR code';
-  static const refreshing = 'Refreshing…';
+  static const refresh = 'Làm mới mã QR';
+  static const refreshing = 'Đang làm mới…';
   static const refreshConfirm =
-      'The current QR code will stop working. Continue?';
-  static const confirmRefresh = 'Refresh';
-  static const cancel = 'Cancel';
-  static const retry = 'Retry';
-  static const back = 'Back';
+      'Mã QR hiện tại sẽ không còn hiệu lực. Bạn có muốn tiếp tục?';
+  static const confirmRefresh = 'Làm mới';
+  static const cancel = 'Hủy';
+  static const retry = 'Thử lại';
+  static const back = 'Quay lại';
 
-  static const ticketCode = 'Ticket code';
-  static const bookingCode = 'Booking code';
-  static const departure = 'Departure';
-  static const meetingPoint = 'Meeting point';
-  static const participants = 'Travellers';
-  static const checkedInAt = 'Checked in at';
+  static const ticketCode = 'Mã vé';
+  static const bookingCode = 'Mã đặt tour';
+  static const departure = 'Khởi hành';
+  static const meetingPoint = 'Điểm đón';
+  static const participants = 'Du khách';
+  static const checkedInAt = 'Thời gian check-in';
 
   static String statusLabel(ETicketStatus status) => switch (status) {
-    ETicketStatus.notYetActive => 'Not yet active',
-    ETicketStatus.valid => 'Valid',
-    ETicketStatus.used => 'Used',
-    ETicketStatus.cancelled => 'Cancelled',
-    ETicketStatus.expired => 'Expired',
+    ETicketStatus.notYetActive => 'Chưa hiệu lực',
+    ETicketStatus.valid => 'Còn hiệu lực',
+    ETicketStatus.used => 'Đã sử dụng',
+    ETicketStatus.cancelled => 'Đã hủy',
+    ETicketStatus.expired => 'Hết hạn',
   };
 
   static String participantSummary(
@@ -60,13 +59,11 @@ abstract final class ETicketStrings {
     int infants,
     int total,
   ) {
-    String plural(int count, String one, String many) =>
-        '$count ${count == 1 ? one : many}';
     final parts = [
-      if (adults > 0) plural(adults, 'adult', 'adults'),
-      if (children > 0) plural(children, 'child', 'children'),
-      if (infants > 0) plural(infants, 'infant', 'infants'),
+      if (adults > 0) '$adults người lớn',
+      if (children > 0) '$children trẻ em',
+      if (infants > 0) '$infants em bé',
     ];
-    return '${parts.join(', ')} (${plural(total, 'traveller', 'travellers')})';
+    return '${parts.join(', ')} ($total du khách)';
   }
 }

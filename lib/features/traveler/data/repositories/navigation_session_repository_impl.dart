@@ -218,10 +218,10 @@ final class NavigationSessionRepositoryImpl
     };
   }
 
-  static const _msg44 = 'No re-routing suggestion is available at the moment.';
+  static const _msg44 = 'Hiện không có đề xuất đổi lộ trình nào khả dụng.';
   static const _msg127 =
-      'TripMate is temporarily unable to process your request. '
-      'Please check your connection and try again.';
+      'TripMate tạm thời không thể xử lý yêu cầu của bạn. '
+      'Vui lòng kiểm tra kết nối mạng và thử lại.';
 
   static const _reroutingReasons = <String, ReroutingFailureReason>{
     'rerouting.not_found': ReroutingFailureReason.notFound,
@@ -302,28 +302,28 @@ final class NavigationSessionRepositoryImpl
 
   static const _messages = <NavigationFailureReason, String>{
     NavigationFailureReason.activeSessionExists:
-        'You already have a trip in progress.',
+        'Bạn đang có một chuyến đi khác đang diễn ra.',
     NavigationFailureReason.outsideTripWindow:
-        'This trip can only be navigated during its scheduled time.',
+        'Chỉ có thể dẫn đường chuyến đi này trong khung giờ đã lên lịch.',
     NavigationFailureReason.itineraryNotActive:
-        'Only an Active itinerary can be navigated. Accept the itinerary first.',
+        'Chỉ có thể dẫn đường lịch trình đang hoạt động. Vui lòng chấp nhận lịch trình trước.',
     NavigationFailureReason.noNavigableItems:
-        'This itinerary has no stops that can be navigated.',
+        'Lịch trình này không có điểm dừng nào để dẫn đường.',
     NavigationFailureReason.itineraryScheduleIncomplete:
-        'Some stops have no planned time, so navigation cannot start.',
+        'Một số điểm dừng chưa có thời gian dự kiến nên không thể bắt đầu dẫn đường.',
     NavigationFailureReason.sessionCompleted:
-        'This navigation session has already ended.',
+        'Phiên dẫn đường này đã kết thúc.',
     NavigationFailureReason.sessionInterrupted:
-        'This tour was stopped for safety.',
+        'Chuyến đi này đã tạm dừng vì lý do an toàn.',
     NavigationFailureReason.itemAlreadyReached:
-        'This stop was already reached.',
+        'Điểm dừng này đã được đánh dấu là đã đến.',
     NavigationFailureReason.itemNotNavigable:
-        'This stop is not part of the navigation session.',
+        'Điểm dừng này không thuộc phiên dẫn đường hiện tại.',
     NavigationFailureReason.sessionNotFound:
-        'This navigation session no longer exists.',
+        'Phiên dẫn đường này không còn tồn tại.',
     NavigationFailureReason.accessDenied:
-        'You no longer have access to this trip.',
+        'Bạn không còn quyền truy cập chuyến đi này.',
     NavigationFailureReason.idempotencyKeyPayloadMismatch:
-        'A conflicting start request is in progress. Please try again.',
+        'Đang có một yêu cầu khởi động khác bị xung đột. Vui lòng thử lại.',
   };
 }

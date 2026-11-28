@@ -23,6 +23,8 @@ Future<CreateTourPackageCubit> _loadedCubit(
     loadOptions: LoadTourPackageOptionsUseCase(repository),
     getTour: GetTourPackageUseCase(repository),
     updateTour: UpdateTourPackageUseCase(repository),
+    deleteTour: DeleteTourPackageUseCase(repository),
+    addDeparture: AddTourDepartureUseCase(repository),
     submitForReview: SubmitTourForReviewUseCase(repository),
     media: ManageTourMediaUseCase(repository),
   );
@@ -68,16 +70,16 @@ void main() {
       final cubit = await _loadedCubit(repo);
       addTearDown(cubit.close);
       await _pumpEditor(tester, cubit);
-      await tester.tap(find.text('Preview & save'));
+      await tester.tap(find.text('Xem trước & lưu'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Submit for review'));
+      await tester.tap(find.text('Gửi phê duyệt'));
       await tester.pumpAndSettle();
       expect(
-        find.widgetWithText(TextFormField, 'Submission note (optional)'),
+        find.widgetWithText(TextFormField, 'Ghi chú gửi duyệt (tùy chọn)'),
         findsOneWidget,
       );
-      expect(find.textContaining('Staff'), findsWidgets);
-      await tester.tap(find.widgetWithText(TextButton, 'Cancel').last);
+      expect(find.textContaining('nhân viên'), findsWidgets);
+      await tester.tap(find.widgetWithText(TextButton, 'Hủy').last);
       await tester.pumpAndSettle();
       expect(repo.updates, isEmpty);
       expect(repo.submitted, isEmpty);
@@ -90,19 +92,19 @@ void main() {
 
       await _pumpEditor(tester, cubit);
 
-      expect(find.text('Edit tour package'), findsOneWidget);
+      expect(find.text('Chỉnh sửa gói tour'), findsOneWidget);
       expect(
         find.widgetWithText(TextFormField, 'Da Nang day tour'),
         findsOneWidget,
       );
-      expect(find.text('Itinerary (1)'), findsOneWidget);
-      expect(find.text('Schedules (1)'), findsOneWidget);
-      await tester.tap(find.text('Preview & save'));
+      expect(find.text('Lịch trình (1)'), findsOneWidget);
+      expect(find.text('Lịch khởi hành (1)'), findsOneWidget);
+      await tester.tap(find.text('Xem trước & lưu'));
       await tester.pumpAndSettle();
-      expect(find.text('Save draft'), findsOneWidget);
-      expect(find.text('Submit for review'), findsOneWidget);
-      expect(find.textContaining('Add a cover photo'), findsOneWidget);
-      expect(find.textContaining('already appears earlier'), findsOneWidget);
+      expect(find.text('Lưu bản nháp'), findsOneWidget);
+      expect(find.text('Gửi phê duyệt'), findsOneWidget);
+      expect(find.textContaining('Thêm ảnh bìa'), findsOneWidget);
+      expect(find.textContaining('đã xuất hiện trước đó'), findsOneWidget);
       expect(find.textContaining('Cable car'), findsWidgets);
     });
 
@@ -120,14 +122,14 @@ void main() {
       addTearDown(cubit.close);
 
       await _pumpEditor(tester, cubit);
-      await tester.tap(find.text('Preview & save'));
+      await tester.tap(find.text('Xem trước & lưu'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('cannot be edited'), findsOneWidget);
-      expect(find.text('Ready to submit for review.'), findsNothing);
-      expect(find.textContaining('Staff'), findsWidgets);
-      expect(find.text('Save draft'), findsNothing);
-      expect(find.text('Submit for review'), findsNothing);
+      expect(find.textContaining('không thể chỉnh sửa'), findsOneWidget);
+      expect(find.text('Đã sẵn sàng gửi phê duyệt.'), findsNothing);
+      expect(find.textContaining('nhân viên'), findsWidgets);
+      expect(find.text('Lưu bản nháp'), findsNothing);
+      expect(find.text('Gửi phê duyệt'), findsNothing);
       expect(
         tester.widget<TextFormField>(find.byType(TextFormField).first).enabled,
         isFalse,
@@ -148,9 +150,9 @@ void main() {
       await _pumpEditor(tester, cubit);
 
       expect(find.textContaining('Description is too vague'), findsOneWidget);
-      await tester.tap(find.text('Preview & save'));
+      await tester.tap(find.text('Xem trước & lưu'));
       await tester.pumpAndSettle();
-      expect(find.text('Submit for review'), findsOneWidget);
+      expect(find.text('Gửi phê duyệt'), findsOneWidget);
     });
 
     testWidgets('submitting asks for confirmation and then saves and submits', (
@@ -162,23 +164,23 @@ void main() {
       final cubit = await _loadedCubit(repository);
       addTearDown(cubit.close);
       await _pumpEditor(tester, cubit);
-      await tester.tap(find.text('Preview & save'));
+      await tester.tap(find.text('Xem trước & lưu'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Submit for review'));
+      await tester.tap(find.text('Gửi phê duyệt'));
       await tester.pumpAndSettle();
-      expect(find.text('Submit for review?'), findsOneWidget);
-      await tester.tap(find.text('Cancel'));
+      expect(find.text('Gửi phê duyệt gói tour?'), findsOneWidget);
+      await tester.tap(find.text('Hủy'));
       await tester.pumpAndSettle();
       expect(repository.submitted, isEmpty);
 
-      await tester.tap(find.text('Submit for review'));
+      await tester.tap(find.text('Gửi phê duyệt'));
       await tester.pumpAndSettle();
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Submission note (optional)'),
+        find.widgetWithText(TextFormField, 'Ghi chú gửi duyệt (tùy chọn)'),
         '  Context for Staff  ',
       );
-      await tester.tap(find.widgetWithText(FilledButton, 'Submit'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Gửi duyệt'));
       await tester.pumpAndSettle();
 
       expect(repository.updates, hasLength(1));
@@ -196,10 +198,10 @@ void main() {
         final cubit = await _loadedCubit(repository);
         addTearDown(cubit.close);
         await _pumpEditor(tester, cubit);
-        await tester.tap(find.text('Preview & save'));
+        await tester.tap(find.text('Xem trước & lưu'));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Save draft'));
+        await tester.tap(find.text('Lưu bản nháp'));
         await tester.pumpAndSettle();
 
         final saved = repository.updates.single.$2;
@@ -272,7 +274,7 @@ void main() {
       await pumpList(tester, repository);
 
       expect(find.text('Ba Na day trip'), findsOneWidget);
-      expect(find.textContaining('Approved (not published)'), findsWidgets);
+      expect(find.textContaining('Đã duyệt (chưa đăng)'), findsWidgets);
 
       await tester.tap(find.text('Ba Na day trip'));
       await tester.pumpAndSettle();
@@ -285,7 +287,7 @@ void main() {
       final repository = FakeOperatorTourRepository();
       await pumpList(tester, repository);
 
-      await tester.tap(find.widgetWithText(ChoiceChip, 'Rejected'));
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Bị từ chối'));
       await tester.pumpAndSettle();
 
       expect(repository.listCalls.last, (status: 'Rejected', page: 1));
@@ -307,17 +309,125 @@ void main() {
         ];
       await pumpList(tester, repository);
 
-      expect(find.text('Retry'), findsOneWidget);
-      expect(find.text('No tour packages yet.'), findsNothing);
+      expect(find.text('Thử lại'), findsOneWidget);
+      expect(find.text('Chưa có gói tour nào.'), findsNothing);
     });
 
     testWidgets('the create button opens the create screen', (tester) async {
       await pumpList(tester, FakeOperatorTourRepository());
 
-      await tester.tap(find.text('Create tour package'));
+      await tester.tap(find.text('Tạo gói tour'));
       await tester.pumpAndSettle();
 
       expect(find.text('create'), findsOneWidget);
     });
+
+    testWidgets('approved package with past publishedAtUtc shows Published', (
+      tester,
+    ) async {
+      final repository = FakeOperatorTourRepository()
+        ..allTours = [
+          TourPackageSummary(
+            id: 9,
+            title: 'Live Coastal Tour',
+            status: TourPackageStatus.approved,
+            publishedAtUtc: DateTime.utc(2026, 1, 1),
+            versionNo: 2,
+            basePrice: 1200000,
+            durationDays: 2,
+            destination: 'Da Nang',
+            upcomingDepartureCount: 3,
+          ),
+        ];
+      await pumpList(tester, repository);
+
+      expect(find.text('Live Coastal Tour'), findsOneWidget);
+      expect(find.textContaining('v2 · Đang mở bán'), findsOneWidget);
+      expect(find.textContaining('3 lịch khởi hành sắp tới'), findsOneWidget);
+    });
+  });
+
+  group('deposit, packing tags, reopen, and version history', () {
+    testWidgets('packing checklist tags and deposit setup persist on save', (
+      tester,
+    ) async {
+      final repository = FakeOperatorTourRepository();
+      final cubit = await _loadedCubit(repository);
+      addTearDown(cubit.close);
+      await _pumpEditor(tester, cubit);
+
+      await tester.tap(find.widgetWithText(FilterChip, 'Giày thể thao'));
+      await tester.tap(find.text('Cho phép đặt cọc'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Xem trước & lưu'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lưu bản nháp'));
+      await tester.pumpAndSettle();
+
+      final saved = repository.updates.single.$2;
+      expect(saved.travellerRequirements, '- Giày thể thao');
+      expect(saved.allowDeposit, isTrue);
+      expect(saved.depositPercent, 30);
+      expect(saved.balanceDueDaysBeforeDeparture, 7);
+    });
+
+    testWidgets(
+      'published tour shows reopen departure, clone v3, and version history',
+      (tester) async {
+        final base = sampleDetail(
+          id: 42,
+          status: TourPackageStatus.approved,
+          blockers: const [],
+        );
+        final liveDetail = TourPackageDetail(
+          id: 42,
+          title: base.title,
+          description: base.description,
+          status: TourPackageStatus.approved,
+          publishedAtUtc: DateTime.utc(2026, 1, 1),
+          versionNo: 2,
+          basePrice: base.basePrice,
+          durationDays: base.durationDays,
+          destinationIds: base.destinationIds,
+          destinationNames: base.destinationNames,
+          cancellationPolicyTemplateId: base.cancellationPolicyTemplateId,
+          itineraryItems: base.itineraryItems,
+          departures: base.departures,
+          reviewBlockers: const [],
+          warnings: const [],
+          canSubmitForReview: false,
+          hasPrimaryImage: true,
+          mediaCount: 1,
+          versions: const [
+            TourVersionHistoryItem(
+              tourId: 41,
+              versionNo: 1,
+              status: TourPackageStatus.inactive,
+            ),
+            TourVersionHistoryItem(
+              tourId: 42,
+              versionNo: 2,
+              status: TourPackageStatus.approved,
+            ),
+          ],
+        );
+        final cubit = await _loadedCubit(
+          FakeOperatorTourRepository(detail: liveDetail),
+        );
+        addTearDown(cubit.close);
+        await _pumpEditor(tester, cubit);
+
+        expect(find.text('Mở lịch khởi hành mới'), findsOneWidget);
+        expect(find.text('Tạo bản nháp v3'), findsOneWidget);
+
+        await tester.tap(find.text('Xem trước & lưu'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Lịch sử phiên bản'), findsOneWidget);
+        expect(find.textContaining('v1 · Ngừng hoạt động'), findsOneWidget);
+        expect(find.textContaining('v2 · Đã duyệt (chưa đăng)'), findsWidgets);
+      },
+    );
   });
 }

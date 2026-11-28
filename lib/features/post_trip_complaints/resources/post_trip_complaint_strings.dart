@@ -5,53 +5,68 @@ abstract final class PostTripComplaintStrings {
   static String categoryLabel(PostTripComplaintReasonCategory category) =>
       switch (category) {
         PostTripComplaintReasonCategory.itineraryNotAsAdvertised =>
-          'Itinerary not as advertised',
-        PostTripComplaintReasonCategory.serviceQuality => 'Service quality',
+          'Lịch trình không đúng như mô tả',
+        PostTripComplaintReasonCategory.serviceQuality => 'Chất lượng dịch vụ',
         PostTripComplaintReasonCategory.guideOrStaffConduct =>
-          'Guide or staff conduct',
-        PostTripComplaintReasonCategory.safetyIssue => 'Safety issue',
+          'Thái độ hướng dẫn viên hoặc nhân viên',
+        PostTripComplaintReasonCategory.safetyIssue => 'Vấn đề an toàn',
         PostTripComplaintReasonCategory.scheduleChangeOrDelay =>
-          'Schedule change or delay',
-        PostTripComplaintReasonCategory.other => 'Other',
+          'Thay đổi lịch trình hoặc chậm trễ',
+        PostTripComplaintReasonCategory.other => 'Khác',
       };
+  static String statusLabel(String status) => switch (status) {
+    'AwaitingOperatorResponse' => 'Chờ đơn vị điều hành phản hồi',
+    'OperatorResponded' => 'Đơn vị điều hành đã phản hồi',
+    'UnderReview' || 'UnderAdminReview' => 'Đang được xem xét',
+    'Escalated' => 'Đã chuyển xử lý cấp cao',
+    'Submitted' => 'Đã gửi',
+    'InProgress' => 'Đang xử lý',
+    'Resolved' => 'Đã giải quyết',
+    'Rejected' => 'Đã từ chối',
+    'Closed' => 'Đã đóng',
+    _ => status.replaceAllMapped(
+      RegExp(r'([a-z])([A-Z])'),
+      (m) => '${m[1]} ${m[2]}',
+    ),
+  };
   static String validationMessage(PostTripComplaintValidationMessage issue) =>
       switch (issue) {
         PostTripComplaintValidationMessage.requiredDetail => detailRequired,
         PostTripComplaintValidationMessage.detailTooLong =>
-          'Complaint details must be 2,000 characters or fewer.',
+          'Nội dung khiếu nại không được vượt quá 2.000 ký tự.',
         PostTripComplaintValidationMessage.unsupportedType =>
-          'Choose only JPG, PNG, WebP or PDF files.',
+          'Chỉ hỗ trợ tệp JPG, PNG, WebP hoặc PDF.',
         PostTripComplaintValidationMessage.fileTooLarge =>
-          'Each evidence file must be non-empty and no larger than 10 MB.',
+          'Mỗi tệp minh chứng phải có dung lượng lớn hơn 0 và không quá 10 MB.',
         PostTripComplaintValidationMessage.tooManyFiles =>
-          'You can attach up to 5 evidence files.',
+          'Bạn có thể đính kèm tối đa 5 tệp minh chứng.',
         PostTripComplaintValidationMessage.totalTooLarge =>
-          'Evidence files must total 30 MB or less.',
+          'Tổng dung lượng các tệp minh chứng không được vượt quá 30 MB.',
         PostTripComplaintValidationMessage.missingFileData =>
-          'This file could not be read. Remove it and select it again.',
+          'Không thể đọc tệp này. Vui lòng xóa và chọn lại.',
       };
-  static const title = 'Submit post-trip complaint';
-  static const myComplaints = 'My Complaints';
-  static const submit = 'Submit complaint';
-  static const amend = 'Add evidence';
-  static const download = 'Download evidence';
-  static const retry = 'Retry';
-  static const windowClosed = 'The complaint window has closed.';
-  static const existing = 'A complaint already exists for this booking.';
+  static const title = 'Gửi khiếu nại sau chuyến đi';
+  static const myComplaints = 'Khiếu nại của tôi';
+  static const submit = 'Gửi khiếu nại';
+  static const amend = 'Bổ sung minh chứng';
+  static const download = 'Tải minh chứng';
+  static const retry = 'Thử lại';
+  static const windowClosed = 'Đã quá thời hạn gửi khiếu nại.';
+  static const existing = 'Đơn đặt tour này đã có khiếu nại.';
   static const systemError =
-      'TripMate could not complete your request. Please try again.';
+      'TripMate không thể hoàn tất yêu cầu của bạn. Vui lòng thử lại.';
   static const invalidEvidence =
-      'Choose JPG, PNG, WebP, or PDF evidence within the permitted limits.';
-  static const tooManyEvidence = 'You can attach at most five evidence files.';
+      'Vui lòng chọn tệp JPG, PNG, WebP hoặc PDF đúng giới hạn cho phép.';
+  static const tooManyEvidence =
+      'Bạn chỉ có thể đính kèm tối đa 5 tệp minh chứng.';
   static const evidenceTooLarge =
-      'Each evidence file must be 10 MB or smaller, and all files must total 30 MB or less.';
-  static const evidenceTypeInvalid =
-      'Only JPG, PNG, WebP, and PDF files are supported.';
+      'Mỗi tệp minh chứng tối đa 10 MB và tổng dung lượng không quá 30 MB.';
+  static const evidenceTypeInvalid = 'Chỉ hỗ trợ tệp JPG, PNG, WebP và PDF.';
   static const evidenceDataUnavailable =
-      'The selected file could not be read. Please choose it again.';
+      'Không thể đọc tệp đã chọn. Vui lòng chọn lại.';
   static const downloadUnavailable =
-      'Evidence could not be opened. Please try downloading it again.';
-  static const detailRequired = 'Enter complaint details.';
-  static const submitted = 'Your complaint was submitted.';
-  static const evidenceAdded = 'Additional evidence was added successfully.';
+      'Không thể mở minh chứng. Vui lòng thử tải lại.';
+  static const detailRequired = 'Vui lòng nhập nội dung khiếu nại.';
+  static const submitted = 'Khiếu nại của bạn đã được gửi.';
+  static const evidenceAdded = 'Đã bổ sung minh chứng thành công.';
 }

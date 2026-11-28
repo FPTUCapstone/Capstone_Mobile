@@ -71,10 +71,10 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tester.enterText(
-        find.bySemanticsLabel('Message'),
+        find.bySemanticsLabel('Tin nhắn'),
         'Book for two adults',
       );
-      await tester.tap(find.byTooltip('Send message'));
+      await tester.tap(find.byTooltip('Gửi tin nhắn'));
       chat.pending.complete(
         const SupportChatReply(
           answer: 'Review the booking details',
@@ -91,7 +91,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.bySemanticsLabel('Review booking'));
       await tester.pumpAndSettle();
-      expect(find.text('Book Tour'), findsOneWidget);
+      expect(find.text('Đặt tour'), findsOneWidget);
       expect(booking.quoteCalls.single.$1, '123');
       expect(booking.quoteCalls.single.$2, const ParticipantCounts(adult: 2));
       expect(booking.quoteCalls.single.$2.total, 2);
@@ -99,7 +99,7 @@ void main() {
       expect(booking.quoteCalls.single.$2.infant, 0);
       expect(booking.createCalls, isEmpty);
       final confirm = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Confirm booking'),
+        find.widgetWithText(FilledButton, 'Xác nhận đặt tour'),
       );
       expect(confirm.onPressed, isNull);
       await tester.pageBack();
@@ -111,7 +111,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Review the booking details'), findsNothing);
       expect(
-        find.text('Ask about tours, bookings, refunds or itineraries.'),
+        find.text('Hãy hỏi về tour, đơn đặt tour, hoàn tiền hoặc lịch trình.'),
         findsOneWidget,
       );
     },
@@ -140,9 +140,9 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Selected refund #42'), findsOneWidget);
-    await tester.enterText(find.bySemanticsLabel('Message'), 'My refund');
-    await tester.tap(find.byTooltip('Send message'));
+    expect(find.text('Đang chọn hoàn tiền #42'), findsOneWidget);
+    await tester.enterText(find.bySemanticsLabel('Tin nhắn'), 'My refund');
+    await tester.tap(find.byTooltip('Gửi tin nhắn'));
     expect(
       repository.requests.single.context,
       const SupportChatContext(kind: 'refund', id: '42'),
@@ -195,7 +195,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Ask about this refund'));
+      await tester.tap(find.text('Hỏi về khoản hoàn tiền này'));
       await tester.pumpAndSettle();
       expect(find.text('Contextual support'), findsOneWidget);
       expect(selected, const SupportChatContext(kind: 'refund', id: '42'));
@@ -223,10 +223,10 @@ void main() {
           ),
         );
         await tester.pump();
-        expect(find.text('Ask about this refund'), findsNothing);
+        expect(find.text('Hỏi về khoản hoàn tiền này'), findsNothing);
         repository.result.completeError(failure);
         await tester.pumpAndSettle();
-        expect(find.text('Ask about this refund'), findsNothing);
+        expect(find.text('Hỏi về khoản hoàn tiền này'), findsNothing);
       },
     );
   }

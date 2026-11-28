@@ -95,7 +95,7 @@ final class SupportChatCubit extends Cubit<SupportChatState> {
           messages: state.messages,
           context: state.context,
           failure: const ValidationFailure(
-            'Enter a message of 1–2000 characters.',
+            'Vui lòng nhập tin nhắn từ 1 đến 2.000 ký tự.',
           ),
         ),
       );

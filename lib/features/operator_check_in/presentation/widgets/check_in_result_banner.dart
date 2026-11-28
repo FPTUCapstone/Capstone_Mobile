@@ -40,7 +40,7 @@ class CheckInResultBanner extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${res.ticketCode} accepted',
+                    '${res.ticketCode} đã được chấp nhận',
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -49,16 +49,16 @@ class CheckInResultBanner extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Passenger Name: ${res.passengerName} · ${res.participantCount} pax · checked in $timeStr',
+                    'Tên hành khách: ${res.passengerName} · ${res.participantCount} khách · điểm danh lúc $timeStr',
                     style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFF065F46),
                     ),
                   ),
-                  Text('Booking Code: ${res.bookingCode}'),
-                  Text('Number of Participants: ${res.participantCount}'),
-                  const Text('Ticket Status: Used'),
-                  const Text('Check-in Result: Success'),
+                  Text('Mã đơn đặt tour: ${res.bookingCode}'),
+                  Text('Số lượng hành khách: ${res.participantCount}'),
+                  const Text('Trạng thái vé: Đã sử dụng'),
+                  const Text('Kết quả điểm danh: Thành công'),
                 ],
               ),
             ),
@@ -76,7 +76,7 @@ class CheckInResultBanner extends StatelessWidget {
             ? CheckInTimeFormat.dateTime(fail.checkedInAt!)
             : '';
         final subtitle = [
-          if (timeStr.isNotEmpty) 'previously checked in at $timeStr',
+          if (timeStr.isNotEmpty) 'đã điểm danh trước đó lúc $timeStr',
         ].join(' · ');
 
         return Container(
@@ -109,7 +109,7 @@ class CheckInResultBanner extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${fail.ticketCode ?? 'Ticket'} already used',
+                      '${fail.ticketCode ?? 'Vé'} đã được sử dụng',
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -121,7 +121,7 @@ class CheckInResultBanner extends StatelessWidget {
                       subtitle.isNotEmpty
                           ? subtitle
                           : (fail.message ??
-                                'This ticket has already been checked in.'),
+                                'Vé này đã được điểm danh trước đó.'),
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFFB45309),
@@ -129,8 +129,8 @@ class CheckInResultBanner extends StatelessWidget {
                     ),
                     ..._failureFields(
                       fail,
-                      ticketStatus: 'Used',
-                      result: 'Already used',
+                      ticketStatus: 'Đã sử dụng',
+                      result: 'Đã sử dụng',
                     ),
                   ],
                 ),
@@ -171,8 +171,8 @@ class CheckInResultBanner extends StatelessWidget {
                 children: [
                   Text(
                     uncertain
-                        ? 'Check-in not confirmed'
-                        : '${fail.ticketCode ?? 'Ticket'} rejected',
+                        ? 'Chưa thể xác nhận điểm danh'
+                        : '${fail.ticketCode ?? 'Vé'} bị từ chối',
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -183,8 +183,8 @@ class CheckInResultBanner extends StatelessWidget {
                   Text(
                     fail.message ??
                         (uncertain
-                            ? 'The outcome could not be confirmed. Check before trying again.'
-                            : 'Ticket is not valid for this departure.'),
+                            ? 'Chưa thể xác nhận kết quả. Vui lòng kiểm tra lại trước khi thử tiếp.'
+                            : 'Vé không hợp lệ cho chuyến khởi hành này.'),
                     style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFFB91C1C),
@@ -192,8 +192,8 @@ class CheckInResultBanner extends StatelessWidget {
                   ),
                   ..._failureFields(
                     fail,
-                    ticketStatus: 'Unknown',
-                    result: uncertain ? 'Not confirmed' : 'Rejected',
+                    ticketStatus: 'Không xác định',
+                    result: uncertain ? 'Chưa xác nhận' : 'Từ chối',
                   ),
                 ],
               ),
@@ -211,10 +211,10 @@ class CheckInResultBanner extends StatelessWidget {
     required String ticketStatus,
     required String result,
   }) => [
-    Text('Booking Code: ${failure.bookingCode ?? 'Unavailable'}'),
-    Text('Passenger Name: ${failure.passengerName ?? 'Unavailable'}'),
-    const Text('Number of Participants: Unavailable'),
-    Text('Ticket Status: $ticketStatus'),
-    Text('Check-in Result: $result'),
+    Text('Mã đơn đặt tour: ${failure.bookingCode ?? 'Không có thông tin'}'),
+    Text('Tên hành khách: ${failure.passengerName ?? 'Không có thông tin'}'),
+    const Text('Số lượng hành khách: Không có thông tin'),
+    Text('Trạng thái vé: $ticketStatus'),
+    Text('Kết quả điểm danh: $result'),
   ];
 }

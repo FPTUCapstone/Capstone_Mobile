@@ -59,24 +59,24 @@ abstract final class TripAlertModel {
   };
 
   static String _title(String code) => switch (code) {
-    'trip_alert.weather_advisory' => 'Rain preparation',
-    'trip_alert.severe_weather' => 'Severe weather',
-    'trip_alert.schedule_delay' => 'Schedule update',
-    TripAlert.stopOverstayMessageCode => 'Stay time exceeded',
-    'trip_alert.route_deviation' => 'Route deviation',
-    'trip_alert.poi_closure' => 'Place unavailable',
+    'trip_alert.weather_advisory' => 'Chuẩn bị ứng phó mưa',
+    'trip_alert.severe_weather' => 'Thời tiết xấu',
+    'trip_alert.schedule_delay' => 'Cập nhật lịch trình',
+    TripAlert.stopOverstayMessageCode => 'Quá thời gian dừng chân',
+    'trip_alert.route_deviation' => 'Lệch tuyến đường',
+    'trip_alert.poi_closure' => 'Điểm đến tạm đóng cửa',
     _ => throw FormatException('Unsupported trip alert message code: $code'),
   };
 
   static String overstayDescription(String name, DateTime? plannedDeparture) {
-    final place = name.isEmpty ? 'this stop' : name;
+    final place = name.isEmpty ? 'điểm dừng này' : name;
     if (plannedDeparture == null) {
-      return 'You have stayed past the planned departure time at $place.';
+      return 'Bạn đã dừng quá thời gian dự kiến tại $place.';
     }
     final local = plannedDeparture.toLocal();
     final hour = local.hour.toString().padLeft(2, '0');
     final minute = local.minute.toString().padLeft(2, '0');
-    return 'You have stayed past the planned departure time ($hour:$minute) at $place.';
+    return 'Bạn đã dừng quá giờ rời đi dự kiến ($hour:$minute) tại $place.';
   }
 
   static String _description(
@@ -89,7 +89,7 @@ abstract final class TripAlertModel {
     DateTime? plannedDeparture,
   ) => switch (code) {
     'trip_alert.weather_advisory' =>
-      'Rain is forecast at ${name.isEmpty ? 'this stop' : name} around your planned visit. Prepare for wet weather.${_weatherTime(weatherAtUtc)}',
+      'Dự báo có mưa tại ${name.isEmpty ? 'điểm dừng này' : name} vào khoảng thời gian bạn dự kiến ghé thăm. Hãy chuẩn bị đồ đi mưa.${_weatherTime(weatherAtUtc)}',
     'trip_alert.severe_weather' => _weatherDescription(
       name,
       basis,
@@ -98,15 +98,15 @@ abstract final class TripAlertModel {
       weatherCondition,
     ),
     'trip_alert.schedule_delay' =>
-      '${name.isEmpty ? 'This stop' : name} has not been recorded as reached on time.',
+      '${name.isEmpty ? 'Điểm dừng này' : name} chưa được ghi nhận đã đến đúng giờ.',
     TripAlert.stopOverstayMessageCode => overstayDescription(
       name,
       plannedDeparture,
     ),
     'trip_alert.route_deviation' =>
-      'You appear to be away from the planned route.',
+      'Bạn có vẻ đang đi lệch khỏi lộ trình đã lên kế hoạch.',
     'trip_alert.poi_closure' =>
-      '${name.isEmpty ? 'This place' : name} is currently unavailable.',
+      '${name.isEmpty ? 'Địa điểm này' : name} hiện đang tạm đóng cửa hoặc không khả dụng.',
     _ => '',
   };
 
@@ -117,30 +117,31 @@ abstract final class TripAlertModel {
     DateTime? weatherAtUtc,
     String? weatherCondition,
   ) {
-    final place = name.isEmpty ? 'the destination' : name;
+    final place = name.isEmpty ? 'điểm đến' : name;
     final condition = switch (weatherCondition) {
-      'Thunderstorm' => 'A thunderstorm',
+      'Thunderstorm' => 'Dông bão',
       'ExtremeRain' =>
         rainIntensity == null
-            ? 'Extreme rain'
-            : 'Extreme rain (${rainIntensity.toStringAsFixed(1)} mm/h)',
+            ? 'Mưa rất to'
+            : 'Mưa rất to (${rainIntensity.toStringAsFixed(1)} mm/h)',
       'HeavyRain' =>
         rainIntensity == null
-            ? 'Heavy rain'
-            : 'Heavy rain (${rainIntensity.toStringAsFixed(1)} mm/h)',
+            ? 'Mưa to'
+            : 'Mưa to (${rainIntensity.toStringAsFixed(1)} mm/h)',
       _ =>
         rainIntensity == null
-            ? 'Severe weather'
-            : 'Weather warning (${rainIntensity.toStringAsFixed(1)} mm/h rain)',
+            ? 'Thời tiết xấu'
+            : 'Cảnh báo thời tiết (mưa ${rainIntensity.toStringAsFixed(1)} mm/h)',
     };
     final description = switch (basis) {
       WeatherBasis.currentAtDestination =>
-        '$condition is currently at $place. Consider postponing or skipping the affected stop.',
+        '$condition đang xảy ra tại $place. Hãy cân nhắc hoãn hoặc bỏ qua điểm dừng bị ảnh hưởng.',
       WeatherBasis.forecastAtPlannedTime =>
-        '$condition is forecast at $place for the planned visit time. Consider postponing or skipping the affected stop.',
+        '$condition được dự báo tại $place vào thời gian tham quan dự kiến. Hãy cân nhắc hoãn hoặc bỏ qua điểm dừng bị ảnh hưởng.',
       WeatherBasis.officialEvent =>
-        'An official weather warning affects $place. Check the source alert before visiting.',
-      null => '$condition may affect $place. Check this stop before visiting.',
+        'Có cảnh báo thời tiết chính thức ảnh hưởng đến $place. Hãy kiểm tra thông tin cảnh báo trước khi ghé thăm.',
+      null =>
+        '$condition có thể ảnh hưởng đến $place. Hãy kiểm tra điểm dừng này trước khi ghé thăm.',
     };
     return '$description${_weatherTime(weatherAtUtc)}';
   }
@@ -150,7 +151,7 @@ abstract final class TripAlertModel {
     final local = utc.toLocal();
     final hour = local.hour.toString().padLeft(2, '0');
     final minute = local.minute.toString().padLeft(2, '0');
-    return ' Weather data at $hour:$minute on ${local.day}/${local.month} (device time).';
+    return ' Dữ liệu thời tiết lúc $hour:$minute ngày ${local.day}/${local.month} (giờ thiết bị).';
   }
 
   static WeatherBasis? _weatherBasis(Object? value) => switch (value) {

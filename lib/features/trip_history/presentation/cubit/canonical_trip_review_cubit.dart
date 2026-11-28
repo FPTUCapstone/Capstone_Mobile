@@ -5,6 +5,7 @@ import 'package:trip_mate_mobile/features/trip_history/domain/entities/canonical
 import 'package:trip_mate_mobile/features/trip_history/domain/entities/reviewable_record_ref.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/repositories/canonical_trip_review_repository.dart';
 import 'package:trip_mate_mobile/features/trip_history/domain/usecases/canonical_trip_review_use_case.dart';
+import 'package:trip_mate_mobile/features/trip_history/resources/trip_history_en.dart';
 
 enum CanonicalReviewOutcome { none, created, updated }
 
@@ -78,7 +79,7 @@ final class CanonicalTripReviewCubit extends Cubit<CanonicalTripReviewState> {
         emit(
           CanonicalTripReviewState(
             context: state.context,
-            message: 'Review published.',
+            message: TripHistoryStringsEn.reviewSubmitSuccess,
             outcome: CanonicalReviewOutcome.created,
           ),
         );
@@ -91,7 +92,7 @@ final class CanonicalTripReviewCubit extends Cubit<CanonicalTripReviewState> {
           publishDisplayName: publishDisplayName,
           version: existing.version,
         );
-        await load(message: 'Review updated.');
+        await load(message: TripHistoryStringsEn.reviewUpdateSuccess);
         emit(
           CanonicalTripReviewState(
             context: state.context,
@@ -129,33 +130,36 @@ final class CanonicalTripReviewCubit extends Cubit<CanonicalTripReviewState> {
   }
 
   static String _message(Failure failure) => switch (failure.message) {
-    'trip_review.invalid_input' => 'Check the review details and try again.',
-    'trip_review.not_found' => 'This booking could not be found.',
-    'trip_review.forbidden' => 'You can only review your own booking.',
+    'trip_review.invalid_input' =>
+      'Vui lòng kiểm tra lại thông tin đánh giá và thử lại.',
+    'trip_review.not_found' => 'Không tìm thấy đơn đặt tour này.',
+    'trip_review.forbidden' =>
+      'Bạn chỉ có thể đánh giá đơn đặt tour của chính mình.',
     'trip_review.booking_not_completed' =>
-      'A review can only be submitted after the trip is completed.',
+      'Chỉ có thể gửi đánh giá sau khi chuyến đi đã hoàn thành.',
     'trip_review.duplicate' =>
-      'A review already exists. The existing review is shown below.',
+      'Đánh giá đã tồn tại. Nội dung đánh giá hiện có được hiển thị bên dưới.',
     'trip_review.edit_expired' =>
-      'The seven-day edit window has expired. This review is read-only.',
+      'Đã hết thời hạn 7 ngày chỉnh sửa. Đánh giá này hiện chỉ có thể xem.',
     'trip_review.stale_version' =>
-      'This review changed elsewhere. Reload it before saving again.',
+      'Đánh giá này vừa được thay đổi ở nơi khác. Vui lòng tải lại trước khi lưu.',
     'trip_review.policy_rejected' =>
-      'The review was rejected by the content policy.',
+      'Đánh giá bị từ chối do vi phạm chính sách nội dung.',
     'trip_review.policy_unavailable' =>
-      'Content screening is temporarily unavailable. Please try again.',
+      'Hệ thống kiểm duyệt nội dung tạm thời gián đoạn. Vui lòng thử lại.',
     'trip_review.unsupported_subject' =>
-      'This booking does not have a supported review subject.',
+      'Đơn đặt này không hỗ trợ gửi đánh giá.',
     'trip_review.unsupported_media_type' =>
-      'Use JPEG, PNG, or WebP photos only.',
-    'trip_review.body_too_large' => 'The selected photos are too large.',
+      'Chỉ hỗ trợ ảnh định dạng JPEG, PNG hoặc WebP.',
+    'trip_review.body_too_large' => 'Ảnh đã chọn có dung lượng quá lớn.',
     'trip_review.invalid_response' =>
-      'The review service returned an invalid response.',
-    _ when failure is NetworkFailure => 'Please check your connection.',
-    _ when failure is AuthenticationFailure => 'Please sign in to continue.',
+      'Dịch vụ đánh giá trả về phản hồi không hợp lệ.',
+    _ when failure is NetworkFailure => 'Vui lòng kiểm tra kết nối mạng.',
+    _ when failure is AuthenticationFailure =>
+      'Vui lòng đăng nhập để tiếp tục.',
     _ when failure is PermissionFailure =>
-      'You can only review your own booking.',
-    _ when failure is NotFoundFailure => 'This booking could not be found.',
-    _ => 'The review service is currently unavailable. Please try again.',
+      'Bạn chỉ có thể đánh giá đơn đặt tour của chính mình.',
+    _ when failure is NotFoundFailure => 'Không tìm thấy đơn đặt tour này.',
+    _ => 'Dịch vụ đánh giá hiện không khả dụng. Vui lòng thử lại.',
   };
 }

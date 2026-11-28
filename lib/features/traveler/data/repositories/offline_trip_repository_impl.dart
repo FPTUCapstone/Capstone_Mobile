@@ -70,7 +70,7 @@ final class OfflineTripRepositoryImpl implements OfflineTripRepository {
   Future<void> _sameAccount(int owner, String session) async {
     if (await _ownerId() != owner || await _sessionKey() != session) {
       throw const AuthenticationFailure(
-        'Your account changed. Please reopen offline data.',
+        'Tài khoản đã thay đổi. Vui lòng mở lại mục dữ liệu ngoại tuyến.',
       );
     }
   }
@@ -157,7 +157,7 @@ final class OfflineTripRepositoryImpl implements OfflineTripRepository {
       }
     } catch (_) {
       throw const ServerFailure(
-        'The saved map is missing or damaged. Download this itinerary again.',
+        'Bản đồ đã lưu bị thiếu hoặc hư hỏng. Vui lòng tải lại lịch trình này.',
       );
     }
   }
@@ -165,7 +165,9 @@ final class OfflineTripRepositoryImpl implements OfflineTripRepository {
   Future<int> _freeBytes() async {
     final value = (await _maps.storage())['freeBytes'];
     if (value is! int || value < 0) {
-      throw const ServerFailure('Device storage could not be checked.');
+      throw const ServerFailure(
+        'Không thể kiểm tra dung lượng bộ nhớ thiết bị.',
+      );
     }
     return value;
   }
@@ -176,9 +178,7 @@ final class OfflineTripRepositoryImpl implements OfflineTripRepository {
     void Function(OfflineDownloadProgress)? onProgress,
   }) async {
     if (_mutating) {
-      throw const ConflictFailure(
-        'Another offline operation is still running.',
-      );
+      throw const ConflictFailure('Một thao tác ngoại tuyến khác đang chạy.');
     }
     final transfer = _Transfer();
     _mutating = true;
@@ -192,14 +192,14 @@ final class OfflineTripRepositoryImpl implements OfflineTripRepository {
       await _check(transfer);
       if (!_isMapConfigured()) {
         throw const ServerFailure(
-          'Offline maps are not configured on this build.',
+          'Bản đồ ngoại tuyến chưa được cấu hình trên bản dựng này.',
         );
       }
       await _recover();
       await _check(transfer);
       if (await _freeBytes() < OfflineTripManifest.maxBytes) {
         throw const ValidationFailure(
-          'Insufficient storage space. At least 150MB free space required for offline map data.',
+          'Không đủ dung lượng bộ nhớ. Cần ít nhất 150 MB trống để lưu dữ liệu bản đồ ngoại tuyến.',
         );
       }
       onProgress?.call(
@@ -265,7 +265,7 @@ final class OfflineTripRepositoryImpl implements OfflineTripRepository {
       final budget = OfflineTripManifest.maxBytes - overhead;
       if (budget <= 0) {
         throw const ValidationFailure(
-          'This itinerary exceeds the 150 MB offline package limit.',
+          'Lịch trình này vượt quá giới hạn gói ngoại tuyến 150 MB.',
         );
       }
       onProgress?.call(
@@ -281,12 +281,12 @@ final class OfflineTripRepositoryImpl implements OfflineTripRepository {
       await _check(transfer);
       if (estimate != null && estimate > budget) {
         throw const ValidationFailure(
-          'This itinerary exceeds the 150 MB offline package limit.',
+          'Lịch trình này vượt quá giới hạn gói ngoại tuyến 150 MB.',
         );
       }
       if (await _freeBytes() < OfflineTripManifest.maxBytes) {
         throw const ValidationFailure(
-          'Not enough temporary space to retain the old package while downloading. At least 150MB free space required.',
+          'Không đủ dung lượng tạm để giữ gói cũ trong khi tải mới. Cần ít nhất 150 MB trống.',
         );
       }
       await _check(transfer);
@@ -313,7 +313,7 @@ final class OfflineTripRepositoryImpl implements OfflineTripRepository {
       await _check(transfer);
       if (resources.regionId != region || resources.totalBytes > budget) {
         throw const ValidationFailure(
-          'The downloaded package exceeds the 150 MB limit or is incomplete.',
+          'Gói đã tải vượt quá giới hạn 150 MB hoặc chưa đầy đủ.',
         );
       }
       var saved = manifest(resources);
@@ -336,7 +336,7 @@ final class OfflineTripRepositoryImpl implements OfflineTripRepository {
       await _check(transfer);
       if (await _freeBytes() < OfflineTripManifestModel.encodedSize(saved)) {
         throw const ValidationFailure(
-          'Device storage became full. The previous package has been retained.',
+          'Bộ nhớ thiết bị đã đầy. Gói dữ liệu trước đó vẫn được giữ lại.',
         );
       }
       await _check(transfer);
@@ -367,7 +367,7 @@ final class OfflineTripRepositoryImpl implements OfflineTripRepository {
           } catch (_) {
             _recovery = null;
             throw const ServerFailure(
-              'The new package was saved, but old map cleanup is incomplete. Reopen offline data to retry cleanup.',
+              'Đã lưu gói mới nhưng chưa dọn xong bản đồ cũ. Vui lòng mở lại dữ liệu ngoại tuyến để thử dọn lại.',
             );
           }
         }
@@ -391,20 +391,20 @@ final class OfflineTripRepositoryImpl implements OfflineTripRepository {
         } catch (_) {
           _recovery = null;
           throw const ServerFailure(
-            'Offline cleanup is incomplete. Reopen offline data to retry.',
+            'Quá trình dọn dẹp dữ liệu ngoại tuyến chưa hoàn tất. Vui lòng mở lại dữ liệu ngoại tuyến để thử lại.',
           );
         }
       }
       if (error is NetworkFailure) {
         throw const NetworkFailure(
-          'Connection lost. The transfer was interrupted and nothing partial was kept. Please retry.',
+          'Mất kết nối mạng. Quá trình tải bị gián đoạn và không lưu dữ liệu dở dang. Vui lòng thử lại.',
         );
       }
       if (error is OfflineItineraryAccessDenied) {
         await _sameAccount(transfer.owner, transfer.session!);
         await (await _local()).setLocked(transfer.owner, itineraryId, true);
         throw const PermissionFailure(
-          'You no longer have access to this itinerary.',
+          'Bạn không còn quyền truy cập lịch trình này.',
         );
       }
       if (error is OfflineOperationCancelled || error is Failure) rethrow;
@@ -415,16 +415,16 @@ final class OfflineTripRepositoryImpl implements OfflineTripRepository {
       if (error is OfflineStorageLimitException ||
           (error is PlatformException && error.code == 'size_limit')) {
         throw const ValidationFailure(
-          'This itinerary exceeds the 150 MB offline package limit.',
+          'Lịch trình này vượt quá giới hạn gói ngoại tuyến 150 MB.',
         );
       }
       if (error is OfflineDataCorruptException) {
         throw const ServerFailure(
-          'Saved offline data is damaged. Remove the unreadable data and download again.',
+          'Dữ liệu ngoại tuyến đã lưu bị hỏng. Vui lòng xóa dữ liệu không đọc được và tải lại.',
         );
       }
       throw const ServerFailure(
-        'The offline package could not be saved. Please retry; the previous complete package has been retained.',
+        'Không thể lưu gói ngoại tuyến. Vui lòng thử lại; gói đầy đủ trước đó vẫn được giữ lại.',
       );
     } finally {
       _active = null;
@@ -438,7 +438,7 @@ final class OfflineTripRepositoryImpl implements OfflineTripRepository {
     if (transfer == null) return;
     if (transfer.publishing) {
       throw const ConflictFailure(
-        'The package is being saved. Please wait for completion.',
+        'Đang lưu gói dữ liệu. Vui lòng chờ hoàn tất.',
       );
     }
     transfer.cancelled = true;
@@ -448,7 +448,7 @@ final class OfflineTripRepositoryImpl implements OfflineTripRepository {
     } catch (_) {
       _recovery = null;
       throw const ServerFailure(
-        'Offline cancellation cleanup is incomplete. Please retry.',
+        'Quá trình dọn dẹp sau khi hủy chưa hoàn tất. Vui lòng thử lại.',
       );
     }
   }
@@ -457,7 +457,7 @@ final class OfflineTripRepositoryImpl implements OfflineTripRepository {
   Future<void> remove(int itineraryId) async {
     if (_mutating) {
       throw const ConflictFailure(
-        'Wait for the active offline operation to finish.',
+        'Vui lòng chờ thao tác ngoại tuyến hiện tại hoàn tất.',
       );
     }
     _mutating = true;
@@ -474,7 +474,7 @@ final class OfflineTripRepositoryImpl implements OfflineTripRepository {
       _recovery = null;
       if (error is Failure) rethrow;
       throw const ServerFailure(
-        'Offline removal is incomplete. Reopen offline data to retry cleanup.',
+        'Quá trình xóa dữ liệu ngoại tuyến chưa hoàn tất. Vui lòng mở lại dữ liệu ngoại tuyến để thử dọn lại.',
       );
     } finally {
       _mutating = false;
@@ -485,7 +485,7 @@ final class OfflineTripRepositoryImpl implements OfflineTripRepository {
   Future<OfflineTripManifest?> checkForUpdate(int itineraryId) async {
     if (_mutating) {
       throw const ConflictFailure(
-        'Wait for the active offline operation to finish.',
+        'Vui lòng chờ thao tác ngoại tuyến hiện tại hoàn tất.',
       );
     }
     _mutating = true;
@@ -528,7 +528,7 @@ final class OfflineTripRepositoryImpl implements OfflineTripRepository {
   Future<void> removeUnreadable(String generation) async {
     if (_mutating) {
       throw const ConflictFailure(
-        'Wait for the active offline operation to finish.',
+        'Vui lòng chờ thao tác ngoại tuyến hiện tại hoàn tất.',
       );
     }
     _mutating = true;
@@ -558,7 +558,7 @@ Map<String, Object?> offlineCoverageGeometry(
             p.longitude.abs() > 180,
       )) {
     throw const ValidationFailure(
-      'This itinerary has no supported map area to download.',
+      'Lịch trình này không có khu vực bản đồ được hỗ trợ để tải.',
     );
   }
   final south =
@@ -569,7 +569,7 @@ Map<String, Object?> offlineCoverageGeometry(
       OfflineTripManifest.coverageBufferMeters / 111320;
   if (south < -85.051128 || north > 85.051128) {
     throw const ValidationFailure(
-      'The itinerary is outside the supported offline map area.',
+      'Lịch trình nằm ngoài khu vực bản đồ ngoại tuyến được hỗ trợ.',
     );
   }
   final padding =

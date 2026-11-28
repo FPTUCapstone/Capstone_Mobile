@@ -232,7 +232,7 @@ void main() {
             .having(
               (s) => s.errorMessage,
               'errorMessage',
-              'Please select an itinerary.',
+              'Vui lòng chọn một lịch trình.',
             ),
         isA<CreateTravelGroupState>().having(
           (s) => s.status,
@@ -284,7 +284,7 @@ void main() {
             .having(
               (s) => s.errorMessage,
               'errorMessage',
-              'This field is required.',
+              'Trường này là bắt buộc.',
             ),
         isA<CreateTravelGroupState>().having(
           (s) => s.status,
@@ -312,7 +312,7 @@ void main() {
             .having(
               (s) => s.errorMessage,
               'errorMessage',
-              'Your session has expired. Please sign in again to continue.',
+              'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.',
             ),
       ],
     );
@@ -335,7 +335,7 @@ void main() {
             .having(
               (s) => s.errorMessage,
               'errorMessage',
-              'You do not have permission to access this function.',
+              'Bạn không có quyền truy cập chức năng này.',
             ),
       ],
     );
@@ -356,7 +356,7 @@ void main() {
             .having(
               (s) => s.errorMessage,
               'errorMessage',
-              'Group name must not exceed 150 characters.',
+              'Tên nhóm không được vượt quá 150 ký tự.',
             ),
         isA<CreateTravelGroupState>().having(
           (s) => s.status,
@@ -402,7 +402,7 @@ void main() {
             .having(
               (s) => s.errorMessage,
               'errorMessage',
-              'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+              'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.',
             ),
       ],
     );

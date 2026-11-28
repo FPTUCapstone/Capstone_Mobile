@@ -56,7 +56,7 @@ final class OperatorEmailRecoveryCubit
         const OperatorEmailRecoveryState(
           phase: OperatorEmailRecoveryPhase.sent,
           message:
-              'Verification email sent. Open the link in your inbox, then return here to check.',
+              'Đã gửi email xác minh. Hãy mở liên kết trong hộp thư rồi quay lại đây để kiểm tra.',
         ),
       );
     } catch (error) {
@@ -88,7 +88,8 @@ final class OperatorEmailRecoveryCubit
       emit(
         const OperatorEmailRecoveryState(
           phase: OperatorEmailRecoveryPhase.verified,
-          message: 'Email verified. Sign in to check your application status.',
+          message:
+              'Đã xác minh email. Vui lòng đăng nhập để kiểm tra trạng thái hồ sơ đối tác.',
         ),
       );
     } catch (error) {
@@ -104,28 +105,29 @@ final class OperatorEmailRecoveryCubit
 
   String _safeMessage(Object error) {
     if (error is OperatorEmailNotVerified) {
-      return 'Your email is not verified yet. Open the link in your inbox, then try again.';
+      return 'Email của bạn chưa được xác minh. Hãy mở liên kết trong hộp thư rồi thử lại.';
     }
     if (error is OperatorRegistrationIdentityMismatch ||
         error is AuthIdentityException &&
             error.failure == AuthIdentityFailure.invalidCredentials) {
-      return 'Use the same email and password as your Tour Operator application.';
+      return 'Vui lòng sử dụng đúng email và mật khẩu của hồ sơ nhà điều hành tour.';
     }
     if (error is AuthIdentityException) {
       return switch (error.failure) {
-        AuthIdentityFailure.network => 'Check your connection and try again.',
+        AuthIdentityFailure.network =>
+          'Vui lòng kiểm tra kết nối mạng và thử lại.',
         AuthIdentityFailure.tooManyRequests =>
-          'Too many attempts. Please wait before trying again.',
-        _ => 'The verification service is unavailable. Please try again later.',
+          'Bạn thao tác quá nhiều lần. Vui lòng đợi rồi thử lại.',
+        _ => 'Dịch vụ xác minh hiện không khả dụng. Vui lòng thử lại sau.',
       };
     }
     if (error is OperatorVerificationConfigurationFailure) {
-      return 'Email verification is not configured. Please contact support.';
+      return 'Chức năng xác minh email chưa được cấu hình. Vui lòng liên hệ bộ phận hỗ trợ.';
     }
     if (error is OperatorVerificationRejected ||
         error is OperatorVerificationUncertain) {
-      return 'We could not confirm your email yet. Please try again.';
+      return 'Chưa thể xác nhận email của bạn lúc này. Vui lòng thử lại.';
     }
-    return 'TripMate is temporarily unable to process your request. Please try again.';
+    return 'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng thử lại.';
   }
 }

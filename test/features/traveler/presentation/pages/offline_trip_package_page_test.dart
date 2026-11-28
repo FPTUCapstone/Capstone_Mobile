@@ -42,9 +42,9 @@ void main() {
         expect(find.textContaining('2.5 MB'), findsNothing);
         expect(find.textContaining('31.0 MB'), findsNothing);
         expect(find.textContaining('18 km'), findsNothing);
-        expect(find.textContaining('Zoom 12-16'), findsNothing);
-        expect(find.text('Package Contents'), findsNothing);
-        expect(find.textContaining('GB available'), findsNothing);
+        expect(find.textContaining('Mức thu phóng 12–16'), findsNothing);
+        expect(find.text('Nội dung gói dữ liệu'), findsNothing);
+        expect(find.textContaining('Dung lượng trống'), findsNothing);
       },
     );
 
@@ -56,19 +56,16 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('Offline Access'), findsOneWidget);
+        expect(find.text('Truy cập ngoại tuyến'), findsOneWidget);
         expect(find.text('Real Trip'), findsOneWidget);
-        expect(
-          find.text('Offline package is not available yet'),
-          findsOneWidget,
-        );
+        expect(find.text('Gói ngoại tuyến hiện chưa khả dụng'), findsOneWidget);
         expect(
           find.textContaining(
-            'Offline map and itinerary download is not currently available because the required trip-package service and local persistence integration are not yet connected.',
+            'Tính năng tải bản đồ và lịch trình ngoại tuyến hiện chưa khả dụng do dịch vụ gói chuyến đi và lưu trữ cục bộ chưa được kết nối.',
           ),
           findsOneWidget,
         );
-        expect(find.text('Back to itinerary'), findsOneWidget);
+        expect(find.text('Quay lại lịch trình'), findsOneWidget);
       },
     );
 
@@ -80,12 +77,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Download for Offline Use'), findsNothing);
+      expect(find.text('Tải về xem ngoại tuyến'), findsNothing);
       expect(find.byIcon(Icons.download_rounded), findsNothing);
     });
 
     testWidgets(
-      'direct Offline route without state.extra does NOT fabricate "Đà Nẵng City Explorer"',
+      'direct Offline route without state.extra does NOT fabricate "Khám phá Đà Nẵng"',
       (tester) async {
         final repo = _FakeItineraryRepository(
           detail: _createSampleDetail(
@@ -99,7 +96,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('Đà Nẵng City Explorer'), findsNothing);
+        expect(find.text('Khám phá Đà Nẵng'), findsNothing);
         expect(find.text('Hue Cultural Journey'), findsOneWidget);
       },
     );
@@ -115,9 +112,9 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Offline Access'), findsOneWidget);
+      expect(find.text('Truy cập ngoại tuyến'), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.text('Loading trip information...'), findsOneWidget);
+      expect(find.text('Đang tải thông tin chuyến đi...'), findsOneWidget);
 
       completer.complete(
         _createSampleDetail(itineraryId: 101, title: 'Loaded Trip'),
@@ -137,10 +134,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Trip information unavailable.'), findsOneWidget);
-      expect(find.text('Could not load itinerary #101.'), findsOneWidget);
-      expect(find.text('Retry'), findsOneWidget);
-      expect(find.text('Go back'), findsOneWidget);
+      expect(find.text('Không thể tải thông tin chuyến đi.'), findsOneWidget);
+      expect(find.text('Không thể tải lịch trình #101.'), findsOneWidget);
+      expect(find.text('Thử lại'), findsOneWidget);
+      expect(find.text('Quay lại'), findsOneWidget);
     });
   });
 
@@ -166,13 +163,13 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('Offline Access'), findsOneWidget);
+        expect(find.text('Truy cập ngoại tuyến'), findsOneWidget);
         expect(find.text('Đà Nẵng City Explorer'), findsOneWidget);
-        expect(find.text('Package Contents'), findsOneWidget);
+        expect(find.text('Nội dung gói dữ liệu'), findsOneWidget);
         expect(find.textContaining('85.0 MB'), findsWidgets);
         expect(find.textContaining('2.5 MB'), findsWidgets);
         expect(find.textContaining('31.0 MB'), findsWidgets);
-        expect(find.text('Download for Offline Use'), findsOneWidget);
+        expect(find.text('Tải về xem ngoại tuyến'), findsOneWidget);
 
         await cubit.close();
       },
@@ -186,7 +183,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byTooltip('DEMO_ONLY Controls'), findsNothing);
+      expect(find.byTooltip('Điều khiển demo'), findsNothing);
       expect(find.byIcon(Icons.build_circle_outlined), findsNothing);
     });
 
@@ -194,7 +191,7 @@ void main() {
       await tester.pumpWidget(buildTestWidget(isDemoMode: true));
       await tester.pumpAndSettle();
 
-      expect(find.byTooltip('DEMO_ONLY Controls'), findsOneWidget);
+      expect(find.byTooltip('Điều khiển demo'), findsOneWidget);
       expect(find.byIcon(Icons.build_circle_outlined), findsOneWidget);
     });
 
@@ -248,9 +245,9 @@ void main() {
       await tester.pumpWidget(buildTestWidget(cubit: cubit, isDemoMode: true));
       await tester.pumpAndSettle();
 
-      expect(find.text('AVAILABLE OFFLINE'), findsOneWidget);
-      expect(find.text('Remove Offline Data'), findsOneWidget);
-      expect(find.textContaining('Last downloaded:'), findsOneWidget);
+      expect(find.text('SẴN SÀNG NGOẠI TUYẾN'), findsOneWidget);
+      expect(find.text('Xóa dữ liệu ngoại tuyến'), findsOneWidget);
+      expect(find.textContaining('Tải lần cuối:'), findsOneWidget);
 
       await cubit.close();
     });
@@ -275,20 +272,20 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.textContaining('Last downloaded:'), findsOneWidget);
+        expect(find.textContaining('Tải lần cuối:'), findsOneWidget);
 
         // Tap Remove Offline Data
-        await tester.tap(find.text('Remove Offline Data'));
+        await tester.tap(find.text('Xóa dữ liệu ngoại tuyến'));
         await tester.pumpAndSettle();
 
         // Confirm in dialog
-        await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
+        await tester.tap(find.widgetWithText(FilledButton, 'Xóa'));
         await tester.pumpAndSettle();
 
         // Package is removed and lastDownloadedAt is cleared
         expect(cubit.state.package.status, OfflinePackageStatus.notDownloaded);
         expect(cubit.state.package.lastDownloadedAt, isNull);
-        expect(find.textContaining('Last downloaded:'), findsNothing);
+        expect(find.textContaining('Tải lần cuối:'), findsNothing);
 
         await cubit.close();
       },
@@ -312,12 +309,12 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.scrollUntilVisible(
-        find.text('Refresh Offline Data'),
+        find.text('Cập nhật dữ liệu ngoại tuyến'),
         100,
         scrollable: find.byType(Scrollable),
       );
-      expect(find.text('UPDATE AVAILABLE'), findsOneWidget);
-      expect(find.text('Refresh Offline Data'), findsOneWidget);
+      expect(find.text('CÓ BẢN CẬP NHẬT'), findsOneWidget);
+      expect(find.text('Cập nhật dữ liệu ngoại tuyến'), findsOneWidget);
 
       await cubit.close();
     });
@@ -355,12 +352,12 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('UPDATING...'), findsOneWidget);
+        expect(find.text('ĐANG CẬP NHẬT...'), findsOneWidget);
         expect(find.text('Đà Nẵng City Explorer'), findsOneWidget);
-        expect(find.textContaining('Last downloaded:'), findsOneWidget);
+        expect(find.textContaining('Tải lần cuối:'), findsOneWidget);
         expect(
           find.text(
-            'Downloading updated version (v2). Your current offline package (v1) remains usable.',
+            'Đang tải phiên bản mới (v2). Gói ngoại tuyến hiện tại (v1) vẫn có thể sử dụng.',
           ),
           findsOneWidget,
         );
@@ -377,11 +374,11 @@ void main() {
         );
 
         await tester.scrollUntilVisible(
-          find.text('Cancel Update'),
+          find.text('Hủy cập nhật'),
           100,
           scrollable: find.byType(Scrollable),
         );
-        expect(find.text('Cancel Update'), findsOneWidget);
+        expect(find.text('Hủy cập nhật'), findsOneWidget);
 
         await cubit.close();
       },
@@ -418,33 +415,33 @@ void main() {
         await tester.pumpAndSettle();
 
         await tester.scrollUntilVisible(
-          find.text('Cancel Update'),
+          find.text('Hủy cập nhật'),
           100,
           scrollable: find.byType(Scrollable),
         );
-        expect(find.text('Cancel Update'), findsOneWidget);
-        await tester.tap(find.text('Cancel Update'));
+        expect(find.text('Hủy cập nhật'), findsOneWidget);
+        await tester.tap(find.text('Hủy cập nhật'));
         await tester.pumpAndSettle();
 
         await tester.scrollUntilVisible(
-          find.text('UPDATE AVAILABLE'),
+          find.text('CÓ BẢN CẬP NHẬT'),
           -100,
           scrollable: find.byType(Scrollable),
         );
-        expect(find.text('UPDATE AVAILABLE'), findsOneWidget);
+        expect(find.text('CÓ BẢN CẬP NHẬT'), findsOneWidget);
         await tester.scrollUntilVisible(
-          find.text('Refresh Offline Data'),
+          find.text('Cập nhật dữ liệu ngoại tuyến'),
           100,
           scrollable: find.byType(Scrollable),
         );
-        expect(find.text('Refresh Offline Data'), findsOneWidget);
+        expect(find.text('Cập nhật dữ liệu ngoại tuyến'), findsOneWidget);
         expect(
           find.text(
-            'A newer itinerary version exists on the server. Your existing offline copy remains usable.',
+            'Có phiên bản lịch trình mới hơn trên máy chủ. Bản sao ngoại tuyến hiện tại vẫn dùng được.',
           ),
           findsOneWidget,
         );
-        expect(find.text('Cancel Update'), findsNothing);
+        expect(find.text('Hủy cập nhật'), findsNothing);
 
         await cubit.close();
       },

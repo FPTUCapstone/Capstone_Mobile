@@ -77,7 +77,7 @@ class _LoginPageState extends State<LoginPage> {
                     label: 'Mật khẩu',
                     textInputAction: TextInputAction.done,
                     validator: (value) =>
-                        Validators.requiredField(value, fieldName: 'Mật khẩu'),
+                        Validators.requiredField(value, fieldName: 'mật khẩu'),
                   ),
                 ],
               ),

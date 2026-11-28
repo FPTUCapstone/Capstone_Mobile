@@ -62,7 +62,7 @@ class __TravelerRegistrationFormState extends State<_TravelerRegistrationForm> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: const Text(
-                  'Registration response status is unrecognized. Please contact support.',
+                  'Trạng thái phản hồi đăng ký không hợp lệ. Vui lòng liên hệ bộ phận hỗ trợ.',
                 ),
                 backgroundColor: Theme.of(context).colorScheme.error,
               ),
@@ -74,7 +74,7 @@ class __TravelerRegistrationFormState extends State<_TravelerRegistrationForm> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                'Registration successful. Please verify your email before signing in.',
+                'Đăng ký thành công. Vui lòng xác minh email trước khi đăng nhập.',
               ),
             ),
           );
@@ -146,7 +146,7 @@ class __TravelerRegistrationFormState extends State<_TravelerRegistrationForm> {
                     validator: (value) {
                       final requiredError = Validators.requiredField(
                         value,
-                        fieldName: 'Xác nhận mật khẩu',
+                        fieldName: 'xác nhận mật khẩu',
                       );
                       if (requiredError != null) {
                         return requiredError;

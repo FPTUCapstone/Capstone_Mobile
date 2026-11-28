@@ -52,9 +52,9 @@ void main() {
     await _tapVisible(tester, find.widgetWithText(FilledButton, 'Đăng ký'));
     await tester.pump();
 
-    expect(find.text('Full name is required.'), findsOneWidget);
-    expect(find.text('Email is required.'), findsOneWidget);
-    expect(find.text('Password is required.'), findsOneWidget);
+    expect(find.text('Vui lòng nhập họ và tên.'), findsOneWidget);
+    expect(find.text('Vui lòng nhập email.'), findsOneWidget);
+    expect(find.text('Vui lòng nhập mật khẩu.'), findsOneWidget);
   });
 
   testWidgets('sign out asks for confirmation before clearing the session', (
@@ -78,11 +78,11 @@ void main() {
       ),
     );
 
-    await _tapVisible(tester, find.text('Sign out'));
+    await _tapVisible(tester, find.text('Đăng xuất'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Sign out of TripMate?'), findsOneWidget);
-    expect(find.text('Cancel'), findsOneWidget);
+    expect(find.text('Đăng xuất khỏi TripMate?'), findsOneWidget);
+    expect(find.text('Hủy'), findsOneWidget);
     expect(session.state.isAuthenticated, isTrue);
   });
 
@@ -101,9 +101,9 @@ void main() {
       await cubit.load();
       await tester.pumpAndSettle();
 
-      expect(find.text('Beach'), findsOneWidget);
+      expect(find.text('Biển'), findsOneWidget);
 
-      await _tapVisible(tester, find.text('Car'));
+      await _tapVisible(tester, find.text('Ô tô'));
       await tester.pump();
 
       expect(cubit.state.preferences.preferredTransportMode, 'Car');

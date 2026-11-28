@@ -35,14 +35,14 @@ String formatDepartureWindow(DateTime start, DateTime? end) {
   return '$from – ${formatVietnamDateTime(end)}';
 }
 
-String _days(int days) => days == 1 ? '1 day' : '$days days';
+String _days(int days) => '$days ngày';
 
 String _fee(double percent) {
-  if (percent == 0) return 'free of charge';
+  if (percent == 0) return 'miễn phí';
   final text = percent == percent.truncateToDouble()
       ? percent.toInt().toString()
       : percent.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '');
-  return '$text% fee';
+  return 'phí $text%';
 }
 
 /// One line per rule. A rule applies from its notice period down to the next
@@ -58,21 +58,21 @@ List<String> describeCancellationRules(List<TourCancellationRule> rules) {
     if (i == 0) {
       lines.add(
         days == 0
-            ? 'Cancel at any time: $fee'
-            : 'Cancel $days or more days before departure: $fee',
+            ? 'Hủy bất kỳ lúc nào: $fee'
+            : 'Hủy từ $days ngày trở lên trước khởi hành: $fee',
       );
       continue;
     }
     final previous = ordered[i - 1].daysBeforeDeparture;
     if (days == 0) {
-      lines.add('Cancel less than ${_days(previous)} before departure: $fee');
+      lines.add('Hủy dưới ${_days(previous)} trước khởi hành: $fee');
       continue;
     }
     final upper = previous - 1;
     lines.add(
       upper <= days
-          ? 'Cancel exactly ${_days(days)} before departure: $fee'
-          : 'Cancel $days to $upper days before departure: $fee',
+          ? 'Hủy đúng ${_days(days)} trước khởi hành: $fee'
+          : 'Hủy từ $days đến $upper ngày trước khởi hành: $fee',
     );
   }
   return lines;

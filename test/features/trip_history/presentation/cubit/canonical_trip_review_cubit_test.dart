@@ -139,7 +139,7 @@ void main() {
     },
     verify: (_) {
       expect(cubit.state.outcome, CanonicalReviewOutcome.updated);
-      expect(cubit.state.message, 'Review updated.');
+      expect(cubit.state.message, 'Đã cập nhật đánh giá thành công.');
     },
   );
 
@@ -192,7 +192,7 @@ void main() {
     verify: (_) {
       expect(repository.getCalls, 2);
       expect(cubit.state.context?.review, isNotNull);
-      expect(cubit.state.message, contains('already exists'));
+      expect(cubit.state.message, contains('đã tồn tại'));
     },
   );
 }

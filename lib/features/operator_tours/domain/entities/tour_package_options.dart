@@ -23,14 +23,30 @@ final class CancellationPolicyOption extends Equatable {
   List<Object?> get props => [id, name, description];
 }
 
+/// A category from the server catalogue (`GET /api/v1/tour-categories`).
+final class TourCategoryOption extends Equatable {
+  const TourCategoryOption({
+    required this.id,
+    required this.code,
+    required this.name,
+  });
+  final int id;
+  final String code;
+  final String name;
+  @override
+  List<Object?> get props => [id, code, name];
+}
+
 /// The server catalogues a draft must reference (BR-101).
 final class TourPackageOptions extends Equatable {
   const TourPackageOptions({
     required this.destinations,
     required this.policies,
+    this.categories = const [],
   });
   final List<TourDestinationOption> destinations;
   final List<CancellationPolicyOption> policies;
+  final List<TourCategoryOption> categories;
   @override
-  List<Object?> get props => [destinations, policies];
+  List<Object?> get props => [destinations, policies, categories];
 }

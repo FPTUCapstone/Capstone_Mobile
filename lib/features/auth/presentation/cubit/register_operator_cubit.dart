@@ -90,6 +90,11 @@ const _unchanged = Object();
 final class RegisterOperatorCubit extends Cubit<RegisterOperatorState> {
   RegisterOperatorCubit(this._register) : super(const RegisterOperatorState());
 
+  static const verificationEmailSentNotice =
+      'Đã gửi email xác minh. Vui lòng kiểm tra hộp thư của bạn.';
+  static const emailAlreadyVerifiedNotice =
+      'Email của bạn đã được xác minh. Hãy gửi hồ sơ đăng ký ở bên dưới.';
+
   final RegisterTourOperator _register;
 
   bool get _canEdit =>
@@ -145,7 +150,7 @@ final class RegisterOperatorCubit extends Cubit<RegisterOperatorState> {
       state.copyWith(
         resumeExistingIdentity: value,
         notice: value
-            ? 'Use the same email and password. Re-enter your details and select the documents again to finish your application.'
+            ? 'Sử dụng cùng email và mật khẩu đã tạo. Vui lòng nhập lại thông tin và chọn lại tài liệu để hoàn tất hồ sơ.'
             : null,
       ),
     );
@@ -190,7 +195,7 @@ final class RegisterOperatorCubit extends Cubit<RegisterOperatorState> {
           isBusy: false,
           canRetryOriginal: true,
           notice:
-              'The request outcome is unknown. Keep this account and choose an explicit recovery action. Do not create another account.',
+              'Chưa xác định được kết quả gửi hồ sơ. Vui lòng giữ nguyên tài khoản này và chọn thao tác khôi phục phù hợp, không tạo tài khoản mới.',
         ),
       );
     } on OperatorIdentityCreationUncertain {
@@ -201,7 +206,7 @@ final class RegisterOperatorCubit extends Cubit<RegisterOperatorState> {
           isBusy: false,
           resumeExistingIdentity: true,
           notice:
-              'The account may have been created. Continue with this same email and password; do not create another account.',
+              'Tài khoản có thể đã được tạo. Vui lòng tiếp tục với cùng email và mật khẩu này, không tạo tài khoản mới.',
         ),
       );
     } catch (error) {
@@ -270,7 +275,7 @@ final class RegisterOperatorCubit extends Cubit<RegisterOperatorState> {
         state.copyWith(
           isBusy: false,
           emailSent: true,
-          notice: 'Verification email sent. Please check your inbox.',
+          notice: verificationEmailSentNotice,
         ),
       );
     } catch (error) {
@@ -294,7 +299,7 @@ final class RegisterOperatorCubit extends Cubit<RegisterOperatorState> {
         state.copyWith(
           isBusy: false,
           notice:
-              'Verification email sent to the existing Firebase account. This does not confirm that the application was saved.',
+              'Đã gửi email xác minh tới tài khoản Firebase hiện có. Thao tác này không xác nhận hồ sơ đã được lưu.',
         ),
       );
     } catch (error) {
@@ -321,7 +326,7 @@ final class RegisterOperatorCubit extends Cubit<RegisterOperatorState> {
           isBusy: false,
           canRetryOriginal: true,
           notice:
-              'The application submission outcome is unknown. Do not create another account or submit a new application automatically.',
+              'Chưa xác định được kết quả nộp hồ sơ. Không tạo tài khoản mới hoặc tự động gửi lại hồ sơ mới.',
         ),
       );
     } catch (error) {
@@ -340,10 +345,10 @@ final class RegisterOperatorCubit extends Cubit<RegisterOperatorState> {
         canRetryOriginal: false,
         errors: const {},
         notice: start.alreadyVerified
-            ? 'Your email is already verified. Submit the application below.'
+            ? emailAlreadyVerifiedNotice
             : start.emailSent
             ? null
-            : 'The account was created, but the verification email could not be sent. Please resend it.',
+            : 'Tài khoản đã được tạo nhưng chưa thể gửi email xác minh. Vui lòng gửi lại.',
       ),
     );
   }
@@ -359,7 +364,7 @@ final class RegisterOperatorCubit extends Cubit<RegisterOperatorState> {
         errors: const {},
         notice: outcome.verificationSynced
             ? null
-            : 'Your application was saved, but email confirmation could not be synchronized. Do not submit again; use the existing-account recovery action.',
+            : 'Hồ sơ của bạn đã được lưu nhưng chưa đồng bộ được trạng thái xác minh email. Không nộp lại; hãy dùng mục hoàn tất xác minh email.',
       ),
     );
   }
@@ -374,12 +379,14 @@ final class RegisterOperatorCubit extends Cubit<RegisterOperatorState> {
         : RegisterOperatorPhase.editing;
     var canRetryOriginal = state.canRetryOriginal;
     var message =
-        'TripMate is temporarily unable to process your request. Please try again.';
+        'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng thử lại.';
     Map<String, String> fieldErrors = const {};
     if (error is ValidationFailure) {
       fieldErrors = error.fieldErrors.map(
-        (key, value) =>
-            MapEntry(key, value.isEmpty ? 'Check this field.' : value.first),
+        (key, value) => MapEntry(
+          key,
+          value.isEmpty ? 'Vui lòng kiểm tra trường này.' : value.first,
+        ),
       );
       message = error.message;
     } else if (error is OperatorRegistrationRejected) {
@@ -387,18 +394,20 @@ final class RegisterOperatorCubit extends Cubit<RegisterOperatorState> {
           ? RegisterOperatorPhase.uncertain
           : RegisterOperatorPhase.editing;
       fieldErrors = error.fieldErrors.map(
-        (key, value) =>
-            MapEntry(key, value.isEmpty ? 'Check this field.' : value.first),
+        (key, value) => MapEntry(
+          key,
+          value.isEmpty ? 'Vui lòng kiểm tra trường này.' : value.first,
+        ),
       );
       message = switch (error.messageCode) {
-        'MSG03' => 'An account with this email already exists.',
+        'MSG03' => 'Email này đã được đăng ký tài khoản.',
         'MSG159' =>
-          'This business licence number or tax code is already registered.',
+          'Số giấy phép kinh doanh hoặc mã số thuế này đã được đăng ký.',
         'MSG160' =>
-          'An application is already pending review for this business information.',
+          'Thông tin doanh nghiệp này đã có hồ sơ đang chờ phê duyệt.',
         'MSG127' =>
-          'TripMate is temporarily unable to process your request. Please try again.',
-        _ => 'Check your registration details and try again.',
+          'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng thử lại.',
+        _ => 'Vui lòng kiểm tra lại thông tin đăng ký và thử lại.',
       };
       if (error.messageCode == 'MSG03') {
         fieldErrors = {...fieldErrors, 'email': message};
@@ -408,36 +417,37 @@ final class RegisterOperatorCubit extends Cubit<RegisterOperatorState> {
       if (preserveUncertain) {
         phase = RegisterOperatorPhase.uncertain;
         message =
-            '$message The earlier request\'s outcome remains unconfirmed. Verify the existing account or contact support before trying again.';
+            '$message Kết quả của yêu cầu trước vẫn chưa được xác nhận. Hãy xác minh tài khoản hiện có hoặc liên hệ hỗ trợ trước khi thử lại.';
       }
     } else if (error is OperatorRegistrationUncertain ||
         error is OperatorRegistrationRecoveryRequired) {
       phase = RegisterOperatorPhase.uncertain;
       canRetryOriginal = true;
       message =
-          'The registration status is uncertain. Use your existing Firebase account to recover; do not create another account.';
+          'Trạng thái đăng ký chưa được xác định. Hãy dùng tài khoản Firebase hiện có để khôi phục, không tạo tài khoản mới.';
     } else if (error is OperatorEmailNotVerified) {
-      message = 'Please open your verification email first, then try again.';
+      message = 'Vui lòng mở email xác minh trước rồi thử lại.';
     } else if (error is OperatorRegistrationIdentityMismatch ||
         error is AuthIdentityException &&
             error.failure == AuthIdentityFailure.invalidCredentials) {
       message =
-          'Sign in with the same Firebase email and password used for this application.';
+          'Vui lòng đăng nhập bằng đúng email và mật khẩu Firebase đã dùng cho hồ sơ này.';
     } else if (error is AuthIdentityException) {
       message = switch (error.failure) {
         AuthIdentityFailure.emailAlreadyInUse =>
-          'A Firebase account with this email exists. Use existing-account recovery.',
+          'Email này đã có tài khoản Firebase. Hãy chọn tiếp tục đăng ký chưa hoàn tất.',
         AuthIdentityFailure.network =>
-          'Please check your connection and try again.',
+          'Vui lòng kiểm tra kết nối mạng và thử lại.',
         AuthIdentityFailure.tooManyRequests =>
-          'Too many attempts. Please wait before trying again.',
-        _ => 'The registration service is unavailable. Please try again later.',
+          'Bạn thao tác quá nhiều lần. Vui lòng đợi rồi thử lại.',
+        _ => 'Dịch vụ đăng ký hiện không khả dụng. Vui lòng thử lại sau.',
       };
     } else if (error is OperatorVerificationConfigurationFailure) {
-      message = 'Email verification is not configured. Please contact support.';
+      message =
+          'Chức năng xác minh email chưa được cấu hình. Vui lòng liên hệ bộ phận hỗ trợ.';
     } else if (error is OperatorVerificationRejected ||
         error is OperatorVerificationUncertain) {
-      message = 'We could not confirm your email yet. Please try again.';
+      message = 'Chưa thể xác nhận email của bạn lúc này. Vui lòng thử lại.';
     }
     final firstStep = fieldErrors.keys.any(_accountFields.contains)
         ? 0
@@ -480,23 +490,23 @@ final class RegisterOperatorCubit extends Cubit<RegisterOperatorState> {
     String field(String name) => values[name]?.trim() ?? '';
     void required(String name, int max) {
       if (field(name).isEmpty) {
-        errors[name] = 'This field is required.';
+        errors[name] = 'Vui lòng nhập thông tin này.';
       } else if (field(name).length > max) {
-        errors[name] = 'Must be $max characters or fewer.';
+        errors[name] = 'Không được vượt quá $max ký tự.';
       }
     }
 
     if (step == 0) {
       final email = field('email');
       if (email.isEmpty) {
-        errors['email'] = 'This field is required.';
+        errors['email'] = 'Vui lòng nhập thông tin này.';
       } else if (email.length > 254 ||
           !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
-        errors['email'] = 'Enter a valid email address.';
+        errors['email'] = 'Vui lòng nhập địa chỉ email hợp lệ.';
       }
       final password = values['password'] ?? '';
       if (password.isEmpty) {
-        errors['password'] = 'This field is required.';
+        errors['password'] = 'Vui lòng nhập thông tin này.';
       } else if (password.length < 8 ||
           password.length > 72 ||
           RegExp(r'\s').hasMatch(password) ||
@@ -505,12 +515,13 @@ final class RegisterOperatorCubit extends Cubit<RegisterOperatorState> {
           !RegExp(r'[0-9]').hasMatch(password) ||
           !RegExp(r'[^a-zA-Z0-9]').hasMatch(password)) {
         errors['password'] =
-            'Use 8–72 characters with uppercase, lowercase, number, special character and no spaces.';
+            'Dùng 8–72 ký tự gồm chữ hoa, chữ thường, chữ số, ký tự đặc biệt và không có khoảng trắng.';
       }
       if ((values['confirmPassword'] ?? '').isEmpty) {
-        errors['confirmPassword'] = 'This field is required.';
+        errors['confirmPassword'] = 'Vui lòng nhập thông tin này.';
       } else if (values['confirmPassword'] != password) {
-        errors['confirmPassword'] = 'Passwords do not match. Please re-enter.';
+        errors['confirmPassword'] =
+            'Mật khẩu xác nhận không khớp. Vui lòng nhập lại.';
       }
     } else if (step == 1) {
       required('companyName', 200);
@@ -526,30 +537,31 @@ final class RegisterOperatorCubit extends Cubit<RegisterOperatorState> {
       }
       required('contactPerson', 150);
       if (field('businessAddress').length > 300) {
-        errors['businessAddress'] = 'Must be 300 characters or fewer.';
+        errors['businessAddress'] = 'Không được vượt quá 300 ký tự.';
       }
       final phone = field('contactPhone');
       if (phone.isNotEmpty && !RegExp(r'^0[0-9]{9}$').hasMatch(phone)) {
         errors['contactPhone'] =
-            'Phone number must be 10 digits starting with 0.';
+            'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng số 0.';
       }
     } else {
       if (state.businessLicence == null) {
         errors['businessLicenseDocument'] =
-            'Please upload the required business licence document.';
+            'Vui lòng tải lên bản sao giấy phép kinh doanh.';
       } else if (!_validFile(state.businessLicence!)) {
-        errors['businessLicenseDocument'] = 'Use PDF, JPG or PNG, up to 5 MB.';
+        errors['businessLicenseDocument'] =
+            'Chỉ hỗ trợ tệp PDF, JPG hoặc PNG, tối đa 5 MB.';
       }
       if (state.supportingDocuments.length > 5) {
         errors['supportingDocuments'] =
-            'No more than 5 supporting documents are allowed.';
+            'Chỉ được tải lên tối đa 5 tài liệu bổ sung.';
       } else if (state.supportingDocuments.any((file) => !_validFile(file))) {
         errors['supportingDocuments'] =
-            'Use PDF, JPG or PNG, up to 5 MB per file.';
+            'Chỉ hỗ trợ tệp PDF, JPG hoặc PNG, tối đa 5 MB mỗi tệp.';
       }
       if (!state.acceptedTerms) {
         errors['acceptTerms'] =
-            'Accept the Terms of Service, Privacy Policy and Partner Agreement.';
+            'Vui lòng đồng ý với Điều khoản dịch vụ, Chính sách bảo mật và Thỏa thuận đối tác.';
       }
     }
     return errors;

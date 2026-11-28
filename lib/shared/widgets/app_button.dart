@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 
 class AppButton extends StatelessWidget {
   const AppButton({
@@ -20,6 +21,7 @@ class AppButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final effectiveMinSize = Size.fromHeight(minimumHeight);
 
     Widget buildContent({required bool outlined}) {
@@ -33,9 +35,7 @@ class AppButton extends StatelessWidget {
                 dimension: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: outlined
-                      ? Theme.of(context).colorScheme.primary
-                      : Colors.white,
+                  color: outlined ? c.brandTeal : c.textOnBrand,
                 ),
               )
             : (icon != null

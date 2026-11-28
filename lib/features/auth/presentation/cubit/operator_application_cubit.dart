@@ -137,12 +137,12 @@ final class OperatorApplicationCubit extends Cubit<OperatorApplicationState> {
   static String _fieldErrorMessage(String field, String code) {
     if (code == 'MSG159') {
       if (field == 'taxCode') {
-        return 'This tax code is already registered.';
+        return 'Mã số thuế này đã được đăng ký.';
       }
       if (field == 'businessLicenseNo') {
-        return 'This business licence number is already registered.';
+        return 'Số giấy phép kinh doanh này đã được đăng ký.';
       }
-      return 'This business licence number or tax code is already registered.';
+      return 'Số giấy phép kinh doanh hoặc mã số thuế này đã được đăng ký.';
     }
     return _message(code);
   }
@@ -155,17 +155,16 @@ final class OperatorApplicationCubit extends Cubit<OperatorApplicationState> {
   };
 
   static String _message(String code) => switch (code) {
-    'MSG01' => 'This field is required.',
-    'MSG157' => 'Please upload the required business licence document.',
+    'MSG01' => 'Vui lòng nhập thông tin này.',
+    'MSG157' => 'Vui lòng tải lên bản sao giấy phép kinh doanh.',
     'MSG158' =>
-      'The uploaded file type is not supported or the file exceeds the size limit.',
-    'MSG159' =>
-      'This business licence number or tax code is already registered.',
-    'MSG161' => 'Only rejected applications can be resubmitted.',
+      'Định dạng tệp không được hỗ trợ hoặc vượt quá dung lượng cho phép.',
+    'MSG159' => 'Số giấy phép kinh doanh hoặc mã số thuế này đã được đăng ký.',
+    'MSG161' => 'Chỉ có thể nộp lại các hồ sơ đã bị từ chối.',
     'MSG162' =>
-      'Application resubmitted successfully. It is now pending administrator review.',
-    'UNAUTHENTICATED' => 'Your session has expired. Please sign in again.',
+      'Đã nộp lại hồ sơ thành công. Hồ sơ hiện đang chờ quản trị viên phê duyệt.',
+    'UNAUTHENTICATED' => 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
     _ =>
-      'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+      'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.',
   };
 }

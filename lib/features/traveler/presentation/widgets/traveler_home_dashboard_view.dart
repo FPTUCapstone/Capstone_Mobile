@@ -15,6 +15,7 @@ import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_se
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/my_trips_state.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/traveler_profile_cubit.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/helpers/itinerary_text.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_shimmer.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
@@ -295,7 +296,7 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
-                    'Tour & POI',
+                    'Tour & Địa điểm',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -454,7 +455,7 @@ class _TravelerHomeDashboardViewState extends State<TravelerHomeDashboardView> {
                         ],
                       ),
                       StatusBadge(
-                        label: activeTrip.status.toUpperCase(),
+                        label: itineraryStatusLabel(activeTrip.status),
                         type: StatusBadgeType.info,
                       ),
                     ],

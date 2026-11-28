@@ -64,11 +64,11 @@ class QrScannerDialog extends StatefulWidget {
 
   /// MSG46 constant for camera permission denial.
   static const String msg46 =
-      'Camera permission is required to scan QR codes. Please enable it in Settings or enter the code manually.';
+      'Cần cấp quyền máy ảnh để quét mã QR. Vui lòng bật trong Cài đặt hoặc nhập mã thủ công.';
 
   /// MSG56 constant for invalid/unsupported invitation QR payloads.
   static const String msg56 =
-      'This invitation is invalid, expired, or no longer available. Please check the invitation and try again.';
+      'Lời mời này không hợp lệ, đã hết hạn hoặc không còn khả dụng. Vui lòng kiểm tra lại và thử lại.';
 
   @override
   State<QrScannerDialog> createState() => _QrScannerDialogState();
@@ -131,7 +131,7 @@ class _QrScannerDialogState extends State<QrScannerDialog> {
     final raw = _manualCodeController.text.trim();
     if (raw.isEmpty) {
       setState(() {
-        _error = 'Please enter an invitation code.';
+        _error = 'Vui lòng nhập mã mời.';
       });
       return;
     }
@@ -161,7 +161,7 @@ class _QrScannerDialogState extends State<QrScannerDialog> {
         children: [
           Icon(Icons.qr_code_scanner, color: AppColors.primary),
           SizedBox(width: AppSpacing.sm),
-          Text('Scan QR Invitation'),
+          Expanded(child: Text('Quét mã QR lời mời')),
         ],
       ),
       content: SizedBox(
@@ -209,7 +209,7 @@ class _QrScannerDialogState extends State<QrScannerDialog> {
                           }
                         },
                         icon: const Icon(Icons.settings_outlined, size: 18),
-                        label: const Text('Open App Settings'),
+                        label: const Text('Mở cài đặt ứng dụng'),
                       ),
                     ],
                   ),
@@ -270,8 +270,8 @@ class _QrScannerDialogState extends State<QrScannerDialog> {
               // Manual Code Input Section (always available)
               Text(
                 isPermissionDenied
-                    ? 'Enter invitation code manually:'
-                    : 'Or enter code manually:',
+                    ? 'Nhập mã mời thủ công:'
+                    : 'Hoặc nhập mã thủ công:',
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -281,9 +281,9 @@ class _QrScannerDialogState extends State<QrScannerDialog> {
               const SizedBox(height: AppSpacing.xs),
               AppTextField(
                 key: const Key('manual_qr_input_field'),
-                label: 'Invitation Code / Payload',
+                label: 'Mã mời / Dữ liệu QR',
                 controller: _manualCodeController,
-                helperText: '8-character code or tripmate:// payload',
+                helperText: 'Mã 8 ký tự hoặc đường dẫn tripmate://',
               ),
 
               if (_error != null) ...[
@@ -304,10 +304,10 @@ class _QrScannerDialogState extends State<QrScannerDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: const Text('Hủy'),
         ),
         AppButton(
-          label: 'Redeem',
+          label: 'Xác nhận',
           onPressed: _isProcessingCode ? null : _handleManualRedeem,
         ),
       ],

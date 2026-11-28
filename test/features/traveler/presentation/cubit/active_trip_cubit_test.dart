@@ -105,7 +105,10 @@ void main() {
 
       expect(repository.calls, ['start:101:start-key', 'get:9001']);
       expect(cubit.state.loadStatus, ActiveTripLoadStatus.ready);
-      expect(cubit.state.feedback?.message, 'Resumed your trip in progress.');
+      expect(
+        cubit.state.feedback?.message,
+        'Đã tiếp tục chuyến đi đang diễn ra.',
+      );
       await cubit.close();
     });
 
@@ -235,7 +238,7 @@ void main() {
         expect(cubit.state.isExploring, isTrue);
         expect(cubit.state.exploringItem?.itemId, target.itemId);
         expect(cubit.state.targetItemId, isNull);
-        expect(cubit.state.feedback?.message, 'Arrived at ${target.poiName}.');
+        expect(cubit.state.feedback?.message, 'Đã đến ${target.poiName}.');
         await cubit.close();
       },
     );
@@ -818,10 +821,7 @@ void main() {
     test('loads the in-memory session without fabricated alerts', () {
       expect(cubit.state.status, ActiveTripStatus.navigationActive);
       expect(cubit.state.items.length, 5);
-      expect(
-        cubit.state.targetItem?.poiName,
-        'Marble Mountains (Ngũ Hành Sơn)',
-      );
+      expect(cubit.state.targetItem?.poiName, 'Ngũ Hành Sơn');
       expect(cubit.state.alerts, isEmpty);
     });
 

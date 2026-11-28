@@ -375,7 +375,7 @@ void main() {
       );
       expect(
         find.text(
-          'You are the final member of this travel group. Leaving will close the group for everyone.',
+          'Bạn là thành viên cuối cùng của nhóm du lịch này. Khi rời đi, nhóm sẽ bị đóng với tất cả mọi người.',
         ),
         findsOneWidget,
       );

@@ -97,6 +97,7 @@ abstract final class AppRoutes {
       isDemo ? '$operatorProfileEdit?demo=true' : operatorProfileEdit;
   static const operatorApplicationResubmit = '/operator/application/resubmit';
   static const createCoupon = '/operator/coupons/create';
+  static const operatorPaymentSettings = '/operator/payment-settings';
   static const operatorChangePassword = '/operator/change-password';
   static const createTourPackage = '/operator/tours/create';
   static const operatorTours = '/operator/tours';
@@ -273,4 +274,5 @@ abstract final class AppRouteNames {
   static const operatorSafetyReview = 'operator-safety-review';
   static const operatorEmergencyDecision = 'operator-emergency-decision';
   static const editTourPackage = 'edit-tour-package';
+  static const operatorPaymentSettings = 'operator-payment-settings';
 }

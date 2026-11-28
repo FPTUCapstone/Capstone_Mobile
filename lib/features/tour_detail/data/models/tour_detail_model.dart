@@ -56,6 +56,16 @@ final class TourDetailModel {
         averageRating: ratingCount > 0 ? average : null,
         reviewCount: ratingCount,
         asOfUtc: _utc(json, 'asOfUtc'),
+        highlights: _optionalString(json, 'highlights')?.trim(),
+        travellerRequirements: _lines(
+          _optionalString(json, 'travellerRequirements'),
+        ),
+        allowDeposit: json['allowDeposit'] == true,
+        depositPercent: _optionalDouble(json, 'depositPercent'),
+        balanceDueDaysBeforeDeparture: _optionalWholeNumber(
+          json,
+          'balanceDueDaysBeforeDeparture',
+        ),
       ),
     );
   }
@@ -99,7 +109,7 @@ TourItineraryDay _day(Object? entry) {
     ..sort((a, b) => a.sequenceNo.compareTo(b.sequenceNo));
   return TourItineraryDay(
     dayNumber: dayNo,
-    title: 'Day $dayNo',
+    title: 'Ngày $dayNo',
     description: '',
     stops: stops.map((stop) => stop.stop).toList(),
   );

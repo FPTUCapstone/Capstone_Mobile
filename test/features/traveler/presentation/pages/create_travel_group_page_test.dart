@@ -112,10 +112,10 @@ void main() {
     await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Create Group'));
+    await tester.tap(find.text('Tạo nhóm'));
     await tester.pumpAndSettle();
 
-    expect(find.text('This field is required.'), findsOneWidget);
+    expect(find.text('Trường này là bắt buộc.'), findsOneWidget);
     expect(repository.lastSubmittedName, isNull);
   });
 
@@ -126,7 +126,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextFormField).first, 'Da Nang Trip');
-    await tester.tap(find.text('Create Group'));
+    await tester.tap(find.text('Tạo nhóm'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
@@ -138,7 +138,7 @@ void main() {
     );
     expect(
       tester.widget<InputDecorator>(decorators.at(1)).decoration.errorText,
-      'Please select an itinerary.',
+      'Vui lòng chọn một lịch trình.',
     );
   });
 
@@ -151,7 +151,7 @@ void main() {
     final textFields = find.byType(TextFormField);
     await tester.enterText(textFields.at(0), 'Da Nang Trip 2026');
 
-    await tester.tap(find.text('Create Group'));
+    await tester.tap(find.text('Tạo nhóm'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 900));
 
@@ -188,7 +188,7 @@ void main() {
 
       await tester.pumpWidget(MaterialApp.router(routerConfig: router));
       await tester.enterText(find.byType(TextFormField).first, 'Da Nang Trip');
-      await tester.tap(find.text('Create Group'));
+      await tester.tap(find.text('Tạo nhóm'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 900));
       await tester.pumpAndSettle();

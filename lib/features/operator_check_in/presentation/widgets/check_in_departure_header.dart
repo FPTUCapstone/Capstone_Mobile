@@ -54,7 +54,7 @@ class CheckInDepartureHeader extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
               const StatusBadge(
-                label: 'Boarding',
+                label: 'Đang đón khách',
                 type: StatusBadgeType.success,
               ),
             ],
@@ -75,7 +75,7 @@ class CheckInDepartureHeader extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'of ${progress.totalEligibleParticipants} checked in',
+                    '/ ${progress.totalEligibleParticipants} đã điểm danh',
                     style: const TextStyle(
                       fontSize: 13,
                       color: AppColors.muted,
@@ -90,7 +90,7 @@ class CheckInDepartureHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  '${progress.waitingParticipants} waiting',
+                  'Còn ${progress.waitingParticipants} khách',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,

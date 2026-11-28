@@ -394,9 +394,7 @@ void main() {
             .having(
               (s) => s.errorMessage,
               'errorMessage',
-              contains(
-                'TripMate is temporarily unable to process your request',
-              ),
+              contains('TripMate tạm thời không thể xử lý yêu cầu của bạn'),
             ),
       ],
     );
@@ -414,7 +412,7 @@ void main() {
             .having(
               (s) => s.errorMessage,
               'errorMessage',
-              'Your session has expired. Please sign in again to continue.',
+              'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.',
             ),
       ],
     );
@@ -432,7 +430,7 @@ void main() {
             .having(
               (s) => s.errorMessage,
               'errorMessage',
-              'You do not have permission to access this function.',
+              'Bạn không có quyền truy cập chức năng này.',
             ),
       ],
     );
@@ -459,7 +457,7 @@ void main() {
           InviteGroupMembersStatus.regenerationUncertain,
         );
         expect(cubit.state.invitation, isNull);
-        expect(cubit.state.errorMessage, contains('Retry'));
+        expect(cubit.state.errorMessage, contains('thử lại'));
 
         await cubit.regenerateInvitation(1);
         await Future<void>.delayed(Duration.zero);
@@ -499,7 +497,7 @@ void main() {
 
       expect(cubit.state.status, InviteGroupMembersStatus.failure);
       expect(cubit.state.invitation, testInvitation);
-      expect(cubit.state.errorMessage, contains('temporarily unable'));
+      expect(cubit.state.errorMessage, contains('tạm thời không thể'));
     });
 
     test('definitive retry failure exits uncertain regeneration', () async {
@@ -519,7 +517,7 @@ void main() {
       expect(repository.regenerationKeys[1], repository.regenerationKeys[0]);
       expect(cubit.state.status, InviteGroupMembersStatus.failure);
       expect(cubit.state.invitation, isNull);
-      expect(cubit.state.errorMessage, contains('permission'));
+      expect(cubit.state.errorMessage, contains('không có quyền'));
 
       await cubit.regenerateInvitation(1);
       expect(repository.regenerationKeys, hasLength(2));
@@ -538,7 +536,7 @@ void main() {
 
       expect(cubit.state.status, InviteGroupMembersStatus.failure);
       expect(cubit.state.invitation, isNull);
-      expect(cubit.state.errorMessage, contains('permission'));
+      expect(cubit.state.errorMessage, contains('không có quyền'));
     });
 
     test('late initial load completion does not emit after close', () async {

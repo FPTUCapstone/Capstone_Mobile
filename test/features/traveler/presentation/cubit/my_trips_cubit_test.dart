@@ -82,7 +82,7 @@ void main() {
     await cubit.load();
 
     expect(cubit.state.status, MyTripsStatus.failure);
-    expect(cubit.state.message, 'Please check your connection.');
+    expect(cubit.state.message, 'Vui lòng kiểm tra kết nối mạng.');
     expect(cubit.state.trips.single.itineraryId, 1);
   });
 

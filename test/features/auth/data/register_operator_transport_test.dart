@@ -117,10 +117,10 @@ void main() {
           'businessLicenseNo': ['OPERATOR_TRAVEL_LICENSE_INVALID'],
         },
       }).toDomain();
-      expect(rejection.fieldErrors['taxCode']?.single, contains('10 digits'));
+      expect(rejection.fieldErrors['taxCode']?.single, contains('10 chữ số'));
       expect(
         rejection.fieldErrors['businessLicenseNo']?.single,
-        contains('Travel Licence Number'),
+        contains('Số giấy phép lữ hành'),
       );
     },
   );
@@ -392,7 +392,7 @@ void main() {
               .having(
                 (error) => error.fieldErrors['acceptTerms']?.first,
                 'terms',
-                contains('Terms of Service'),
+                contains('Điều khoản dịch vụ'),
               )
               .having(
                 (error) => error.fieldErrors['companyName']?.first,
@@ -437,7 +437,7 @@ void main() {
                   (error) => error.fieldErrors.toString(),
                   'safe messages',
                   allOf(
-                    contains('not supported'),
+                    contains('không được hỗ trợ'),
                     isNot(contains('internal.secret')),
                   ),
                 ),

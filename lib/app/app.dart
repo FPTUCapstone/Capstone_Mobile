@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/emergency_push_handler.dart';
 import 'package:trip_mate_mobile/app/router/app_router.dart';
@@ -110,6 +111,13 @@ class _TripMateAppState extends State<TripMateApp> {
         child: MaterialApp.router(
           title: AppConstants.appName,
           debugShowCheckedModeBanner: false,
+          locale: const Locale('vi'),
+          supportedLocales: const [Locale('vi'), Locale('en')],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
           // Temporary Decision B1 compatibility guard: keep production runtime in

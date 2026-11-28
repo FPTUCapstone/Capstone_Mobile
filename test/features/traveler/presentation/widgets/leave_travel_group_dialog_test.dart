@@ -50,12 +50,12 @@ void main() {
       );
 
       // Dialog title for non-host
-      expect(find.text('Leave travel group'), findsOneWidget);
+      expect(find.text('Rời nhóm du lịch'), findsOneWidget);
 
       // Locked MSG130 body
       expect(
         find.text(
-          'Are you sure you want to continue? This action may not be reversible.',
+          'Bạn có chắc chắn muốn tiếp tục? Thao tác này không thể hoàn tác.',
         ),
         findsOneWidget,
       );
@@ -67,7 +67,7 @@ void main() {
       );
       expect(
         find.text(
-          'Server support pending: Leaving travel group is waiting for backend capability and cannot be completed yet.',
+          'Chức năng rời nhóm du lịch đang chờ tích hợp máy chủ và chưa thể thực hiện lúc này.',
         ),
         findsOneWidget,
       );
@@ -112,17 +112,17 @@ void main() {
         );
 
         // Case B Dialog title
-        expect(find.text('Transfer host privileges and leave'), findsOneWidget);
+        expect(find.text('Chuyển quyền Trưởng nhóm và rời đi'), findsOneWidget);
 
         // Successor card previews earliest joined active member (Minh Anh, joined Sept 2)
         expect(find.byKey(const Key('successor_member_card')), findsOneWidget);
         expect(find.text('Minh Anh'), findsOneWidget);
-        expect(find.text('New Host'), findsOneWidget);
+        expect(find.text('Trưởng nhóm mới'), findsOneWidget);
 
         // Locked MSG61 body naming successor
         expect(
           find.text(
-            'You are the Group Host. Leaving will transfer Host privileges to Minh Anh. Confirm leave?',
+            'Bạn là Trưởng nhóm. Khi rời đi, quyền Trưởng nhóm sẽ được chuyển cho Minh Anh. Xác nhận rời nhóm?',
           ),
           findsOneWidget,
         );
@@ -169,7 +169,7 @@ void main() {
         expect(
           find.descendant(
             of: find.byType(AlertDialog),
-            matching: find.text('Close group and leave'),
+            matching: find.text('Đóng nhóm và rời đi'),
           ),
           findsNWidgets(2), // Title and action button
         );
@@ -181,7 +181,7 @@ void main() {
         // Closure consequence explanation
         expect(
           find.text(
-            'You are the final member of this travel group. Leaving will close the group for everyone.',
+            'Bạn là thành viên cuối cùng của nhóm du lịch này. Khi rời đi, nhóm sẽ bị đóng với tất cả mọi người.',
           ),
           findsOneWidget,
         );
@@ -189,7 +189,7 @@ void main() {
         // Locked MSG130 body
         expect(
           find.text(
-            'Are you sure you want to continue? This action may not be reversible.',
+            'Bạn có chắc chắn muốn tiếp tục? Thao tác này không thể hoàn tác.',
           ),
           findsOneWidget,
         );
@@ -238,7 +238,7 @@ void main() {
         );
         expect(
           find.text(
-            'We could not determine group members. Leaving cannot be completed right now.',
+            'Không thể xác định danh sách thành viên nhóm. Hiện chưa thể rời nhóm.',
           ),
           findsOneWidget,
         );
@@ -285,7 +285,7 @@ void main() {
         await tester.tap(find.text('Open Dialog'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Transfer host privileges and leave'), findsOneWidget);
+        expect(find.text('Chuyển quyền Trưởng nhóm và rời đi'), findsOneWidget);
 
         // Confirm button is disabled
         final confirmButton = tester.widget<FilledButton>(
@@ -445,7 +445,7 @@ void main() {
             find.byKey(const Key('leave_travel_group_dialog_case_a')),
             findsOneWidget,
           );
-          expect(find.text('Leave travel group'), findsOneWidget);
+          expect(find.text('Rời nhóm du lịch'), findsOneWidget);
         },
       );
 
@@ -478,7 +478,7 @@ void main() {
             find.byKey(const Key('leave_travel_group_dialog_case_a')),
             findsOneWidget,
           );
-          expect(find.text('Leave travel group'), findsOneWidget);
+          expect(find.text('Rời nhóm du lịch'), findsOneWidget);
         },
       );
 
@@ -580,7 +580,7 @@ void main() {
             findsOneWidget,
           );
           expect(
-            find.text('Transfer host privileges and leave'),
+            find.text('Chuyển quyền Trưởng nhóm và rời đi'),
             findsOneWidget,
           );
           expect(find.text('Minh Anh'), findsOneWidget);
@@ -609,7 +609,7 @@ void main() {
             findsOneWidget,
           );
           expect(
-            find.text('Transfer host privileges and leave'),
+            find.text('Chuyển quyền Trưởng nhóm và rời đi'),
             findsOneWidget,
           );
         },

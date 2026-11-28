@@ -29,12 +29,12 @@ final class DemoTourDetailDataSource implements TourDetailDataSource {
     final summary = initialSummary?.tourId == tourId ? initialSummary : null;
     return TourDetail(
       tourId: tourId,
-      title: summary?.title ?? 'Da Nang Discovery 3D2N',
+      title: summary?.title ?? 'Khám phá Đà Nẵng 3N2Đ',
       description:
-          'Explore Da Nang, Son Tra Peninsula, Marble Mountains, and Hoi An with a published local tour operator.',
+          'Khám phá Đà Nẵng, bán đảo Sơn Trà, Ngũ Hành Sơn và Hội An cùng nhà điều hành địa phương uy tín.',
       destinations: summary?.destinations.isNotEmpty == true
           ? summary!.destinations
-          : const ['Da Nang', 'Hoi An', 'Son Tra'],
+          : const ['Đà Nẵng', 'Hội An', 'Sơn Trà'],
       durationDays: summary?.durationDays ?? 3,
       operatorName: summary?.operatorName ?? 'Central Vietnam Travel',
       operatorPhone: '1900 1808',
@@ -47,36 +47,36 @@ final class DemoTourDetailDataSource implements TourDetailDataSource {
         'assets/images/destinations/hoian_ancient_town.jpg',
       ],
       inclusions: const [
-        'Air-conditioned transportation',
-        'Three-star hotel accommodation',
-        'Meals and attraction tickets listed in the itinerary',
-        'English-speaking tour guide',
+        'Xe du lịch đời mới có điều hòa',
+        'Khách sạn 3 sao tiêu chuẩn',
+        'Các bữa ăn và vé tham quan theo lịch trình',
+        'Hướng dẫn viên du lịch giàu kinh nghiệm',
       ],
       exclusions: const [
-        'Flights to and from Da Nang',
-        'Personal expenses',
-        'Tips and optional activities',
+        'Vé máy bay khứ hồi đến Đà Nẵng',
+        'Chi phí cá nhân',
+        'Tiền tip và các hoạt động tự túc',
       ],
       cancellationPolicy:
-          'Free cancellation at least 7 days before departure. A 50% fee applies 3–6 days before departure. Later cancellations are non-refundable.',
+          'Miễn phí hủy trước ngày khởi hành ít nhất 7 ngày. Hủy từ 3–6 ngày trước khởi hành tính phí 50%. Hủy muộn hơn không hoàn tiền.',
       itineraryDays: const [
         TourItineraryDay(
           dayNumber: 1,
-          title: 'Son Tra Peninsula and My Khe Beach',
-          description: 'Arrive in Da Nang and explore the coast.',
-          activities: ['Airport pickup', 'Linh Ung Pagoda', 'My Khe Beach'],
+          title: 'Bán đảo Sơn Trà và Biển Mỹ Khê',
+          description: 'Đón khách tại Đà Nẵng và khám phá cung đường biển.',
+          activities: ['Đón sân bay', 'Chùa Linh Ứng', 'Biển Mỹ Khê'],
         ),
         TourItineraryDay(
           dayNumber: 2,
-          title: 'Marble Mountains and Hoi An',
-          description: 'Visit cultural landmarks and Hoi An Ancient Town.',
-          activities: ['Marble Mountains', 'Japanese Bridge', 'Hoi An'],
+          title: 'Ngũ Hành Sơn và Phố cổ Hội An',
+          description: 'Tham quan danh thắng văn hóa và Phố cổ Hội An.',
+          activities: ['Ngũ Hành Sơn', 'Chùa Cầu', 'Phố cổ Hội An'],
         ),
         TourItineraryDay(
           dayNumber: 3,
-          title: 'Local market and departure',
-          description: 'Visit a local market before airport transfer.',
-          activities: ['Han Market', 'Airport transfer'],
+          title: 'Chợ địa phương và tiễn sân bay',
+          description: 'Mua sắm đặc sản địa phương trước khi ra sân bay.',
+          activities: ['Chợ Hàn', 'Tiễn sân bay'],
         ),
       ],
       schedules: [
@@ -102,9 +102,9 @@ final class DemoTourDetailDataSource implements TourDetailDataSource {
       reviews: [
         TourReviewItem(
           reviewId: 'rev-01',
-          authorName: 'Alex Nguyen',
+          authorName: 'Nguyễn Minh Anh',
           rating: 5,
-          comment: 'A well-organized tour with a thoughtful itinerary.',
+          comment: 'Tour tổ chức rất chu đáo với lịch trình hợp lý.',
           createdAtUtc: DateTime.utc(2026, 9, 20, 10),
         ),
       ],

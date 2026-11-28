@@ -37,7 +37,7 @@ final class ChangePasswordRepositoryImpl implements ChangePasswordRepository {
 
   Failure _toFailure(Object error) {
     if (error is FormatException) {
-      return const ServerFailure('Something went wrong. Please try again.');
+      return const ServerFailure('Đã có lỗi xảy ra. Vui lòng thử lại.');
     }
     if (error is DioException) {
       final data = error.response?.data;
@@ -51,7 +51,7 @@ final class ChangePasswordRepositoryImpl implements ChangePasswordRepository {
       if (errorCode == 'MSG05') {
         final message =
             _safeTitle(data) ??
-            'The new password is invalid or matches the current password.';
+            'Mật khẩu mới không hợp lệ hoặc trùng với mật khẩu hiện tại.';
         return ValidationFailure(
           message,
           fieldErrors: {
@@ -63,14 +63,10 @@ final class ChangePasswordRepositoryImpl implements ChangePasswordRepository {
 
     final failure = ErrorMapper.toFailure(error);
     if (failure is NetworkFailure) {
-      return const NetworkFailure(
-        'Please check your connection and try again.',
-      );
+      return const NetworkFailure('Vui lòng kiểm tra kết nối mạng và thử lại.');
     }
     if (failure is ServerFailure || failure is UnknownFailure) {
-      return const ServerFailure(
-        'Something went wrong. Please try again later.',
-      );
+      return const ServerFailure('Đã có lỗi xảy ra. Vui lòng thử lại sau.');
     }
     return failure;
   }

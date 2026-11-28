@@ -22,9 +22,9 @@ void main() {
     expect(en, {SearchText.title: 'Search tours', SearchText.retry: 'Retry'});
   });
 
-  test('clear-date accessibility copy follows selected language', () {
+  test('clear-date accessibility copy uses Vietnamese', () {
     expect(publicSearchClearDate('Đến ngày', false), 'Xóa Đến ngày');
-    expect(publicSearchClearDate('To date', true), 'Clear To date');
+    expect(publicSearchClearDate('Đến ngày', true), 'Xóa Đến ngày');
   });
   test('every public Search key renders copy in both locales', () {
     for (final key in SearchText.values) {

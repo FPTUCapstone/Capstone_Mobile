@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
-/// Semantic color tokens for the TripMate Voyager / Adaptive Journey System.
+/// Semantic color tokens for the TripMate Mobile Coastal Heritage design system
+/// (see `DESIGN.md`).
 ///
-/// Legacy [AppColors] static constants are preserved during PR 1 so existing
-/// un-migrated widgets compile cleanly; new and migrated components should read
-/// [TripMateColors] from `Theme.of(context).extension<TripMateColors>()` or
-/// `context.tmColors`.
+/// **Single source of truth**: New and updated widgets MUST read adaptive
+/// Light/Dark colors from `context.tmColors` ([TripMateColors]).
+///
+/// Static light-only [AppColors] constants are retained as a backwards-compatible
+/// alias for un-migrated callers; replace with `context.tmColors` when editing.
 abstract final class AppColors {
   // Brand Anchors (Unified TripMate Coastal Heritage System)
   static const primary = Color(0xFF174B4A); // Coastal Deep Teal

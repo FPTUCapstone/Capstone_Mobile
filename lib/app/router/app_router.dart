@@ -56,6 +56,9 @@ import 'package:trip_mate_mobile/features/operator_contracts/presentation/cubit/
 import 'package:trip_mate_mobile/features/operator_contracts/presentation/pages/operator_contract_page.dart';
 import 'package:trip_mate_mobile/features/operator_finance/presentation/cubit/operator_settlement_history_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_finance/presentation/pages/operator_settlement_history_page.dart';
+import 'package:trip_mate_mobile/features/operator_payment_channel/presentation/cubit/operator_payment_channel_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_payment_channel/presentation/pages/operator_payment_channel_page.dart';
+import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_detail.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/operator_tours_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/pages/create_tour_package_page.dart';
@@ -362,7 +365,7 @@ GoRouter createAppRouter(
           final bookingId = state.pathParameters['bookingId'] ?? '';
           if (int.tryParse(bookingId) == null || int.parse(bookingId) <= 0) {
             return const Scaffold(
-              body: ErrorView(message: 'Refund information is unavailable.'),
+              body: ErrorView(message: 'Không có thông tin hoàn tiền.'),
             );
           }
           return BlocProvider(
@@ -481,7 +484,9 @@ GoRouter createAppRouter(
             state.pathParameters['itineraryId'] ?? '',
           );
           if (itineraryId == null || itineraryId <= 0) {
-            return const ErrorView(message: 'Your itinerary is unavailable.');
+            return const ErrorView(
+              message: 'Không thể tải lịch trình của bạn.',
+            );
           }
           return BlocProvider(
             create: (_) => ItineraryDetailCubit(repository: serviceLocator()),
@@ -501,7 +506,9 @@ GoRouter createAppRouter(
         builder: (_, state) {
           final itinerary = state.extra;
           if (itinerary is! GeneratedItinerary) {
-            return const ErrorView(message: 'Your itinerary is unavailable.');
+            return const ErrorView(
+              message: 'Không thể tải lịch trình của bạn.',
+            );
           }
           return ItineraryResultPage(itinerary: itinerary);
         },
@@ -512,7 +519,7 @@ GoRouter createAppRouter(
         builder: (_, state) {
           final args = state.extra;
           if (args is! CreateTravelGroupRouteArgs || args.itineraryId <= 0) {
-            return const ErrorView(message: 'A valid itinerary is required.');
+            return const ErrorView(message: 'Cần chọn một lịch trình hợp lệ.');
           }
           return BlocProvider(
             create: (_) => CreateTravelGroupCubit(repository: serviceLocator()),
@@ -556,7 +563,7 @@ GoRouter createAppRouter(
         builder: (_, state) {
           final groupId = int.tryParse(state.pathParameters['groupId'] ?? '');
           if (groupId == null || groupId <= 0) {
-            return const ErrorView(message: 'Page not found.');
+            return const ErrorView(message: 'Không tìm thấy trang.');
           }
           final args = state.extra;
           return TravelGroupDetailsPage(
@@ -577,7 +584,7 @@ GoRouter createAppRouter(
         builder: (_, state) {
           final groupId = int.tryParse(state.pathParameters['groupId'] ?? '');
           if (groupId == null || groupId <= 0) {
-            return const ErrorView(message: 'Page not found.');
+            return const ErrorView(message: 'Không tìm thấy trang.');
           }
           return BlocProvider(
             create: (_) =>
@@ -592,7 +599,7 @@ GoRouter createAppRouter(
         builder: (_, state) {
           final groupId = int.tryParse(state.pathParameters['groupId'] ?? '');
           if (groupId == null || groupId <= 0) {
-            return const ErrorView(message: 'Page not found.');
+            return const ErrorView(message: 'Không tìm thấy trang.');
           }
           return BlocProvider(
             create: (_) =>
@@ -608,7 +615,7 @@ GoRouter createAppRouter(
         builder: (_, state) {
           final groupId = int.tryParse(state.pathParameters['groupId'] ?? '');
           if (groupId == null || groupId <= 0) {
-            return const ErrorView(message: 'Page not found.');
+            return const ErrorView(message: 'Không tìm thấy trang.');
           }
           return MessengerRoutePage(initialGroupId: groupId);
         },
@@ -629,7 +636,7 @@ GoRouter createAppRouter(
         builder: (_, state) {
           final groupId = int.tryParse(state.pathParameters['groupId'] ?? '');
           if (groupId == null || groupId <= 0) {
-            return const ErrorView(message: 'Page not found.');
+            return const ErrorView(message: 'Không tìm thấy trang.');
           }
           final isDemo =
               kDebugMode && state.uri.queryParameters['demo'] == 'true';
@@ -654,7 +661,7 @@ GoRouter createAppRouter(
             state.pathParameters['itineraryId'] ?? '',
           );
           if (itineraryId == null || itineraryId <= 0) {
-            return const ErrorView(message: 'Page not found.');
+            return const ErrorView(message: 'Không tìm thấy trang.');
           }
           final isDemo =
               kDebugMode && state.uri.queryParameters['demo'] == 'true';
@@ -687,7 +694,7 @@ GoRouter createAppRouter(
             state.pathParameters['itineraryId'] ?? '',
           );
           if (itineraryId == null || itineraryId <= 0) {
-            return const ErrorView(message: 'Page not found.');
+            return const ErrorView(message: 'Không tìm thấy trang.');
           }
           return TripAlertsPage(itineraryId: itineraryId);
         },
@@ -700,7 +707,7 @@ GoRouter createAppRouter(
             state.pathParameters['itineraryId'] ?? '',
           );
           if (itineraryId == null || itineraryId <= 0) {
-            return const ErrorView(message: 'Page not found.');
+            return const ErrorView(message: 'Không tìm thấy trang.');
           }
           final isDemo =
               kDebugMode && state.uri.queryParameters['demo'] == 'true';
@@ -733,7 +740,7 @@ GoRouter createAppRouter(
         builder: (_, state) {
           final id = _positiveId(state.pathParameters['itineraryId']);
           return id == null
-              ? const ErrorView(message: 'Page not found.')
+              ? const ErrorView(message: 'Không tìm thấy trang.')
               : OfflineItineraryPage(itineraryId: id);
         },
       ),
@@ -743,7 +750,7 @@ GoRouter createAppRouter(
         builder: (_, state) {
           final id = _positiveId(state.pathParameters['itineraryId']);
           return id == null
-              ? const ErrorView(message: 'Page not found.')
+              ? const ErrorView(message: 'Không tìm thấy trang.')
               : OfflineItineraryMapPage(itineraryId: id);
         },
       ),
@@ -861,7 +868,7 @@ GoRouter createAppRouter(
           final id = int.tryParse(state.pathParameters['id'] ?? '');
           if (kind == null || id == null || id <= 0) {
             return const Scaffold(
-              body: ErrorView(message: 'Review information is unavailable.'),
+              body: ErrorView(message: 'Không có thông tin đánh giá.'),
             );
           }
           final reference = ReviewableRecordRef(kind: kind, id: id);
@@ -1008,6 +1015,7 @@ GoRouter createAppRouter(
         path: AppRoutes.editTourPackage,
         name: AppRouteNames.editTourPackage,
         builder: (_, state) => BlocProvider(
+          key: ValueKey('edit-tour-${state.pathParameters['tourId']}'),
           create: (_) => serviceLocator<CreateTourPackageCubit>(),
           child: EditTourPackagePage(
             tourId: int.tryParse(state.pathParameters['tourId'] ?? ''),
@@ -1017,10 +1025,14 @@ GoRouter createAppRouter(
       GoRoute(
         path: AppRoutes.createTourPackage,
         name: AppRouteNames.createTourPackage,
-        builder: (_, _) => BlocProvider(
+        builder: (_, state) => BlocProvider(
           create: (_) =>
               serviceLocator<CreateTourPackageCubit>()..loadOptions(),
-          child: const CreateTourPackagePage(),
+          child: CreateTourPackagePage(
+            cloneFrom: state.extra is TourPackageDetail
+                ? state.extra as TourPackageDetail
+                : null,
+          ),
         ),
       ),
       GoRoute(
@@ -1037,6 +1049,14 @@ GoRouter createAppRouter(
         builder: (_, _) => BlocProvider(
           create: (_) => serviceLocator<ChangePasswordCubit>(),
           child: const ChangePasswordPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.operatorPaymentSettings,
+        name: AppRouteNames.operatorPaymentSettings,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<OperatorPaymentChannelCubit>(),
+          child: const OperatorPaymentChannelPage(),
         ),
       ),
       GoRoute(
@@ -1087,8 +1107,8 @@ GoRouter createAppRouter(
       ),
     ],
     errorBuilder: (_, state) => Scaffold(
-      appBar: AppBar(title: const Text('Page not found')),
-      body: const ErrorView(message: 'Page not found.'),
+      appBar: AppBar(title: const Text('Không tìm thấy trang')),
+      body: const ErrorView(message: 'Không tìm thấy trang.'),
     ),
   );
 }
@@ -1103,8 +1123,8 @@ class _RouteNotFound extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Page not found')),
-    body: const ErrorView(message: 'Page not found.'),
+    appBar: AppBar(title: const Text('Không tìm thấy trang')),
+    body: const ErrorView(message: 'Không tìm thấy trang.'),
   );
 }
 
@@ -1118,8 +1138,8 @@ Widget _operatorBookingRoute(
 }) {
   if (rawId == null || !RegExp(r'^\d+$').hasMatch(rawId)) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Page not found')),
-      body: const ErrorView(message: 'Page not found.'),
+      appBar: AppBar(title: const Text('Không tìm thấy trang')),
+      body: const ErrorView(message: 'Không tìm thấy trang.'),
     );
   }
   return BlocProvider(

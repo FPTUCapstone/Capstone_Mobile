@@ -9,13 +9,13 @@ import 'package:trip_mate_mobile/features/booking_refund/presentation/pages/book
 
 void main() {
   for (final entry in {
-    'PendingOperatorConfirmation': 'Awaiting confirmation',
-    'AwaitingPartnerReturn': 'Awaiting partner return',
-    'ReturnReported': 'Partner return reported',
-    'ReturnReceived': 'Partner return received',
-    'Pending': 'Refund requested',
-    'Reconciliation': 'Under reconciliation',
-    'Escalated': 'Escalated for review',
+    'PendingOperatorConfirmation': 'Chờ xác nhận',
+    'AwaitingPartnerReturn': 'Chờ đối tác hoàn trả',
+    'ReturnReported': 'Đối tác đã báo hoàn trả',
+    'ReturnReceived': 'Đã nhận tiền từ đối tác',
+    'Pending': 'Đã tiếp nhận yêu cầu',
+    'Reconciliation': 'Đang đối soát',
+    'Escalated': 'Đã chuyển cấp xem xét',
   }.entries) {
     testWidgets('renders ${entry.key} without claiming completion', (
       tester,
@@ -39,12 +39,9 @@ void main() {
 
       expect(find.text(entry.value.toUpperCase()), findsOneWidget);
       expect(find.text('BK-DN-001'), findsOneWidget);
-      expect(find.text('REFUND COMPLETED'), findsNothing);
-      expect(
-        find.text('Something went wrong. Please try again.'),
-        findsNothing,
-      );
-      expect(find.text('Try again'), findsNothing);
+      expect(find.text('HOÀN TIỀN THÀNH CÔNG'), findsNothing);
+      expect(find.text('Đã xảy ra lỗi. Vui lòng thử lại.'), findsNothing);
+      expect(find.text('Thử lại'), findsNothing);
       expect(tester.takeException(), isNull);
     });
   }

@@ -135,7 +135,7 @@ void main() {
           isA<ServerException>().having(
             (error) => error.message,
             'message',
-            'Something went wrong. Please try again.',
+            'Đã có lỗi xảy ra. Vui lòng thử lại.',
           ),
         ),
       );
@@ -157,7 +157,7 @@ void main() {
                 .having(
                   (error) => error.message,
                   'message',
-                  'An account with this email already exists. Please sign in or use another email.',
+                  'Email này đã được sử dụng. Vui lòng đăng nhập hoặc dùng email khác.',
                 ),
           ),
         );
@@ -284,7 +284,7 @@ void main() {
               .having(
                 (error) => error.message,
                 'message',
-                'We could not confirm your account status. If you recently registered, verify your email; otherwise contact TripMate support.',
+                'Không thể xác nhận trạng thái tài khoản của bạn. Nếu bạn vừa đăng ký, hãy xác minh email; nếu không, vui lòng liên hệ hỗ trợ TripMate.',
               ),
         ),
       );
@@ -316,7 +316,7 @@ void main() {
           isA<ServerException>().having(
             (error) => error.message,
             'message',
-            'Unable to complete sign in. Please try again.',
+            'Không thể hoàn tất đăng nhập. Vui lòng thử lại.',
           ),
         ),
       );
@@ -330,8 +330,8 @@ void main() {
       password: 'Password123!',
     );
     const unavailableCopy =
-        'TripMate is temporarily unable to process your request. '
-        'Please check your connection and try again.';
+        'TripMate tạm thời không thể xử lý yêu cầu của bạn. '
+        'Vui lòng kiểm tra kết nối mạng và thử lại.';
 
     Future<void> expectSignInFailure(
       RecordingHttpClientAdapter adapter,
@@ -361,7 +361,7 @@ void main() {
               '{"errorCode":"auth.invalid_credentials","detail":"password mismatch for user 42"}',
         ),
         401,
-        'Invalid email or password. Please try again.',
+        'Email hoặc mật khẩu không đúng. Vui lòng thử lại.',
       );
     });
 
@@ -373,7 +373,7 @@ void main() {
               '{"errors":{"code":"internal.validation","email":["System.NullReferenceException at AuthController.Login"]}}',
         ),
         400,
-        'Unable to complete this request. Please try again.',
+        'Không thể hoàn tất yêu cầu. Vui lòng thử lại.',
       );
     });
 
@@ -386,7 +386,7 @@ void main() {
             body: '{"errorCode":"auth.invalid_credentials"}',
           ),
           401,
-          'Invalid email or password. Please try again.',
+          'Email hoặc mật khẩu không đúng. Vui lòng thử lại.',
         );
       },
     );
@@ -399,7 +399,7 @@ void main() {
               '{"errorCode":"auth.account_locked","detail":"LockReason=abuse"}',
         ),
         403,
-        'Your account is locked. Please contact support.',
+        'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ bộ phận hỗ trợ.',
       );
     });
 
@@ -410,7 +410,7 @@ void main() {
           body: '{"errorCode":"auth.account_inactive"}',
         ),
         403,
-        'Your account is inactive. Please contact support.',
+        'Tài khoản của bạn chưa được kích hoạt. Vui lòng liên hệ bộ phận hỗ trợ.',
       );
     });
 
@@ -422,7 +422,7 @@ void main() {
               '{"errorCode":"MSG_EMAIL_NOT_VERIFIED","detail":"Firebase claim"}',
         ),
         403,
-        'Please verify your email before continuing.',
+        'Vui lòng xác minh email trước khi tiếp tục.',
       );
     });
 
@@ -434,7 +434,7 @@ void main() {
               '{"errorCode":"auth.admin_google_sign_in_disabled","detail":"BR-18 internal rule"}',
         ),
         403,
-        'Administrator accounts are supported on Web only.',
+        'Tài khoản quản trị viên chỉ hỗ trợ đăng nhập trên nền tảng Web.',
       );
     });
 
@@ -448,7 +448,7 @@ void main() {
                 '{"errorCode":"auth.admin_mobile_sign_in_disabled","detail":"internal mobile gate"}',
           ),
           403,
-          'Administrator accounts are supported on Web only.',
+          'Tài khoản quản trị viên chỉ hỗ trợ đăng nhập trên nền tảng Web.',
         );
       },
     );
@@ -557,7 +557,7 @@ void main() {
               isA<ServerException>().having(
                 (error) => error.message,
                 'message',
-                'Something went wrong. Please try again.',
+                'Đã có lỗi xảy ra. Vui lòng thử lại.',
               ),
             ),
           );

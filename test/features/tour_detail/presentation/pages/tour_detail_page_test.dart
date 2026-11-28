@@ -56,6 +56,31 @@ final class _FakeNetworkImageRepository implements TourDetailRepository {
   }
 }
 
+final class _FakeDepositTourRepository implements TourDetailRepository {
+  @override
+  Future<TourDetail?> getTourDetail(
+    String tourId, {
+    TourSummary? initialSummary,
+  }) async {
+    return TourDetail(
+      tourId: tourId,
+      title: 'Coastal Deposit Tour',
+      description: 'Supports deposit setup.',
+      destinations: const ['Da Nang'],
+      durationDays: 2,
+      operatorName: 'Central Vietnam Travel',
+      basePrice: 2000000,
+      currency: 'VND',
+      cancellationPolicy: 'Standard policy.',
+      highlights: 'Sunset cruise along Han River',
+      travellerRequirements: const ['Sports shoes', 'ID card / Passport'],
+      allowDeposit: true,
+      depositPercent: 30,
+      balanceDueDaysBeforeDeparture: 7,
+    );
+  }
+}
+
 void main() {
   group('TourDetailPage', () {
     testWidgets('production mode displays pending integration truthfully', (
@@ -102,7 +127,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(TourDetailStrings.appBarTitle), findsOneWidget);
-      expect(find.textContaining('Da Nang'), findsWidgets);
+      expect(find.textContaining('Đà Nẵng'), findsWidgets);
       expect(find.text('Central Vietnam Travel'), findsOneWidget);
       expect(find.text(TourDetailStrings.schedulesTitle), findsOneWidget);
       expect(find.text(TourDetailStrings.itineraryTitle), findsOneWidget);
@@ -185,6 +210,8 @@ void main() {
 
       final chip = find.text(TourDetailStrings.demoChipError);
       expect(chip, findsOneWidget);
+      await tester.ensureVisible(chip);
+      await tester.pumpAndSettle();
       await tester.tap(chip);
       await tester.pumpAndSettle();
 
@@ -332,5 +359,27 @@ void main() {
         },
       );
     });
+
+    testWidgets(
+      'displays deposit policy, highlights, and packing requirements',
+      (tester) async {
+        await tester.pumpWidget(
+          _buildTestWidget(
+            tourId: 'dep-tour-1',
+            getTourDetail: GetTourDetail(_FakeDepositTourRepository()),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Sunset cruise along Han River'), findsOneWidget);
+        expect(find.text('Sports shoes'), findsOneWidget);
+        expect(
+          find.byKey(const Key('tour-detail-deposit-policy')),
+          findsOneWidget,
+        );
+        expect(find.text('Hỗ trợ đặt cọc 30%'), findsOneWidget);
+        expect(find.textContaining('Đặt cọc 30%'), findsWidgets);
+      },
+    );
   });
 }

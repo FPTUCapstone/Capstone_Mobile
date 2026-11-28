@@ -44,7 +44,7 @@ final class PostTripComplaintEntryAction extends StatelessWidget {
               router.go(AppRoutes.postTripComplaint(bookingId));
             },
             icon: const Icon(Icons.report_outlined),
-            label: Text(isExisting ? 'View complaint' : 'Submit complaint'),
+            label: Text(isExisting ? 'Xem khiếu nại' : 'Gửi khiếu nại'),
           );
         },
       ),

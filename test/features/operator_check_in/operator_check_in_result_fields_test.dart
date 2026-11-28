@@ -38,14 +38,14 @@ void main() {
         ),
       ),
     );
-    expect(find.text('Booking Code: BK-42'), findsOneWidget);
+    expect(find.text('Mã đơn đặt tour: BK-42'), findsOneWidget);
     expect(
-      find.textContaining('Passenger Name: Primary Passenger'),
+      find.textContaining('Tên hành khách: Primary Passenger'),
       findsOneWidget,
     );
-    expect(find.text('Number of Participants: 3'), findsOneWidget);
-    expect(find.text('Ticket Status: Used'), findsOneWidget);
-    expect(find.text('Check-in Result: Success'), findsOneWidget);
+    expect(find.text('Số lượng hành khách: 3'), findsOneWidget);
+    expect(find.text('Trạng thái vé: Đã sử dụng'), findsOneWidget);
+    expect(find.text('Kết quả điểm danh: Thành công'), findsOneWidget);
     expect(find.textContaining('01/01/2027 00:05'), findsOneWidget);
     expect(find.textContaining('Contact Name'), findsNothing);
   });
@@ -65,11 +65,14 @@ void main() {
           ),
         ),
       );
-      expect(find.text('Booking Code: BK-42'), findsOneWidget);
-      expect(find.text('Passenger Name: Primary Passenger'), findsOneWidget);
-      expect(find.text('Number of Participants: Unavailable'), findsOneWidget);
-      expect(find.text('Ticket Status: Used'), findsOneWidget);
-      expect(find.text('Check-in Result: Already used'), findsOneWidget);
+      expect(find.text('Mã đơn đặt tour: BK-42'), findsOneWidget);
+      expect(find.text('Tên hành khách: Primary Passenger'), findsOneWidget);
+      expect(
+        find.text('Số lượng hành khách: Không có thông tin'),
+        findsOneWidget,
+      );
+      expect(find.text('Trạng thái vé: Đã sử dụng'), findsOneWidget);
+      expect(find.text('Kết quả điểm danh: Đã sử dụng'), findsOneWidget);
       expect(find.textContaining('01/02/2026 00:09'), findsOneWidget);
     },
   );
@@ -83,12 +86,15 @@ void main() {
           failure: CheckInFailure(kind: CheckInFailureKind.network),
         ),
       );
-      expect(find.text('Booking Code: Unavailable'), findsOneWidget);
-      expect(find.text('Passenger Name: Unavailable'), findsOneWidget);
-      expect(find.text('Number of Participants: Unavailable'), findsOneWidget);
-      expect(find.text('Ticket Status: Unknown'), findsOneWidget);
-      expect(find.text('Check-in Result: Not confirmed'), findsOneWidget);
-      expect(find.textContaining('rejected'), findsNothing);
+      expect(find.text('Mã đơn đặt tour: Không có thông tin'), findsOneWidget);
+      expect(find.text('Tên hành khách: Không có thông tin'), findsOneWidget);
+      expect(
+        find.text('Số lượng hành khách: Không có thông tin'),
+        findsOneWidget,
+      );
+      expect(find.text('Trạng thái vé: Không xác định'), findsOneWidget);
+      expect(find.text('Kết quả điểm danh: Chưa xác nhận'), findsOneWidget);
+      expect(find.textContaining('từ chối'), findsNothing);
     },
   );
 
@@ -101,9 +107,12 @@ void main() {
         failure: CheckInFailure(kind: CheckInFailureKind.bookingCancelled),
       ),
     );
-    expect(find.text('Ticket Status: Unknown'), findsOneWidget);
-    expect(find.text('Check-in Result: Rejected'), findsOneWidget);
-    expect(find.text('Number of Participants: Unavailable'), findsOneWidget);
+    expect(find.text('Trạng thái vé: Không xác định'), findsOneWidget);
+    expect(find.text('Kết quả điểm danh: Từ chối'), findsOneWidget);
+    expect(
+      find.text('Số lượng hành khách: Không có thông tin'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('uncertain recent attempt never claims rejection', (
@@ -123,9 +132,9 @@ void main() {
         ],
       ),
     );
-    expect(find.text('Not confirmed'), findsOneWidget);
-    expect(find.textContaining('Attempt 01/01/2027 00:05'), findsOneWidget);
-    expect(find.textContaining('rejected'), findsNothing);
+    expect(find.text('Chưa xác nhận'), findsOneWidget);
+    expect(find.textContaining('Thử lúc 01/01/2027 00:05'), findsOneWidget);
+    expect(find.textContaining('từ chối'), findsNothing);
   });
 
   testWidgets('recent card renders only five of twenty retained entries', (
@@ -182,7 +191,7 @@ void main() {
           ),
         );
         expect(find.text('01/01/2027 00:05'), findsOneWidget);
-        expect(find.text('3 pax · 01/01/2027 00:05'), findsOneWidget);
+        expect(find.text('3 khách · 01/01/2027 00:05'), findsOneWidget);
       },
     );
   }

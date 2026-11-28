@@ -119,11 +119,11 @@ void main() {
         ),
       );
       for (final entry in {
-        'Destination': 'Đà Nẵng',
-        'Minimum price': '100',
-        'Maximum price': '500',
-        'Duration (days)': '3',
-        'Minimum rating (1–5)': '4.5',
+        'Điểm đến': 'Đà Nẵng',
+        'Giá tối thiểu': '100',
+        'Giá tối đa': '500',
+        'Thời lượng (ngày)': '3',
+        'Đánh giá tối thiểu (1–5)': '4.5',
       }.entries) {
         await tester.ensureVisible(find.widgetWithText(TextField, entry.key));
         await tester.enterText(
@@ -131,13 +131,13 @@ void main() {
           entry.value,
         );
       }
-      await tester.ensureVisible(find.text('Category'));
+      await tester.ensureVisible(find.text('Danh mục'));
       await tester.tap(find.byType(DropdownButtonFormField<String>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Tên từ server').last);
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Apply filters'));
-      await tester.tap(find.text('Apply filters'));
+      await tester.ensureVisible(find.text('Áp dụng bộ lọc'));
+      await tester.tap(find.text('Áp dụng bộ lọc'));
       await tester.pumpAndSettle();
       final query = repository.queries.last;
       expect(query.keyword, 'biển');
@@ -172,8 +172,8 @@ void main() {
       await tester.testTextInput.receiveAction(TextInputAction.search);
       await tester.pumpAndSettle();
       expect(repository.queries.last.keyword, 'biển yên tĩnh');
-      expect(find.text('Semantic'), findsOneWidget);
-      await tester.tap(find.text('Semantic'));
+      expect(find.text('Ngữ nghĩa'), findsOneWidget);
+      await tester.tap(find.text('Ngữ nghĩa'));
       await tester.pumpAndSettle();
       expect(repository.queries.last.mode, 'semantic');
       await cubit.resetFilters();
@@ -252,9 +252,9 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Page 1 of 3'), findsOneWidget);
-    expect(find.byTooltip('Previous page'), findsOneWidget);
-    expect(find.byTooltip('Next page'), findsOneWidget);
+    expect(find.text('Trang 1 / 3'), findsOneWidget);
+    expect(find.byTooltip('Trang trước'), findsOneWidget);
+    expect(find.byTooltip('Trang tiếp theo'), findsOneWidget);
   });
 }
 

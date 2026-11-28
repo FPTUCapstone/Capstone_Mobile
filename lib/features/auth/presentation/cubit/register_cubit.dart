@@ -51,16 +51,14 @@ final class RegisterCubit extends Cubit<RegisterState> {
       emit(
         RegisterFailure(switch (error.failure) {
           AuthIdentityFailure.emailAlreadyInUse =>
-            'An account with this email already exists. Please sign in or use another email.',
+            'Email này đã được sử dụng. Vui lòng đăng nhập hoặc dùng email khác.',
           AuthIdentityFailure.network =>
-            'TripMate is temporarily unable to process your request. Please check your connection and try again.',
-          _ => 'Registration failed. Please try again later.',
+            'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.',
+          _ => 'Đăng ký thất bại. Vui lòng thử lại sau.',
         }),
       );
     } catch (_) {
-      emit(
-        const RegisterFailure('Registration failed. Please try again later.'),
-      );
+      emit(const RegisterFailure('Đăng ký thất bại. Vui lòng thử lại sau.'));
     }
   }
 }

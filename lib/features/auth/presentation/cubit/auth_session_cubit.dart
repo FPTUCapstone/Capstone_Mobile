@@ -487,7 +487,11 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     final repository = _authRepository;
     final storage = _secureStorage;
     if (repository == null || storage == null) {
-      emit(const AuthSessionState.failure('Sign in is unavailable.'));
+      emit(
+        const AuthSessionState.failure(
+          'Chức năng đăng nhập hiện không khả dụng.',
+        ),
+      );
       return;
     }
     try {
@@ -523,7 +527,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     } catch (_) {
       emit(
         const AuthSessionState.failure(
-          'Unable to sign in. Please try again later.',
+          'Không thể đăng nhập. Vui lòng thử lại sau.',
         ),
       );
     }
@@ -534,7 +538,11 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     final storage = _secureStorage;
     final firebaseAuth = _firebaseAuthService;
     if (repository == null || storage == null || firebaseAuth == null) {
-      emit(const AuthSessionState.failure('Google sign-in is unavailable.'));
+      emit(
+        const AuthSessionState.failure(
+          'Chức năng đăng nhập bằng Google hiện không khả dụng.',
+        ),
+      );
       return;
     }
 
@@ -549,7 +557,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
         error.failure == AuthIdentityFailure.canceled
             ? const AuthSessionState.unauthenticated()
             : const AuthSessionState.failure(
-                'Google sign-in failed. Please try again.',
+                'Đăng nhập bằng Google thất bại. Vui lòng thử lại.',
               ),
       );
     } on AppException catch (error) {
@@ -571,7 +579,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     } catch (_) {
       emit(
         const AuthSessionState.failure(
-          'Google sign-in failed. Please try again.',
+          'Đăng nhập bằng Google thất bại. Vui lòng thử lại.',
         ),
       );
     }
@@ -582,7 +590,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     final firebaseAuth = _firebaseAuthService;
     if (firebaseAuth == null) {
       emit(
-        const AuthSessionState.failure('Email verification is unavailable.'),
+        const AuthSessionState.failure(
+          'Chức năng xác minh email hiện không khả dụng.',
+        ),
       );
       return;
     }
@@ -597,7 +607,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
       await firebaseAuth.sendEmailVerification();
       emit(
         const AuthSessionState.verificationEmailSent(
-          'A fresh verification link has been sent to your email address.',
+          'Liên kết xác minh mới đã được gửi đến địa chỉ email của bạn.',
         ),
       );
     } on AuthIdentityException catch (error) {
@@ -611,7 +621,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     } catch (_) {
       emit(
         const AuthSessionState.failure(
-          'Unable to send verification email. Please try again later or sign in.',
+          'Không thể gửi email xác minh. Vui lòng thử lại sau hoặc đăng nhập.',
         ),
       );
     } finally {
@@ -626,7 +636,9 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     final firebaseAuth = _firebaseAuthService;
     if (repository == null || storage == null || firebaseAuth == null) {
       emit(
-        const AuthSessionState.failure('Email verification is unavailable.'),
+        const AuthSessionState.failure(
+          'Chức năng xác minh email hiện không khả dụng.',
+        ),
       );
       return;
     }
@@ -643,7 +655,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
       if (firebaseIdToken == null) {
         emit(
           const AuthSessionState.failure(
-            'Please verify your email before continuing.',
+            'Vui lòng xác minh email trước khi tiếp tục.',
           ),
         );
         return;
@@ -661,7 +673,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     } catch (_) {
       emit(
         const AuthSessionState.failure(
-          'Email verification could not be completed. Please try again.',
+          'Không thể hoàn tất xác minh email. Vui lòng thử lại.',
         ),
       );
     } finally {
@@ -694,7 +706,7 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
       case _MobileRoleSupport.unknown:
         emit(
           const AuthSessionState.failure(
-            'Unable to sign in. Please try again later.',
+            'Không thể đăng nhập. Vui lòng thử lại sau.',
           ),
         );
         return false;
@@ -729,20 +741,19 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
   };
 
   static const administratorWebOnlyMessage =
-      'Administrator accounts are supported on Web only.';
+      'Tài khoản quản trị viên chỉ hỗ trợ đăng nhập trên nền tảng Web.';
 
   static const previousSessionCleanupFailureMessage =
-      'Unable to clear the previous account. Please sign out before switching accounts.';
+      'Không thể xóa phiên của tài khoản trước đó. Vui lòng đăng xuất trước khi chuyển tài khoản.';
 
   static const signOutRemoteFailureMessage =
-      'You\'re signed out on this device, but we couldn\'t complete '
-      'server-side sign-out.';
+      'Bạn đã đăng xuất khỏi thiết bị này, nhưng chưa thể hoàn tất đăng xuất trên máy chủ.';
 
   /// Approved local-cleanup-failure copy — shown only when the persisted
   /// session could not be proven non-restorable, so no local sign-out may be
   /// claimed.
   static const signOutLocalCleanupFailureMessage =
-      'We couldn\'t complete sign out on this device. Please try again.';
+      'Không thể hoàn tất đăng xuất trên thiết bị này. Vui lòng thử lại.';
 
   Future<void> _bestEffortProviderSignOut() async {
     try {
@@ -895,17 +906,17 @@ final class AuthSessionCubit extends Cubit<AuthSessionState> {
     required bool isResend,
   }) => switch (failure) {
     AuthIdentityFailure.tooManyRequests =>
-      'Too many resend attempts. Please wait a few minutes before trying again.',
+      'Bạn đã gửi lại quá nhiều lần. Vui lòng đợi vài phút rồi thử lại.',
     AuthIdentityFailure.noCurrentUser =>
       isResend
-          ? 'Your verification session has expired. Please sign in to request a new verification link.'
-          : 'Your verification session has expired. Please sign in and request a new verification link.',
+          ? 'Phiên xác minh đã hết hạn. Vui lòng đăng nhập để yêu cầu liên kết xác minh mới.'
+          : 'Phiên xác minh đã hết hạn. Vui lòng đăng nhập và yêu cầu liên kết xác minh mới.',
     AuthIdentityFailure.network =>
-      'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+      'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.',
     _ =>
       isResend
-          ? 'Unable to send verification email. Please try again later or sign in.'
-          : 'Email verification could not be completed. Please try again.',
+          ? 'Không thể gửi email xác minh. Vui lòng thử lại sau hoặc đăng nhập.'
+          : 'Không thể hoàn tất xác minh email. Vui lòng thử lại.',
   };
 
   TourOperatorApplicationStatus _applicationStatusFromStorage(String? value) =>

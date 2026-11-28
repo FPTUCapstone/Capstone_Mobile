@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_detail.dart';
+import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_draft.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/usecases/create_tour_package_use_case.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/usecases/load_tour_package_options_use_case.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/usecases/tour_package_use_cases.dart';
@@ -20,6 +21,8 @@ CreateTourPackageCubit _cubit(
   loadOptions: LoadTourPackageOptionsUseCase(repository),
   getTour: GetTourPackageUseCase(repository),
   updateTour: UpdateTourPackageUseCase(repository),
+  deleteTour: DeleteTourPackageUseCase(repository),
+  addDeparture: AddTourDepartureUseCase(repository),
   submitForReview: SubmitTourForReviewUseCase(repository),
   media: ManageTourMediaUseCase(repository),
   imagePicker: picker,
@@ -414,5 +417,68 @@ void main() {
       expect(repository.deleteCalls, [1]);
       expect(cubit.state.media.map((item) => item.id), [2]);
     });
+  });
+
+  group('reopen departure and delete draft', () {
+    test('reopenDeparture succeeds for live published tour', () async {
+      final base = sampleDetail(
+        status: TourPackageStatus.approved,
+        blockers: const [],
+      );
+      final published = TourPackageDetail(
+        id: base.id,
+        title: base.title,
+        description: base.description,
+        status: TourPackageStatus.approved,
+        publishedAtUtc: DateTime.utc(2026, 1, 1),
+        basePrice: base.basePrice,
+        durationDays: base.durationDays,
+        destinationIds: base.destinationIds,
+        destinationNames: base.destinationNames,
+        cancellationPolicyTemplateId: base.cancellationPolicyTemplateId,
+        itineraryItems: base.itineraryItems,
+        departures: base.departures,
+        reviewBlockers: const [],
+        warnings: const [],
+        canSubmitForReview: false,
+        hasPrimaryImage: true,
+        mediaCount: 1,
+      );
+      final repository = FakeOperatorTourRepository(detail: published);
+      final cubit = _cubit(repository);
+      addTearDown(cubit.close);
+      await cubit.loadDetail(42);
+
+      final added = await cubit.reopenDeparture(
+        TourScheduleDraft(
+          startAtUtc: DateTime.utc(2027, 8, 1, 1),
+          endAtUtc: DateTime.utc(2027, 8, 2, 9),
+          totalCapacity: 15,
+          adultPrice: 1500000,
+          meetingPoint: 'Marble Gate',
+        ),
+      );
+
+      expect(added, isNotNull);
+      expect(repository.addedDepartures, hasLength(1));
+      expect(cubit.state.detail!.departures, hasLength(2));
+      expect(cubit.state.departureBusy, isFalse);
+    });
+
+    test(
+      'deleteDraft deletes Draft tours only and sets deleted state',
+      () async {
+        final repository = FakeOperatorTourRepository();
+        final cubit = _cubit(repository);
+        addTearDown(cubit.close);
+        await cubit.loadDetail(42);
+
+        final ok = await cubit.deleteDraft();
+
+        expect(ok, isTrue);
+        expect(repository.deletedTourIds, [42]);
+        expect(cubit.state.deleted, isTrue);
+      },
+    );
   });
 }

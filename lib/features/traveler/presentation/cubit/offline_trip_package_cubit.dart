@@ -20,16 +20,16 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
                (isDemoMode
                    ? ActiveTripDemoFixtures.createSampleOfflinePackage(
                        itineraryId: itineraryId,
-                       title: title ?? 'Đà Nẵng City Explorer',
+                       title: title ?? 'Khám phá Đà Nẵng',
                      )
                    : OfflineTripPackage(
                        itineraryId: itineraryId,
-                       title: title ?? 'Trip #$itineraryId',
+                       title: title ?? 'Chuyến đi #$itineraryId',
                        version: version,
                        status: OfflinePackageStatus.unavailable,
                        totalSizeMb: 0.0,
                        errorMessage:
-                           'Offline map and itinerary download is not currently available because the required trip-package service and local persistence integration are not yet connected.',
+                           'Tính năng tải bản đồ và lịch trình ngoại tuyến hiện chưa khả dụng do dịch vụ gói chuyến đi và lưu trữ cục bộ chưa được kết nối.',
                      )),
            replacementPackage: initialReplacementPackage,
            deviceFreeStorageMb: isDemoMode ? initialFreeStorageMb : 0.0,
@@ -49,9 +49,9 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
           package: state.package.copyWith(
             status: OfflinePackageStatus.unavailable,
             errorMessage:
-                'Offline map and itinerary download is not currently available because the required trip-package service and local persistence integration are not yet connected.',
+                'Tính năng tải bản đồ và lịch trình ngoại tuyến hiện chưa khả dụng do dịch vụ gói chuyến đi và lưu trữ cục bộ chưa được kết nối.',
           ),
-          downloadStepDescription: 'Download service unavailable.',
+          downloadStepDescription: 'Dịch vụ tải xuống không khả dụng.',
         ),
       );
       return;
@@ -69,7 +69,7 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
     emit(
       state.copyWith(
         package: pkg.copyWith(status: OfflinePackageStatus.checkingStorage),
-        downloadStepDescription: 'Checking device storage space...',
+        downloadStepDescription: 'Đang kiểm tra dung lượng bộ nhớ thiết bị...',
       ),
     );
 
@@ -80,9 +80,9 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
           package: pkg.copyWith(
             status: OfflinePackageStatus.insufficientStorage,
             errorMessage:
-                'Package size (${pkg.totalSizeMb.toStringAsFixed(1)} MB) exceeds configured limit of 150 MB.',
+                'Dung lượng gói (${pkg.totalSizeMb.toStringAsFixed(1)} MB) vượt quá giới hạn 150 MB.',
           ),
-          downloadStepDescription: 'Storage limit exceeded.',
+          downloadStepDescription: 'Vượt quá giới hạn dung lượng.',
         ),
       );
       return;
@@ -95,9 +95,9 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
           package: pkg.copyWith(
             status: OfflinePackageStatus.insufficientStorage,
             errorMessage:
-                'Insufficient storage space. At least 150MB free space required for offline data.',
+                'Không đủ dung lượng bộ nhớ. Cần ít nhất 150 MB trống để lưu dữ liệu ngoại tuyến.',
           ),
-          downloadStepDescription: 'Insufficient free space on device.',
+          downloadStepDescription: 'Thiết bị không đủ dung lượng trống.',
         ),
       );
       return;
@@ -110,21 +110,22 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
           status: OfflinePackageStatus.downloading,
           progressPercent: 15.0,
         ),
-        downloadStepDescription: 'Downloading itinerary and route geometry...',
+        downloadStepDescription:
+            'Đang tải lịch trình và dữ liệu tuyến đường...',
       ),
     );
 
     emit(
       state.copyWith(
         package: state.package.copyWith(progressPercent: 55.0),
-        downloadStepDescription: 'Downloading POI photos & information...',
+        downloadStepDescription: 'Đang tải ảnh và thông tin điểm đến...',
       ),
     );
 
     emit(
       state.copyWith(
         package: state.package.copyWith(progressPercent: 88.0),
-        downloadStepDescription: 'Downloading offline area map tiles...',
+        downloadStepDescription: 'Đang tải bản đồ khu vực ngoại tuyến...',
       ),
     );
 
@@ -136,7 +137,7 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
           progressPercent: 100.0,
           lastDownloadedAt: DateTime.now(),
         ),
-        downloadStepDescription: 'Offline package ready.',
+        downloadStepDescription: 'Gói dữ liệu ngoại tuyến đã sẵn sàng.',
       ),
     );
   }
@@ -150,7 +151,7 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
         state.copyWith(
           clearReplacementPackage: true,
           downloadStepDescription:
-              'Update cancelled. Current offline package retained.',
+              'Đã hủy cập nhật. Gói ngoại tuyến hiện tại vẫn được giữ lại.',
         ),
       );
     } else {
@@ -160,7 +161,8 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
             status: OfflinePackageStatus.notDownloaded,
             progressPercent: 0.0,
           ),
-          downloadStepDescription: 'Download cancelled. Partial data removed.',
+          downloadStepDescription:
+              'Đã hủy tải xuống. Dữ liệu tải dở đã được xóa.',
         ),
       );
     }
@@ -179,7 +181,7 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
           clearErrorMessage: true,
         ),
         clearReplacementPackage: true,
-        downloadStepDescription: 'Offline data removed from device.',
+        downloadStepDescription: 'Đã xóa dữ liệu ngoại tuyến khỏi thiết bị.',
       ),
     );
   }
@@ -207,7 +209,8 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
     emit(
       state.copyWith(
         replacementPackage: replacement,
-        downloadStepDescription: 'Checking device storage space for update...',
+        downloadStepDescription:
+            'Đang kiểm tra dung lượng thiết bị để cập nhật...',
       ),
     );
 
@@ -218,9 +221,10 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
           replacementPackage: replacement.copyWith(
             status: OfflinePackageStatus.insufficientStorage,
             errorMessage:
-                'Package size (${replacement.totalSizeMb.toStringAsFixed(1)} MB) exceeds configured limit of 150 MB.',
+                'Dung lượng gói (${replacement.totalSizeMb.toStringAsFixed(1)} MB) vượt quá giới hạn 150 MB.',
           ),
-          downloadStepDescription: 'Storage limit exceeded for update.',
+          downloadStepDescription:
+              'Vượt quá giới hạn dung lượng cho bản cập nhật.',
         ),
       );
       return;
@@ -233,10 +237,10 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
           replacementPackage: replacement.copyWith(
             status: OfflinePackageStatus.insufficientStorage,
             errorMessage:
-                'Insufficient storage space. At least 150MB free space required for offline data.',
+                'Không đủ dung lượng bộ nhớ. Cần ít nhất 150 MB trống để lưu dữ liệu ngoại tuyến.',
           ),
           downloadStepDescription:
-              'Insufficient free space on device for update.',
+              'Thiết bị không đủ dung lượng trống để cập nhật.',
         ),
       );
       return;
@@ -251,7 +255,7 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
       state.copyWith(
         replacementPackage: replacement,
         downloadStepDescription:
-            'Downloading updated itinerary and route geometry...',
+            'Đang tải lịch trình và dữ liệu tuyến đường mới...',
       ),
     );
 
@@ -259,8 +263,7 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
     emit(
       state.copyWith(
         replacementPackage: replacement,
-        downloadStepDescription:
-            'Downloading updated POI photos & information...',
+        downloadStepDescription: 'Đang tải ảnh và thông tin điểm đến mới...',
       ),
     );
 
@@ -268,8 +271,7 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
     emit(
       state.copyWith(
         replacementPackage: replacement,
-        downloadStepDescription:
-            'Downloading updated offline area map tiles...',
+        downloadStepDescription: 'Đang tải bản đồ khu vực ngoại tuyến mới...',
       ),
     );
 
@@ -282,7 +284,7 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
           lastDownloadedAt: DateTime.now(),
         ),
         clearReplacementPackage: true,
-        downloadStepDescription: 'Offline package updated.',
+        downloadStepDescription: 'Đã cập nhật gói dữ liệu ngoại tuyến.',
       ),
     );
   }
@@ -300,9 +302,9 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
           replacementPackage: state.replacementPackage!.copyWith(
             status: OfflinePackageStatus.networkInterrupted,
             errorMessage:
-                'Update interrupted due to connection loss. Existing offline data remains usable.',
+                'Cập nhật bị gián đoạn do mất kết nối. Dữ liệu ngoại tuyến hiện có vẫn dùng được.',
           ),
-          downloadStepDescription: 'Connection interrupted during update.',
+          downloadStepDescription: 'Mất kết nối trong quá trình cập nhật.',
         ),
       );
     } else {
@@ -311,9 +313,9 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
           package: state.package.copyWith(
             status: OfflinePackageStatus.networkInterrupted,
             errorMessage:
-                'Download interrupted due to connection loss. Partial download discarded.',
+                'Tải xuống bị gián đoạn do mất kết nối. Dữ liệu tải dở đã được hủy bỏ.',
           ),
-          downloadStepDescription: 'Connection interrupted.',
+          downloadStepDescription: 'Kết nối bị gián đoạn.',
         ),
       );
     }
@@ -328,11 +330,9 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
           replacementPackage: state.replacementPackage!.copyWith(
             totalSizeMb: 184.2,
             status: OfflinePackageStatus.insufficientStorage,
-            errorMessage:
-                'Package size (184.2 MB) exceeds configured limit of 150 MB.',
+            errorMessage: 'Dung lượng gói (184.2 MB) vượt quá giới hạn 150 MB.',
           ),
-          downloadStepDescription:
-              'Configured limit of 150 MB exceeded for update.',
+          downloadStepDescription: 'Bản cập nhật vượt quá giới hạn 150 MB.',
         ),
       );
     } else {
@@ -341,10 +341,9 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
           package: state.package.copyWith(
             totalSizeMb: 184.2,
             status: OfflinePackageStatus.insufficientStorage,
-            errorMessage:
-                'Package size (184.2 MB) exceeds configured limit of 150 MB.',
+            errorMessage: 'Dung lượng gói (184.2 MB) vượt quá giới hạn 150 MB.',
           ),
-          downloadStepDescription: 'Configured limit of 150 MB exceeded.',
+          downloadStepDescription: 'Vượt quá giới hạn 150 MB.',
         ),
       );
     }
@@ -361,7 +360,7 @@ class OfflineTripPackageCubit extends Cubit<OfflineTripPackageState> {
         ),
         clearReplacementPackage: true,
         downloadStepDescription:
-            'A newer itinerary version is available on the server.',
+            'Có phiên bản lịch trình mới hơn trên máy chủ.',
       ),
     );
   }

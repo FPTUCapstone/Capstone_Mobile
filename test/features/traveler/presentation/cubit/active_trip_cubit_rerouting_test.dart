@@ -19,12 +19,12 @@ import 'active_trip_cubit_test.dart'
         FakeSessionRepository;
 
 const _msg42 =
-    'Your itinerary has been updated. Navigation continues on the new route.';
-const _msg43 = 'Suggestion declined. Continuing on your current route.';
-const _msg44 = 'No re-routing suggestion is available at the moment.';
+    'Lịch trình của bạn đã được cập nhật. Tiếp tục dẫn đường theo lộ trình mới.';
+const _msg43 = 'Đã từ chối đề xuất. Tiếp tục theo lộ trình hiện tại.';
+const _msg44 = 'Hiện không có đề xuất đổi lộ trình nào khả dụng.';
 const _msg127 =
-    'TripMate is temporarily unable to process your request. '
-    'Please check your connection and try again.';
+    'TripMate tạm thời không thể xử lý yêu cầu của bạn. '
+    'Vui lòng kiểm tra kết nối mạng và thử lại.';
 
 void main() {
   late DateTime now;

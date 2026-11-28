@@ -4,9 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/core/utils/trip_time_format.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/itinerary_generation.dart';
+import 'package:trip_mate_mobile/features/traveler/presentation/helpers/itinerary_text.dart';
 import 'package:trip_mate_mobile/shared/formatters/visit_price_format.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
 
 final class ItineraryResultPage extends StatelessWidget {
@@ -16,27 +19,43 @@ final class ItineraryResultPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final theme = Theme.of(context);
     final totalCost = itinerary.totalEstimatedCost;
     final hasKnownCost = totalCost >= 0;
 
     return AppPageScaffold(
-      title: 'Your itinerary',
+      title: 'Lịch trình của bạn',
       content: [
-        Text(itinerary.title, style: theme.textTheme.titleLarge),
-        const SizedBox(height: AppSpacing.xs),
-        _SummaryRow(
-          durationMinutes: itinerary.totalDurationMinutes,
-          estimatedCost: hasKnownCost ? totalCost : null,
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          'All costs are estimates for POI entry fees only.',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+        AppCard(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                itinerary.title,
+                style: TextStyle(
+                  fontFamily: AppTypography.displayFont,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: c.textPrimary,
+                  height: 1.25,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              _SummaryRow(
+                durationMinutes: itinerary.totalDurationMinutes,
+                estimatedCost: hasKnownCost ? totalCost : null,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Chi phí chỉ là ước tính vé tham quan các điểm đến.',
+                style: theme.textTheme.bodySmall?.copyWith(color: c.textMuted),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.md),
         for (var index = 0; index < itinerary.items.length; index++) ...[
           if (_spansDays(itinerary.items) &&
               (index == 0 ||
@@ -49,20 +68,52 @@ final class ItineraryResultPage extends StatelessWidget {
                 top: AppSpacing.sm,
                 bottom: AppSpacing.xs,
               ),
-              child: Text(
-                tripDate(itinerary.items[index].plannedArrival),
-                style: theme.textTheme.titleSmall,
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: c.tealSoftContainer,
+                      borderRadius: BorderRadius.circular(TripMateRadius.pill),
+                    ),
+                    child: Text(
+                      tripDate(itinerary.items[index].plannedArrival),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: c.brandTeal,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           if (index > 0 &&
               itinerary.items[index - 1].travelDurationToNextMinutes != null)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-              child: Text(
-                'Travel: ${itinerary.items[index - 1].travelDurationToNextMinutes} min',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+              padding: const EdgeInsets.only(
+                left: AppSpacing.sm,
+                top: 2,
+                bottom: AppSpacing.xs,
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.directions_walk_rounded,
+                    size: 14,
+                    color: c.textMuted,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Di chuyển: ${itinerary.items[index - 1].travelDurationToNextMinutes} phút',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: c.textMuted,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
           Padding(
@@ -87,15 +138,15 @@ final class ItineraryResultPage extends StatelessWidget {
                       )
                     : null,
                 icon: const Icon(Icons.navigation_rounded),
-                label: const Text('Start Navigation'),
+                label: const Text('Bắt đầu dẫn đường'),
               ),
               if (!isActive) ...[
                 const SizedBox(height: AppSpacing.xxs),
                 Text(
-                  'Navigation requires an Active itinerary (current: ${itinerary.status}). Accept this itinerary to activate.',
+                  'Cần lịch trình đang hoạt động để dẫn đường (hiện tại: ${itineraryStatusLabel(itinerary.status)}). Hãy chấp nhận lịch trình để kích hoạt.',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                    color: c.textSecondary,
                   ),
                 ),
               ],
@@ -106,11 +157,8 @@ final class ItineraryResultPage extends StatelessWidget {
                     '${AppRoutes.activeTripLive(itinerary.itineraryId)}?demo=true',
                     extra: itinerary.title,
                   ),
-                  icon: const Icon(
-                    Icons.bug_report_outlined,
-                    color: AppColors.warning,
-                  ),
-                  label: const Text('Preview Navigation (Demo Mode)'),
+                  icon: Icon(Icons.bug_report_outlined, color: c.warning),
+                  label: const Text('Xem thử dẫn đường (Demo)'),
                 ),
               ],
               const SizedBox(height: AppSpacing.xs),
@@ -120,12 +168,12 @@ final class ItineraryResultPage extends StatelessWidget {
                   extra: itinerary.title,
                 ),
                 icon: const Icon(Icons.download_rounded),
-                label: const Text('Download for Offline Use'),
+                label: const Text('Tải về xem ngoại tuyến'),
               ),
               const SizedBox(height: AppSpacing.xxs),
               TextButton(
                 onPressed: () => context.go(AppRoutes.createItinerary),
-                child: const Text('Create another itinerary'),
+                child: const Text('Tạo lịch trình khác'),
               ),
             ],
           );
@@ -156,15 +204,25 @@ final class _SummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final parts = [
       _formatDuration(durationMinutes),
-      if (estimatedCost != null) 'Est. ${formatVnd(estimatedCost!)}',
+      if (estimatedCost != null) 'Dự kiến ${formatVnd(estimatedCost!)}',
     ];
-    return Text(
-      parts.join(' · '),
-      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      ),
+    return Row(
+      children: [
+        Icon(Icons.schedule_outlined, size: 15, color: c.brandTeal),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            parts.join(' · '),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: c.brandTeal,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -176,79 +234,109 @@ final class _ItineraryItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final theme = Theme.of(context);
     final isRest = item.itemKind == ItineraryItemKind.rest;
     final arrivalText = _formatTime(item.plannedArrival);
     final departureText = _formatTime(item.plannedDeparture);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _TimeColumn(arrival: arrivalText, departure: departureText),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        isRest ? Icons.coffee_outlined : Icons.place_outlined,
-                        size: 18,
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _TimeColumn(arrival: arrivalText, departure: departureText),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
                         color: isRest
-                            ? theme.colorScheme.tertiary
-                            : theme.colorScheme.primary,
+                            ? c.coralSoftContainer
+                            : c.tealSoftContainer,
+                        borderRadius: BorderRadius.circular(7),
                       ),
-                      const SizedBox(width: AppSpacing.xs),
-                      Expanded(
+                      child: Icon(
+                        isRest ? Icons.coffee_outlined : Icons.place_outlined,
+                        size: 15,
+                        color: isRest ? c.brandCoral : c.brandTeal,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 2),
                         child: Text(
                           isRest
-                              ? 'Suggested break'
-                              : (item.poiName ?? 'Visit'),
-                          style: theme.textTheme.titleSmall,
+                              ? 'Nghỉ ngơi gợi ý'
+                              : (item.poiName ?? 'Điểm tham quan'),
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: c.textPrimary,
+                            fontWeight: FontWeight.w700,
+                            height: 1.25,
+                          ),
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (!isRest && item.isMandatory) _MandatoryBadge(),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    isRest
-                        ? 'Food and drinks are not included.'
-                        : _subtitleText(item),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  if (!isRest && item.estimatedCost != null) ...[
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      'Est. ${formatVnd(item.estimatedCost!)}',
-                      style: theme.textTheme.bodySmall,
                     ),
                   ],
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Wrap(
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xxs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (!isRest && item.isMandatory) _MandatoryBadge(),
+                    Text(
+                      isRest
+                          ? 'Chưa bao gồm chi phí ăn uống.'
+                          : _subtitleText(item),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: c.textSecondary,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+                if (!isRest && item.estimatedCost != null) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'Dự kiến ${formatVnd(item.estimatedCost!)}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: c.brandTeal,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ],
-              ),
+              ],
             ),
-            const SizedBox(width: AppSpacing.sm),
-            Text(
-              '${item.stayDurationMinutes} min',
-              style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Text(
+            '${item.stayDurationMinutes} phút',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: c.textMuted,
+              fontWeight: FontWeight.w600,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   String _subtitleText(GeneratedItineraryItem item) {
-    if (item.isMandatory) return 'Must-see location';
+    if (item.isMandatory) return 'Điểm đến không thể bỏ lỡ';
     if (item.recommendationReason != null) return item.recommendationReason!;
-    return 'Suggested nearby location';
+    return 'Điểm gợi ý lân cận';
   }
 }
 
@@ -260,15 +348,22 @@ final class _TimeColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final style = Theme.of(context).textTheme.bodySmall;
     return SizedBox(
       width: 44,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Text(arrival, style: style),
+          Text(
+            arrival,
+            style: style?.copyWith(
+              color: c.brandTeal,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: AppSpacing.xs),
-          Text(departure, style: style),
+          Text(departure, style: style?.copyWith(color: c.textMuted)),
         ],
       ),
     );
@@ -277,18 +372,22 @@ final class _TimeColumn extends StatelessWidget {
 
 final class _MandatoryBadge extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.only(left: AppSpacing.xs),
-    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: 2),
-    decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.primaryContainer,
-      borderRadius: BorderRadius.circular(4),
-    ),
-    child: Text(
-      'Must-see',
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        color: Theme.of(context).colorScheme.onPrimaryContainer,
+  Widget build(BuildContext context) {
+    final c = context.tmColors;
+    return Container(
+      margin: const EdgeInsets.only(left: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: c.coralSoftContainer,
+        borderRadius: BorderRadius.circular(6),
       ),
-    ),
-  );
+      child: Text(
+        'Điểm nổi bật',
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: c.coralAccessibleText,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
 }

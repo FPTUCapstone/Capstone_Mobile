@@ -307,7 +307,7 @@ void main() {
           operation: AuthSessionOperation.resendVerificationEmail,
         ),
         AuthSessionState.verificationEmailSent(
-          'A fresh verification link has been sent to your email address.',
+          'Liên kết xác minh mới đã được gửi đến địa chỉ email của bạn.',
         ),
       ],
       verify: (_) => expect(firebase.sendEmailVerificationCalls, 1),
@@ -373,7 +373,7 @@ void main() {
           operation: AuthSessionOperation.resendVerificationEmail,
         ),
         AuthSessionState.failure(
-          'Too many resend attempts. Please wait a few minutes before trying again.',
+          'Bạn đã gửi lại quá nhiều lần. Vui lòng đợi vài phút rồi thử lại.',
           startResendCooldown: true,
         ),
       ],
@@ -384,19 +384,19 @@ void main() {
         name: 'missing Firebase session',
         failure: AuthIdentityFailure.noCurrentUser,
         message:
-            'Your verification session has expired. Please sign in to request a new verification link.',
+            'Phiên xác minh đã hết hạn. Vui lòng đăng nhập để yêu cầu liên kết xác minh mới.',
       ),
       (
         name: 'Firebase network failure',
         failure: AuthIdentityFailure.network,
         message:
-            'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+            'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.',
       ),
       (
         name: 'unknown Firebase failure',
         failure: AuthIdentityFailure.unknown,
         message:
-            'Unable to send verification email. Please try again later or sign in.',
+            'Không thể gửi email xác minh. Vui lòng thử lại sau hoặc đăng nhập.',
       ),
     ]) {
       blocTest<AuthSessionCubit, AuthSessionState>(
@@ -432,7 +432,7 @@ void main() {
       act: (cubit) => cubit.verifyEmail(),
       expect: () => const [
         AuthSessionState.loading(operation: AuthSessionOperation.verifyEmail),
-        AuthSessionState.failure('Please verify your email before continuing.'),
+        AuthSessionState.failure('Vui lòng xác minh email trước khi tiếp tục.'),
       ],
       verify: (_) {
         expect(repository.verifyEmailCalls, 0);
@@ -456,7 +456,7 @@ void main() {
       expect: () => const [
         AuthSessionState.loading(operation: AuthSessionOperation.verifyEmail),
         AuthSessionState.failure(
-          'Your verification session has expired. Please sign in and request a new verification link.',
+          'Phiên xác minh đã hết hạn. Vui lòng đăng nhập và yêu cầu liên kết xác minh mới.',
         ),
       ],
       verify: (_) {
@@ -481,7 +481,7 @@ void main() {
       expect: () => const [
         AuthSessionState.loading(operation: AuthSessionOperation.verifyEmail),
         AuthSessionState.failure(
-          'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+          'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.',
         ),
       ],
       verify: (_) {
@@ -567,7 +567,7 @@ void main() {
       expect: () => const [
         AuthSessionState.loading(),
         AuthSessionState.failure(
-          'Administrator accounts are supported on Web only.',
+          'Tài khoản quản trị viên chỉ hỗ trợ đăng nhập trên nền tảng Web.',
         ),
       ],
       verify: (_) {
@@ -598,7 +598,7 @@ void main() {
       expect: () => const [
         AuthSessionState.loading(),
         AuthSessionState.failure(
-          'Administrator accounts are supported on Web only.',
+          'Tài khoản quản trị viên chỉ hỗ trợ đăng nhập trên nền tảng Web.',
         ),
       ],
       verify: (cubit) {
@@ -630,7 +630,7 @@ void main() {
       expect: () => const [
         AuthSessionState.loading(),
         AuthSessionState.failure(
-          'Administrator accounts are supported on Web only.',
+          'Tài khoản quản trị viên chỉ hỗ trợ đăng nhập trên nền tảng Web.',
         ),
       ],
       verify: (cubit) {
@@ -657,7 +657,7 @@ void main() {
       expect: () => const [
         AuthSessionState.loading(),
         AuthSessionState.failure(
-          'Administrator accounts are supported on Web only.',
+          'Tài khoản quản trị viên chỉ hỗ trợ đăng nhập trên nền tảng Web.',
         ),
       ],
       verify: (_) {
@@ -681,7 +681,7 @@ void main() {
       expect: () => const [
         AuthSessionState.loading(operation: AuthSessionOperation.verifyEmail),
         AuthSessionState.failure(
-          'Administrator accounts are supported on Web only.',
+          'Tài khoản quản trị viên chỉ hỗ trợ đăng nhập trên nền tảng Web.',
         ),
       ],
       verify: (_) => expect(storage.values, isEmpty),
@@ -704,7 +704,7 @@ void main() {
       expect: () => const [
         AuthSessionState.loading(operation: AuthSessionOperation.verifyEmail),
         AuthSessionState.failure(
-          'Administrator accounts are supported on Web only.',
+          'Tài khoản quản trị viên chỉ hỗ trợ đăng nhập trên nền tảng Web.',
         ),
       ],
       verify: (_) {
@@ -731,7 +731,7 @@ void main() {
       expect: () => const [
         AuthSessionState.loading(),
         AuthSessionState.failure(
-          'Administrator accounts are supported on Web only.',
+          'Tài khoản quản trị viên chỉ hỗ trợ đăng nhập trên nền tảng Web.',
         ),
       ],
       verify: (_) {
@@ -761,14 +761,14 @@ void main() {
       expect: () => const [
         AuthSessionState.loading(),
         AuthSessionState.failure(
-          'Administrator accounts are supported on Web only.',
+          'Tài khoản quản trị viên chỉ hỗ trợ đăng nhập trên nền tảng Web.',
         ),
       ],
       verify: (cubit) {
         expect(
           cubit.state,
           const AuthSessionState.failure(
-            'Administrator accounts are supported on Web only.',
+            'Tài khoản quản trị viên chỉ hỗ trợ đăng nhập trên nền tảng Web.',
           ),
         );
         expect(storage.values, isEmpty);
@@ -788,7 +788,7 @@ void main() {
           cubit.signIn(email: 'x@example.com', password: 'Password123!'),
       expect: () => const [
         AuthSessionState.loading(),
-        AuthSessionState.failure('Unable to sign in. Please try again later.'),
+        AuthSessionState.failure('Không thể đăng nhập. Vui lòng thử lại sau.'),
       ],
       verify: (_) => expect(storage.values, isEmpty),
     );
@@ -971,7 +971,7 @@ void main() {
     // --- UC-05 T02: backend-integrated sign-out foundation.
 
     const localCleanupFailureCopy =
-        'We couldn\'t complete sign out on this device. Please try again.';
+        AuthSessionCubit.signOutLocalCleanupFailureMessage;
 
     Future<AuthSessionCubit> buildAuthenticatedCubit({
       Completer<void>? logoutCompleter,

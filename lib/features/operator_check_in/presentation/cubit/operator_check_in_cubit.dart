@@ -98,8 +98,8 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
       emit(
         OperatorCheckInError(
           e is CheckInFailure
-              ? (e.message ?? 'Failed to load departures')
-              : 'Failed to load departures: $e',
+              ? (e.message ?? 'Không thể tải danh sách chuyến khởi hành')
+              : 'Không thể tải danh sách chuyến khởi hành: $e',
         ),
       );
     } finally {
@@ -244,13 +244,13 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
           : CheckInScanStatus.rejected;
 
       final scanItem = CheckInScanItem(
-        code: failure.ticketCode ?? bookingCode ?? 'Ticket',
-        passengerName: failure.passengerName ?? 'Traveler',
+        code: failure.ticketCode ?? bookingCode ?? 'Vé',
+        passengerName: failure.passengerName ?? 'Hành khách',
         participantCount: 0,
         timestamp: DateTime.now(),
         status: scanStatus,
         reason: uncertain
-            ? 'Check-in not confirmed'
+            ? 'Chưa thể xác nhận điểm danh'
             : failure.message ?? _reasonFromKind(failure.kind),
       );
 
@@ -379,13 +379,13 @@ class OperatorCheckInCubit extends Cubit<OperatorCheckInState> {
   }
 
   String _reasonFromKind(CheckInFailureKind kind) => switch (kind) {
-    CheckInFailureKind.alreadyUsed => 'Ticket already checked in',
-    CheckInFailureKind.departureNotToday => 'Different departure date',
-    CheckInFailureKind.wrongSchedule => 'Wrong tour departure',
-    CheckInFailureKind.bookingCancelled => 'Booking cancelled',
-    CheckInFailureKind.bookingNotConfirmed => 'Booking unpaid',
-    CheckInFailureKind.invalidQr => 'Invalid or forged QR',
-    CheckInFailureKind.ticketNotFound => 'Ticket not found',
-    _ => 'Check-in rejected',
+    CheckInFailureKind.alreadyUsed => 'Vé đã được điểm danh trước đó',
+    CheckInFailureKind.departureNotToday => 'Không phải ngày khởi hành hôm nay',
+    CheckInFailureKind.wrongSchedule => 'Sai chuyến khởi hành',
+    CheckInFailureKind.bookingCancelled => 'Đơn đặt tour đã bị hủy',
+    CheckInFailureKind.bookingNotConfirmed => 'Đơn đặt tour chưa thanh toán',
+    CheckInFailureKind.invalidQr => 'Mã QR không hợp lệ',
+    CheckInFailureKind.ticketNotFound => 'Không tìm thấy vé',
+    _ => 'Điểm danh bị từ chối',
   };
 }

@@ -37,19 +37,11 @@ abstract final class ActiveTripDemoFixtures {
     }
 
     final items = [
-      stop(
-        1,
-        'Marble Mountains (Ngũ Hành Sơn)',
-        16.0033,
-        108.2635,
-        20,
-        60,
-        isMandatory: true,
-      ),
+      stop(1, 'Ngũ Hành Sơn', 16.0033, 108.2635, 20, 60, isMandatory: true),
       stop(2, 'Cơm Gà Bà Buội', 16.0350, 108.2250, 100, 45),
       stop(3, 'Bảo tàng Điêu khắc Chăm', 16.0602, 108.2235, 180, 50),
-      stop(4, 'Chợ Hàn (Han Market)', 16.0685, 108.2245, 250, 45),
-      stop(5, 'Cầu Rồng (Dragon Bridge)', 16.0610, 108.2270, 320, 30),
+      stop(4, 'Chợ Hàn', 16.0685, 108.2245, 250, 45),
+      stop(5, 'Cầu Rồng', 16.0610, 108.2270, 320, 30),
     ];
     return NavigationSession(
       sessionId: sessionId,
@@ -69,7 +61,7 @@ abstract final class ActiveTripDemoFixtures {
 
   static OfflineTripPackage createSampleOfflinePackage({
     int itineraryId = 101,
-    String title = 'Đà Nẵng City Explorer',
+    String title = 'Khám phá Đà Nẵng',
     int version = 1,
     OfflinePackageStatus status = OfflinePackageStatus.notDownloaded,
     double totalSizeMb = 118.5,
@@ -81,7 +73,7 @@ abstract final class ActiveTripDemoFixtures {
       version: version,
       status: status,
       totalSizeMb: totalSizeMb,
-      dateRange: 'Oct 12, 2026',
+      dateRange: '12/10/2026',
       stopsCount: 5,
       lastDownloadedAt: lastDownloadedAt,
     );

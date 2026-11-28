@@ -85,7 +85,7 @@ void main() {
     await cubit.search('Hội An');
 
     expect(cubit.state.status, AddressSearchStatus.failure);
-    expect(cubit.state.message, 'Please check your connection.');
+    expect(cubit.state.message, 'Vui lòng kiểm tra kết nối mạng.');
   });
 
   test('a slower earlier search cannot replace a newer one', () async {

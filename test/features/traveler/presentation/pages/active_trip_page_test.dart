@@ -162,8 +162,8 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byType(NavigationMapCanvas), findsOneWidget);
-        expect(find.textContaining('MAPBOX NOT CONFIGURED'), findsOneWidget);
-        expect(find.text('Marble Mountains (Ngũ Hành Sơn)'), findsOneWidget);
+        expect(find.textContaining('CHƯA CẤU HÌNH MAPBOX'), findsOneWidget);
+        expect(find.text('Ngũ Hành Sơn'), findsOneWidget);
         expect(find.text('Gợi ý tiếp theo'), findsOneWidget);
         expect(find.text('Bắt buộc'), findsOneWidget);
         expect(find.text('0 / 5 điểm đã đến'), findsOneWidget);
@@ -194,10 +194,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(
-          find.text('Bạn đang ở Marble Mountains (Ngũ Hành Sơn)'),
-          findsOneWidget,
-        );
+        expect(find.text('Bạn đang ở Ngũ Hành Sơn'), findsOneWidget);
         expect(find.text('Đang tham quan'), findsOneWidget);
         expect(find.text('1 / 5 điểm đã đến'), findsOneWidget);
 
@@ -219,9 +216,9 @@ void main() {
       await tester.pumpWidget(buildPage(cubit: cubit, isDemoMode: true));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('DEMO_ONLY Controls'));
+      await tester.tap(find.byTooltip('Điều khiển demo'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Simulate Stop Arrival'));
+      await tester.tap(find.text('Giả lập đã đến điểm dừng'));
       await tester.pumpAndSettle();
 
       expect(find.text('Bạn đã đến nơi chưa?'), findsOneWidget);
@@ -236,10 +233,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(cubit.state.isExploring, isTrue);
-      expect(
-        find.text('Arrived at Marble Mountains (Ngũ Hành Sơn).'),
-        findsOneWidget,
-      );
+      expect(find.text('Đã đến Ngũ Hành Sơn.'), findsOneWidget);
 
       await cubit.close();
     });
@@ -468,10 +462,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Please check your connection.'), findsOneWidget);
+      expect(find.text('Vui lòng kiểm tra kết nối mạng.'), findsOneWidget);
       await tester.tap(find.text('Thử lại'));
       await tester.pumpAndSettle();
-      expect(find.text('Marble Mountains (Ngũ Hành Sơn)'), findsOneWidget);
+      expect(find.text('Ngũ Hành Sơn'), findsOneWidget);
     });
 
     testWidgets('offers Resume or End when another trip is in progress', (
@@ -507,7 +501,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(sessions.calls, contains('complete:77'));
-      expect(find.text('Marble Mountains (Ngũ Hành Sơn)'), findsOneWidget);
+      expect(find.text('Ngũ Hành Sơn'), findsOneWidget);
     });
 
     testWidgets('resuming the same trip tells the Traveler', (tester) async {
@@ -525,8 +519,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Resumed your trip in progress.'), findsOneWidget);
-      expect(find.text('Marble Mountains (Ngũ Hành Sơn)'), findsOneWidget);
+      expect(find.text('Đã tiếp tục chuyến đi đang diễn ra.'), findsOneWidget);
+      expect(find.text('Ngũ Hành Sơn'), findsOneWidget);
     });
 
     testWidgets('production mode hides DEMO_ONLY controls', (tester) async {
@@ -539,7 +533,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byTooltip('DEMO_ONLY Controls'), findsNothing);
+      expect(find.byTooltip('Điều khiển demo'), findsNothing);
       expect(find.byIcon(Icons.build_circle_outlined), findsNothing);
     });
 
@@ -550,10 +544,10 @@ void main() {
       await tester.pumpWidget(buildPage(isDemoMode: true));
       await tester.pumpAndSettle();
 
-      expect(find.text('Đà Nẵng Day Trip'), findsOneWidget);
-      await tester.tap(find.byTooltip('DEMO_ONLY Controls'));
+      expect(find.text('Chuyến đi Đà Nẵng trong ngày'), findsOneWidget);
+      await tester.tap(find.byTooltip('Điều khiển demo'));
       await tester.pumpAndSettle();
-      expect(find.text('DEMO_ONLY Test Controls'), findsOneWidget);
+      expect(find.text('Điều khiển thử nghiệm (Demo)'), findsOneWidget);
     });
 
     testWidgets('loads the itinerary title without fabricating demo titles', (
@@ -569,7 +563,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Đà Nẵng Day Trip'), findsNothing);
+      expect(find.text('Chuyến đi Đà Nẵng trong ngày'), findsNothing);
       expect(find.text('Hanoi Heritage Tour'), findsOneWidget);
     });
 
@@ -699,11 +693,8 @@ void main() {
       await cubit.openRerouteProposal(rerouteAlert());
       await tester.pumpAndSettle();
       expect(find.byType(RerouteProposalSheet), findsOneWidget);
-      expect(
-        find.text('Severe weather is expected at Chợ Hàn.'),
-        findsOneWidget,
-      );
-      expect(find.text('Removed from your plan: Chợ Hàn'), findsOneWidget);
+      expect(find.text('Dự báo thời tiết xấu tại Chợ Hàn.'), findsOneWidget);
+      expect(find.text('Đã loại khỏi lịch trình: Chợ Hàn'), findsOneWidget);
 
       await tester.tap(find.text('Chấp nhận đổi lộ trình'));
       await tester.pumpAndSettle();
@@ -779,7 +770,7 @@ void main() {
   });
 
   group('ActiveTripPage completion feedback', () {
-    const marble = 'Marble Mountains (Ngũ Hành Sơn)';
+    const marble = 'Ngũ Hành Sơn';
     const chamMuseum = 'Bảo tàng Điêu khắc Chăm';
     final dialog = find.byKey(const Key('active_trip_completion_dialog'));
     Finder inDialog(Finder finder) =>
@@ -855,7 +846,7 @@ void main() {
       expect(inDialog(find.text(chamMuseum)), findsOneWidget);
       // Skipped and never-reached stops are not asked about.
       expect(inDialog(find.text('Cơm Gà Bà Buội')), findsNothing);
-      expect(inDialog(find.text('Chợ Hàn (Han Market)')), findsNothing);
+      expect(inDialog(find.text('Chợ Hàn')), findsNothing);
       expect(find.byTooltip('Thích $marble'), findsOneWidget);
       expect(find.byTooltip('Không thích $marble'), findsOneWidget);
       expect(inDialog(find.byIcon(Icons.thumb_up_outlined)), findsNWidgets(2));
