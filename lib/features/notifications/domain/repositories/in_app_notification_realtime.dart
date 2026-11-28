@@ -9,4 +9,3 @@ abstract interface class InAppNotificationRealtime {
 
   Future<void> dispose();
 }
-

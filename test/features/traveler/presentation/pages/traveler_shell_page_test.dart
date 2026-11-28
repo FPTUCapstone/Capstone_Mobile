@@ -205,10 +205,7 @@ void main() {
     'notification bell shows unread badge count and refreshes on return from inbox',
     (tester) async {
       final inboxRepo = _FakeUnreadInboxRepository(
-        items: [
-          _unreadNotice(1),
-          _unreadNotice(2),
-        ],
+        items: [_unreadNotice(1), _unreadNotice(2)],
       );
       serviceLocator.registerSingleton<InAppNotificationRepository>(inboxRepo);
       final cubit = await _authenticatedCubit();
@@ -253,49 +250,51 @@ void main() {
     },
   );
 
-  testWidgets('notification bell caps badge at 50+ when more unread pages exist', (
-    tester,
-  ) async {
-    final inboxRepo = _FakeUnreadInboxRepository(
-      items: List.generate(50, (i) => _unreadNotice(i + 1)),
-      nextBeforeId: 100,
-    );
-    serviceLocator.registerSingleton<InAppNotificationRepository>(inboxRepo);
-    final cubit = await _authenticatedCubit();
-    addTearDown(cubit.close);
+  testWidgets(
+    'notification bell caps badge at 50+ when more unread pages exist',
+    (tester) async {
+      final inboxRepo = _FakeUnreadInboxRepository(
+        items: List.generate(50, (i) => _unreadNotice(i + 1)),
+        nextBeforeId: 100,
+      );
+      serviceLocator.registerSingleton<InAppNotificationRepository>(inboxRepo);
+      final cubit = await _authenticatedCubit();
+      addTearDown(cubit.close);
 
-    await _pumpShell(tester, cubit);
-    await tester.pumpAndSettle();
+      await _pumpShell(tester, cubit);
+      await tester.pumpAndSettle();
 
-    expect(find.text('50+'), findsOneWidget);
-  });
+      expect(find.text('50+'), findsOneWidget);
+    },
+  );
 
-  testWidgets('notification bell updates badge in real time on hub change hint', (
-    tester,
-  ) async {
-    final inboxRepo = _FakeUnreadInboxRepository(items: [_unreadNotice(1)]);
-    final realtime = _FakeNotificationRealtime();
-    serviceLocator
-      ..registerSingleton<InAppNotificationRepository>(inboxRepo)
-      ..registerSingleton<InAppNotificationRealtime>(realtime);
-    final cubit = await _authenticatedCubit();
-    addTearDown(cubit.close);
+  testWidgets(
+    'notification bell updates badge in real time on hub change hint',
+    (tester) async {
+      final inboxRepo = _FakeUnreadInboxRepository(items: [_unreadNotice(1)]);
+      final realtime = _FakeNotificationRealtime();
+      serviceLocator
+        ..registerSingleton<InAppNotificationRepository>(inboxRepo)
+        ..registerSingleton<InAppNotificationRealtime>(realtime);
+      final cubit = await _authenticatedCubit();
+      addTearDown(cubit.close);
 
-    await _pumpShell(tester, cubit);
-    await tester.pumpAndSettle();
+      await _pumpShell(tester, cubit);
+      await tester.pumpAndSettle();
 
-    expect(realtime.startCalls, 1);
-    expect(find.text('1'), findsOneWidget);
+      expect(realtime.startCalls, 1);
+      expect(find.text('1'), findsOneWidget);
 
-    inboxRepo.items = [_unreadNotice(1), _unreadNotice(2)];
-    realtime.emitChange();
-    await tester.pumpAndSettle();
+      inboxRepo.items = [_unreadNotice(1), _unreadNotice(2)];
+      realtime.emitChange();
+      await tester.pumpAndSettle();
 
-    expect(find.text('2'), findsOneWidget);
+      expect(find.text('2'), findsOneWidget);
 
-    await tester.pumpWidget(const SizedBox.shrink());
-    expect(realtime.disposeCalls, 1);
-  });
+      await tester.pumpWidget(const SizedBox.shrink());
+      expect(realtime.disposeCalls, 1);
+    },
+  );
 
   testWidgets('support action opens general help from the traveler shell', (
     tester,
@@ -670,10 +669,7 @@ InAppNotification _unreadNotice(int id) => InAppNotification(
 );
 
 final class _FakeUnreadInboxRepository implements InAppNotificationRepository {
-  _FakeUnreadInboxRepository({
-    required this.items,
-    this.nextBeforeId,
-  });
+  _FakeUnreadInboxRepository({required this.items, this.nextBeforeId});
 
   List<InAppNotification> items;
   int? nextBeforeId;

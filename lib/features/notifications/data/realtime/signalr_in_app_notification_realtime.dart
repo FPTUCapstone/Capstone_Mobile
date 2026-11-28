@@ -95,4 +95,3 @@ final class SignalRInAppNotificationRealtime
     await _changes.close();
   }
 }
-
