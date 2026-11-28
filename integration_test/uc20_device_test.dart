@@ -67,7 +67,7 @@ void main() {
     await tester.tap(find.byKey(const Key('remove_member_button_2')));
     await tester.pumpAndSettle();
     expect(
-      find.text('Are you sure you want to remove Member UC20 from this group?'),
+      find.textContaining('Bạn có chắc muốn xóa Member UC20 khỏi nhóm'),
       findsOneWidget,
     );
     final removalFinished = membersCubit.stream
@@ -85,10 +85,7 @@ void main() {
     await tester.tap(find.byKey(const Key('remove_member_confirm_button')));
     expect(await removalFinished, isA<TravelGroupMembersSuccess>());
     await tester.pumpAndSettle(const Duration(milliseconds: 300));
-    expect(
-      find.text('Member UC20 has been removed from the group.'),
-      findsOneWidget,
-    );
+    expect(find.text('Member UC20 đã được xóa khỏi nhóm.'), findsOneWidget);
     expect(find.text('Member UC20'), findsNothing);
 
     final inboxCubit = InAppInboxCubit(inbox);
@@ -104,7 +101,7 @@ void main() {
     await inboxCubit.setUnreadOnly(true);
     await tester.pumpAndSettle();
     expect(find.textContaining('UC20 test group'), findsOneWidget);
-    expect(find.text('Mark as read'), findsOneWidget);
+    expect(find.text('Đánh dấu đã đọc'), findsOneWidget);
     final readFinished = inboxCubit.stream
         .firstWhere(
           (state) =>
@@ -113,10 +110,10 @@ void main() {
               state.markingReadIds.isEmpty,
         )
         .timeout(const Duration(seconds: 20));
-    await tester.tap(find.text('Mark as read'));
+    await tester.tap(find.text('Đánh dấu đã đọc'));
     await readFinished;
     await tester.pumpAndSettle(const Duration(milliseconds: 300));
-    expect(find.text('No unread notifications.'), findsOneWidget);
+    expect(find.text('Không có thông báo chưa đọc.'), findsOneWidget);
   });
 }
 

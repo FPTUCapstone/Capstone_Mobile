@@ -50,9 +50,10 @@ void main() {
       ),
     );
 
-    expect(find.text('Group Host'), findsOneWidget);
-    expect(find.text('Itinerary #10'), findsOneWidget);
-    expect(find.byIcon(Icons.person_outline), findsOneWidget);
+    expect(find.text('Trưởng nhóm'), findsOneWidget);
+    expect(find.text('Lịch trình'), findsOneWidget);
+    expect(find.text('#10'), findsOneWidget);
+    expect(find.text('RR'), findsOneWidget);
     expect(find.textContaining('A very long traveler name'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -112,12 +113,10 @@ void main() {
       await tester.tap(find.byKey(const Key('remove_member_button_102')));
       await tester.pumpAndSettle();
 
-      // Verify Screen #59 dialog opens with MSG59
+      // Verify Screen #59 sheet opens with Vietnamese MSG59
       expect(find.byType(RemoveGroupMemberDialog), findsOneWidget);
       expect(
-        find.text(
-          'Are you sure you want to remove Bob Member from this group?',
-        ),
+        find.text('Bạn có chắc muốn xóa Bob Member khỏi nhóm này không?'),
         findsOneWidget,
       );
     },
@@ -168,7 +167,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Remove'), findsNothing);
+      expect(find.text('Xóa'), findsNothing);
       expect(find.byKey(const Key('remove_member_button_101')), findsNothing);
       expect(find.byKey(const Key('remove_member_button_102')), findsNothing);
     },
@@ -219,7 +218,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Remove'), findsNothing);
+      expect(find.text('Xóa'), findsNothing);
       expect(find.byKey(const Key('remove_member_button_101')), findsNothing);
       expect(find.byKey(const Key('remove_member_button_102')), findsNothing);
     },
@@ -270,7 +269,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Remove'), findsNothing);
+      expect(find.text('Xóa'), findsNothing);
       expect(find.byKey(const Key('remove_member_button_101')), findsNothing);
       expect(find.byKey(const Key('remove_member_button_102')), findsNothing);
     },
@@ -527,10 +526,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.deleteCalls, 1);
-    expect(
-      find.text('Bob Member has been removed from the group.'),
-      findsOneWidget,
-    );
+    expect(find.text('Bob Member đã được xóa khỏi nhóm.'), findsOneWidget);
     expect(find.text('Bob Member'), findsNothing);
   });
 }

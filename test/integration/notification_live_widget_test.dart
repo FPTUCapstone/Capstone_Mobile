@@ -106,7 +106,10 @@ void main() {
           matching: find.byType(Card),
         );
         expect(
-          find.descendant(of: tile, matching: find.text('Unread')),
+          find.descendant(
+            of: tile,
+            matching: find.byKey(Key('inbox_unread_dot_$id')),
+          ),
           findsOneWidget,
         );
         await tester.runAsync(() async {
@@ -114,7 +117,7 @@ void main() {
             (state) => state.items.any((item) => item.id == id && item.isRead),
           );
           await tester.tap(
-            find.descendant(of: tile, matching: find.text('Open')),
+            find.descendant(of: tile, matching: find.text('Mở')),
           );
           await read.timeout(const Duration(seconds: 15));
           final persisted = await repository.getInbox();

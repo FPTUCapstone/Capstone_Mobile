@@ -87,7 +87,9 @@ import 'package:trip_mate_mobile/features/messaging/data/realtime/signalr_chat_r
 import 'package:trip_mate_mobile/features/messaging/data/repositories/messaging_repository_impl.dart';
 import 'package:trip_mate_mobile/features/messaging/domain/messaging.dart';
 import 'package:trip_mate_mobile/features/messaging/presentation/cubit/messenger_cubit.dart';
+import 'package:trip_mate_mobile/features/notifications/data/realtime/signalr_in_app_notification_realtime.dart';
 import 'package:trip_mate_mobile/features/notifications/data/repositories/in_app_notification_repository_impl.dart';
+import 'package:trip_mate_mobile/features/notifications/domain/repositories/in_app_notification_realtime.dart';
 import 'package:trip_mate_mobile/features/notifications/domain/repositories/in_app_notification_repository.dart';
 import 'package:trip_mate_mobile/features/notifications/presentation/cubit/in_app_inbox_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/data/repositories/demo_operator_bookings_repository.dart';
@@ -794,7 +796,18 @@ Future<void> configureDependencies({AppConfig? config}) async {
     ..registerLazySingleton<InAppNotificationRepository>(
       () => InAppNotificationRepositoryImpl(dioClient: serviceLocator()),
     )
-    ..registerFactory<InAppInboxCubit>(() => InAppInboxCubit(serviceLocator()))
+    ..registerFactory<InAppNotificationRealtime>(
+      () => SignalRInAppNotificationRealtime(
+        apiBaseUrl: serviceLocator<AppConfig>().apiBaseUrl,
+        storage: serviceLocator(),
+      ),
+    )
+    ..registerFactory<InAppInboxCubit>(
+      () => InAppInboxCubit(
+        serviceLocator(),
+        realtime: locateOptional<InAppNotificationRealtime>(),
+      ),
+    )
     ..registerLazySingleton<CommercialBookingRepository>(
       () => CommercialBookingApi(serviceLocator(), serviceLocator()),
     )

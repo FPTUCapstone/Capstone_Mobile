@@ -10,6 +10,8 @@ import 'package:trip_mate_mobile/core/platform/device_window.dart';
 import 'package:trip_mate_mobile/core/push/push_device_coordinator.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
+import 'package:trip_mate_mobile/features/notifications/domain/repositories/in_app_notification_realtime.dart';
+import 'package:trip_mate_mobile/features/notifications/domain/repositories/in_app_notification_repository.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/cubit/poi_list_cubit.dart';
 import 'package:trip_mate_mobile/features/poi/presentation/pages/explore_poi_page.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_cubit.dart';
@@ -80,11 +82,52 @@ class _TravelerShellPageState extends State<TravelerShellPage>
   var _toursOpened = false;
   final TravelerEmergencyNoticesCubit? _notices =
       locateOptional<TravelerEmergencyNoticesCubit>();
+  final InAppNotificationRepository? _inboxRepository =
+      locateOptional<InAppNotificationRepository>();
+  final InAppNotificationRealtime? _inboxRealtime =
+      locateOptional<InAppNotificationRealtime>();
+  StreamSubscription<void>? _inboxRealtimeSub;
+  var _unreadInboxCount = 0;
+  var _unreadInboxHasMore = false;
+  var _inboxRequestEpoch = 0;
   late final AuthSessionCubit _session = context.read<AuthSessionCubit>();
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) unawaited(_notices?.refresh());
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_notices?.refresh());
+      unawaited(_refreshUnreadInbox());
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      unawaited(_inboxRealtime?.stop());
+    }
+  }
+
+  Future<void> _refreshUnreadInbox() async {
+    final repository = _inboxRepository;
+    if (repository == null || !_session.state.isAuthenticated) return;
+    final epoch = ++_inboxRequestEpoch;
+    try {
+      final page = await repository.getInbox(unreadOnly: true, limit: 50);
+      if (!mounted || epoch != _inboxRequestEpoch) return;
+      setState(() {
+        _unreadInboxCount = page.items.length;
+        _unreadInboxHasMore = page.nextBeforeId != null;
+      });
+      // Start SignalR only after an authorized HTTP request succeeds so any
+      // expired access token has already been refreshed by Dio's interceptor.
+      if (_session.state.isAuthenticated) {
+        unawaited(_inboxRealtime?.start());
+      }
+    } catch (_) {
+      // Keep the Home shell quiet if the unread badge cannot be loaded.
+    }
+  }
+
+  Future<void> _openInbox() async {
+    await context.pushNamed(AppRouteNames.inAppInbox);
+    if (!mounted) return;
+    await _refreshUnreadInbox();
   }
 
   void _openNotice(int? bookingId) => context.push(
@@ -100,6 +143,12 @@ class _TravelerShellPageState extends State<TravelerShellPage>
     // Read now: dispose() can no longer look it up.
     _session;
     unawaited(_notices?.refresh());
+    if (_inboxRealtime case final realtime?) {
+      _inboxRealtimeSub = realtime.changes.listen(
+        (_) => unawaited(_refreshUnreadInbox()),
+      );
+    }
+    unawaited(_refreshUnreadInbox());
     _exploreCubit = serviceLocator<PoiListCubit>();
     _myTripsCubit = serviceLocator<MyTripsCubit>();
     _selectedIndex = widget.initialSection.index;
@@ -113,6 +162,9 @@ class _TravelerShellPageState extends State<TravelerShellPage>
   }
 
   void _selectSection(int index) {
+    if (index == 0) {
+      unawaited(_refreshUnreadInbox());
+    }
     if (index == 1) {
       // Reloaded on every visit: trips change in pushed routes.
       unawaited(_myTripsCubit.load());
@@ -130,6 +182,8 @@ class _TravelerShellPageState extends State<TravelerShellPage>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    unawaited(_inboxRealtimeSub?.cancel());
+    unawaited(_inboxRealtime?.dispose());
     // Sign-out and account changes leave the shell: nothing may survive them.
     // A route replacing the shell mid-session must keep the list, which Trip
     // History is reading at that very moment.
@@ -177,13 +231,25 @@ class _TravelerShellPageState extends State<TravelerShellPage>
                 ),
                 if (_selectedIndex == 0)
                   IconButton(
-                    icon: const Icon(
-                      Icons.notifications_none_outlined,
-                      size: 22,
+                    key: const Key('traveler_inbox_nav_button'),
+                    icon: Badge(
+                      isLabelVisible: _unreadInboxCount > 0,
+                      label: Text(
+                        _unreadInboxHasMore ? '50+' : '$_unreadInboxCount',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      backgroundColor: const Color(0xFFD92D20),
+                      child: const Icon(
+                        Icons.notifications_none_outlined,
+                        size: 22,
+                      ),
                     ),
                     tooltip: 'Thông báo',
-                    onPressed: () =>
-                        context.pushNamed(AppRouteNames.inAppInbox),
+                    onPressed: () => unawaited(_openInbox()),
                   ),
                 const SizedBox(width: 4),
               ],

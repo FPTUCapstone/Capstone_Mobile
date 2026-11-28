@@ -270,6 +270,21 @@ class _MessengerPageState extends State<MessengerPage>
     );
   }
 
+  Future<void> _openGroupDetails(ChatThread selected) async {
+    final router = GoRouter.maybeOf(context);
+    if (router == null) return;
+    await router.push('${AppRoutes.travelerTravelGroups}/${selected.id}');
+    if (!mounted) return;
+    await _cubit.refresh();
+    final updated = _cubit.state.selected;
+    if (mounted &&
+        updated != null &&
+        updated.kind == ChatKind.group &&
+        !updated.isReadOnly) {
+      unawaited(_cubit.select(updated));
+    }
+  }
+
   void _openComposerSheet(MessengerState state, GroupComposerKind kind) {
     final participants = state.members
         .map<ChatParticipant>(
@@ -652,6 +667,11 @@ class _MessengerPageState extends State<MessengerPage>
 
     final messages = _filteredMessages(state.messages);
     final cannotSend = selected.isReadOnly || state.blocked;
+    final canOpenGroupDetails =
+        selected.kind == ChatKind.group && !selected.isReadOnly;
+    final memberCount = state.members.isNotEmpty
+        ? state.members.length
+        : (selected.memberCount ?? 0);
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -677,19 +697,71 @@ class _MessengerPageState extends State<MessengerPage>
                   }
                 },
               ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(selected.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-            Text(
-              selected.kind == ChatKind.group
-                  ? '${selected.memberCount ?? state.members.length} thành viên'
-                  : 'Tin nhắn riêng 1–1',
-              style: const TextStyle(fontSize: 12, color: AppColors.muted),
-            ),
-          ],
-        ),
+        title: canOpenGroupDetails
+            ? InkWell(
+                key: const Key('group_chat_header_button'),
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => unawaited(_openGroupDetails(selected)),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        selected.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '$memberCount thành viên',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          const Icon(
+                            Icons.chevron_right,
+                            size: 15,
+                            color: AppColors.primary,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    selected.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    selected.kind == ChatKind.group
+                        ? '$memberCount thành viên'
+                        : 'Tin nhắn riêng 1–1',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.muted,
+                    ),
+                  ),
+                ],
+              ),
         actions: [
+          if (canOpenGroupDetails)
+            IconButton(
+              key: const Key('open_group_details_button'),
+              tooltip: 'Thông tin & thành viên nhóm',
+              icon: const Icon(Icons.group_outlined),
+              onPressed: () => unawaited(_openGroupDetails(selected)),
+            ),
           if (!isSplitView && widget.initialGroupId != null)
             IconButton(
               tooltip: 'Danh sách hội thoại',

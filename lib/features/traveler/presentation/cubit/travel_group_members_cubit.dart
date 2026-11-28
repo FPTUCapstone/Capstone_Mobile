@@ -3,6 +3,7 @@ import 'package:trip_mate_mobile/core/error/failures.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/travel_group_members.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/travel_group_members_state.dart';
+import 'package:trip_mate_mobile/features/traveler/resources/travel_group_vi.dart';
 import 'package:uuid/uuid.dart';
 
 /// Loads the privacy-safe, read-only UC19 group membership list.
@@ -80,7 +81,7 @@ final class TravelGroupMembersCubit extends Cubit<TravelGroupMembersState> {
         emit(
           TravelGroupMembersRemovalIssue(
             current,
-            'Membership changed. Refresh the list before trying again.',
+            TravelGroupStringsVi.membershipChanged,
           ),
         );
       } else {
@@ -109,7 +110,7 @@ final class TravelGroupMembersCubit extends Cubit<TravelGroupMembersState> {
         emit(
           TravelGroupMembersRemovalIssue(
             members,
-            'Unable to remove this member. Please refresh and try again.',
+            TravelGroupStringsVi.removalValidationIssue,
           ),
         );
       }
