@@ -56,22 +56,22 @@ void main() {
     await pumpPage(tester);
     expect(find.text('owner@example.com'), findsOneWidget);
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Password'),
+      find.widgetWithText(TextFormField, 'Mật khẩu'),
       'Secure123!',
     );
     await tester.scrollUntilVisible(
-      find.text('Send verification email'),
+      find.text('Gửi email xác minh'),
       150,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.text('Send verification email'));
+    await tester.tap(find.text('Gửi email xác minh'));
     await tester.pump();
 
     expect(identity.recoveries, 1);
     expect(identity.sentEmails, 1);
     expect(repository.posts, 0);
-    expect(find.textContaining('Verification email sent'), findsOneWidget);
-    expect(find.text('Resend in 60s'), findsOneWidget);
+    expect(find.textContaining('Đã gửi email xác minh'), findsOneWidget);
+    expect(find.text('Gửi lại sau 60s'), findsOneWidget);
   });
 
   testWidgets('checks verified identity with backend before suggesting login', (
@@ -80,29 +80,31 @@ void main() {
     identity.verified = true;
     await pumpPage(tester);
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Password'),
+      find.widgetWithText(TextFormField, 'Mật khẩu'),
       'Secure123!',
     );
     await tester.scrollUntilVisible(
-      find.text("I've verified my email"),
+      find.text('Tôi đã xác minh email'),
       150,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.text("I've verified my email"));
+    await tester.tap(find.text('Tôi đã xác minh email'));
     await tester.pump();
 
     expect(repository.confirmations, 1);
     expect(repository.posts, 0);
     expect(
-      find.text('Email verified. Sign in to check your application status.'),
+      find.text(
+        'Đã xác minh email. Vui lòng đăng nhập để kiểm tra trạng thái hồ sơ đối tác.',
+      ),
       findsOneWidget,
     );
     await tester.scrollUntilVisible(
-      find.text('Sign In'),
+      find.text('Đăng nhập'),
       150,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.text('Sign In'));
+    await tester.tap(find.text('Đăng nhập'));
     await tester.pumpAndSettle();
     expect(find.text('Sign in destination'), findsOneWidget);
   });
@@ -112,19 +114,19 @@ void main() {
   ) async {
     await pumpPage(tester);
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Password'),
+      find.widgetWithText(TextFormField, 'Mật khẩu'),
       'Secure123!',
     );
     await tester.scrollUntilVisible(
-      find.text("I've verified my email"),
+      find.text('Tôi đã xác minh email'),
       150,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.text("I've verified my email"));
+    await tester.tap(find.text('Tôi đã xác minh email'));
     await tester.pump();
 
     expect(repository.confirmations, 0);
-    expect(find.textContaining('not verified yet'), findsOneWidget);
+    expect(find.textContaining('chưa được xác minh'), findsOneWidget);
   });
 }
 

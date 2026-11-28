@@ -170,7 +170,10 @@ void main() {
       expect(find.textContaining('Nguyen Van A'), findsOneWidget);
       expect(find.textContaining('3'), findsWidgets);
       expect(find.textContaining('2,400,000 VND'), findsOneWidget);
-      expect(find.text('CONFIRMED'), findsOneWidget);
+      expect(
+        find.text(OperatorBookingsStringsEn.statusConfirmed.toUpperCase()),
+        findsOneWidget,
+      );
       expect(
         find.textContaining(
           OperatorBookingsStringsEn.notCheckedIn.toUpperCase(),

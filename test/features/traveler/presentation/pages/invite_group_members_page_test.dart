@@ -123,11 +123,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Da Nang Summer 2026'), findsOneWidget);
-      expect(find.text('GROUP HOST'), findsOneWidget);
+      expect(find.text('TRƯỞNG NHÓM'), findsOneWidget);
       expect(find.text('TM7X9K2A'), findsOneWidget);
       expect(find.byType(QrImageView), findsOneWidget);
-      expect(find.text('Share Invitation'), findsOneWidget);
-      expect(find.text('Valid until: 08/10/2026 07:00 ICT'), findsOneWidget);
+      expect(find.text('Chia sẻ lời mời'), findsOneWidget);
+      expect(
+        find.text('Hiệu lực đến: 08/10/2026 07:00 (GMT+7)'),
+        findsOneWidget,
+      );
     },
   );
 
@@ -140,15 +143,15 @@ void main() {
 
     expect(
       find.text(
-        'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+        'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.',
       ),
       findsOneWidget,
     );
-    expect(find.text('Retry'), findsOneWidget);
+    expect(find.text('Thử lại'), findsOneWidget);
 
     // Click retry with success
     repository.shouldFail = false;
-    await tester.tap(find.text('Retry'));
+    await tester.tap(find.text('Thử lại'));
     await tester.pumpAndSettle();
 
     expect(find.text('TM7X9K2A'), findsOneWidget);
@@ -170,17 +173,14 @@ void main() {
     await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
-    final copyButton = find.byTooltip('Copy Code');
+    final copyButton = find.byTooltip('Sao chép mã');
     expect(copyButton, findsOneWidget);
 
     await tester.tap(copyButton);
     await tester.pumpAndSettle();
 
     expect(find.text('Mã mời đã được sao chép vào bộ nhớ tạm.'), findsNothing);
-    expect(
-      find.text('Invite code "TM7X9K2A" copied to clipboard.'),
-      findsOneWidget,
-    );
+    expect(find.text('Đã sao chép mã mời "TM7X9K2A".'), findsOneWidget);
   });
 
   testWidgets('requires confirmation before regenerating the invitation', (
@@ -195,19 +195,19 @@ void main() {
     await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Regenerate Invitation'));
+    await tester.tap(find.text('Tạo lại lời mời'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Regenerate invitation?'), findsOneWidget);
+    expect(find.text('Tạo lại lời mời?'), findsOneWidget);
     expect(
-      find.text('The current invitation code will stop working immediately.'),
+      find.text('Mã mời hiện tại sẽ ngừng hoạt động ngay lập tức.'),
       findsOneWidget,
     );
 
-    await tester.tap(find.text('Cancel'));
+    await tester.tap(find.text('Hủy'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Regenerate invitation?'), findsNothing);
+    expect(find.text('Tạo lại lời mời?'), findsNothing);
   });
   testWidgets('copy feedback waits for clipboard completion', (tester) async {
     final clipboardWrite = Completer<void>();
@@ -225,13 +225,13 @@ void main() {
 
     await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Copy Code'));
+    await tester.tap(find.byTooltip('Sao chép mã'));
     await tester.pump();
-    expect(find.textContaining('copied to clipboard'), findsNothing);
+    expect(find.textContaining('Đã sao chép mã mời'), findsNothing);
 
     clipboardWrite.complete();
     await tester.pumpAndSettle();
-    expect(find.textContaining('copied to clipboard'), findsOneWidget);
+    expect(find.textContaining('Đã sao chép mã mời'), findsOneWidget);
   });
 
   testWidgets('clipboard failure shows failure without false success', (
@@ -251,10 +251,10 @@ void main() {
 
     await tester.pumpWidget(buildSubject());
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Copy Code'));
+    await tester.tap(find.byTooltip('Sao chép mã'));
     await tester.pump();
-    expect(find.textContaining('copied to clipboard'), findsNothing);
-    expect(find.textContaining('temporarily unable'), findsOneWidget);
+    expect(find.textContaining('Đã sao chép mã mời'), findsNothing);
+    expect(find.textContaining('tạm thời không thể'), findsOneWidget);
   });
 
   testWidgets('direct invitation route Close returns to traveler area', (
@@ -283,7 +283,7 @@ void main() {
 
     await tester.pumpWidget(MaterialApp.router(routerConfig: router));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Close'));
+    await tester.tap(find.text('Đóng'));
     await tester.pumpAndSettle();
     expect(find.text('Traveler Home'), findsOneWidget);
   });
@@ -308,22 +308,22 @@ void main() {
 
       await tester.pumpWidget(buildSubject());
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Regenerate Invitation'));
+      await tester.tap(find.text('Tạo lại lời mời'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Regenerate').last);
+      await tester.tap(find.text('Tạo lại').last);
       await tester.pumpAndSettle();
 
       expect(find.text('TM7X9K2A'), findsNothing);
-      expect(find.byTooltip('Copy Code'), findsNothing);
-      expect(find.text('Share Invitation'), findsNothing);
-      expect(find.text('Retry'), findsOneWidget);
+      expect(find.byTooltip('Sao chép mã'), findsNothing);
+      expect(find.text('Chia sẻ lời mời'), findsNothing);
+      expect(find.text('Thử lại'), findsOneWidget);
 
-      await tester.tap(find.text('Retry'));
+      await tester.tap(find.text('Thử lại'));
       await tester.pumpAndSettle();
       expect(repository.regenerationCallCount, 2);
       expect(find.text('ABCD2345'), findsOneWidget);
-      expect(find.byTooltip('Copy Code'), findsOneWidget);
-      expect(find.text('Share Invitation'), findsOneWidget);
+      expect(find.byTooltip('Sao chép mã'), findsOneWidget);
+      expect(find.text('Chia sẻ lời mời'), findsOneWidget);
     },
   );
 
@@ -346,7 +346,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Share Invitation'));
+    await tester.tap(find.text('Chia sẻ lời mời'));
     await tester.pumpAndSettle();
 
     expect(sharedPayload, 'tripmate://groups/join?code=TM7X9K2A');

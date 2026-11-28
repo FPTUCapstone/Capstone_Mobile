@@ -65,10 +65,10 @@ void main() {
     cubit.updateField('businessLicenseNo', 'LIC-1');
     expect(cubit.next(), isFalse);
     expect(cubit.state.step, 1);
-    expect(cubit.state.errors['taxCode'], contains('10 digits'));
+    expect(cubit.state.errors['taxCode'], contains('10 chữ số'));
     expect(
       cubit.state.errors['businessLicenseNo'],
-      contains('Travel Licence Number'),
+      contains('Số giấy phép lữ hành'),
     );
     expect(identity.creates, 0);
   });
@@ -217,8 +217,8 @@ void main() {
     expect(cubit.state.phase, RegisterOperatorPhase.uncertain);
     expect(cubit.state.outcome, isNull);
     expect(cubit.state.canRetryOriginal, isTrue);
-    expect(cubit.state.notice, contains('already pending review'));
-    expect(cubit.state.notice, contains('earlier request'));
+    expect(cubit.state.notice, contains('đang chờ phê duyệt'));
+    expect(cubit.state.notice, contains('yêu cầu trước'));
   });
 
   test(
@@ -237,9 +237,9 @@ void main() {
       expect(cubit.state.outcome, isNull);
       expect(
         cubit.state.notice,
-        contains('business licence number or tax code is already registered'),
+        contains('Số giấy phép kinh doanh hoặc mã số thuế này đã được đăng ký'),
       );
-      expect(cubit.state.notice, contains('earlier request'));
+      expect(cubit.state.notice, contains('yêu cầu trước'));
     },
   );
 

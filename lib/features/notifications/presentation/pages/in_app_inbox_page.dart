@@ -18,7 +18,7 @@ final class InAppInboxPage extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: AppColors.surface,
     appBar: AppBar(
-      title: const Text('Notifications'),
+      title: const Text('Thông báo'),
       backgroundColor: AppColors.cardBackground,
       surfaceTintColor: Colors.transparent,
       bottom: const PreferredSize(
@@ -40,7 +40,7 @@ final class InAppInboxPage extends StatelessWidget {
                     key: const Key('inbox_unread_filter'),
                     dense: true,
                     title: const Text(
-                      'Unread only',
+                      'Chỉ chưa đọc',
                       style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
@@ -85,12 +85,12 @@ final class InAppInboxPage extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                state.errorMessage ?? 'Unable to load notifications.',
+                state.errorMessage ?? 'Không thể tải thông báo.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: AppColors.ink),
               ),
               const SizedBox(height: AppSpacing.xs),
-              TextButton(onPressed: cubit.retry, child: const Text('Retry')),
+              TextButton(onPressed: cubit.retry, child: const Text('Thử lại')),
             ],
           ),
         ),
@@ -128,8 +128,8 @@ final class InAppInboxPage extends StatelessWidget {
                         const SizedBox(height: AppSpacing.md),
                         Text(
                           state.unreadOnly
-                              ? 'No unread notifications.'
-                              : 'No notifications yet.',
+                              ? 'Không có thông báo chưa đọc.'
+                              : 'Chưa có thông báo nào.',
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -194,7 +194,7 @@ final class InAppInboxPage extends StatelessWidget {
                           ? cubit.loadMore
                           : cubit.retry,
                       child: Text(
-                        state.pageError == null ? 'Load more' : 'Retry',
+                        state.pageError == null ? 'Tải thêm' : 'Thử lại',
                       ),
                     ),
             ),
@@ -253,7 +253,7 @@ final class _NotificationTile extends StatelessWidget {
                   ),
                 Expanded(
                   child: Text(
-                    item.title ?? 'Notification',
+                    item.title ?? 'Thông báo',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: AppColors.ink,
@@ -273,7 +273,7 @@ final class _NotificationTile extends StatelessWidget {
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: const Text(
-                      'Unread',
+                      'Chưa đọc',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -314,7 +314,7 @@ final class _NotificationTile extends StatelessWidget {
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                     onPressed: pending ? null : onOpen,
-                    child: const Text('Open'),
+                    child: const Text('Mở'),
                   )
                 else if (unread)
                   TextButton(
@@ -324,7 +324,7 @@ final class _NotificationTile extends StatelessWidget {
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                     onPressed: pending ? null : onMarkRead,
-                    child: const Text('Mark as read'),
+                    child: const Text('Đánh dấu đã đọc'),
                   ),
               ],
             ),

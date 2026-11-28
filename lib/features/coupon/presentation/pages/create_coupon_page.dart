@@ -2,10 +2,13 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/coupon/domain/entities/coupon_draft.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/cubit/create_coupon_cubit.dart';
 import 'package:trip_mate_mobile/features/coupon/presentation/cubit/create_coupon_state.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_coastal_app_bar.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_section_card.dart';
 
 final class CreateCouponPage extends StatefulWidget {
   const CreateCouponPage({super.key});
@@ -111,7 +114,7 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
     if (text.isEmpty) return null;
     final value = int.tryParse(text);
     return value == null || value <= 0
-        ? 'Enter a whole number greater than 0, or leave blank.'
+        ? 'Nhập số nguyên lớn hơn 0, hoặc để trống.'
         : null;
   }
 
@@ -125,8 +128,8 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
         value == null ||
         (max != null && value > max)) {
       return max == null
-          ? '$label must be greater than 0.'
-          : '$label must be between 1 and $max.';
+          ? '$label phải lớn hơn 0.'
+          : '$label phải nằm trong khoảng từ 1 đến $max.';
     }
     return null;
   }
@@ -137,7 +140,7 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
     if (_endsAt.compareTo(_startsAt) <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('End time must be later than start time.'),
+          content: Text('Thời gian kết thúc phải sau thời gian bắt đầu.'),
         ),
       );
       return;
@@ -148,14 +151,18 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
         _number(_discount)! > minimumOrder) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('A fixed discount cannot exceed the minimum order.'),
+          content: Text(
+            'Mức giảm cố định không thể vượt quá đơn hàng tối thiểu.',
+          ),
         ),
       );
       return;
     }
     if (_tourIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select at least one approved tour.')),
+        const SnackBar(
+          content: Text('Vui lòng chọn ít nhất một tour đã duyệt.'),
+        ),
       );
       return;
     }
@@ -213,9 +220,9 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
             context: context,
             barrierDismissible: false,
             builder: (dialogContext) => AlertDialog(
-              title: const Text('Coupon created'),
+              title: const Text('Đã tạo mã giảm giá'),
               content: Text(
-                '${state.createdCode} is ready for your selected tours.',
+                'Mã ${state.createdCode} đã sẵn sàng áp dụng cho các tour bạn chọn.',
               ),
               actions: [
                 TextButton(
@@ -223,14 +230,14 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
                     Navigator.of(dialogContext).pop();
                     Navigator.of(context).maybePop();
                   },
-                  child: const Text('Done'),
+                  child: const Text('Xong'),
                 ),
                 FilledButton(
                   onPressed: () {
                     Navigator.of(dialogContext).pop();
                     _resetForAnotherCoupon();
                   },
-                  child: const Text('Create another'),
+                  child: const Text('Tạo mã khác'),
                 ),
               ],
             ),
@@ -248,8 +255,10 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
                         .contains(normalizedQuery),
                   )
                   .toList(growable: false);
+        final c = context.tmColors;
         return Scaffold(
-          appBar: AppBar(title: const Text('Create coupon')),
+          backgroundColor: c.canvas,
+          appBar: const AppCoastalAppBar(title: 'Tạo mã giảm giá'),
           body: SafeArea(
             child: Form(
               key: _formKey,
@@ -257,11 +266,13 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
                 padding: const EdgeInsets.all(AppSpacing.md),
                 children: [
                   Text(
-                    'Offer a clear discount on your approved tours.',
-                    style: Theme.of(context).textTheme.bodyLarge,
+                    'Tạo ưu đãi rõ ràng cho các tour đã được duyệt của bạn.',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: c.textSecondary),
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                  _section(context, 'Coupon code', [
+                  const SizedBox(height: AppSpacing.md),
+                  _section(context, 'Mã giảm giá', Icons.local_offer_outlined, [
                     Row(
                       children: [
                         Expanded(
@@ -269,7 +280,7 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
                             controller: _code,
                             textCapitalization: TextCapitalization.characters,
                             decoration: const InputDecoration(
-                              labelText: 'Code',
+                              labelText: 'Mã ưu đãi',
                               hintText: 'SUMMER25',
                             ),
                             validator: (value) =>
@@ -277,7 +288,7 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
                                     !RegExp(
                                       r'^[A-Za-z0-9-]{3,30}$',
                                     ).hasMatch(value.trim())
-                                ? 'Use 3–30 letters, digits, or hyphens.'
+                                ? 'Dùng 3–30 chữ cái, chữ số hoặc dấu gạch ngang.'
                                 : null,
                             onChanged: (_) => setState(() {}),
                           ),
@@ -286,23 +297,23 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
                         OutlinedButton(
                           onPressed: () =>
                               setState(() => _code.text = _newCode()),
-                          child: const Text('Generate'),
+                          child: const Text('Tạo tự động'),
                         ),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.xs),
-                    const Text('Customers enter this at checkout.'),
+                    const Text('Khách hàng sẽ nhập mã này khi thanh toán.'),
                   ]),
-                  _section(context, 'Discount', [
+                  _section(context, 'Mức giảm giá', Icons.percent_rounded, [
                     SegmentedButton<CouponDiscountType>(
                       segments: const [
                         ButtonSegment(
                           value: CouponDiscountType.percentage,
-                          label: Text('Percentage'),
+                          label: Text('Theo phần trăm'),
                         ),
                         ButtonSegment(
                           value: CouponDiscountType.flat,
-                          label: Text('Fixed VND'),
+                          label: Text('Số tiền cố định (VND)'),
                         ),
                       ],
                       selected: {_discountType},
@@ -318,12 +329,12 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
                       decoration: InputDecoration(
                         labelText:
                             _discountType == CouponDiscountType.percentage
-                            ? 'Discount (%)'
-                            : 'Discount (VND)',
+                            ? 'Mức giảm (%)'
+                            : 'Mức giảm (VND)',
                       ),
                       validator: (_) => _positiveNumber(
                         _discount,
-                        'Discount',
+                        'Mức giảm',
                         max: _discountType == CouponDiscountType.percentage
                             ? 100
                             : null,
@@ -338,10 +349,10 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
                           decimal: true,
                         ),
                         decoration: const InputDecoration(
-                          labelText: 'Maximum discount (VND)',
+                          labelText: 'Mức giảm tối đa (VND)',
                         ),
                         validator: (_) =>
-                            _positiveNumber(_cap, 'Maximum discount'),
+                            _positiveNumber(_cap, 'Mức giảm tối đa'),
                         onChanged: (_) => setState(() {}),
                       ),
                     ],
@@ -352,36 +363,36 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
                         decimal: true,
                       ),
                       decoration: const InputDecoration(
-                        labelText: 'Minimum order (VND)',
+                        labelText: 'Đơn hàng tối thiểu (VND)',
                       ),
                       validator: (_) {
                         return !_isSupportedMoney(
                               _minimumOrder,
                               allowZero: true,
                             )
-                            ? 'Enter a non-negative amount with at most 2 decimal places.'
+                            ? 'Nhập số tiền không âm với tối đa 2 chữ số thập phân.'
                             : null;
                       },
                       onChanged: (_) => setState(() {}),
                     ),
                   ]),
-                  _section(context, 'Availability', [
+                  _section(context, 'Thời gian áp dụng', Icons.event_outlined, [
                     _dateButton(
                       context,
-                      'Starts',
+                      'Bắt đầu',
                       _startsAt,
                       () => _pickDateTime(starts: true),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     _dateButton(
                       context,
-                      'Ends',
+                      'Kết thúc',
                       _endsAt,
                       () => _pickDateTime(starts: false),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     ExpansionTile(
-                      title: const Text('Optional usage limits'),
+                      title: const Text('Giới hạn lượt sử dụng (tùy chọn)'),
                       children: [
                         Padding(
                           padding: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -391,8 +402,8 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
                                 controller: _usageLimit,
                                 keyboardType: TextInputType.number,
                                 decoration: const InputDecoration(
-                                  labelText: 'Total redemptions',
-                                  hintText: 'Unlimited',
+                                  labelText: 'Tổng số lượt dùng',
+                                  hintText: 'Không giới hạn',
                                 ),
                                 validator: (_) =>
                                     _optionalPositiveInteger(_usageLimit),
@@ -402,8 +413,8 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
                                 controller: _perUserLimit,
                                 keyboardType: TextInputType.number,
                                 decoration: const InputDecoration(
-                                  labelText: 'Per customer',
-                                  hintText: 'Unlimited',
+                                  labelText: 'Giới hạn mỗi khách',
+                                  hintText: 'Không giới hạn',
                                 ),
                                 validator: (_) =>
                                     _optionalPositiveInteger(_perUserLimit),
@@ -416,7 +427,8 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
                   ]),
                   _section(
                     context,
-                    'Applicable tours (${_tourIds.length} selected)',
+                    'Tour áp dụng (đã chọn ${_tourIds.length})',
+                    Icons.tour_outlined,
                     [
                       if (state.status == CreateCouponStatus.loadingTours)
                         const Center(
@@ -431,20 +443,20 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'We could not load your approved tours. Check your connection and try again.',
+                              'Không thể tải danh sách tour đã duyệt. Vui lòng kiểm tra kết nối và thử lại.',
                             ),
                             const SizedBox(height: AppSpacing.sm),
                             OutlinedButton.icon(
                               onPressed: () =>
                                   context.read<CreateCouponCubit>().loadTours(),
                               icon: const Icon(Icons.refresh),
-                              label: const Text('Try again'),
+                              label: const Text('Thử lại'),
                             ),
                           ],
                         )
                       else if (state.tours.isEmpty)
                         const Text(
-                          'No approved tours are available. Publish and get a tour approved before creating a coupon.',
+                          'Chưa có tour nào được duyệt. Vui lòng gửi duyệt và mở bán tour trước khi tạo mã giảm giá.',
                         )
                       else ...[
                         TextField(
@@ -452,13 +464,13 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
                           onChanged: (value) =>
                               setState(() => _tourQuery = value),
                           decoration: const InputDecoration(
-                            labelText: 'Search approved tours',
+                            labelText: 'Tìm tour đã duyệt',
                             prefixIcon: Icon(Icons.search),
                           ),
                         ),
                         const SizedBox(height: AppSpacing.sm),
                         if (visibleTours.isEmpty)
-                          const Text('No approved tours match this search.')
+                          const Text('Không tìm thấy tour đã duyệt phù hợp.')
                         else
                           ...visibleTours.map(
                             (tour) => CheckboxListTile(
@@ -472,7 +484,7 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
                               }),
                               title: Text(tour.title),
                               subtitle: Text(
-                                '${tour.destination ?? 'Destination not specified'} · ${_formatVnd(tour.basePrice)}',
+                                '${tour.destination ?? 'Chưa rõ điểm đến'} · ${_formatVnd(tour.basePrice)}',
                               ),
                               controlAffinity: ListTileControlAffinity.leading,
                             ),
@@ -480,15 +492,37 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
                       ],
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  Card(
-                    color: Theme.of(context).colorScheme.secondaryContainer,
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Text(
-                        '${_discountType == CouponDiscountType.percentage ? '${_discount.text.isEmpty ? '0' : _discount.text}% off, up to ${_formatVnd(_number(_cap))}' : '${_formatVnd(_number(_discount))} off'}\n'
-                        '${_tourIds.length} selected tour(s) · ${MaterialLocalizations.of(context).formatMediumDate(_startsAt)} – ${MaterialLocalizations.of(context).formatMediumDate(_endsAt)}',
+                  const SizedBox(height: AppSpacing.xs),
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: c.tealSoftContainer,
+                      borderRadius: BorderRadius.circular(TripMateRadius.lg),
+                      border: Border.all(
+                        color: c.brandTeal.withValues(alpha: 0.25),
                       ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.confirmation_number_outlined,
+                          size: 20,
+                          color: c.brandTeal,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            '${_discountType == CouponDiscountType.percentage ? 'Giảm ${_discount.text.isEmpty ? '0' : _discount.text}%, tối đa ${_formatVnd(_number(_cap))}' : 'Giảm ${_formatVnd(_number(_discount))}'}\n'
+                            'Đã chọn ${_tourIds.length} tour · ${MaterialLocalizations.of(context).formatMediumDate(_startsAt)} – ${MaterialLocalizations.of(context).formatMediumDate(_endsAt)}',
+                            style: TextStyle(
+                              color: c.textPrimary,
+                              fontWeight: FontWeight.w600,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -502,8 +536,8 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
                       padding: const EdgeInsets.all(AppSpacing.sm),
                       child: Text(
                         state.status == CreateCouponStatus.submitting
-                            ? 'Creating coupon…'
-                            : 'Create coupon',
+                            ? 'Đang tạo mã giảm giá…'
+                            : 'Tạo mã giảm giá',
                       ),
                     ),
                   ),
@@ -516,20 +550,25 @@ final class _CreateCouponPageState extends State<CreateCouponPage> {
     );
   }
 
-  Widget _section(BuildContext context, String title, List<Widget> children) =>
-      Card(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: AppSpacing.md),
-              ...children,
-            ],
-          ),
+  Widget _section(
+    BuildContext context,
+    String title,
+    IconData icon,
+    List<Widget> children,
+  ) => Padding(
+    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+    child: AppSectionCard(
+      title: title,
+      icon: icon,
+      child: Material(
+        color: Colors.transparent,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: children,
         ),
-      );
+      ),
+    ),
+  );
 
   Widget _dateButton(
     BuildContext context,

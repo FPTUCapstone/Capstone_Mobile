@@ -3,7 +3,7 @@ enum UserRole {
   tourOperator;
 
   String get label => switch (this) {
-    UserRole.traveler => 'Traveler',
-    UserRole.tourOperator => 'Tour Operator',
+    UserRole.traveler => 'Du khách',
+    UserRole.tourOperator => 'Nhà điều hành tour',
   };
 }

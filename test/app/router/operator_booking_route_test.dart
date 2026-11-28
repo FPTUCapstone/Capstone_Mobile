@@ -177,7 +177,7 @@ void main() {
       );
 
       expect(find.byType(OperatorBookingDetailPage), findsNothing);
-      expect(find.text('Page not found'), findsOneWidget);
+      expect(find.text('Không tìm thấy trang'), findsOneWidget);
       expect(repository.requested, isEmpty);
     },
   );

@@ -67,7 +67,7 @@ final class DemoNavigationSessionRepository
     if (item.status == NavigationItemStatus.skipped) return session;
     if (item.isReached) {
       throw const NavigationFailure(
-        'This stop was already reached.',
+        'Điểm dừng này đã được đánh dấu là đã đến.',
         reason: NavigationFailureReason.itemAlreadyReached,
       );
     }
@@ -117,7 +117,7 @@ final class DemoNavigationSessionRepository
     final session = _session;
     if (session == null) {
       throw const NavigationFailure(
-        'This navigation session no longer exists.',
+        'Phiên dẫn đường này không còn tồn tại.',
         reason: NavigationFailureReason.sessionNotFound,
       );
     }
@@ -127,7 +127,7 @@ final class DemoNavigationSessionRepository
   static void _ensureOpen(NavigationSession session) {
     if (session.isCompleted) {
       throw const NavigationFailure(
-        'This navigation session has already ended.',
+        'Phiên dẫn đường này đã kết thúc.',
         reason: NavigationFailureReason.sessionCompleted,
       );
     }
@@ -137,7 +137,7 @@ final class DemoNavigationSessionRepository
     final item = session.itemById(itemId);
     if (item == null) {
       throw const NavigationFailure(
-        'This stop is not part of the navigation session.',
+        'Điểm dừng này không thuộc phiên dẫn đường hiện tại.',
         reason: NavigationFailureReason.itemNotNavigable,
       );
     }

@@ -3,11 +3,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/core/location/device_location_service.dart';
 import 'package:trip_mate_mobile/core/storage/secure_storage_service.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/travel_group_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/group_location_sharing_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/group_location_sharing_state.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_coastal_app_bar.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_section_card.dart';
 
 /// Screen #61: Group Location Sharing Settings (UC-22).
 ///
@@ -89,12 +93,13 @@ class _GroupLocationSharingPageState extends State<GroupLocationSharingPage>
       value: _cubit,
       child: BlocConsumer<GroupLocationSharingCubit, GroupLocationSharingState>(
         listener: (context, state) {
+          final c = context.tmColors;
           if (state.noticeMessage != null) {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.noticeMessage!),
-                backgroundColor: AppColors.success,
+                backgroundColor: c.success,
                 behavior: SnackBarBehavior.floating,
                 duration: const Duration(seconds: 3),
               ),
@@ -107,7 +112,7 @@ class _GroupLocationSharingPageState extends State<GroupLocationSharingPage>
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.errorMessage!),
-                backgroundColor: AppColors.error,
+                backgroundColor: c.error,
                 behavior: SnackBarBehavior.floating,
                 duration: const Duration(seconds: 4),
               ),
@@ -116,12 +121,14 @@ class _GroupLocationSharingPageState extends State<GroupLocationSharingPage>
           }
         },
         builder: (context, state) {
+          final c = context.tmColors;
           return Scaffold(
-            appBar: AppBar(
-              title: const Text('Location Sharing'),
+            backgroundColor: c.canvas,
+            appBar: AppCoastalAppBar(
+              title: 'Chia sẻ vị trí',
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
-                tooltip: 'Close',
+                tooltip: 'Đóng',
                 onPressed: () => Navigator.of(context).maybePop(),
               ),
               actions: [
@@ -131,9 +138,9 @@ class _GroupLocationSharingPageState extends State<GroupLocationSharingPage>
                       _showDemoControls
                           ? Icons.bug_report
                           : Icons.bug_report_outlined,
-                      color: AppColors.warning,
+                      color: c.warning,
                     ),
-                    tooltip: 'Toggle Demo Controls',
+                    tooltip: 'Bật/tắt điều khiển demo',
                     onPressed: () {
                       setState(() {
                         _showDemoControls = !_showDemoControls;
@@ -143,8 +150,9 @@ class _GroupLocationSharingPageState extends State<GroupLocationSharingPage>
               ],
             ),
             body: state.status == GroupLocationSharingStatus.loading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(child: CircularProgressIndicator(color: c.brandTeal))
                 : RefreshIndicator(
+                    color: c.brandTeal,
                     onRefresh: () async {
                       await _cubit.checkDevicePermission();
                     },
@@ -154,35 +162,22 @@ class _GroupLocationSharingPageState extends State<GroupLocationSharingPage>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // 1. Pending Backend Integration Banner (Production Mode)
                           if (state.pendingBeIntegration) ...[
-                            _buildPendingIntegrationBanner(),
+                            _buildPendingIntegrationBanner(context),
                             const SizedBox(height: AppSpacing.md),
                           ],
-
-                          // 2. Active Sharing Status Hero Card
-                          _buildStatusHeroCard(state),
+                          _buildStatusHeroCard(context, state),
                           const SizedBox(height: AppSpacing.md),
-
-                          // 3. Primary Toggle Card (Consent Opt-In)
-                          _buildPrimarySettingCard(state),
+                          _buildPrimarySettingCard(context, state),
                           const SizedBox(height: AppSpacing.md),
-
-                          // 4. Audience Card
-                          _buildAudienceCard(state),
+                          _buildAudienceCard(context, state),
                           const SizedBox(height: AppSpacing.md),
-
-                          // 5. Device Permission State & Settings Card
-                          _buildPermissionCard(state),
+                          _buildPermissionCard(context, state),
                           const SizedBox(height: AppSpacing.md),
-
-                          // 6. Privacy & Retention Explanation
-                          _buildPrivacyNoticeCard(),
-
-                          // 7. Demo Controls (Only in demo mode)
+                          _buildPrivacyNoticeCard(context),
                           if (state.isDemoMode && _showDemoControls) ...[
                             const SizedBox(height: AppSpacing.lg),
-                            _buildDemoControlsPanel(state),
+                            _buildDemoControlsPanel(context, state),
                           ],
                           const SizedBox(height: AppSpacing.xl),
                         ],
@@ -195,37 +190,38 @@ class _GroupLocationSharingPageState extends State<GroupLocationSharingPage>
     );
   }
 
-  Widget _buildPendingIntegrationBanner() {
+  Widget _buildPendingIntegrationBanner(BuildContext context) {
+    final c = context.tmColors;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
+        color: c.warningContainer,
+        borderRadius: BorderRadius.circular(TripMateRadius.lg),
+        border: Border.all(color: c.warning.withValues(alpha: 0.4)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.info_outline, color: AppColors.warning, size: 24),
+          Icon(Icons.info_outline, color: c.warning, size: 22),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Pending Server Integration',
+                Text(
+                  'Đang chờ tích hợp máy chủ',
                   style: TextStyle(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
                     fontSize: 14,
-                    color: AppColors.ink,
+                    color: c.textPrimary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xxs),
                 Text(
                   GroupLocationSharingCubit.pendingBeIntegrationMessage,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.ink,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: c.textSecondary,
                     height: 1.4,
                   ),
                 ),
@@ -237,128 +233,144 @@ class _GroupLocationSharingPageState extends State<GroupLocationSharingPage>
     );
   }
 
-  Widget _buildStatusHeroCard(GroupLocationSharingState state) {
+  Widget _buildStatusHeroCard(
+    BuildContext context,
+    GroupLocationSharingState state,
+  ) {
+    final c = context.tmColors;
     final IconData icon;
-    final Color color;
+    final Color accent;
+    final Color surfaceTint;
     final String title;
     final String subtitle;
 
     if (state.isActivelySharing) {
       icon = Icons.location_on;
-      color = AppColors.success;
-      title = 'Demo Preview: Sharing Active';
+      accent = c.success;
+      surfaceTint = c.successContainer;
+      title = 'Bản xem thử: Đang chia sẻ vị trí';
       subtitle = state.groupName != null
-          ? 'Simulated preview: Your location is being shared with members of ${state.groupName}.'
-          : 'Simulated preview: Your location is being shared with active members of this group.';
+          ? 'Chế độ mô phỏng: Vị trí của bạn đang được chia sẻ với thành viên của ${state.groupName}.'
+          : 'Chế độ mô phỏng: Vị trí của bạn đang được chia sẻ với các thành viên đang hoạt động của nhóm này.';
     } else if (state.sharingPrerequisitesSatisfied) {
       icon = Icons.pause_circle_outline;
-      color = AppColors.warning;
-      title = 'Location Sharing Unavailable';
+      accent = c.warning;
+      surfaceTint = c.warningContainer;
+      title = 'Chia sẻ vị trí tạm chưa khả dụng';
       subtitle =
-          'Consent is enabled and device permission is granted. '
-          'Live location sharing is paused because server broadcast integration is pending.';
+          'Bạn đã đồng ý chia sẻ và cấp quyền vị trí trên thiết bị. '
+          'Tính năng phát vị trí trực tiếp đang tạm dừng do chờ tích hợp máy chủ.';
     } else if (state.storedOptIn && !state.devicePermissionGranted) {
       icon = Icons.location_off;
-      color = AppColors.warning;
-      title = 'Location Sharing Paused';
+      accent = c.warning;
+      surfaceTint = c.warningContainer;
+      title = 'Chia sẻ vị trí đang tạm dừng';
       subtitle = !state.isLocationServiceEnabled
-          ? 'Device location services are disabled. Turn on GPS to broadcast your position.'
-          : 'Device location permission is required. Enable permission in Settings.';
+          ? 'Dịch vụ định vị trên thiết bị đang tắt. Vui lòng bật GPS để phát vị trí của bạn.'
+          : 'Cần cấp quyền truy cập vị trí trên thiết bị. Vui lòng bật quyền trong Cài đặt.';
     } else if (!state.isActiveMember) {
       icon = Icons.person_off_outlined;
-      color = AppColors.muted;
-      title = 'Membership Inactive';
+      accent = c.textMuted;
+      surfaceTint = c.surfaceElevated;
+      title = 'Không còn là thành viên hoạt động';
       subtitle =
-          'Only active members of this group can configure location sharing.';
+          'Chỉ thành viên đang hoạt động của nhóm này mới có thể cấu hình chia sẻ vị trí.';
     } else {
       icon = Icons.location_off_outlined;
-      color = AppColors.muted;
-      title = 'Location Sharing Off';
-      subtitle = 'Your position is not being shared with this travel group.';
+      accent = c.textMuted;
+      surfaceTint = c.surfaceCard;
+      title = 'Chia sẻ vị trí đang tắt';
+      subtitle = 'Vị trí của bạn hiện không được chia sẻ với nhóm du lịch này.';
     }
 
-    return Card(
-      elevation: 0,
-      color: color.withValues(alpha: 0.08),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: color.withValues(alpha: 0.25)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: color.withValues(alpha: 0.18),
-              child: Icon(icon, color: color, size: 30),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.ink,
-                height: 1.4,
-              ),
-            ),
-          ],
+    return Container(
+      decoration: BoxDecoration(
+        color: surfaceTint,
+        borderRadius: BorderRadius.circular(TripMateRadius.xl),
+        border: Border.all(
+          color: accent == c.textMuted
+              ? c.borderSubtle
+              : accent.withValues(alpha: 0.3),
         ),
+      ),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.14),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: accent, size: 28),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: AppTypography.displayFont,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: accent == c.textMuted ? c.textPrimary : accent,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: c.textSecondary,
+              height: 1.45,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildPrimarySettingCard(GroupLocationSharingState state) {
+  Widget _buildPrimarySettingCard(
+    BuildContext context,
+    GroupLocationSharingState state,
+  ) {
+    final c = context.tmColors;
     final bool canChangePreference =
         state.isDemoMode && state.isActiveMember && !state.pendingBeIntegration;
 
     final String subtitleText;
     if (state.pendingBeIntegration) {
       subtitleText = state.storedOptIn
-          ? 'With members of this group only (Consent is ON — editing disabled pending server integration)'
-          : 'With members of this group only (Editing disabled pending server integration)';
+          ? 'Chỉ với thành viên của nhóm này (Đã đồng ý — tạm khóa chỉnh sửa do chờ tích hợp máy chủ)'
+          : 'Chỉ với thành viên của nhóm này (Tạm khóa chỉnh sửa do chờ tích hợp máy chủ)';
     } else if (!state.isActiveMember) {
       subtitleText =
-          'With members of this group only (Only active members can configure sharing)';
+          'Chỉ với thành viên của nhóm này (Chỉ thành viên đang hoạt động mới có thể cấu hình)';
     } else {
-      subtitleText = 'With members of this group only';
+      subtitleText = 'Chỉ với thành viên của nhóm này';
     }
 
-    return Card(
-      elevation: 0,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: AppColors.line),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+    return AppCard(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(TripMateRadius.lg),
         child: SwitchListTile.adaptive(
-          title: const Text(
-            'Share my live location',
+          title: Text(
+            'Chia sẻ vị trí trực tiếp của tôi',
             style: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 15,
-              color: AppColors.ink,
+              color: c.textPrimary,
             ),
           ),
           subtitle: Text(
             subtitleText,
-            style: const TextStyle(fontSize: 13, color: AppColors.muted),
+            style: TextStyle(fontSize: 12.5, color: c.textSecondary),
           ),
           value: state.storedOptIn,
-          activeThumbColor: AppColors.primary,
+          activeThumbColor: c.brandTeal,
           onChanged: canChangePreference
               ? (value) {
                   _cubit.toggleLocationSharing(value);
@@ -369,181 +381,149 @@ class _GroupLocationSharingPageState extends State<GroupLocationSharingPage>
     );
   }
 
-  Widget _buildAudienceCard(GroupLocationSharingState state) {
-    return Card(
-      elevation: 0,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: AppColors.line),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Who can see my location',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-                color: AppColors.ink,
-              ),
+  Widget _buildAudienceCard(
+    BuildContext context,
+    GroupLocationSharingState state,
+  ) {
+    final c = context.tmColors;
+    return AppSectionCard(
+      title: 'Ai có thể xem vị trí của tôi',
+      icon: Icons.people_outline,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            state.groupName != null
+                ? 'Thành viên của ${state.groupName}'
+                : 'Tất cả thành viên nhóm',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+              color: c.textPrimary,
             ),
-            const SizedBox(height: AppSpacing.sm),
-            Row(
-              children: [
-                const Icon(
-                  Icons.people_outline,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        state.groupName != null
-                            ? 'Members of ${state.groupName}'
-                            : 'All group members',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                          color: AppColors.ink,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Visible only to confirmed active travelers in this group when sharing is operational',
-                        style: TextStyle(fontSize: 12, color: AppColors.muted),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+          ),
+          const SizedBox(height: 3),
+          Text(
+            'Chỉ hiển thị với các thành viên đang hoạt động đã xác nhận trong nhóm này khi tính năng chia sẻ được bật',
+            style: TextStyle(
+              fontSize: 12.5,
+              color: c.textSecondary,
+              height: 1.4,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildPermissionCard(GroupLocationSharingState state) {
+  Widget _buildPermissionCard(
+    BuildContext context,
+    GroupLocationSharingState state,
+  ) {
+    final c = context.tmColors;
     final String permissionLabel;
     final IconData permissionIcon;
     final Color permissionColor;
 
     if (!state.isLocationServiceEnabled) {
-      permissionLabel = 'Location Services Disabled';
+      permissionLabel = 'Dịch vụ định vị đang tắt';
       permissionIcon = Icons.location_disabled;
-      permissionColor = AppColors.error;
+      permissionColor = c.error;
     } else if (state.devicePermissionGranted) {
-      permissionLabel = 'Permission Granted';
+      permissionLabel = 'Đã cấp quyền vị trí';
       permissionIcon = Icons.check_circle_outline;
-      permissionColor = AppColors.success;
+      permissionColor = c.success;
     } else if (state.isPermissionPermanentlyDenied) {
-      permissionLabel = 'Permanently Denied';
+      permissionLabel = 'Bị từ chối vĩnh viễn';
       permissionIcon = Icons.block;
-      permissionColor = AppColors.error;
+      permissionColor = c.error;
     } else {
-      permissionLabel = 'Permission Denied';
+      permissionLabel = 'Chưa cấp quyền vị trí';
       permissionIcon = Icons.warning_amber_rounded;
-      permissionColor = AppColors.warning;
+      permissionColor = c.warning;
     }
 
-    return Card(
-      elevation: 0,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: AppColors.line),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Device Location Permission',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-                color: AppColors.ink,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Row(
-              children: [
-                Icon(permissionIcon, color: permissionColor, size: 20),
-                const SizedBox(width: AppSpacing.xs),
-                Expanded(
-                  child: Text(
-                    permissionLabel,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: permissionColor,
-                    ),
+    return AppSectionCard(
+      title: 'Quyền vị trí thiết bị',
+      icon: Icons.gps_fixed_outlined,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(permissionIcon, color: permissionColor, size: 20),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: Text(
+                  permissionLabel,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: permissionColor,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            const Text(
-              'TripMate requires operating system permission to access GPS position.',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.muted,
-                height: 1.4,
               ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'TripMate cần quyền từ hệ điều hành để truy cập vị trí GPS.',
+            style: TextStyle(
+              fontSize: 12.5,
+              color: c.textSecondary,
+              height: 1.4,
             ),
+          ),
+          if (!state.isLocationServiceEnabled ||
+              state.isPermissionPermanentlyDenied ||
+              !state.devicePermissionGranted) ...[
             const SizedBox(height: AppSpacing.sm),
             if (!state.isLocationServiceEnabled)
               OutlinedButton.icon(
                 onPressed: () => _cubit.openLocationSettings(),
                 icon: const Icon(Icons.settings_suggest_outlined, size: 18),
-                label: const Text('Open Location Settings'),
+                label: const Text('Mở cài đặt định vị'),
               )
             else if (state.isPermissionPermanentlyDenied)
               OutlinedButton.icon(
                 onPressed: () => _cubit.openAppSettings(),
                 icon: const Icon(Icons.settings_outlined, size: 18),
-                label: const Text('Open Device Settings'),
+                label: const Text('Mở cài đặt thiết bị'),
               )
-            else if (!state.devicePermissionGranted)
+            else
               FilledButton.tonalIcon(
                 onPressed: () => _cubit.requestDevicePermission(),
                 icon: const Icon(Icons.near_me_outlined, size: 18),
-                label: const Text('Request Permission'),
+                label: const Text('Yêu cầu quyền'),
               ),
           ],
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildPrivacyNoticeCard() {
+  Widget _buildPrivacyNoticeCard(BuildContext context) {
+    final c = context.tmColors;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.line),
+        color: c.surfaceElevated,
+        borderRadius: BorderRadius.circular(TripMateRadius.lg),
+        border: Border.all(color: c.borderSubtle),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.lock_outline, size: 20, color: AppColors.muted),
+          Icon(Icons.lock_outline, size: 19, color: c.textMuted),
           const SizedBox(width: AppSpacing.sm),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Your location is shared only with active members of this travel group '
-              'while sharing is enabled, and stops immediately when you leave the group '
-              'or turn this setting off.',
+              'Vị trí của bạn chỉ được chia sẻ với các thành viên đang hoạt động trong nhóm du lịch này '
+              'khi tính năng được bật, và sẽ dừng ngay lập tức khi bạn rời nhóm '
+              'hoặc tắt cài đặt này.',
               style: TextStyle(
-                fontSize: 12,
-                color: AppColors.muted,
+                fontSize: 12.5,
+                color: c.textSecondary,
                 height: 1.45,
               ),
             ),
@@ -553,32 +533,32 @@ class _GroupLocationSharingPageState extends State<GroupLocationSharingPage>
     );
   }
 
-  Widget _buildDemoControlsPanel(GroupLocationSharingState state) {
+  Widget _buildDemoControlsPanel(
+    BuildContext context,
+    GroupLocationSharingState state,
+  ) {
+    final c = context.tmColors;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: Colors.amber.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.amber.shade300),
+        color: c.warningContainer,
+        borderRadius: BorderRadius.circular(TripMateRadius.lg),
+        border: Border.all(color: c.warning.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
-                Icons.build_circle_outlined,
-                color: Colors.amber.shade800,
-                size: 20,
-              ),
+              Icon(Icons.build_circle_outlined, color: c.warning, size: 20),
               const SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: Text(
-                  'DEMO_ONLY Test Controls',
+                  'Điều khiển thử nghiệm (Demo)',
                   style: TextStyle(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
                     fontSize: 13,
-                    color: Colors.amber.shade900,
+                    color: c.warning,
                   ),
                 ),
               ),
@@ -590,20 +570,20 @@ class _GroupLocationSharingPageState extends State<GroupLocationSharingPage>
             runSpacing: AppSpacing.xs,
             children: [
               FilterChip(
-                label: const Text('Grant Permission'),
+                label: const Text('Cấp quyền vị trí'),
                 selected:
                     state.devicePermission == LocationPermission.whileInUse,
                 onSelected: (_) =>
                     _cubit.setDemoPermission(LocationPermission.whileInUse),
               ),
               FilterChip(
-                label: const Text('Deny Permission'),
+                label: const Text('Từ chối quyền'),
                 selected: state.devicePermission == LocationPermission.denied,
                 onSelected: (_) =>
                     _cubit.setDemoPermission(LocationPermission.denied),
               ),
               FilterChip(
-                label: const Text('Deny Forever'),
+                label: const Text('Từ chối vĩnh viễn'),
                 selected:
                     state.devicePermission == LocationPermission.deniedForever,
                 onSelected: (_) =>
@@ -611,7 +591,7 @@ class _GroupLocationSharingPageState extends State<GroupLocationSharingPage>
               ),
               FilterChip(
                 label: Text(
-                  state.isLocationServiceEnabled ? 'Disable GPS' : 'Enable GPS',
+                  state.isLocationServiceEnabled ? 'Tắt GPS' : 'Bật GPS',
                 ),
                 selected: !state.isLocationServiceEnabled,
                 onSelected: (_) => _cubit.setDemoPermission(
@@ -622,8 +602,8 @@ class _GroupLocationSharingPageState extends State<GroupLocationSharingPage>
               FilterChip(
                 label: Text(
                   state.isActiveMember
-                      ? 'Simulate Inactive Member'
-                      : 'Simulate Active Member',
+                      ? 'Giả lập ngừng hoạt động'
+                      : 'Giả lập thành viên hoạt động',
                 ),
                 selected: !state.isActiveMember,
                 onSelected: (_) =>
@@ -632,8 +612,8 @@ class _GroupLocationSharingPageState extends State<GroupLocationSharingPage>
               FilterChip(
                 label: Text(
                   state.liveLocationDeliveryConfirmed
-                      ? 'Simulate Broadcast Off'
-                      : 'Simulate Broadcast On',
+                      ? 'Giả lập tắt phát vị trí'
+                      : 'Giả lập bật phát vị trí',
                 ),
                 selected: state.liveLocationDeliveryConfirmed,
                 onSelected: (_) => _cubit.setDemoDeliveryConfirmed(

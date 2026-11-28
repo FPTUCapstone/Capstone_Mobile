@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 
 enum AppAlertType { info, success, warning, error }
 
@@ -18,25 +19,26 @@ class AppAlert extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final style = switch (type) {
-      AppAlertType.info => const _AlertStyle(
-        AppColors.primary,
-        AppColors.primarySoft,
+      AppAlertType.info => _AlertStyle(
+        c.info,
+        c.infoContainer,
         Icons.info_outline,
       ),
-      AppAlertType.success => const _AlertStyle(
-        AppColors.success,
-        Color(0xFFE6F7F0),
+      AppAlertType.success => _AlertStyle(
+        c.success,
+        c.successContainer,
         Icons.check_circle_outline,
       ),
-      AppAlertType.warning => const _AlertStyle(
-        AppColors.warning,
-        Color(0xFFFEF3E2),
+      AppAlertType.warning => _AlertStyle(
+        c.warning,
+        c.warningContainer,
         Icons.warning_amber_rounded,
       ),
-      AppAlertType.error => const _AlertStyle(
-        AppColors.error,
-        Color(0xFFFDECEF),
+      AppAlertType.error => _AlertStyle(
+        c.error,
+        c.errorContainer,
         Icons.error_outline,
       ),
     };
@@ -47,7 +49,7 @@ class AppAlert extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.sm),
         decoration: BoxDecoration(
           color: style.background,
-          borderRadius: BorderRadius.circular(AppSpacing.sm),
+          borderRadius: BorderRadius.circular(TripMateRadius.sm),
           border: Border.all(color: style.foreground.withValues(alpha: 0.25)),
         ),
         child: Row(
@@ -59,15 +61,27 @@ class AppAlert extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (title != null)
+                  if (title != null) ...[
                     Text(
                       title!,
                       style: TextStyle(
+                        fontFamily: AppTypography.uiFont,
+                        fontSize: 13.5,
                         color: style.foreground,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                  Text(message, style: TextStyle(color: style.foreground)),
+                    const SizedBox(height: 2),
+                  ],
+                  Text(
+                    message,
+                    style: TextStyle(
+                      fontFamily: AppTypography.uiFont,
+                      fontSize: 13,
+                      height: 1.4,
+                      color: style.foreground,
+                    ),
+                  ),
                 ],
               ),
             ),

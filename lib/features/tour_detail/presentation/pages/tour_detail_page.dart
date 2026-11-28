@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_detail/domain/entities/tour_cancellation_rule.dart';
 import 'package:trip_mate_mobile/features/tour_detail/domain/entities/tour_detail.dart';
@@ -19,7 +20,10 @@ import 'package:trip_mate_mobile/features/tour_detail/presentation/resources/tou
 import 'package:trip_mate_mobile/features/tour_detail/presentation/widgets/departure_schedule_card.dart';
 import 'package:trip_mate_mobile/features/tour_detail/presentation/widgets/itinerary_stop_tile.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summary.dart';
-import 'package:trip_mate_mobile/features/tour_search/presentation/theme/tour_search_palette.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_coastal_app_bar.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_sticky_action_bar.dart';
 import 'package:trip_mate_mobile/shared/widgets/motion/editorial_tour_hero.dart';
 
 class TourDetailPage extends StatelessWidget {
@@ -59,21 +63,14 @@ class _TourDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final cubit = context.watch<TourDetailCubit>();
     final state = cubit.state;
 
     return Scaffold(
-      backgroundColor: TourSearchPalette.background,
-      appBar: AppBar(
-        title: const Text(TourDetailStrings.appBarTitle),
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        foregroundColor: TourSearchPalette.navy,
-        elevation: 0,
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, thickness: 1, color: AppColors.line),
-        ),
+      backgroundColor: c.canvas,
+      appBar: AppCoastalAppBar(
+        title: TourDetailStrings.appBarTitle,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           tooltip: TourDetailStrings.backTooltip,
@@ -91,6 +88,7 @@ class _TourDetailView extends StatelessWidget {
         ),
       ),
       body: SafeArea(
+        bottom: state.status != TourDetailStatus.success,
         child: switch (state.status) {
           TourDetailStatus.initial || TourDetailStatus.loading =>
             state.initialSummary != null
@@ -99,9 +97,9 @@ class _TourDetailView extends StatelessWidget {
                     tourId: tourId,
                     heroTag: heroTag,
                   )
-                : const Center(
+                : Center(
                     child: CircularProgressIndicator(
-                      color: TourSearchPalette.teal,
+                      color: c.brandTeal,
                       semanticsLabel: TourDetailStrings.loadingLabel,
                     ),
                   ),
@@ -145,6 +143,7 @@ class _TourDetailLoadingHeroView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final imageUrl = summary.thumbnailUrl;
     Widget imageWidget;
     if (imageUrl != null && imageUrl.startsWith('assets/')) {
@@ -154,17 +153,17 @@ class _TourDetailLoadingHeroView extends StatelessWidget {
         imageUrl,
         fit: BoxFit.cover,
         errorBuilder: (_, _, _) => Container(
-          color: const Color(0xFFE2E8F0),
-          child: const Center(
-            child: Icon(Icons.broken_image, size: 40, color: Colors.grey),
+          color: c.shimmerBase,
+          child: Center(
+            child: Icon(Icons.broken_image, size: 40, color: c.textMuted),
           ),
         ),
       );
     } else {
       imageWidget = Container(
-        color: const Color(0xFFE2E8F0),
-        child: const Center(
-          child: Icon(Icons.image_outlined, size: 48, color: Colors.grey),
+        color: c.shimmerBase,
+        child: Center(
+          child: Icon(Icons.image_outlined, size: 48, color: c.textMuted),
         ),
       );
     }
@@ -180,10 +179,10 @@ class _TourDetailLoadingHeroView extends StatelessWidget {
             child: imageWidget,
           ),
         ),
-        const Expanded(
+        Expanded(
           child: Center(
             child: CircularProgressIndicator(
-              color: TourSearchPalette.teal,
+              color: c.brandTeal,
               semanticsLabel: TourDetailStrings.loadingLabel,
             ),
           ),
@@ -213,6 +212,7 @@ class _TourDetailErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -223,12 +223,18 @@ class _TourDetailErrorView extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  notFound ? Icons.travel_explore : Icons.cloud_off_outlined,
-                  size: 56,
-                  color: notFound
-                      ? TourSearchPalette.muted
-                      : const Color(0xFFDC2626),
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: notFound ? c.tealSoftContainer : c.errorContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    notFound ? Icons.travel_explore : Icons.cloud_off_outlined,
+                    size: 32,
+                    color: notFound ? c.brandTeal : c.error,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
@@ -237,7 +243,7 @@ class _TourDetailErrorView extends StatelessWidget {
                       : TourDetailStrings.errorTitle,
                   textAlign: TextAlign.center,
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: TourSearchPalette.navy,
+                    color: c.textPrimary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -246,7 +252,7 @@ class _TourDetailErrorView extends StatelessWidget {
                   message,
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: TourSearchPalette.muted,
+                    color: c.textSecondary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -269,9 +275,6 @@ class _TourDetailErrorView extends StatelessWidget {
                     onPressed: onRetry,
                     icon: const Icon(Icons.refresh),
                     label: const Text(TourDetailStrings.retry),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: TourSearchPalette.teal,
-                    ),
                   ),
               ],
             ),
@@ -294,100 +297,55 @@ class _TourDetailPendingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final theme = Theme.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Informational Notice Banner
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFBFDBFE)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(
-                  Icons.hub_outlined,
-                  color: Color(0xFF2563EB),
-                  size: 24,
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        TourDetailStrings.pendingIntegrationTitle,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: const Color(0xFF1D4ED8),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xxs),
-                      Text(
-                        TourDetailStrings.pendingIntegrationDescription,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF1E40AF),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          AppAlert(
+            type: AppAlertType.info,
+            title: TourDetailStrings.pendingIntegrationTitle,
+            message: TourDetailStrings.pendingIntegrationDescription,
           ),
           const SizedBox(height: AppSpacing.md),
 
           // Available summary metadata card
           if (summary != null)
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: TourSearchPalette.cardBorder),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      summary!.title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: TourSearchPalette.navy,
-                        fontWeight: FontWeight.w700,
-                      ),
+            AppCard(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    summary!.title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: c.textPrimary,
+                      fontWeight: FontWeight.w700,
                     ),
-                    const SizedBox(height: AppSpacing.xs),
-                    if (summary!.destinations.isNotEmpty)
-                      Text(
-                        '${TourDetailStrings.destinationsLabel}: ${summary!.destinations.join(" • ")}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: TourSearchPalette.muted,
-                        ),
-                      ),
-                    const SizedBox(height: AppSpacing.xxs),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  if (summary!.destinations.isNotEmpty)
                     Text(
-                      '${TourDetailStrings.operatorLabel}: ${summary!.operatorName}',
+                      '${TourDetailStrings.destinationsLabel}: ${summary!.destinations.join(" • ")}',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: TourSearchPalette.muted,
+                        color: c.textSecondary,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      '${TourDetailStrings.fromPrice}: ${formatVnd(summary!.basePrice)}',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: TourSearchPalette.teal,
-                        fontWeight: FontWeight.w700,
-                      ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    '${TourDetailStrings.operatorLabel}: ${summary!.operatorName}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: c.textSecondary,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    '${TourDetailStrings.fromPrice}: ${formatVnd(summary!.basePrice)}',
+                    style: AppTypography.price(c.brandTeal, fontSize: 14),
+                  ),
+                ],
               ),
             ),
           const SizedBox(height: AppSpacing.lg),
@@ -428,6 +386,7 @@ class _TourDetailSuccessView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final detail = state.tourDetail!;
 
     return SingleChildScrollView(
@@ -450,7 +409,7 @@ class _TourDetailSuccessView extends StatelessWidget {
                 Text(
                   detail.title,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: TourSearchPalette.navy,
+                    color: c.textPrimary,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -465,16 +424,16 @@ class _TourDetailSuccessView extends StatelessWidget {
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
+                        color: c.surfaceElevated,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.line),
+                        border: Border.all(color: c.borderSubtle),
                       ),
                       child: Text(
                         TourDetailStrings.durationDays(detail.durationDays),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: TourSearchPalette.navy,
+                          color: c.textPrimary,
                         ),
                       ),
                     ),
@@ -485,24 +444,24 @@ class _TourDetailSuccessView extends StatelessWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFEF3C7),
+                          color: c.warningContainer,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.star_rounded,
                               size: 14,
-                              color: Color(0xFFD97706),
+                              color: c.warning,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               '${detail.averageRating!.toStringAsFixed(1)} (${detail.reviewCount})',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFFB45309),
+                                color: c.warning,
                               ),
                             ),
                           ],
@@ -514,15 +473,15 @@ class _TourDetailSuccessView extends StatelessWidget {
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primarySoft,
+                        color: c.tealSoftContainer,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         detail.operatorName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
+                          color: c.brandTeal,
                         ),
                       ),
                     ),
@@ -532,9 +491,9 @@ class _TourDetailSuccessView extends StatelessWidget {
                 if (_destinationsText(detail) case final destinations?) ...[
                   Text(
                     TourDetailStrings.destinationsLine(destinations),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: TourSearchPalette.muted,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: c.textSecondary),
                   ),
                   const SizedBox(height: AppSpacing.xxs),
                 ],
@@ -542,9 +501,9 @@ class _TourDetailSuccessView extends StatelessWidget {
                     when phone.isNotEmpty) ...[
                   SelectableText(
                     TourDetailStrings.contactOperatorLine(phone),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: TourSearchPalette.muted,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: c.textSecondary),
                   ),
                   const SizedBox(height: AppSpacing.xxs),
                 ],
@@ -553,7 +512,7 @@ class _TourDetailSuccessView extends StatelessWidget {
                   Text(
                     detail.description,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: TourSearchPalette.navyLight,
+                      color: c.textSecondary,
                       height: 1.5,
                     ),
                   ),
@@ -644,12 +603,13 @@ class _TourImageGalleryState extends State<_TourImageGallery> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     if (widget.images.isEmpty) {
       return Container(
         height: 204,
-        color: AppColors.primarySoft,
-        child: const Center(
-          child: Icon(Icons.image_outlined, size: 44, color: AppColors.muted),
+        color: c.tealSoftContainer,
+        child: Center(
+          child: Icon(Icons.image_outlined, size: 44, color: c.textMuted),
         ),
       );
     }
@@ -669,12 +629,12 @@ class _TourImageGalleryState extends State<_TourImageGallery> {
                 StackTrace? stackTrace,
               ) {
                 return Container(
-                  color: const Color(0xFFE2E8F0),
-                  child: const Center(
+                  color: c.shimmerBase,
+                  child: Center(
                     child: Icon(
                       Icons.broken_image,
                       size: 40,
-                      color: Colors.grey,
+                      color: c.textMuted,
                     ),
                   ),
                 );
@@ -711,8 +671,8 @@ class _TourImageGalleryState extends State<_TourImageGallery> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(12),
+                color: c.photoOverlayBottom,
+                borderRadius: BorderRadius.circular(TripMateRadius.sm),
               ),
               child: Text(
                 '${_currentIndex + 1}/${widget.images.length}',
@@ -751,6 +711,7 @@ class _DepartureSchedulesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final theme = Theme.of(context);
 
     return Column(
@@ -759,7 +720,7 @@ class _DepartureSchedulesSection extends StatelessWidget {
         Text(
           TourDetailStrings.schedulesTitle,
           style: theme.textTheme.titleMedium?.copyWith(
-            color: TourSearchPalette.navy,
+            color: c.textPrimary,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -767,9 +728,7 @@ class _DepartureSchedulesSection extends StatelessWidget {
         if (schedules.isNotEmpty) ...[
           Text(
             TourDetailStrings.vietnamTimeNote,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: TourSearchPalette.muted,
-            ),
+            style: theme.textTheme.bodySmall?.copyWith(color: c.textSecondary),
           ),
           const SizedBox(height: AppSpacing.xs),
         ],
@@ -791,44 +750,14 @@ class _DepartureSchedulesSection extends StatelessWidget {
           const SizedBox(height: AppSpacing.xxs),
           Text(
             TourDetailStrings.asOfNote(formatVietnamDateTime(asOfUtc!)),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: TourSearchPalette.muted,
-            ),
+            style: theme.textTheme.bodySmall?.copyWith(color: c.textMuted),
           ),
         ],
 
         // ── MSG65 Warning Notice ──────────────────────────────────────
         if (scheduleError != null) ...[
           const SizedBox(height: AppSpacing.xs),
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.sm),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFEF2F2),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFFCA5A5)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(
-                  Icons.warning_amber_rounded,
-                  color: Color(0xFFDC2626),
-                  size: 20,
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                Expanded(
-                  child: Text(
-                    scheduleError!,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFFB91C1C),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          AppAlert(type: AppAlertType.error, message: scheduleError!),
         ],
       ],
     );
@@ -846,6 +775,7 @@ class _ItinerarySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -853,7 +783,7 @@ class _ItinerarySection extends StatelessWidget {
         Text(
           TourDetailStrings.itineraryTitle,
           style: theme.textTheme.titleMedium?.copyWith(
-            color: TourSearchPalette.navy,
+            color: c.textPrimary,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -862,13 +792,8 @@ class _ItinerarySection extends StatelessWidget {
         ...itineraryDays.map((day) {
           return Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: Container(
+            child: AppCard(
               padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.line),
-              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -880,13 +805,13 @@ class _ItinerarySection extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: TourSearchPalette.teal,
-                          borderRadius: BorderRadius.circular(4),
+                          color: c.brandTeal,
+                          borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           TourDetailStrings.dayNumber(day.dayNumber),
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: c.textOnBrand,
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
@@ -895,14 +820,17 @@ class _ItinerarySection extends StatelessWidget {
                       const SizedBox(width: AppSpacing.xs),
                       Expanded(
                         child: Text(
-                          // Real data has no separate day title: avoid "Day 1 Day 1".
+                          // Real data has no separate day title: avoid repeating "Ngày 1".
                           day.title ==
-                                  TourDetailStrings.dayNumber(day.dayNumber)
+                                      TourDetailStrings.dayNumber(
+                                        day.dayNumber,
+                                      ) ||
+                                  day.title == 'Day ${day.dayNumber}'
                               ? ''
                               : day.title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w700,
-                            color: TourSearchPalette.navy,
+                            color: c.textPrimary,
                           ),
                         ),
                       ),
@@ -913,7 +841,7 @@ class _ItinerarySection extends StatelessWidget {
                     Text(
                       day.description,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: TourSearchPalette.navyLight,
+                        color: c.textSecondary,
                         height: 1.4,
                       ),
                     ),
@@ -922,14 +850,11 @@ class _ItinerarySection extends StatelessWidget {
                   if (day.stops.isEmpty &&
                       day.description.trim().isEmpty &&
                       day.activities.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.only(top: AppSpacing.xs),
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.xs),
                       child: Text(
                         TourDetailStrings.noStopsForDay,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: TourSearchPalette.muted,
-                        ),
+                        style: TextStyle(fontSize: 12, color: c.textMuted),
                       ),
                     ),
                   if (day.activities.isNotEmpty) ...[
@@ -940,16 +865,13 @@ class _ItinerarySection extends StatelessWidget {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              '• ',
-                              style: TextStyle(color: TourSearchPalette.teal),
-                            ),
+                            Text('• ', style: TextStyle(color: c.brandTeal)),
                             Expanded(
                               child: Text(
                                 act,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: Color(0xFF475569),
+                                  color: c.textSecondary,
                                 ),
                               ),
                             ),
@@ -986,6 +908,7 @@ class _InclusionsExclusionsSection extends StatelessWidget {
     if (inclusions.isEmpty && exclusions.isEmpty) {
       return const SizedBox.shrink();
     }
+    final c = context.tmColors;
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -993,27 +916,22 @@ class _InclusionsExclusionsSection extends StatelessWidget {
         Text(
           TourDetailStrings.servicesTitle,
           style: theme.textTheme.titleMedium?.copyWith(
-            color: TourSearchPalette.navy,
+            color: c.textPrimary,
             fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
-        Container(
+        AppCard(
           padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.line),
-          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (inclusions.isNotEmpty) ...[
                 Text(
                   '${TourDetailStrings.inclusionsTitle}:',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF15803D),
+                    color: c.success,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xxs),
@@ -1023,18 +941,18 @@ class _InclusionsExclusionsSection extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.check_circle_outline,
                           size: 16,
-                          color: Color(0xFF16A34A),
+                          color: c.success,
                         ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             item,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: Color(0xFF334155),
+                              color: c.textPrimary,
                             ),
                           ),
                         ),
@@ -1048,10 +966,7 @@ class _InclusionsExclusionsSection extends StatelessWidget {
               if (exclusions.isNotEmpty) ...[
                 Text(
                   '${TourDetailStrings.exclusionsTitle}:',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFFDC2626),
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w700, color: c.error),
                 ),
                 const SizedBox(height: AppSpacing.xxs),
                 ...exclusions.map(
@@ -1060,18 +975,14 @@ class _InclusionsExclusionsSection extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(
-                          Icons.highlight_off,
-                          size: 16,
-                          color: Color(0xFFDC2626),
-                        ),
+                        Icon(Icons.highlight_off, size: 16, color: c.error),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             item,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: Color(0xFF334155),
+                              color: c.textPrimary,
                             ),
                           ),
                         ),
@@ -1089,7 +1000,7 @@ class _InclusionsExclusionsSection extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Cancellation Policy Section
+// Highlights, Traveller Requirements, Deposit & Cancellation Policy
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _HighlightsSection extends StatelessWidget {
@@ -1098,34 +1009,34 @@ class _HighlightsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
+    return AppCard(
+      backgroundColor: c.tealSoftContainer,
+      borderColor: c.borderSubtle,
       padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.primarySoft.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            TourDetailStrings.highlightsTitle,
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: TourSearchPalette.navy,
-              fontWeight: FontWeight.w700,
+      child: SizedBox(
+        width: double.infinity,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              TourDetailStrings.highlightsTitle,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: c.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.xxs),
-          Text(
-            highlights,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: TourSearchPalette.navyLight,
-              height: 1.5,
+            const SizedBox(height: AppSpacing.xxs),
+            Text(
+              highlights,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: c.textSecondary,
+                height: 1.5,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1137,6 +1048,7 @@ class _TravellerRequirementsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1144,47 +1056,44 @@ class _TravellerRequirementsSection extends StatelessWidget {
         Text(
           TourDetailStrings.travellerRequirementsTitle,
           style: theme.textTheme.titleMedium?.copyWith(
-            color: TourSearchPalette.navy,
+            color: c.textPrimary,
             fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: AppSpacing.xs),
-        Container(
-          width: double.infinity,
+        AppCard(
           padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.line),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final item in requirements)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(
-                        Icons.backpack_outlined,
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          item,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF334155),
+          child: SizedBox(
+            width: double.infinity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final item in requirements)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.backpack_outlined,
+                          size: 16,
+                          color: c.brandTeal,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            item,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: c.textPrimary,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ],
@@ -1203,50 +1112,46 @@ class _DepositPolicySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final theme = Theme.of(context);
-    return Container(
+    return AppCard(
       key: const Key('tour-detail-deposit-policy'),
-      width: double.infinity,
+      backgroundColor: c.tealSoftContainer,
+      borderColor: c.brandTeal.withValues(alpha: 0.3),
       padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.primarySoft.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.payments_outlined,
-                size: 18,
-                color: AppColors.primary,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  TourDetailStrings.depositPolicyTitle(depositPercent),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: TourSearchPalette.navy,
-                    fontWeight: FontWeight.w700,
+      child: SizedBox(
+        width: double.infinity,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.payments_outlined, size: 18, color: c.brandTeal),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    TourDetailStrings.depositPolicyTitle(depositPercent),
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: c.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xxs),
+            Text(
+              TourDetailStrings.depositPolicyDescription(
+                depositPercent,
+                balanceDueDaysBeforeDeparture,
               ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xxs),
-          Text(
-            TourDetailStrings.depositPolicyDescription(
-              depositPercent,
-              balanceDueDaysBeforeDeparture,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: c.textSecondary,
+                height: 1.5,
+              ),
             ),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: TourSearchPalette.navyLight,
-              height: 1.5,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1260,10 +1165,11 @@ class _CancellationPolicySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final theme = Theme.of(context);
     final lines = describeCancellationRules(rules);
     final textStyle = theme.textTheme.bodySmall?.copyWith(
-      color: TourSearchPalette.navyLight,
+      color: c.textSecondary,
       height: 1.5,
     );
     return Column(
@@ -1272,37 +1178,34 @@ class _CancellationPolicySection extends StatelessWidget {
         Text(
           TourDetailStrings.cancellationPolicyTitle,
           style: theme.textTheme.titleMedium?.copyWith(
-            color: TourSearchPalette.navy,
+            color: c.textPrimary,
             fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: AppSpacing.xs),
-        Container(
-          width: double.infinity,
+        AppCard(
           padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.line),
+          child: SizedBox(
+            width: double.infinity,
+            child: lines.isNotEmpty
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: lines
+                        .map(
+                          (line) => Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(line, style: textStyle),
+                          ),
+                        )
+                        .toList(),
+                  )
+                : Text(
+                    policy.trim().isEmpty
+                        ? TourDetailStrings.noCancellationPolicy
+                        : policy,
+                    style: textStyle,
+                  ),
           ),
-          child: lines.isNotEmpty
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: lines
-                      .map(
-                        (line) => Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Text(line, style: textStyle),
-                        ),
-                      )
-                      .toList(),
-                )
-              : Text(
-                  policy.trim().isEmpty
-                      ? TourDetailStrings.noCancellationPolicy
-                      : policy,
-                  style: textStyle,
-                ),
         ),
       ],
     );
@@ -1326,6 +1229,7 @@ class _ReviewsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final theme = Theme.of(context);
 
     return Column(
@@ -1339,17 +1243,14 @@ class _ReviewsSection extends StatelessWidget {
             Text(
               TourDetailStrings.reviewsTitle,
               style: theme.textTheme.titleMedium?.copyWith(
-                color: TourSearchPalette.navy,
+                color: c.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
             if (averageRating != null)
               Text(
                 '★ ${averageRating!.toStringAsFixed(1)} ($reviewCount)',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFFD97706),
-                ),
+                style: TextStyle(fontWeight: FontWeight.w700, color: c.warning),
               ),
           ],
         ),
@@ -1357,27 +1258,17 @@ class _ReviewsSection extends StatelessWidget {
 
         // ── Canonical MSG128 when nobody has reviewed the tour ──────────
         if (reviews.isEmpty && reviewCount == 0)
-          Container(
-            width: double.infinity,
+          AppCard(
             padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.line),
-            ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.rate_review_outlined,
-                  color: TourSearchPalette.muted,
-                  size: 24,
-                ),
+                Icon(Icons.rate_review_outlined, color: c.textMuted, size: 24),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
                     TourDetailState.msg128,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: TourSearchPalette.muted,
+                      color: c.textSecondary,
                     ),
                   ),
                 ),
@@ -1387,22 +1278,15 @@ class _ReviewsSection extends StatelessWidget {
         else if (reviews.isEmpty)
           Text(
             TourDetailStrings.reviewsAggregateOnly,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: TourSearchPalette.muted,
-            ),
+            style: theme.textTheme.bodySmall?.copyWith(color: c.textSecondary),
           )
         else
           Column(
             children: reviews.map((rev) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: Container(
+                child: AppCard(
                   padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.line),
-                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1411,27 +1295,27 @@ class _ReviewsSection extends StatelessWidget {
                           Expanded(
                             child: Text(
                               rev.authorName,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w700,
-                                color: TourSearchPalette.navy,
+                                color: c.textPrimary,
                               ),
                             ),
                           ),
                           const SizedBox(width: AppSpacing.xs),
                           Row(
                             children: [
-                              const Icon(
-                                Icons.star,
+                              Icon(
+                                Icons.star_rounded,
                                 size: 14,
-                                color: Color(0xFFF59E0B),
+                                color: c.warning,
                               ),
                               const SizedBox(width: 2),
                               Text(
                                 rev.rating.toStringAsFixed(1),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
-                                  color: Color(0xFFD97706),
+                                  color: c.warning,
                                 ),
                               ),
                             ],
@@ -1442,7 +1326,7 @@ class _ReviewsSection extends StatelessWidget {
                       Text(
                         rev.comment,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: TourSearchPalette.navyLight,
+                          color: c.textSecondary,
                           height: 1.4,
                         ),
                       ),
@@ -1458,7 +1342,7 @@ class _ReviewsSection extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Sticky Bottom Bar with Book Now Boundary
+// Sticky Bottom Bar with Book Now Boundary (Template T3)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _TourDetailBottomBar extends StatelessWidget {
@@ -1468,79 +1352,51 @@ class _TourDetailBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final detail = state.tourDetail!;
     final selectedSchedule = state.selectedSchedule;
     final price = selectedSchedule?.price ?? detail.basePrice;
     // BR-60: only a departure the server says is bookable can be booked.
     final canBook = selectedSchedule?.isSelectable ?? false;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: 10,
-      ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: AppColors.line)),
-      ),
-      child: SafeArea(
-        child: Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.xs,
-          children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  TourDetailStrings.fromPrice,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: TourSearchPalette.muted,
-                  ),
-                ),
-                Text(
-                  formatVnd(price),
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    color: TourSearchPalette.teal,
-                  ),
-                ),
-                if (detail.hasDepositPolicy)
-                  Text(
-                    TourDetailStrings.depositPolicyBadge(
-                      detail.depositPercent!,
-                      detail.balanceDueDaysBeforeDeparture!,
-                    ),
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                    ),
-                  ),
-              ],
-            ),
-            FilledButton(
-              key: const Key('tour-detail-book-now-button'),
-              onPressed: canBook ? () => _handleBookNow(context, state) : null,
-              style: FilledButton.styleFrom(
-                backgroundColor: TourSearchPalette.teal,
-                minimumSize: const Size(0, 44),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
+    return AppStickyActionBar(
+      summary: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            TourDetailStrings.fromPrice,
+            style: TextStyle(fontSize: 11, color: c.textMuted),
+          ),
+          Text(
+            formatVnd(price),
+            style: AppTypography.price(c.brandTeal, fontSize: 17),
+          ),
+          if (detail.hasDepositPolicy)
+            Text(
+              TourDetailStrings.depositPolicyBadge(
+                detail.depositPercent!,
+                detail.balanceDueDaysBeforeDeparture!,
               ),
-              child: Text(
-                selectedSchedule == null || canBook
-                    ? TourDetailStrings.bookNow
-                    : departureStateLabel(selectedSchedule),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: c.brandTeal,
               ),
             ),
-          ],
+        ],
+      ),
+      primaryAction: FilledButton(
+        key: const Key('tour-detail-book-now-button'),
+        onPressed: canBook ? () => _handleBookNow(context, state) : null,
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(0, 46),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        ),
+        child: Text(
+          selectedSchedule == null || canBook
+              ? TourDetailStrings.bookNow
+              : departureStateLabel(selectedSchedule),
         ),
       ),
     );
@@ -1602,8 +1458,9 @@ class _DemoDetailControlsBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return Container(
-      color: const Color(0xFFFEF3C7),
+      color: c.warningContainer,
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: AppSpacing.xs,
@@ -1611,17 +1468,17 @@ class _DemoDetailControlsBar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.bug_report, size: 14, color: Color(0xFFB45309)),
-              SizedBox(width: 4),
+              Icon(Icons.bug_report, size: 14, color: c.warning),
+              const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   TourDetailStrings.demoControlsTitle,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFFB45309),
+                    color: c.warning,
                   ),
                 ),
               ),

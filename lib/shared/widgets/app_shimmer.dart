@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 
 /// Lightweight, high-performance shimmer animation effect for loading states.
 ///
 /// Uses hardware-accelerated [ShaderMask] with a sliding linear gradient.
-/// Respects accessibility settings by disabling motion when
-/// [MediaQueryData.disableAnimations] is enabled.
+/// Defaults to Coastal Heritage [TripMateColors.shimmerBase] and
+/// [TripMateColors.shimmerHighlight] from `context.tmColors`, adapting
+/// automatically to Light and Dark themes. Respects accessibility settings by
+/// disabling motion when [MediaQueryData.disableAnimations] is enabled.
 class AppShimmer extends StatefulWidget {
   const AppShimmer({
     required this.child,
-    this.baseColor = const Color(0xFFE2E8F0),
-    this.highlightColor = const Color(0xFFF8FAFC),
+    this.baseColor,
+    this.highlightColor,
     this.duration = const Duration(milliseconds: 1400),
     super.key,
   });
 
   final Widget child;
-  final Color baseColor;
-  final Color highlightColor;
+  final Color? baseColor;
+  final Color? highlightColor;
   final Duration duration;
 
   @override
@@ -49,6 +52,10 @@ class _AppShimmerState extends State<AppShimmer>
       return widget.child;
     }
 
+    final c = context.tmColors;
+    final resolvedBase = widget.baseColor ?? c.shimmerBase;
+    final resolvedHighlight = widget.highlightColor ?? c.shimmerHighlight;
+
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
@@ -58,11 +65,7 @@ class _AppShimmerState extends State<AppShimmer>
             return LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                widget.baseColor,
-                widget.highlightColor,
-                widget.baseColor,
-              ],
+              colors: [resolvedBase, resolvedHighlight, resolvedBase],
               stops: const [0.0, 0.5, 1.0],
               transform: _SlidingGradientTransform(
                 slidePercent: _controller.value,
@@ -111,7 +114,7 @@ class SkeletonBox extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: color ?? const Color(0xFFE2E8F0),
+        color: color ?? context.tmColors.shimmerBase,
         borderRadius: BorderRadius.circular(borderRadius),
       ),
     );
@@ -139,7 +142,7 @@ class SkeletonText extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: color ?? const Color(0xFFE2E8F0),
+        color: color ?? context.tmColors.shimmerBase,
         borderRadius: BorderRadius.circular(borderRadius),
       ),
     );
@@ -159,7 +162,7 @@ class SkeletonCircle extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: color ?? const Color(0xFFE2E8F0),
+        color: color ?? context.tmColors.shimmerBase,
         shape: BoxShape.circle,
       ),
     );

@@ -175,7 +175,7 @@ class _OperatorShellPageState extends State<OperatorShellPage>
           if (!widget.isDemoMode)
             IconButton(
               onPressed: () => context.pushNamed(AppRouteNames.operatorInbox),
-              tooltip: 'Notifications',
+              tooltip: 'Thông báo',
               icon: const Icon(Icons.notifications_outlined, size: 22),
             ),
           if (_safetyAlerts case final alerts?) _SafetyAlertsAction(alerts),
@@ -361,7 +361,7 @@ class _OperatorToursHub extends StatelessWidget {
                     Icons.confirmation_number_outlined,
                     size: 18,
                   ),
-                  label: const Text('Mã khuyến mãi & Coupon'),
+                  label: const Text('Mã khuyến mãi'),
                 ),
               ),
             ],

@@ -179,8 +179,8 @@ class TravelerProfileView extends StatelessWidget {
               const Divider(height: 1, indent: 56),
               _ProfileTile(
                 icon: Icons.download_for_offline_outlined,
-                title: 'Dữ liệu offline',
-                subtitle: 'Quản lý dữ liệu ngoại tuyến',
+                title: 'Dữ liệu ngoại tuyến',
+                subtitle: 'Quản lý gói lịch trình ngoại tuyến',
                 onTap: () => context.push(AppRoutes.offlinePackages),
               ),
             ],

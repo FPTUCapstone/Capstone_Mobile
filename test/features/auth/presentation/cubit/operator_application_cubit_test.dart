@@ -73,11 +73,11 @@ void main() {
     expect(result, isFalse);
     expect(
       cubit.state.errorMessage,
-      'This business licence number or tax code is already registered.',
+      'Số giấy phép kinh doanh hoặc mã số thuế này đã được đăng ký.',
     );
     expect(
       cubit.state.fieldErrors['taxCode'],
-      'This tax code is already registered.',
+      'Mã số thuế này đã được đăng ký.',
     );
     expect(cubit.state.fieldErrors['businessLicenseNo'], isNull);
   });
@@ -95,11 +95,11 @@ void main() {
       expect(result, isFalse);
       expect(
         cubit.state.errorMessage,
-        'This business licence number or tax code is already registered.',
+        'Số giấy phép kinh doanh hoặc mã số thuế này đã được đăng ký.',
       );
       expect(
         cubit.state.fieldErrors['businessLicenseNo'],
-        'This business licence number is already registered.',
+        'Số giấy phép kinh doanh này đã được đăng ký.',
       );
       expect(cubit.state.fieldErrors['taxCode'], isNull);
     },
@@ -116,11 +116,11 @@ void main() {
     expect(result, isFalse);
     expect(
       cubit.state.fieldErrors['taxCode'],
-      'This tax code is already registered.',
+      'Mã số thuế này đã được đăng ký.',
     );
     expect(
       cubit.state.fieldErrors['businessLicenseNo'],
-      'This business licence number is already registered.',
+      'Số giấy phép kinh doanh này đã được đăng ký.',
     );
   });
 
@@ -146,7 +146,7 @@ void main() {
       expect(cubit.state.status, OperatorApplicationStatus.pending);
       expect(
         cubit.state.successMessage,
-        'Application resubmitted successfully. It is now pending administrator review.',
+        'Đã nộp lại hồ sơ thành công. Hồ sơ hiện đang chờ quản trị viên phê duyệt.',
       );
       expect(cubit.state.errorMessage, isNull);
       expect(cubit.state.fieldErrors, isEmpty);

@@ -43,7 +43,7 @@ final class BookingRefundProgressCubit
         emit(
           const BookingRefundProgressState(
             status: BookingRefundProgressStatus.failure,
-            failure: ServerFailure('Could not load refund progress.'),
+            failure: ServerFailure('Không thể tải tiến độ hoàn tiền.'),
           ),
         );
       }

@@ -97,7 +97,7 @@ final class _TravelGroupMembersPageState extends State<TravelGroupMembersPage> {
       child: Scaffold(
         backgroundColor: AppColors.surface,
         appBar: AppBar(
-          title: const Text('Group members'),
+          title: const Text('Thành viên nhóm'),
           backgroundColor: AppColors.cardBackground,
           surfaceTintColor: Colors.transparent,
           bottom: const PreferredSize(
@@ -115,18 +115,20 @@ final class _TravelGroupMembersPageState extends State<TravelGroupMembersPage> {
               onRemove: _confirmRemoval,
               notice: state.removedMemberName == null
                   ? null
-                  : '${state.removedMemberName} has been removed from the group.',
+                  : 'Đã xóa ${state.removedMemberName} khỏi nhóm.',
+              isSuccessNotice: state.removedMemberName != null,
             ),
             TravelGroupMembersRemoving(:final members) => _MembersContent(
               members: members,
               currentUserId: _resolvedUserId,
-              notice: 'Removing member...',
+              notice: 'Đang xóa thành viên...',
             ),
             TravelGroupMembersRemovalRetryable(:final members) =>
               _MembersContent(
                 members: members,
                 currentUserId: _resolvedUserId,
-                notice: 'Unable to confirm removal. Please try again.',
+                notice:
+                    'Không thể xác nhận việc xóa thành viên. Vui lòng thử lại.',
                 onRetry: () =>
                     context.read<TravelGroupMembersCubit>().retryRemoval(),
               ),
@@ -140,17 +142,17 @@ final class _TravelGroupMembersPageState extends State<TravelGroupMembersPage> {
                 ),
               ),
             TravelGroupMembersPermissionDenied() => const ErrorView(
-              message:
-                  'You do not have permission to view this group’s members.',
+              message: 'Bạn không có quyền xem danh sách thành viên nhóm này.',
             ),
             TravelGroupMembersAuthenticationRequired() => const ErrorView(
-              message: 'Please sign in to continue.',
+              message: 'Vui lòng đăng nhập để tiếp tục.',
             ),
             TravelGroupMembersNotFound() => const ErrorView(
-              message: 'This travel group could not be found.',
+              message: 'Không tìm thấy nhóm du lịch này.',
             ),
             TravelGroupMembersFailure() => ErrorView(
-              message: 'We could not load group members. Please try again.',
+              message:
+                  'Không thể tải danh sách thành viên nhóm. Vui lòng thử lại.',
               onRetry: () => context.read<TravelGroupMembersCubit>().load(
                 groupId: widget.groupId,
               ),
@@ -168,6 +170,7 @@ final class _MembersContent extends StatelessWidget {
     this.currentUserId,
     this.onRemove,
     this.notice,
+    this.isSuccessNotice = false,
     this.onRetry,
     this.onRefresh,
   });
@@ -176,13 +179,16 @@ final class _MembersContent extends StatelessWidget {
   final int? currentUserId;
   final void Function(TravelGroupMember)? onRemove;
   final String? notice;
+  final bool isSuccessNotice;
   final VoidCallback? onRetry;
   final VoidCallback? onRefresh;
 
   @override
   Widget build(BuildContext context) {
     if (members.members.isEmpty) {
-      return const Center(child: Text('There are no active members yet.'));
+      return const Center(
+        child: Text('Chưa có thành viên nào đang hoạt động.'),
+      );
     }
 
     // Host authority audit (P2): Authoritative loaded group members define the true Host.
@@ -203,7 +209,7 @@ final class _MembersContent extends StatelessWidget {
           return _MembersHeader(members: members);
         }
         if (notice != null && index == 1) {
-          final isSuccess = notice!.contains('removed from the group');
+          final isSuccess = isSuccessNotice;
           return Container(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.md,
@@ -239,11 +245,11 @@ final class _MembersContent extends StatelessWidget {
                   ),
                 ),
                 if (onRetry != null)
-                  TextButton(onPressed: onRetry, child: const Text('Retry')),
+                  TextButton(onPressed: onRetry, child: const Text('Thử lại')),
                 if (onRefresh != null)
                   TextButton(
                     onPressed: onRefresh,
-                    child: const Text('Refresh'),
+                    child: const Text('Làm mới'),
                   ),
               ],
             ),
@@ -312,7 +318,7 @@ final class _MembersHeader extends StatelessWidget {
                   AppRoutes.itineraryDetailPath(members.itineraryId),
                 ),
                 child: Text(
-                  'Itinerary #${members.itineraryId}',
+                  'Lịch trình #${members.itineraryId}',
                   style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.primary,
@@ -332,7 +338,7 @@ final class _MembersHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  '${members.memberCount} active member${members.memberCount == 1 ? '' : 's'}',
+                  '${members.memberCount} thành viên đang hoạt động',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -393,8 +399,8 @@ final class _MemberTile extends StatelessWidget {
           ),
         ),
         subtitle: Text(
-          'Joined ${_formatDate(member.joinedAtUtc)}\n'
-          'Location sharing: ${member.locationSharingEnabled ? 'Enabled' : 'Disabled'}',
+          'Tham gia ngày ${_formatDate(member.joinedAtUtc)}\n'
+          'Chia sẻ vị trí: ${member.locationSharingEnabled ? 'Đang bật' : 'Đang tắt'}',
           style: const TextStyle(fontSize: 12, color: AppColors.muted),
         ),
         trailing: member.isHost
@@ -409,7 +415,7 @@ final class _MemberTile extends StatelessWidget {
                 backgroundColor: Color(0xFFFEF6E6),
                 side: BorderSide(color: Color(0xFFF3DCA9)),
                 label: Text(
-                  'Group Host',
+                  'Trưởng nhóm',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 11.5,
@@ -425,7 +431,7 @@ final class _MemberTile extends StatelessWidget {
                   minimumSize: const Size(48, 48),
                 ),
                 onPressed: onRemove == null ? null : () => onRemove!(member),
-                child: const Text('Remove'),
+                child: const Text('Xóa'),
               )
             : null,
       ),
@@ -434,20 +440,8 @@ final class _MemberTile extends StatelessWidget {
 }
 
 String _formatDate(DateTime value) {
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
   final local = value.toLocal();
-  return '${months[local.month - 1]} ${local.day}, ${local.year}';
+  final dd = local.day.toString().padLeft(2, '0');
+  final mm = local.month.toString().padLeft(2, '0');
+  return '$dd/$mm/${local.year}';
 }

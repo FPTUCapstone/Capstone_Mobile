@@ -91,7 +91,7 @@ void main() {
           findsOneWidget,
         );
         expect(find.byType(TourListCard), findsWidgets);
-        expect(find.textContaining('match'), findsWidgets);
+        expect(find.textContaining('phù hợp'), findsWidgets);
 
         final nextBtn = find.byKey(const Key('rec-next-page-button'));
         await tester.scrollUntilVisible(

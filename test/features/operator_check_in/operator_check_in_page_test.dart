@@ -8,6 +8,7 @@ import 'package:trip_mate_mobile/features/operator_check_in/domain/repositories/
 import 'package:trip_mate_mobile/features/operator_check_in/domain/usecases/operator_check_in_use_cases.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/presentation/cubit/operator_check_in_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_check_in/presentation/pages/operator_check_in_page.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 
 final class _FakeCheckInRepository implements OperatorCheckInRepository {
   List<OperatorDepartureSummary> departures = [];
@@ -111,10 +112,10 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('Check-in'), findsOneWidget);
-    expect(find.text('No departures scheduled for today'), findsOneWidget);
+    expect(find.text('Điểm danh'), findsOneWidget);
+    expect(find.text('Không có chuyến khởi hành nào hôm nay'), findsOneWidget);
     expect(
-      find.text('Check back when a tour departure is active.'),
+      find.text('Quay lại khi có lịch khởi hành đang diễn ra.'),
       findsOneWidget,
     );
   });
@@ -150,9 +151,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('Hanoi Heritage Tour'), findsOneWidget);
-    expect(find.text('BOARDING'), findsOneWidget);
-    expect(find.text('Scan next traveler'), findsOneWidget);
-    expect(find.text('Manual code'), findsOneWidget);
+    expect(find.text('ĐANG ĐÓN KHÁCH'), findsOneWidget);
+    expect(find.text('Quét khách tiếp theo'), findsOneWidget);
+    expect(find.text('Nhập mã thủ công'), findsOneWidget);
     expect(find.byKey(const Key('custom_scanner_view')), findsOneWidget);
   });
 
@@ -190,8 +191,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('TK-0000000088 accepted'), findsOneWidget);
-    expect(find.textContaining('Tran Thi Mai · 2 pax'), findsOneWidget);
+    expect(find.text('TK-0000000088 đã được chấp nhận'), findsOneWidget);
+    expect(find.textContaining('Tran Thi Mai · 2 khách'), findsOneWidget);
     expect(repository.lastScannedQr, 'VALID_QR_CODE_123');
   });
 
@@ -238,8 +239,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('TK-0000000088 already used'), findsOneWidget);
-    expect(find.textContaining('previously checked in at'), findsOneWidget);
+    expect(find.text('TK-0000000088 đã được sử dụng'), findsOneWidget);
+    expect(find.textContaining('đã điểm danh trước đó lúc'), findsOneWidget);
   });
 
   testWidgets('manual code entry dialog opens and submits booking code', (
@@ -269,19 +270,19 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    // Tap 'Manual code' button
-    await tester.tap(find.text('Manual code'));
+    // Tap 'Nhập mã thủ công' button
+    await tester.tap(find.text('Nhập mã thủ công'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Manual Check-in'), findsOneWidget);
-    expect(find.text('Booking or Ticket Code'), findsOneWidget);
+    expect(find.text('Điểm danh thủ công'), findsOneWidget);
+    expect(find.text('Mã đơn hoặc mã vé'), findsOneWidget);
 
     // Enter booking code
     await tester.enterText(find.byType(TextFormField), 'BK-20261030-999');
     await tester.pump();
 
-    // Tap 'Check In' inside dialog
-    await tester.tap(find.text('Check In'));
+    // Tap 'Điểm danh' inside dialog
+    await tester.tap(find.widgetWithText(AppButton, 'Điểm danh'));
     await tester.pumpAndSettle();
 
     expect(repository.lastScannedBookingCode, 'BK-20261030-999');
@@ -338,25 +339,25 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(
         find.text(
-          'Camera permission denied. Please enable camera access in Settings or use manual code entry.',
+          'Quyền truy cập camera bị từ chối. Vui lòng bật quyền camera trong Cài đặt hoặc nhập mã thủ công.',
         ),
         findsOneWidget,
       );
       expect(
-        find.text('Camera unavailable. Please use manual code entry.'),
+        find.text('Camera không khả dụng. Vui lòng nhập mã thủ công.'),
         findsNothing,
       );
 
       // Manual fallback remains visible and functional (SRS Abnormal Case 2.a1).
-      expect(find.text('Manual code'), findsOneWidget);
-      await tester.tap(find.text('Manual code'));
+      expect(find.text('Nhập mã thủ công'), findsOneWidget);
+      await tester.tap(find.text('Nhập mã thủ công'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextFormField), 'BK-PERM-DENIED-1');
-      await tester.tap(find.text('Check In'));
+      await tester.tap(find.widgetWithText(AppButton, 'Điểm danh'));
       await tester.pumpAndSettle();
 
       expect(repository.lastScannedBookingCode, 'BK-PERM-DENIED-1');
-      expect(find.text('TK-0000000088 accepted'), findsOneWidget);
+      expect(find.text('TK-0000000088 đã được chấp nhận'), findsOneWidget);
     },
   );
 
@@ -390,20 +391,23 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(
-        find.text('Camera unavailable. Please use manual code entry.'),
+        find.text('Camera không khả dụng. Vui lòng nhập mã thủ công.'),
         findsOneWidget,
       );
-      expect(find.textContaining('Camera permission denied'), findsNothing);
+      expect(
+        find.textContaining('Quyền truy cập camera bị từ chối'),
+        findsNothing,
+      );
 
-      expect(find.text('Manual code'), findsOneWidget);
-      await tester.tap(find.text('Manual code'));
+      expect(find.text('Nhập mã thủ công'), findsOneWidget);
+      await tester.tap(find.text('Nhập mã thủ công'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextFormField), 'BK-CAM-UNAVAIL-1');
-      await tester.tap(find.text('Check In'));
+      await tester.tap(find.widgetWithText(AppButton, 'Điểm danh'));
       await tester.pumpAndSettle();
 
       expect(repository.lastScannedBookingCode, 'BK-CAM-UNAVAIL-1');
-      expect(find.text('TK-0000000088 accepted'), findsOneWidget);
+      expect(find.text('TK-0000000088 đã được chấp nhận'), findsOneWidget);
     },
   );
 }

@@ -41,7 +41,7 @@ void main() {
     expect(cubit.state.status, PoiSearchStatus.failure);
     expect(
       cubit.state.message,
-      'We could not get your current location. Choose a place instead.',
+      'Không thể xác định vị trí hiện tại của bạn. Vui lòng chọn một địa điểm.',
     );
     await cubit.close();
   });

@@ -12,6 +12,10 @@ import 'package:trip_mate_mobile/features/booking_refund/presentation/cubit/book
 import 'package:trip_mate_mobile/features/support_chat/domain/entities/support_chat.dart';
 import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_coastal_app_bar.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_section_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_sticky_action_bar.dart';
 import 'package:trip_mate_mobile/shared/widgets/loading_indicator.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
@@ -33,77 +37,59 @@ final class _BookingRefundProgressPageState
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: AppColors.surface,
-    appBar: AppBar(
-      title: const Text('Refund progress'),
-      backgroundColor: AppColors.cardBackground,
-      surfaceTintColor: Colors.transparent,
-      bottom: const PreferredSize(
-        preferredSize: Size.fromHeight(1),
-        child: Divider(height: 1, thickness: 1, color: AppColors.line),
-      ),
-    ),
-    bottomNavigationBar:
-        BlocBuilder<BookingRefundProgressCubit, BookingRefundProgressState>(
-          builder: (context, state) {
-            if (state.status != BookingRefundProgressStatus.success ||
-                state.progress == null) {
-              return const SizedBox.shrink();
-            }
-            return DecoratedBox(
-              decoration: const BoxDecoration(
-                color: AppColors.cardBackground,
-                border: Border(top: BorderSide(color: AppColors.line)),
-              ),
-              child: SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.md,
-                    AppSpacing.sm,
-                    AppSpacing.md,
-                    AppSpacing.md,
-                  ),
-                  child: SizedBox(
-                    height: 44,
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.support_agent_outlined, size: 18),
-                      label: const Text('Ask about this refund'),
-                      onPressed: () => context.push(
-                        context.read<AuthSessionCubit>().state.role ==
-                                UserRole.tourOperator
-                            ? AppRoutes.operatorSupportChat
-                            : AppRoutes.supportChat,
-                        extra: SupportChatContext(
-                          kind: 'refund',
-                          id: widget.bookingId,
-                        ),
+  Widget build(BuildContext context) {
+    final c = context.tmColors;
+    return Scaffold(
+      backgroundColor: c.canvas,
+      appBar: const AppCoastalAppBar(title: 'Tiến độ hoàn tiền'),
+      bottomNavigationBar:
+          BlocBuilder<BookingRefundProgressCubit, BookingRefundProgressState>(
+            builder: (context, state) {
+              if (state.status != BookingRefundProgressStatus.success ||
+                  state.progress == null) {
+                return const SizedBox.shrink();
+              }
+              return AppStickyActionBar(
+                primaryAction: SizedBox(
+                  height: 46,
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.support_agent_outlined, size: 18),
+                    label: const Text('Hỏi về khoản hoàn tiền này'),
+                    onPressed: () => context.push(
+                      context.read<AuthSessionCubit>().state.role ==
+                              UserRole.tourOperator
+                          ? AppRoutes.operatorSupportChat
+                          : AppRoutes.supportChat,
+                      extra: SupportChatContext(
+                        kind: 'refund',
+                        id: widget.bookingId,
                       ),
                     ),
                   ),
                 ),
-              ),
-            );
-          },
-        ),
-    body: BlocBuilder<BookingRefundProgressCubit, BookingRefundProgressState>(
-      builder: (context, state) => switch (state.status) {
-        BookingRefundProgressStatus.initial ||
-        BookingRefundProgressStatus.loading => const Center(
-          child: LoadingIndicator(),
-        ),
-        BookingRefundProgressStatus.failure => _Failure(
-          message: state.failure?.message ?? 'Could not load refund progress.',
-          onRetry: () =>
-              context.read<BookingRefundProgressCubit>().load(widget.bookingId),
-        ),
-        BookingRefundProgressStatus.success when state.progress != null =>
-          _Progress(progress: state.progress!),
-        _ => const _Failure(message: 'Could not load refund progress.'),
-      },
-    ),
-  );
+              );
+            },
+          ),
+      body: BlocBuilder<BookingRefundProgressCubit, BookingRefundProgressState>(
+        builder: (context, state) => switch (state.status) {
+          BookingRefundProgressStatus.initial ||
+          BookingRefundProgressStatus.loading => const Center(
+            child: LoadingIndicator(),
+          ),
+          BookingRefundProgressStatus.failure => _Failure(
+            message:
+                state.failure?.message ?? 'Không thể tải tiến độ hoàn tiền.',
+            onRetry: () => context.read<BookingRefundProgressCubit>().load(
+              widget.bookingId,
+            ),
+          ),
+          BookingRefundProgressStatus.success when state.progress != null =>
+            _Progress(progress: state.progress!),
+          _ => const _Failure(message: 'Không thể tải tiến độ hoàn tiền.'),
+        },
+      ),
+    );
+  }
 }
 
 final class _Progress extends StatelessWidget {
@@ -112,56 +98,69 @@ final class _Progress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final presentation = _presentation(progress.status);
+    final c = context.tmColors;
+    final presentation = _presentation(progress.status, c);
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
-        Container(
+        AppCard(
+          backgroundColor: c.surfaceCard,
+          borderColor: c.borderSubtle,
           padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: presentation.background,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.line),
-          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'BOOKING',
+                        Text(
+                          'MÃ ĐẶT TOUR',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.muted,
+                            letterSpacing: 0.4,
+                            color: c.textMuted,
                           ),
                         ),
                         const SizedBox(height: AppSpacing.xxs),
                         Text(
                           progress.bookingCode,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.ink,
+                            color: c.textPrimary,
                           ),
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(width: AppSpacing.xs),
                   StatusBadge(
                     label: presentation.label,
                     type: presentation.badgeType,
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                presentation.description,
-                style: const TextStyle(color: AppColors.ink, height: 1.35),
+              const SizedBox(height: AppSpacing.md),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: presentation.background,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  presentation.description,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    color: c.textPrimary,
+                    height: 1.4,
+                  ),
+                ),
               ),
             ],
           ),
@@ -170,17 +169,18 @@ final class _Progress extends StatelessWidget {
         _DetailCard(
           rows: [
             _Row(
-              'Refund amount',
+              'Số tiền hoàn',
               TripFormatters.formatVnd(progress.refundAmount),
+              isPrice: true,
             ),
-            _Row('Requested', _formatDate(progress.requestedAtUtc)),
-            _Row('Completed', _formatDate(progress.processedAtUtc)),
+            _Row('Ngày yêu cầu', _formatDate(progress.requestedAtUtc)),
+            _Row('Hoàn tất', _formatDate(progress.processedAtUtc)),
             if (progress.nextAttemptAtUtc != null)
-              _Row('Next attempt', _formatDate(progress.nextAttemptAtUtc)),
+              _Row('Lần thử tiếp theo', _formatDate(progress.nextAttemptAtUtc)),
             if (progress.gatewayReference != null)
-              _Row('Reference', progress.gatewayReference!),
+              _Row('Mã tham chiếu', progress.gatewayReference!),
             if (progress.attemptCount > 0)
-              _Row('Attempts', '${progress.attemptCount}'),
+              _Row('Số lần xử lý', '${progress.attemptCount}'),
           ],
         ),
         if (progress.status == BookingRefundStatus.failed) ...[
@@ -188,7 +188,7 @@ final class _Progress extends StatelessWidget {
           const AppAlert(
             type: AppAlertType.info,
             message:
-                'No action is needed from you. Our support team will contact you if more information is required.',
+                'Bạn không cần thực hiện thêm thao tác nào. Đội ngũ hỗ trợ sẽ liên hệ nếu cần thêm thông tin.',
           ),
         ],
       ],
@@ -201,61 +201,34 @@ final class _DetailCard extends StatelessWidget {
   final List<_Row> rows;
 
   @override
-  Widget build(BuildContext context) => Card(
-    elevation: 0,
-    color: AppColors.cardBackground,
-    margin: EdgeInsets.zero,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(14),
-      side: const BorderSide(color: AppColors.line),
-    ),
-    child: Padding(
-      padding: const EdgeInsets.all(AppSpacing.md),
+  Widget build(BuildContext context) {
+    final c = context.tmColors;
+    return AppSectionCard(
       child: Column(
         children: [
           for (var index = 0; index < rows.length; index++) ...[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    rows[index].label,
-                    style: const TextStyle(
-                      fontSize: 13.5,
-                      color: AppColors.muted,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Flexible(
-                  child: Text(
-                    rows[index].value,
-                    textAlign: TextAlign.end,
-                    style: const TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.ink,
-                    ),
-                  ),
-                ),
-              ],
+            AppKeyValueRow(
+              label: rows[index].label,
+              value: rows[index].value,
+              isPrice: rows[index].isPrice,
             ),
             if (index != rows.length - 1)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                child: Divider(height: 1, color: AppColors.line),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                child: Divider(height: 1, color: c.borderSubtle),
               ),
           ],
         ],
       ),
-    ),
-  );
+    );
+  }
 }
 
 final class _Row {
-  const _Row(this.label, this.value);
+  const _Row(this.label, this.value, {this.isPrice = false});
   final String label;
   final String value;
+  final bool isPrice;
 }
 
 final class _Failure extends StatelessWidget {
@@ -276,7 +249,7 @@ final class _Failure extends StatelessWidget {
             FilledButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
-              label: const Text('Try again'),
+              label: const Text('Thử lại'),
             ),
           ],
         ],
@@ -291,92 +264,93 @@ final class _Failure extends StatelessWidget {
   StatusBadgeType badgeType,
   Color background,
 })
-_presentation(BookingRefundStatus status) => switch (status) {
+_presentation(BookingRefundStatus status, TripMateColors c) => switch (status) {
   BookingRefundStatus.pendingOperatorConfirmation => (
-    label: 'Awaiting confirmation',
+    label: 'Chờ xác nhận',
     description:
-        'Your refund request is awaiting confirmation from the tour operator.',
+        'Yêu cầu hoàn tiền của bạn đang chờ nhà điều hành tour xác nhận.',
     badgeType: StatusBadgeType.info,
-    background: AppColors.primarySoft,
+    background: c.infoContainer,
   ),
   BookingRefundStatus.awaitingPartnerReturn => (
-    label: 'Awaiting partner return',
+    label: 'Chờ đối tác hoàn trả',
     description:
-        'We are waiting for the tour operator to return their share before your refund can be processed.',
+        'Chúng tôi đang chờ nhà điều hành tour hoàn trả phần tiền đối ứng trước khi xử lý hoàn tiền cho bạn.',
     badgeType: StatusBadgeType.info,
-    background: AppColors.primarySoft,
+    background: c.infoContainer,
   ),
   BookingRefundStatus.returnReported => (
-    label: 'Partner return reported',
+    label: 'Đối tác đã báo hoàn trả',
     description:
-        'The tour operator has reported returning their share. Our team is verifying receipt before processing your refund.',
+        'Nhà điều hành tour đã báo cáo hoàn trả phần tiền đối ứng. Đội ngũ của chúng tôi đang xác nhận trước khi xử lý hoàn tiền.',
     badgeType: StatusBadgeType.info,
-    background: AppColors.primarySoft,
+    background: c.infoContainer,
   ),
   BookingRefundStatus.returnReceived => (
-    label: 'Partner return received',
+    label: 'Đã nhận tiền từ đối tác',
     description:
-        'Our team has confirmed receipt of the partner return. Your refund is awaiting payment processing.',
+        'Đội ngũ của chúng tôi đã xác nhận nhận tiền từ đối tác. Khoản hoàn tiền của bạn đang chờ xử lý thanh toán.',
     badgeType: StatusBadgeType.info,
-    background: AppColors.primarySoft,
+    background: c.infoContainer,
   ),
   BookingRefundStatus.reconciliation => (
-    label: 'Under reconciliation',
+    label: 'Đang đối soát',
     description:
-        'Our team is checking the refund records. Your refund has not been confirmed as completed.',
+        'Đội ngũ của chúng tôi đang kiểm tra đối soát hồ sơ hoàn tiền. Khoản hoàn tiền chưa được xác nhận hoàn tất.',
     badgeType: StatusBadgeType.warning,
-    background: const Color(0xFFFEF6E6),
+    background: c.warningContainer,
   ),
   BookingRefundStatus.escalated => (
-    label: 'Escalated for review',
+    label: 'Đã chuyển cấp xem xét',
     description:
-        'Your refund needs further review by our team. It has not been confirmed as completed.',
+        'Khoản hoàn tiền của bạn cần được kiểm tra chuyên sâu hơn và chưa được xác nhận hoàn tất.',
     badgeType: StatusBadgeType.warning,
-    background: const Color(0xFFFEF6E6),
+    background: c.warningContainer,
   ),
   BookingRefundStatus.processed => (
-    label: 'Refund completed',
-    description:
-        'The refund has been completed through the original payment channel.',
+    label: 'Hoàn tiền thành công',
+    description: 'Khoản hoàn tiền đã hoàn tất qua kênh thanh toán ban đầu.',
     badgeType: StatusBadgeType.success,
-    background: const Color(0xFFE7F6F0),
+    background: c.successContainer,
   ),
   BookingRefundStatus.manualReview => (
-    label: 'Under manual review',
-    description: 'Our team is verifying this refund with the payment provider.',
+    label: 'Đang kiểm tra thủ công',
+    description:
+        'Đội ngũ của chúng tôi đang xác minh khoản hoàn tiền này với cổng thanh toán.',
     badgeType: StatusBadgeType.warning,
-    background: const Color(0xFFFEF6E6),
+    background: c.warningContainer,
   ),
   BookingRefundStatus.failed => (
-    label: 'Needs attention',
+    label: 'Cần hỗ trợ xử lý',
     description:
-        'We could not complete the refund automatically. Support will follow up.',
+        'Hệ thống chưa thể hoàn tiền tự động. Đội ngũ hỗ trợ sẽ chủ động liên hệ xử lý.',
     badgeType: StatusBadgeType.error,
-    background: const Color(0xFFFDEEEF),
+    background: c.errorContainer,
   ),
   BookingRefundStatus.rejected => (
-    label: 'Refund not approved',
-    description: 'This refund was not approved under the applicable policy.',
+    label: 'Không duyệt hoàn tiền',
+    description:
+        'Yêu cầu hoàn tiền này không được chấp thuận theo chính sách áp dụng.',
     badgeType: StatusBadgeType.neutral,
-    background: const Color(0xFFEFECE4),
+    background: c.surfaceElevated,
   ),
   BookingRefundStatus.retryPending => (
-    label: 'Retry scheduled',
-    description: 'We will retry the refund shortly.',
+    label: 'Đã lên lịch thử lại',
+    description: 'Hệ thống sẽ sớm thực hiện lại giao dịch hoàn tiền.',
     badgeType: StatusBadgeType.info,
-    background: AppColors.primarySoft,
+    background: c.infoContainer,
   ),
   BookingRefundStatus.processing => (
-    label: 'Processing refund',
-    description: 'The payment provider is processing your refund.',
+    label: 'Đang xử lý hoàn tiền',
+    description: 'Cổng thanh toán đang xử lý khoản hoàn tiền của bạn.',
     badgeType: StatusBadgeType.info,
-    background: AppColors.primarySoft,
+    background: c.infoContainer,
   ),
   BookingRefundStatus.pending => (
-    label: 'Refund requested',
-    description: 'Your refund request has been received.',
+    label: 'Đã tiếp nhận yêu cầu',
+    description: 'Yêu cầu hoàn tiền của bạn đã được tiếp nhận.',
     badgeType: StatusBadgeType.info,
-    background: AppColors.primarySoft,
+    background: c.infoContainer,
   ),
 };
 

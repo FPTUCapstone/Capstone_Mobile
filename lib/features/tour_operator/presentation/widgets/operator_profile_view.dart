@@ -204,9 +204,12 @@ class _OperatorProfileViewState extends State<OperatorProfileView> {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  profile.approvalStatus == 'Approved'
-                                      ? 'Đối tác đã xác minh'
-                                      : profile.approvalStatus,
+                                  switch (profile.approvalStatus) {
+                                    'Approved' => 'Đối tác đã xác minh',
+                                    'Pending' => 'Chờ duyệt',
+                                    'Rejected' => 'Bị từ chối',
+                                    _ => profile.approvalStatus,
+                                  },
                                   style: const TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,

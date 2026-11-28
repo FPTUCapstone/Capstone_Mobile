@@ -115,8 +115,8 @@ void main() {
     (tester) async {
       await pumpTestApp(tester);
 
-      expect(find.text('Resubmit Application'), findsOneWidget);
-      expect(find.text('Rejection reason'), findsOneWidget);
+      expect(find.text('Nộp lại hồ sơ đối tác'), findsOneWidget);
+      expect(find.text('Lý do từ chối'), findsOneWidget);
       expect(find.text('Incorrect document provided'), findsOneWidget);
       expect(find.text('Đà Nẵng Travel'), findsOneWidget);
       expect(find.text('48-001/2024/TCDL-GPLHQT'), findsOneWidget);
@@ -124,11 +124,14 @@ void main() {
       expect(find.text('Trần Văn A'), findsOneWidget);
       expect(find.text('123 Bạch Đằng, Đà Nẵng'), findsOneWidget);
       expect(find.text('0901234567'), findsOneWidget);
-      expect(find.text('BusinessLicense #101'), findsOneWidget);
-      expect(find.text('Replace business licence (optional)'), findsOneWidget);
+      expect(find.text('Giấy phép kinh doanh #101'), findsOneWidget);
+      expect(
+        find.text('Thay giấy phép kinh doanh (không bắt buộc)'),
+        findsOneWidget,
+      );
       expect(
         find.text(
-          'Leave empty to submit the latest existing licence for review again.',
+          'Để trống nếu muốn giữ nguyên bản giấy phép gần nhất để xét duyệt lại.',
         ),
         findsOneWidget,
       );
@@ -152,7 +155,7 @@ void main() {
 
       await pumpTestApp(tester);
 
-      final submitBtn = find.text('Resubmit application');
+      final submitBtn = find.text('Nộp lại hồ sơ');
       await tester.ensureVisible(submitBtn);
       await tester.tap(submitBtn);
       await tester.pumpAndSettle();
@@ -192,7 +195,9 @@ void main() {
 
       await pumpTestApp(tester);
 
-      final replaceBtn = find.text('Replace business licence (optional)');
+      final replaceBtn = find.text(
+        'Thay giấy phép kinh doanh (không bắt buộc)',
+      );
       await tester.ensureVisible(replaceBtn);
       await tester.tap(replaceBtn);
       await tester.pumpAndSettle();
@@ -200,7 +205,7 @@ void main() {
       expect(picker.pickCallCount, 1);
       expect(find.text('new_license.pdf'), findsOneWidget);
 
-      final submitBtn = find.text('Resubmit application');
+      final submitBtn = find.text('Nộp lại hồ sơ');
       await tester.ensureVisible(submitBtn);
       await tester.tap(submitBtn);
       await tester.pumpAndSettle();
@@ -231,19 +236,22 @@ void main() {
 
       await pumpTestApp(tester);
 
-      expect(find.text('Upload business licence (required)'), findsOneWidget);
       expect(
-        find.text('A business licence document is required to resubmit.'),
+        find.text('Tải lên giấy phép kinh doanh (bắt buộc)'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Cần tải lên giấy phép kinh doanh để nộp lại hồ sơ.'),
         findsOneWidget,
       );
 
-      final submitBtn = find.text('Resubmit application');
+      final submitBtn = find.text('Nộp lại hồ sơ');
       await tester.ensureVisible(submitBtn);
       await tester.tap(submitBtn);
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Please upload the required business licence document.'),
+        find.text('Vui lòng tải lên bản sao giấy phép kinh doanh.'),
         findsOneWidget,
       );
       expect(repository.resubmitCallCount, 0);
@@ -270,26 +278,26 @@ void main() {
       final phoneField = find.widgetWithText(TextField, '0901234567');
       await tester.enterText(phoneField, '12345');
 
-      final submitBtn = find.text('Resubmit application');
+      final submitBtn = find.text('Nộp lại hồ sơ');
       await tester.ensureVisible(submitBtn);
       await tester.tap(submitBtn);
       await tester.pumpAndSettle();
 
-      expect(find.text('This field is required.'), findsOneWidget);
+      expect(find.text('Vui lòng nhập thông tin này.'), findsOneWidget);
       expect(
         find.text(
-          'Tax Code must be 10 digits or 10 digits followed by a hyphen and 3 digits.',
+          'Mã số thuế phải gồm 10 chữ số, hoặc 10 chữ số kèm dấu gạch ngang và 3 chữ số chi nhánh.',
         ),
         findsOneWidget,
       );
       expect(
         find.text(
-          'Enter a valid domestic or international travel licence number.',
+          'Vui lòng nhập số giấy phép lữ hành nội địa hoặc quốc tế hợp lệ.',
         ),
         findsOneWidget,
       );
       expect(
-        find.text('Phone number must be 10 digits starting with 0.'),
+        find.text('Số điện thoại phải gồm 10 chữ số và bắt đầu bằng số 0.'),
         findsOneWidget,
       );
       expect(repository.resubmitCallCount, 0);
@@ -303,14 +311,16 @@ void main() {
 
       await pumpTestApp(tester);
 
-      final replaceBtn = find.text('Replace business licence (optional)');
+      final replaceBtn = find.text(
+        'Thay giấy phép kinh doanh (không bắt buộc)',
+      );
       await tester.ensureVisible(replaceBtn);
       await tester.tap(replaceBtn);
       await tester.pumpAndSettle();
 
       expect(
         find.text(
-          'The uploaded file type is not supported or the file exceeds the size limit.',
+          'Định dạng tệp không được hỗ trợ hoặc vượt quá dung lượng cho phép.',
         ),
         findsOneWidget,
       );
@@ -347,14 +357,14 @@ void main() {
 
     await pumpTestApp(tester);
 
-    final addSupportingBtn = find.text('Add supporting documents (up to 5)');
+    final addSupportingBtn = find.text('Thêm tài liệu bổ sung (tối đa 5 tệp)');
     await tester.ensureVisible(addSupportingBtn);
     await tester.tap(addSupportingBtn);
     await tester.pumpAndSettle();
 
-    expect(find.text('2 supporting document(s) selected'), findsOneWidget);
+    expect(find.text('Đã chọn 2 tài liệu bổ sung'), findsOneWidget);
 
-    final submitBtn = find.text('Resubmit application');
+    final submitBtn = find.text('Nộp lại hồ sơ');
     await tester.ensureVisible(submitBtn);
     await tester.tap(submitBtn);
     await tester.pumpAndSettle();
@@ -381,7 +391,7 @@ void main() {
       await pumpTestApp(tester);
 
       expect(find.text('Operator Application Status Page'), findsOneWidget);
-      expect(find.text('Resubmit Application'), findsNothing);
+      expect(find.text('Nộp lại hồ sơ đối tác'), findsNothing);
     },
   );
 
@@ -395,15 +405,15 @@ void main() {
 
       await pumpTestApp(tester);
 
-      final submitBtn = find.text('Resubmit application');
+      final submitBtn = find.text('Nộp lại hồ sơ');
       await tester.ensureVisible(submitBtn);
       await tester.tap(submitBtn);
       await tester.pumpAndSettle();
 
-      expect(find.text('This tax code is already registered.'), findsOneWidget);
+      expect(find.text('Mã số thuế này đã được đăng ký.'), findsOneWidget);
       expect(
         find.text(
-          'This business licence number or tax code is already registered.',
+          'Số giấy phép kinh doanh hoặc mã số thuế này đã được đăng ký.',
         ),
         findsOneWidget,
       );

@@ -35,24 +35,24 @@ void main() {
         addTearDown(cubit.close);
         await tester.pumpWidget(_responsiveTestApp(cubit));
 
-        final emailField = find.widgetWithText(TextFormField, 'Email address');
+        final emailField = find.widgetWithText(TextFormField, 'Địa chỉ email');
         await tester.showKeyboard(emailField);
         await tester.enterText(emailField, 'user@example.com');
-        await tester.ensureVisible(find.text('Send Reset Code'));
-        await tester.tap(find.text('Send Reset Code'));
+        await tester.ensureVisible(find.text('Gửi mã đặt lại'));
+        await tester.tap(find.text('Gửi mã đặt lại'));
         await tester.pump();
         await tester.pump();
 
         final passwordField = find.widgetWithText(
           TextFormField,
-          'New password',
+          'Mật khẩu mới',
         );
         await tester.ensureVisible(passwordField);
         await tester.showKeyboard(passwordField);
         await tester.pump();
 
-        expect(find.text('Reset your password'), findsOneWidget);
-        expect(find.text('Reset Password'), findsOneWidget);
+        expect(find.text('Đặt lại mật khẩu của bạn'), findsOneWidget);
+        expect(find.text('Đặt lại mật khẩu'), findsOneWidget);
         expect(tester.takeException(), isNull);
       },
     );
@@ -69,31 +69,33 @@ void main() {
     addTearDown(cubit.close);
     await tester.pumpWidget(_testApp(cubit));
 
-    expect(find.text('Forgot password'), findsOneWidget);
-    expect(find.text('Send Reset Code'), findsOneWidget);
+    expect(find.text('Quên mật khẩu'), findsOneWidget);
+    expect(find.text('Gửi mã đặt lại'), findsOneWidget);
 
-    await tester.tap(find.text('Send Reset Code'));
+    await tester.tap(find.text('Gửi mã đặt lại'));
     await tester.pump();
-    expect(find.text('Email is required.'), findsOneWidget);
+    expect(find.text('Vui lòng nhập email.'), findsOneWidget);
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Email address'),
+      find.widgetWithText(TextFormField, 'Địa chỉ email'),
       '  User@Example.COM ',
     );
-    await tester.tap(find.text('Send Reset Code'));
+    await tester.tap(find.text('Gửi mã đặt lại'));
     await tester.pump();
     await tester.pump();
 
     expect(repository.requestedEmails, ['user@example.com']);
-    expect(find.text('Reset your password'), findsOneWidget);
+    expect(find.text('Đặt lại mật khẩu của bạn'), findsOneWidget);
     expect(
-      find.text('If a reset code was sent, check your email.'),
+      find.text(
+        'Nếu mã đặt lại đã được gửi, vui lòng kiểm tra hộp thư của bạn.',
+      ),
       findsOneWidget,
     );
-    expect(find.text('Code sent successfully'), findsNothing);
-    expect(find.text('Reset code'), findsOneWidget);
-    expect(find.text('New password'), findsOneWidget);
-    expect(find.text('Confirm password'), findsOneWidget);
+    expect(find.text('Đã gửi mã thành công'), findsNothing);
+    expect(find.text('Mã đặt lại'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Mật khẩu mới'), findsOneWidget);
+    expect(find.text('Xác nhận mật khẩu'), findsOneWidget);
   });
 
   testWidgets('request form stays visible until the backend accepts', (
@@ -111,20 +113,20 @@ void main() {
     await tester.pumpWidget(_testApp(cubit));
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Email address'),
+      find.widgetWithText(TextFormField, 'Địa chỉ email'),
       'user@example.com',
     );
-    await tester.tap(find.text('Send Reset Code'));
+    await tester.tap(find.text('Gửi mã đặt lại'));
     await tester.pump();
 
-    expect(find.text('Forgot password'), findsOneWidget);
-    expect(find.text('Reset your password'), findsNothing);
-    expect(find.text('Reset code'), findsNothing);
+    expect(find.text('Quên mật khẩu'), findsOneWidget);
+    expect(find.text('Đặt lại mật khẩu của bạn'), findsNothing);
+    expect(find.text('Mã đặt lại'), findsNothing);
 
     requestGate.complete();
     await tester.pump();
     await tester.pump();
-    expect(find.text('Reset your password'), findsOneWidget);
+    expect(find.text('Đặt lại mật khẩu của bạn'), findsOneWidget);
   });
 
   testWidgets(
@@ -133,7 +135,7 @@ void main() {
       const emailError = 'Invalid email format.';
       final repository = _FakePasswordRecoveryRepository(
         requestError: const ValidationFailure(
-          'Unable to complete this request. Please check the highlighted fields.',
+          'Không thể hoàn tất yêu cầu. Vui lòng kiểm tra lại các trường được đánh dấu.',
           fieldErrors: {
             'email': [emailError],
           },
@@ -146,9 +148,9 @@ void main() {
       addTearDown(cubit.close);
       await tester.pumpWidget(_testApp(cubit));
 
-      final emailField = find.widgetWithText(TextFormField, 'Email address');
+      final emailField = find.widgetWithText(TextFormField, 'Địa chỉ email');
       await tester.enterText(emailField, 'first@example.com');
-      await tester.tap(find.text('Send Reset Code'));
+      await tester.tap(find.text('Gửi mã đặt lại'));
       await tester.pump();
       await tester.pump();
 
@@ -161,7 +163,7 @@ void main() {
 
       expect(find.text(emailError), findsNothing);
 
-      await tester.tap(find.text('Send Reset Code'));
+      await tester.tap(find.text('Gửi mã đặt lại'));
       await tester.pump();
       await tester.pump();
 
@@ -169,7 +171,7 @@ void main() {
         'first@example.com',
         'second@example.com',
       ]);
-      expect(find.text('Reset your password'), findsOneWidget);
+      expect(find.text('Đặt lại mật khẩu của bạn'), findsOneWidget);
     },
   );
 
@@ -186,26 +188,23 @@ void main() {
     await _openResetForm(tester);
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Reset code'),
+      find.widgetWithText(TextFormField, 'Mã đặt lại'),
       '١٢٣٤٥٦',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'New password'),
+      find.widgetWithText(TextFormField, 'Mật khẩu mới'),
       'weak',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Confirm password'),
+      find.widgetWithText(TextFormField, 'Xác nhận mật khẩu'),
       'different',
     );
-    await tester.tap(find.text('Reset Password'));
+    await tester.tap(find.text('Đặt lại mật khẩu'));
     await tester.pump();
 
-    expect(find.text('Enter exactly 6 ASCII digits.'), findsOneWidget);
-    expect(
-      find.text('Password must be between 8 and 72 characters.'),
-      findsOneWidget,
-    );
-    expect(find.text('Passwords do not match.'), findsOneWidget);
+    expect(find.text('Vui lòng nhập đúng 6 chữ số.'), findsOneWidget);
+    expect(find.text('Mật khẩu phải từ 8 đến 72 ký tự.'), findsOneWidget);
+    expect(find.text('Mật khẩu xác nhận không khớp.'), findsOneWidget);
     expect(repository.confirmed, isNull);
   });
 
@@ -248,21 +247,21 @@ void main() {
     await _openResetForm(tester);
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Reset code'),
+      find.widgetWithText(TextFormField, 'Mã đặt lại'),
       '012345',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'New password'),
+      find.widgetWithText(TextFormField, 'Mật khẩu mới'),
       'NewPassword123!',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Confirm password'),
+      find.widgetWithText(TextFormField, 'Xác nhận mật khẩu'),
       'NewPassword123!',
     );
     final completed = cubit.stream.firstWhere(
       (state) => state.status == PasswordRecoveryStatus.success,
     );
-    await tester.tap(find.text('Reset Password'));
+    await tester.tap(find.text('Đặt lại mật khẩu'));
     await tester.pump();
     await completed;
     await tester.pump();
@@ -281,7 +280,7 @@ void main() {
     expect(find.text('Login destination'), findsOneWidget);
     expect(
       find.text(
-        'Your password has been reset. Sign in with your new password.',
+        'Mật khẩu của bạn đã được đặt lại. Hãy đăng nhập bằng mật khẩu mới.',
       ),
       findsOneWidget,
     );
@@ -304,7 +303,7 @@ void main() {
     await _openResetForm(tester);
 
     final disabled = tester.widget<TextButton>(
-      find.widgetWithText(TextButton, 'Resend code (60s)'),
+      find.widgetWithText(TextButton, 'Gửi lại mã (60s)'),
     );
     expect(disabled.onPressed, isNull);
 
@@ -315,7 +314,7 @@ void main() {
     await tester.pump();
     await ready;
     await tester.pump();
-    await tester.tap(find.text('Resend code'));
+    await tester.tap(find.text('Gửi lại mã'));
     await tester.pump();
     await tester.pump();
 
@@ -325,7 +324,7 @@ void main() {
     ]);
     expect(
       find.text(
-        'If a new reset code was sent, any previous code may no longer be valid.',
+        'Nếu mã mới đã được gửi, mọi mã trước đó có thể không còn hiệu lực.',
       ),
       findsOneWidget,
     );
@@ -335,7 +334,7 @@ void main() {
     tester,
   ) async {
     const safeError =
-        'The reset code is invalid or no longer usable. Request a new code and try again.';
+        'Mã đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu mã mới và thử lại.';
     final repository = _FakePasswordRecoveryRepository(
       confirmError: const ValidationFailure(safeError),
     );
@@ -348,27 +347,27 @@ void main() {
     await _openResetForm(tester);
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Reset code'),
+      find.widgetWithText(TextFormField, 'Mã đặt lại'),
       '012345',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'New password'),
+      find.widgetWithText(TextFormField, 'Mật khẩu mới'),
       'NewPassword123!',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Confirm password'),
+      find.widgetWithText(TextFormField, 'Xác nhận mật khẩu'),
       'NewPassword123!',
     );
-    await tester.tap(find.text('Reset Password'));
+    await tester.tap(find.text('Đặt lại mật khẩu'));
     await tester.pump();
     await tester.pump();
 
-    expect(find.text('Reset your password'), findsOneWidget);
+    expect(find.text('Đặt lại mật khẩu của bạn'), findsOneWidget);
     expect(find.text(safeError), findsOneWidget);
     expect(
       tester
           .widget<TextFormField>(
-            find.widgetWithText(TextFormField, 'Reset code'),
+            find.widgetWithText(TextFormField, 'Mã đặt lại'),
           )
           .controller
           ?.text,
@@ -377,7 +376,7 @@ void main() {
     expect(
       tester
           .widget<TextFormField>(
-            find.widgetWithText(TextFormField, 'New password'),
+            find.widgetWithText(TextFormField, 'Mật khẩu mới'),
           )
           .controller
           ?.text,
@@ -391,7 +390,7 @@ void main() {
       const passwordError = 'Password does not meet the required policy.';
       final repository = _FakePasswordRecoveryRepository(
         confirmError: const ValidationFailure(
-          'Unable to complete this request. Please check the highlighted fields.',
+          'Không thể hoàn tất yêu cầu. Vui lòng kiểm tra lại các trường được đánh dấu.',
           fieldErrors: {
             'newPassword': [passwordError],
           },
@@ -406,16 +405,16 @@ void main() {
       await _openResetForm(tester);
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Reset code'),
+        find.widgetWithText(TextFormField, 'Mã đặt lại'),
         '012345',
       );
-      final passwordField = find.widgetWithText(TextFormField, 'New password');
+      final passwordField = find.widgetWithText(TextFormField, 'Mật khẩu mới');
       await tester.enterText(passwordField, 'FirstPassword123!');
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Confirm password'),
+        find.widgetWithText(TextFormField, 'Xác nhận mật khẩu'),
         'FirstPassword123!',
       );
-      await tester.tap(find.text('Reset Password'));
+      await tester.tap(find.text('Đặt lại mật khẩu'));
       await tester.pump();
       await tester.pump();
 
@@ -427,18 +426,18 @@ void main() {
       ));
 
       repository.confirmError = const ValidationFailure(
-        'The reset code is invalid or no longer usable.',
+        'Mã đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.',
       );
       await tester.enterText(passwordField, 'SecondPassword123!');
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Confirm password'),
+        find.widgetWithText(TextFormField, 'Xác nhận mật khẩu'),
         'SecondPassword123!',
       );
       await tester.pump();
 
       expect(find.text(passwordError), findsNothing);
 
-      await tester.tap(find.text('Reset Password'));
+      await tester.tap(find.text('Đặt lại mật khẩu'));
       await tester.pump();
       await tester.pump();
 
@@ -463,7 +462,7 @@ void main() {
       const codeError = 'Invalid verification code.';
       final repository = _FakePasswordRecoveryRepository(
         confirmError: const ValidationFailure(
-          'Unable to complete this request. Please check the highlighted fields.',
+          'Không thể hoàn tất yêu cầu. Vui lòng kiểm tra lại các trường được đánh dấu.',
           fieldErrors: {
             'code': [codeError],
           },
@@ -477,17 +476,17 @@ void main() {
       await tester.pumpWidget(_testApp(cubit));
       await _openResetForm(tester);
 
-      final codeField = find.widgetWithText(TextFormField, 'Reset code');
+      final codeField = find.widgetWithText(TextFormField, 'Mã đặt lại');
       await tester.enterText(codeField, '000000');
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'New password'),
+        find.widgetWithText(TextFormField, 'Mật khẩu mới'),
         'NewPassword123!',
       );
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Confirm password'),
+        find.widgetWithText(TextFormField, 'Xác nhận mật khẩu'),
         'NewPassword123!',
       );
-      await tester.tap(find.text('Reset Password'));
+      await tester.tap(find.text('Đặt lại mật khẩu'));
       await tester.pump();
       await tester.pump();
 
@@ -499,7 +498,7 @@ void main() {
 
       expect(find.text(codeError), findsNothing);
 
-      await tester.tap(find.text('Reset Password'));
+      await tester.tap(find.text('Đặt lại mật khẩu'));
       await tester.pump();
       await tester.pump();
 
@@ -551,10 +550,10 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Email address'),
+      find.widgetWithText(TextFormField, 'Địa chỉ email'),
       'user@example.com',
     );
-    await tester.tap(find.text('Send Reset Code'));
+    await tester.tap(find.text('Gửi mã đặt lại'));
     await tester.pump();
     expect(repository.requestedEmails, ['user@example.com']);
 
@@ -586,23 +585,23 @@ void main() {
       await tester.pumpWidget(_testApp(cubit));
       await _openResetForm(tester);
 
-      expect(find.text('Change email'), findsOneWidget);
-      await tester.tap(find.text('Change email'));
+      expect(find.text('Đổi email'), findsOneWidget);
+      await tester.tap(find.text('Đổi email'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Forgot password'), findsOneWidget);
-      expect(find.text('Send Reset Code (60s)'), findsOneWidget);
-      expect(find.textContaining('Wait 60s'), findsOneWidget);
+      expect(find.text('Quên mật khẩu'), findsOneWidget);
+      expect(find.text('Gửi mã đặt lại (60s)'), findsOneWidget);
+      expect(find.textContaining('đợi 60 giây'), findsOneWidget);
       final disabledButton = tester.widget<FilledButton>(
         find.byType(FilledButton).first,
       );
       expect(disabledButton.onPressed, isNull);
 
-      await tester.tap(find.text('Enter existing code'));
+      await tester.tap(find.text('Nhập mã đã nhận'));
       await tester.pumpAndSettle();
 
       expect(repository.requestedEmails, ['user@example.com']);
-      expect(find.text('Reset your password'), findsOneWidget);
+      expect(find.text('Đặt lại mật khẩu của bạn'), findsOneWidget);
     },
   );
 
@@ -633,7 +632,7 @@ void main() {
             builder: (context, _) => Scaffold(
               body: TextButton(
                 onPressed: () => context.go(AppRoutes.forgotPassword),
-                child: const Text('Forgot password?'),
+                child: const Text('Quên mật khẩu?'),
               ),
             ),
           ),
@@ -645,18 +644,18 @@ void main() {
       await _openResetForm(tester);
       expect(repository.requestedEmails, ['user@example.com']);
 
-      // 18 seconds pass, then user taps "Back to sign in", disposing cubit 1.
+      // 18 seconds pass, then user taps "Quay lại đăng nhập", disposing cubit 1.
       now = now.add(const Duration(seconds: 18));
-      await tester.ensureVisible(find.text('Back to sign in'));
-      await tester.tap(find.text('Back to sign in'));
+      await tester.ensureVisible(find.text('Quay lại đăng nhập'));
+      await tester.tap(find.text('Quay lại đăng nhập'));
       await tester.pumpAndSettle();
-      expect(find.text('Forgot password?'), findsOneWidget);
+      expect(find.text('Quên mật khẩu?'), findsOneWidget);
 
       // User re-opens Forgot Password (fresh route & cubit) and enters same email.
-      await tester.tap(find.text('Forgot password?'));
+      await tester.tap(find.text('Quên mật khẩu?'));
       await tester.pumpAndSettle();
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Email address'),
+        find.widgetWithText(TextFormField, 'Địa chỉ email'),
         'USER@example.com',
       );
       await tester.pump();
@@ -666,15 +665,15 @@ void main() {
         find.byType(FilledButton).first,
       );
       expect(sendButton.onPressed, isNull);
-      expect(find.text('Send Reset Code (42s)'), findsOneWidget);
-      expect(find.text('Enter existing code'), findsOneWidget);
+      expect(find.text('Gửi mã đặt lại (42s)'), findsOneWidget);
+      expect(find.text('Nhập mã đã nhận'), findsOneWidget);
       expect(repository.requestedEmails, ['user@example.com']);
 
-      // Resuming jumps into Step 2 with Resend code (42s) still disabled.
-      await tester.tap(find.text('Enter existing code'));
+      // Resuming jumps into Step 2 with Gửi lại mã (42s) still disabled.
+      await tester.tap(find.text('Nhập mã đã nhận'));
       await tester.pumpAndSettle();
-      expect(find.text('Reset your password'), findsOneWidget);
-      expect(find.text('Resend code (42s)'), findsOneWidget);
+      expect(find.text('Đặt lại mật khẩu của bạn'), findsOneWidget);
+      expect(find.text('Gửi lại mã (42s)'), findsOneWidget);
       expect(repository.requestedEmails, ['user@example.com']);
     },
   );
@@ -682,10 +681,10 @@ void main() {
 
 Future<void> _openResetForm(WidgetTester tester) async {
   await tester.enterText(
-    find.widgetWithText(TextFormField, 'Email address'),
+    find.widgetWithText(TextFormField, 'Địa chỉ email'),
     'user@example.com',
   );
-  await tester.tap(find.text('Send Reset Code'));
+  await tester.tap(find.text('Gửi mã đặt lại'));
   await tester.pump();
   await tester.pump();
 }

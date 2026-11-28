@@ -86,7 +86,7 @@ final class InviteGroupMembersCubit extends Cubit<InviteGroupMembersState> {
       } else {
         emit(
           const InviteGroupMembersState.regenerationUncertain(
-            'The invitation may have changed. Retry to confirm the current code.',
+            'Lời mời có thể đã thay đổi. Vui lòng thử lại để xác nhận mã hiện tại.',
           ),
         );
       }
@@ -107,11 +107,11 @@ final class InviteGroupMembersCubit extends Cubit<InviteGroupMembersState> {
 
   String _errorMessage(Object error) {
     if (error is AuthenticationFailure) {
-      return 'Your session has expired. Please sign in again to continue.';
+      return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.';
     }
     if (error is PermissionFailure) {
-      return 'You do not have permission to access this function.';
+      return 'Bạn không có quyền truy cập chức năng này.';
     }
-    return 'TripMate is temporarily unable to process your request. Please check your connection and try again.';
+    return 'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.';
   }
 }

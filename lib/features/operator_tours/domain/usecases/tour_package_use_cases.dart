@@ -46,7 +46,7 @@ final class SubmitTourForReviewUseCase {
     final note = normalizeSubmissionNote(submissionNote);
     if (note != null && note.length > 4000) {
       throw const ValidationFailure(
-        'Shorten the submission note to 4,000 characters.',
+        'Vui lòng rút gọn ghi chú gửi duyệt xuống tối đa 4.000 ký tự.',
       );
     }
     return _repository.submitForReview(tourId, submissionNote: note);

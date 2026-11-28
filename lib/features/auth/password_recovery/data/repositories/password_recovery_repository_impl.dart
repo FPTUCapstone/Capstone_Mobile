@@ -44,9 +44,7 @@ final class PasswordRecoveryRepositoryImpl
 
   Failure _toFailure(Object error) {
     if (error is FormatException) {
-      return const ServerFailure(
-        'Something went wrong. Please try again later.',
-      );
+      return const ServerFailure('Đã có lỗi xảy ra. Vui lòng thử lại sau.');
     }
     if (error is DioException &&
         ErrorMapper.extractErrorCode(error.response?.data) == 'MSG14') {
@@ -56,24 +54,20 @@ final class PasswordRecoveryRepositoryImpl
     final failure = ErrorMapper.toFailure(error);
     if (failure is ValidationFailure) {
       return ValidationFailure(
-        'Unable to complete this request. Please check the highlighted fields.',
+        'Không thể hoàn tất yêu cầu. Vui lòng kiểm tra lại các trường được đánh dấu.',
         fieldErrors: _normalizeValidationErrors(failure.fieldErrors),
       );
     }
     if (failure is RateLimitFailure) {
       return const RateLimitFailure(
-        'Too many reset attempts. Please wait and try again.',
+        'Bạn đã yêu cầu đặt lại mật khẩu quá nhiều lần. Vui lòng đợi và thử lại.',
       );
     }
     if (failure is NetworkFailure) {
-      return const NetworkFailure(
-        'Please check your connection and try again.',
-      );
+      return const NetworkFailure('Vui lòng kiểm tra kết nối mạng và thử lại.');
     }
     if (failure is ServerFailure || failure is UnknownFailure) {
-      return const ServerFailure(
-        'Something went wrong. Please try again later.',
-      );
+      return const ServerFailure('Đã có lỗi xảy ra. Vui lòng thử lại sau.');
     }
     return failure;
   }

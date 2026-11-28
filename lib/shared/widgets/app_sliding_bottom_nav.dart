@@ -27,15 +27,20 @@ class AppNavDestination {
 /// A high-performance, mobile-first bottom navigation bar featuring a persistent
 /// animated sliding highlight capsule, clear active/inactive distinction, a subtle
 /// circular ripple feedback on tap, full accessibility semantics, and zero layout shifts.
+///
+/// Color overrides are optional and default to Coastal Heritage [TripMateColors]
+/// via `context.tmColors`, adapting automatically to Light and Dark themes.
 class AppSlidingBottomNav extends StatelessWidget {
   const AppSlidingBottomNav({
     required this.selectedIndex,
     required this.onDestinationSelected,
     required this.destinations,
-    this.backgroundColor = Colors.white,
-    this.highlightColor = AppColors.primarySoft,
-    this.activeColor = AppColors.secondary,
-    this.inactiveColor = AppColors.muted,
+    this.backgroundColor,
+    this.highlightColor,
+    this.activeColor,
+    this.inactiveColor,
+    this.borderColor,
+    this.badgeColor,
     this.showHighlightCapsule = true,
     super.key,
   }) : assert(destinations.length >= 2, 'Must have at least 2 destinations'),
@@ -54,16 +59,22 @@ class AppSlidingBottomNav extends StatelessWidget {
   final List<AppNavDestination> destinations;
 
   /// Background color of the navigation bar container.
-  final Color backgroundColor;
+  final Color? backgroundColor;
 
   /// Background color of the moving capsule indicator.
-  final Color highlightColor;
+  final Color? highlightColor;
 
   /// Text and icon color for the active tab.
-  final Color activeColor;
+  final Color? activeColor;
 
   /// Text and icon color for inactive tabs.
-  final Color inactiveColor;
+  final Color? inactiveColor;
+
+  /// Hairline top border color.
+  final Color? borderColor;
+
+  /// Accent badge background color.
+  final Color? badgeColor;
 
   /// Whether to display a moving capsule background behind the active tab.
   /// Defaults to `true` to deliver the persistent sliding highlight experience.
@@ -71,21 +82,29 @@ class AppSlidingBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final disableAnimations = MediaQuery.disableAnimationsOf(context);
     final count = destinations.length;
+
+    final resolvedBg = backgroundColor ?? c.surfaceCard;
+    final resolvedHighlight = highlightColor ?? c.tealSoftContainer;
+    final resolvedActive = activeColor ?? c.brandTeal;
+    final resolvedInactive = inactiveColor ?? c.textMuted;
+    final resolvedBorder = borderColor ?? c.borderSubtle;
+    final resolvedBadge = badgeColor ?? c.brandCoral;
 
     return RepaintBoundary(
       child: Container(
         decoration: BoxDecoration(
-          color: backgroundColor,
-          border: const Border(
-            top: BorderSide(color: AppColors.line, width: 1),
-          ),
-          boxShadow: const [
+          color: resolvedBg,
+          border: Border(top: BorderSide(color: resolvedBorder, width: 1)),
+          boxShadow: [
             BoxShadow(
-              color: Color(0x08103B39),
+              color: (c.isDark ? Colors.black : c.brandNavy).withValues(
+                alpha: c.isDark ? 0.25 : 0.04,
+              ),
               blurRadius: 12,
-              offset: Offset(0, -2),
+              offset: const Offset(0, -2),
             ),
           ],
         ),
@@ -118,10 +137,10 @@ class AppSlidingBottomNav extends StatelessWidget {
                       child: showHighlightCapsule
                           ? Container(
                               decoration: BoxDecoration(
-                                color: highlightColor,
+                                color: resolvedHighlight,
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
-                                  color: activeColor.withValues(alpha: 0.14),
+                                  color: resolvedActive.withValues(alpha: 0.14),
                                   width: 1.0,
                                 ),
                               ),
@@ -139,6 +158,10 @@ class AppSlidingBottomNav extends StatelessWidget {
                             isSelected: i == selectedIndex,
                             destination: destinations[i],
                             disableAnimations: disableAnimations,
+                            activeColor: resolvedActive,
+                            inactiveColor: resolvedInactive,
+                            badgeColor: resolvedBadge,
+                            badgeTextColor: c.textOnCoralBadge,
                           ),
                       ],
                     ),
@@ -158,6 +181,10 @@ class AppSlidingBottomNav extends StatelessWidget {
     required bool isSelected,
     required AppNavDestination destination,
     required bool disableAnimations,
+    required Color activeColor,
+    required Color inactiveColor,
+    required Color badgeColor,
+    required Color badgeTextColor,
   }) {
     final animDuration = disableAnimations
         ? Duration.zero
@@ -210,14 +237,14 @@ class AppSlidingBottomNav extends StatelessWidget {
                               vertical: 1,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.accent,
+                              color: badgeColor,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               destination.badge!,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: AppTypography.uiFont,
-                                color: Colors.white,
+                                color: badgeTextColor,
                                 fontSize: 9,
                                 fontWeight: FontWeight.bold,
                               ),

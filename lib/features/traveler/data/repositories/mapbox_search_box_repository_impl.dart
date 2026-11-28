@@ -34,7 +34,7 @@ final class MapboxSearchBoxRepositoryImpl implements AddressSearchRepository {
 
   /// Locations only: categories and brands would resolve to an arbitrary place.
   static const resultTypes = 'poi,address,street,neighborhood,locality,place';
-  static const _unavailableMessage = 'Address search is unavailable right now.';
+  static const _unavailableMessage = 'Tìm kiếm địa chỉ hiện không khả dụng.';
 
   final String _accessToken;
   final String Function() _newSessionToken;
@@ -124,5 +124,5 @@ final class UnavailableAddressSearchRepository
 
   @override
   Future<AddressSuggestion> resolve(AddressCandidate candidate) =>
-      throw const ServerFailure('Address search is not configured.');
+      throw const ServerFailure('Tìm kiếm địa chỉ chưa được cấu hình.');
 }

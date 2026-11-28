@@ -33,8 +33,8 @@ void main() {
     'result actions select a record in the same chat and Clear chat clears it',
     (tester) async {
       await mount(tester);
-      await tester.enterText(find.bySemanticsLabel('Message'), 'Find tours');
-      await tester.tap(find.byTooltip('Send message'));
+      await tester.enterText(find.bySemanticsLabel('Tin nhắn'), 'Find tours');
+      await tester.tap(find.byTooltip('Gửi tin nhắn'));
       repository.pending.complete(
         const SupportChatReply(
           answer: 'Matching tour',
@@ -67,8 +67,8 @@ void main() {
       repository.complete();
       await tester.pumpAndSettle();
       expect(find.text('Find tours'), findsOneWidget);
-      expect(find.text('Selected tour #12'), findsOneWidget);
-      await tester.tap(find.byTooltip('Clear chat'));
+      expect(find.text('Đang chọn tour #12'), findsOneWidget);
+      await tester.tap(find.byTooltip('Xóa cuộc trò chuyện'));
       await tester.pumpAndSettle();
       expect(cubit.state.messages, isEmpty);
       expect(cubit.state.context, isNull);
@@ -100,8 +100,8 @@ void main() {
     addTearDown(router.dispose);
     await tester.pumpWidget(MaterialApp.router(routerConfig: router));
     await tester.pumpAndSettle();
-    await tester.enterText(find.bySemanticsLabel('Message'), 'Book tour');
-    await tester.tap(find.byTooltip('Send message'));
+    await tester.enterText(find.bySemanticsLabel('Tin nhắn'), 'Book tour');
+    await tester.tap(find.byTooltip('Gửi tin nhắn'));
     repository.pending.complete(
       const SupportChatReply(
         answer: 'Review your booking',
@@ -155,8 +155,8 @@ void main() {
         home: BlocProvider.value(value: cubit, child: const SupportChatPage()),
       ),
     );
-    await tester.enterText(find.bySemanticsLabel('Message'), 'Find a trip');
-    await tester.tap(find.byTooltip('Send message'));
+    await tester.enterText(find.bySemanticsLabel('Tin nhắn'), 'Find a trip');
+    await tester.tap(find.byTooltip('Gửi tin nhắn'));
     repository.pending.complete(
       const SupportChatReply(
         answer: 'Your options',
@@ -197,8 +197,8 @@ void main() {
     tester,
   ) async {
     await mount(tester);
-    await tester.enterText(find.bySemanticsLabel('Message'), 'Find tours');
-    await tester.tap(find.byTooltip('Send message'));
+    await tester.enterText(find.bySemanticsLabel('Tin nhắn'), 'Find tours');
+    await tester.tap(find.byTooltip('Gửi tin nhắn'));
     repository.pending.complete(
       const SupportChatReply(
         answer: 'Matching tours',
@@ -215,7 +215,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.bySemanticsLabel('Message'),
+      find.bySemanticsLabel('Tin nhắn'),
       'My unsent question',
     );
     await tester.tap(find.text('Choose tour'));
@@ -236,8 +236,8 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       await mount(tester);
-      await tester.enterText(find.bySemanticsLabel('Message'), 'Help me');
-      await tester.tap(find.byTooltip('Send message'));
+      await tester.enterText(find.bySemanticsLabel('Tin nhắn'), 'Help me');
+      await tester.tap(find.byTooltip('Gửi tin nhắn'));
       await tester.pump();
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
       expect(repository.requests.single.message, 'Help me');
@@ -253,11 +253,11 @@ void main() {
 
   testWidgets('error retry preserves question', (tester) async {
     await mount(tester);
-    await tester.enterText(find.bySemanticsLabel('Message'), 'Help');
-    await tester.tap(find.byTooltip('Send message'));
+    await tester.enterText(find.bySemanticsLabel('Tin nhắn'), 'Help');
+    await tester.tap(find.byTooltip('Gửi tin nhắn'));
     repository.pending.completeError(const ServerFailure());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Retry'));
+    await tester.tap(find.text('Thử lại'));
     await tester.pump();
     expect(repository.requests.last.message, 'Help');
     repository.complete();
@@ -269,8 +269,8 @@ void main() {
     tester,
   ) async {
     await mount(tester);
-    await tester.enterText(find.bySemanticsLabel('Message'), 'Refund policy');
-    await tester.tap(find.byTooltip('Send message'));
+    await tester.enterText(find.bySemanticsLabel('Tin nhắn'), 'Refund policy');
+    await tester.tap(find.byTooltip('Gửi tin nhắn'));
     repository.complete(
       sources: const [
         SupportChatSource(
@@ -282,7 +282,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('<b>Refund policy</b>'), findsNothing);
-    await tester.tap(find.text('Sources (1)'));
+    await tester.tap(find.text('Nguồn tham khảo (1)'));
     await tester.pumpAndSettle();
     expect(find.text('<b>Refund policy</b>'), findsOneWidget);
     expect(find.text('/help/refunds'), findsNothing);
@@ -293,12 +293,12 @@ void main() {
   ) async {
     cubit.selectContext(const SupportChatContext(kind: 'refund', id: '12'));
     await mount(tester);
-    expect(find.text('Selected refund #12'), findsOneWidget);
-    await tester.tap(find.byTooltip('Clear context'));
+    expect(find.text('Đang chọn hoàn tiền #12'), findsOneWidget);
+    await tester.tap(find.byTooltip('Xóa ngữ cảnh'));
     await tester.pumpAndSettle();
     expect(cubit.state.context, isNull);
     expect(
-      find.text('Ask about tours, bookings, refunds or itineraries.'),
+      find.text('Hãy hỏi về tour, đơn đặt tour, hoàn tiền hoặc lịch trình.'),
       findsOneWidget,
     );
     expect(repository.requests, isEmpty);
@@ -312,8 +312,8 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       await mount(tester);
-      await tester.enterText(find.bySemanticsLabel('Message'), 'Find a tour');
-      await tester.tap(find.byTooltip('Send message'));
+      await tester.enterText(find.bySemanticsLabel('Tin nhắn'), 'Find a tour');
+      await tester.tap(find.byTooltip('Gửi tin nhắn'));
       repository.pending.complete(
         const SupportChatReply(
           answer: 'Choose a tour',
@@ -337,14 +337,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Tour Sơn Trà và Ngũ Hành Sơn'), findsOneWidget);
       expect(find.text('Xem Tour Sơn Trà và Ngũ Hành Sơn'), findsNothing);
-      expect(find.text('Ask about tour'), findsOneWidget);
-      expect(find.text('View tour'), findsOneWidget);
+      expect(find.text('Hỏi về tour'), findsOneWidget);
+      expect(find.text('Xem tour'), findsOneWidget);
       expect(
         tester.getSize(find.byKey(const ValueKey('support-tour-12'))).width,
         328,
       );
-      await tester.ensureVisible(find.text('Ask about tour'));
-      await tester.tap(find.text('Ask about tour'));
+      await tester.ensureVisible(find.text('Hỏi về tour'));
+      await tester.tap(find.text('Hỏi về tour'));
       await tester.pump();
       expect(repository.requests.last.context?.id, '12');
       repository.complete();
@@ -357,8 +357,8 @@ void main() {
     tester,
   ) async {
     await mount(tester);
-    await tester.enterText(find.bySemanticsLabel('Message'), 'Help');
-    await tester.tap(find.byTooltip('Send message'));
+    await tester.enterText(find.bySemanticsLabel('Tin nhắn'), 'Help');
+    await tester.tap(find.byTooltip('Gửi tin nhắn'));
     await tester.pumpWidget(const MaterialApp(home: SizedBox()));
     repository.complete();
     await tester.pumpAndSettle();

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:trip_mate_mobile/features/poi/presentation/theme/poi_palette.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_shimmer.dart';
 
 class PoiImage extends StatelessWidget {
@@ -61,16 +61,17 @@ class _Placeholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     if (isShimmer) {
-      return const AppShimmer(
-        child: ColoredBox(color: Color(0xFFE2E8F0), child: SizedBox.expand()),
+      return AppShimmer(
+        child: ColoredBox(color: c.shimmerBase, child: const SizedBox.expand()),
       );
     }
 
-    return const ColoredBox(
-      color: PoiPalette.tealSoft,
+    return ColoredBox(
+      color: c.tealSoftContainer,
       child: Center(
-        child: Icon(Icons.landscape_outlined, color: PoiPalette.teal, size: 32),
+        child: Icon(Icons.landscape_outlined, color: c.brandTeal, size: 32),
       ),
     );
   }

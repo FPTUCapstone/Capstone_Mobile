@@ -196,43 +196,44 @@ void main() {
       expect(find.text('Danh mục'), findsOneWidget);
     });
 
-    testWidgets('public locale switch preserves input and does not search', (
-      tester,
-    ) async {
-      final repository = _FakeTourRepository(
-        result: const PagedTourResult(
-          page: 1,
-          pageSize: 20,
-          totalCount: 0,
-          totalPages: 0,
-          items: [],
-        ),
-      );
-      final cubit = TourSearchCubit(
-        searchTours: SearchToursUseCase(repository),
-      );
-      addTearDown(cubit.close);
-      await cubit.loadInitial();
-      await tester.pumpWidget(
-        MaterialApp(
-          home: BlocProvider.value(value: cubit, child: const TourSearchPage()),
-        ),
-      );
-      await tester.pumpAndSettle();
-      final input = find.byKey(const Key('public-search-keyword'));
-      await tester.enterText(input, 'Huế');
-      final before = cubit.state;
-      final calls = repository.searchCalls;
-      final selector = tester.widget<DropdownButton<String>>(
-        find.byType(DropdownButton<String>).first,
-      );
-      selector.onChanged!('en');
-      await tester.pumpAndSettle();
-      expect(tester.widget<TextField>(input).controller!.text, 'Huế');
-      expect(tester.widget<TextField>(input).decoration!.labelText, 'Keyword');
-      expect(cubit.state, same(before));
-      expect(repository.searchCalls, calls);
-    });
+    testWidgets(
+      'public search renders Vietnamese copy even on English locale',
+      (tester) async {
+        dispatcher.localeTestValue = const Locale('en');
+        final repository = _FakeTourRepository(
+          result: const PagedTourResult(
+            page: 1,
+            pageSize: 20,
+            totalCount: 0,
+            totalPages: 0,
+            items: [],
+          ),
+        );
+        final cubit = TourSearchCubit(
+          searchTours: SearchToursUseCase(repository),
+        );
+        addTearDown(cubit.close);
+        await cubit.loadInitial();
+        await tester.pumpWidget(
+          MaterialApp(
+            home: BlocProvider.value(
+              value: cubit,
+              child: const TourSearchPage(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final input = find.byKey(const Key('public-search-keyword'));
+        await tester.enterText(input, 'Huế');
+        await tester.pumpAndSettle();
+        expect(tester.widget<TextField>(input).controller!.text, 'Huế');
+        expect(
+          tester.widget<TextField>(input).decoration!.labelText,
+          'Từ khóa',
+        );
+        expect(find.text('Tìm kiếm Tour'), findsOneWidget);
+      },
+    );
 
     testWidgets('opens an empty date filter at the current local day', (
       tester,

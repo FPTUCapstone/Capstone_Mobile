@@ -120,12 +120,12 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       return RegisterTravelerResponse.fromJson(_unwrap(response.data));
     } on FormatException {
-      throw const ServerException('Something went wrong. Please try again.');
+      throw const ServerException('Đã có lỗi xảy ra. Vui lòng thử lại.');
     } on DioException catch (e) {
       throw _handleDioError(e);
     } catch (error) {
       if (error is AppException) rethrow;
-      throw const ServerException('Something went wrong. Please try again.');
+      throw const ServerException('Đã có lỗi xảy ra. Vui lòng thử lại.');
     }
   }
 
@@ -139,7 +139,7 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return SessionResponseDto.fromJson(_unwrap(response.data));
     } on FormatException {
       throw const ServerException(
-        'Unable to complete sign in. Please try again.',
+        'Không thể hoàn tất đăng nhập. Vui lòng thử lại.',
       );
     } on DioException catch (error) {
       throw _handleDioError(error);
@@ -157,7 +157,7 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return SessionResponseDto.fromJson(_unwrap(response.data));
     } on FormatException {
       throw const ServerException(
-        'Unable to complete sign in. Please try again.',
+        'Không thể hoàn tất đăng nhập. Vui lòng thử lại.',
       );
     } on DioException catch (error) {
       throw _handleDioError(error);
@@ -181,7 +181,7 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return SessionResponseDto.fromJson(data);
     } on FormatException {
       throw const ServerException(
-        'Unable to complete sign in. Please try again.',
+        'Không thể hoàn tất đăng nhập. Vui lòng thử lại.',
       );
     } on DioException catch (error) {
       throw _handleDioError(error);
@@ -199,12 +199,12 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
       _unwrapSignOut(response.data);
     } on FormatException {
-      throw const ServerException('Something went wrong. Please try again.');
+      throw const ServerException('Đã có lỗi xảy ra. Vui lòng thử lại.');
     } on DioException catch (error) {
       throw _handleDioError(error);
     } catch (error) {
       if (error is AppException) rethrow;
-      throw const ServerException('Something went wrong. Please try again.');
+      throw const ServerException('Đã có lỗi xảy ra. Vui lòng thử lại.');
     }
   }
 
@@ -241,7 +241,7 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       if (statusCode == 400) {
         return ServerException(
-          'Unable to complete this request. Please try again.',
+          'Không thể hoàn tất yêu cầu. Vui lòng thử lại.',
           responseCode,
           statusCode,
         );
@@ -250,7 +250,7 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
     if (statusCode == 409) {
       return const ServerException(
-        'An account with the provided information already exists.',
+        'Tài khoản với thông tin này đã tồn tại.',
         null,
         409,
       );
@@ -258,7 +258,7 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
     if (statusCode == 429) {
       return const ServerException(
-        'Too many registration attempts. Please try again later.',
+        'Bạn thao tác đăng ký quá nhiều lần. Vui lòng thử lại sau.',
         null,
         429,
       );
@@ -269,10 +269,10 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       DioExceptionType.sendTimeout ||
       DioExceptionType.receiveTimeout ||
       DioExceptionType.connectionError => const NetworkException(
-        'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+        'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.',
       ),
       _ => ServerException(
-        'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+        'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.',
         responseCode,
         statusCode,
       ),
@@ -281,34 +281,36 @@ final class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   String? _messageForCode(String? code) => switch (code) {
     'AUTH_HEADER_MISSING' =>
-      'Unable to register because Firebase authentication is unavailable.',
+      'Không thể đăng ký do dịch vụ xác thực Firebase hiện không khả dụng.',
     'AUTH_TOKEN_INVALID' =>
-      'Firebase authentication expired. Please try again.',
+      'Phiên xác thực Firebase đã hết hạn. Vui lòng thử lại.',
     'AUTH_EMAIL_MISMATCH' =>
-      'The Firebase account email does not match the registration email.',
+      'Email tài khoản Firebase không khớp với email đăng ký.',
     'MSG03' =>
-      'An account with this email already exists. Please sign in or use another email.',
-    'MSG_PHONE_DUP' => 'This phone number is already registered.',
+      'Email này đã được sử dụng. Vui lòng đăng nhập hoặc dùng email khác.',
+    'MSG_PHONE_DUP' => 'Số điện thoại này đã được đăng ký.',
     'auth.invalid_credentials' =>
-      'Invalid email or password. Please try again.',
-    'MSG_UNVERIFIED' => 'Please verify your email before signing in.',
-    'auth.account_locked' => 'Your account is locked. Please contact support.',
+      'Email hoặc mật khẩu không đúng. Vui lòng thử lại.',
+    'MSG_UNVERIFIED' => 'Vui lòng xác minh email trước khi đăng nhập.',
+    'auth.account_locked' =>
+      'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ bộ phận hỗ trợ.',
     'auth.account_inactive' =>
-      'Your account is inactive. Please contact support.',
+      'Tài khoản của bạn chưa được kích hoạt. Vui lòng liên hệ bộ phận hỗ trợ.',
     'auth.account_state_unresolved' =>
-      'We could not confirm your account status. If you recently registered, verify your email; otherwise contact TripMate support.',
+      'Không thể xác nhận trạng thái tài khoản của bạn. Nếu bạn vừa đăng ký, hãy xác minh email; nếu không, vui lòng liên hệ hỗ trợ TripMate.',
     'auth.admin_google_sign_in_disabled' =>
-      'Administrator accounts are supported on Web only.',
+      'Tài khoản quản trị viên chỉ hỗ trợ đăng nhập trên nền tảng Web.',
     'auth.admin_mobile_sign_in_disabled' =>
-      'Administrator accounts are supported on Web only.',
-    'MSG_EMAIL_NOT_VERIFIED' => 'Please verify your email before continuing.',
-    'MSG_USER_NOT_FOUND' => 'Account not found. Please register first.',
+      'Tài khoản quản trị viên chỉ hỗ trợ đăng nhập trên nền tảng Web.',
+    'MSG_EMAIL_NOT_VERIFIED' => 'Vui lòng xác minh email trước khi tiếp tục.',
+    'MSG_USER_NOT_FOUND' => 'Không tìm thấy tài khoản. Vui lòng đăng ký trước.',
     'MSG14' =>
-      'The verification link is invalid, expired, or has already been used.',
+      'Liên kết xác minh không hợp lệ, đã hết hạn hoặc đã được sử dụng.',
     'MSG_GOOGLE_TOKEN_INVALID' =>
-      'Invalid Google authentication token. Please try again.',
-    'AUTH_TOKEN_MISSING' => 'Google authentication is unavailable.',
-    'MSG127' => 'Something went wrong. Please try again later.',
+      'Mã xác thực Google không hợp lệ. Vui lòng thử lại.',
+    'AUTH_TOKEN_MISSING' =>
+      'Dịch vụ đăng nhập bằng Google hiện không khả dụng.',
+    'MSG127' => 'Đã có lỗi xảy ra. Vui lòng thử lại sau.',
     _ => null,
   };
 }

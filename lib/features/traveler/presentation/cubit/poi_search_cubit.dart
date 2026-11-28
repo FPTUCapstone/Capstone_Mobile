@@ -32,21 +32,21 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
       if (generation != _operationGeneration || isClosed) return;
       emit(
         const PoiSearchState.failure(
-          'Turn on Location Services or choose a place instead.',
+          'Hãy bật dịch vụ vị trí hoặc chọn một địa điểm.',
         ),
       );
     } on LocationPermissionDeniedException {
       if (generation != _operationGeneration || isClosed) return;
       emit(
         const PoiSearchState.failure(
-          'Location permission was not granted. Choose a place instead.',
+          'Chưa cấp quyền truy cập vị trí. Vui lòng chọn một địa điểm.',
         ),
       );
     } catch (_) {
       if (generation != _operationGeneration || isClosed) return;
       emit(
         const PoiSearchState.failure(
-          'We could not get your current location. Choose a place instead.',
+          'Không thể xác định vị trí hiện tại của bạn. Vui lòng chọn một địa điểm.',
         ),
       );
     }
@@ -113,7 +113,7 @@ final class PoiSearchCubit extends Cubit<PoiSearchState> {
       if (generation != _operationGeneration || isClosed) return;
       emit(
         PoiSearchState.failure(
-          'Places are unavailable right now. Please try again.',
+          'Hiện không thể tải danh sách địa điểm. Vui lòng thử lại.',
           scope: scope,
         ),
       );

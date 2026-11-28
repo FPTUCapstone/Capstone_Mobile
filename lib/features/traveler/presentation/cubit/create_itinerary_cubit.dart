@@ -43,15 +43,14 @@ final class CreateItineraryCubit extends Cubit<CreateItineraryState> {
       if (isClosed || generation != _generation) return;
       final message = switch (error) {
         AuthenticationFailure() =>
-          'Your session has expired. Please sign in again to continue.',
-        PermissionFailure() =>
-          'You do not have permission to create an itinerary.',
+          'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.',
+        PermissionFailure() => 'Bạn không có quyền tạo lịch trình.',
         ConflictFailure() => _handleConflict(),
         RoutingProviderFailure failure => failure.message,
         ConstraintFailure failure => failure.message,
         ValidationFailure failure => failure.message,
         _ =>
-          'TripMate is temporarily unable to generate your itinerary. Please try again.',
+          'TripMate tạm thời không thể tạo lịch trình cho bạn. Vui lòng thử lại.',
       };
       emit(CreateItineraryState.failure(message));
     }
@@ -60,7 +59,7 @@ final class CreateItineraryCubit extends Cubit<CreateItineraryState> {
   String _handleConflict() {
     _operationKey = null;
     _lastAttemptRequest = null;
-    return 'This request was already used with different details. Start a new itinerary request.';
+    return 'Yêu cầu này đã được sử dụng với thông tin khác. Vui lòng tạo yêu cầu lịch trình mới.';
   }
 
   static String _createUuidV4() {

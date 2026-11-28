@@ -79,7 +79,7 @@ class NavigationMapPreviewNotice extends StatelessWidget {
           const SizedBox(width: AppSpacing.xxs),
           Flexible(
             child: Text(
-              'MAPBOX NOT CONFIGURED — Illustration Preview Only',
+              'CHƯA CẤU HÌNH MAPBOX — Chỉ hiển thị bản đồ minh họa',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: Colors.white,
                 fontSize: 10,

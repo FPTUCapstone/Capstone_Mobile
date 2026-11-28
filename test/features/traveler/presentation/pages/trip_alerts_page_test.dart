@@ -18,16 +18,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Trip Alerts'), findsOneWidget);
-      expect(find.textContaining('active alerts logged'), findsOneWidget);
+      expect(find.text('Cảnh báo chuyến đi'), findsOneWidget);
+      expect(find.textContaining('cảnh báo đang hoạt động'), findsOneWidget);
       expect(find.textContaining('Severe weather warning'), findsOneWidget);
       expect(find.textContaining('Schedule delay detected'), findsOneWidget);
       expect(find.textContaining('POI closed for maintenance'), findsOneWidget);
       expect(find.textContaining('Route deviation detected'), findsOneWidget);
 
-      expect(find.text('CRITICAL'), findsWidgets);
-      expect(find.text('WARNING'), findsOneWidget);
-      expect(find.text('NOTICE'), findsOneWidget);
+      expect(find.text('KHẨN CẤP'), findsWidgets);
+      expect(find.text('CẢNH BÁO'), findsOneWidget);
+      expect(find.text('THÔNG BÁO'), findsOneWidget);
     });
 
     testWidgets('renders empty state when there are no alerts in production', (
@@ -38,8 +38,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('No alerts found for this trip.'), findsOneWidget);
-      expect(find.textContaining('0 active alerts logged'), findsOneWidget);
+      expect(
+        find.text('Không có cảnh báo nào cho chuyến đi này.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('0 cảnh báo đang hoạt động'), findsOneWidget);
     });
   });
 }

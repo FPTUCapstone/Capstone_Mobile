@@ -11,6 +11,7 @@ import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_section_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
 
 /// Page for UC-17 Create Travel Group.
@@ -62,19 +63,20 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return BlocConsumer<CreateTravelGroupCubit, CreateTravelGroupState>(
       listener: (context, state) {
         switch (state.status) {
           case CreateTravelGroupStatus.validationFailure:
             final error = state.errorMessage;
-            if (error == 'Please select an itinerary.') {
+            if (error == 'Vui lòng chọn một lịch trình.') {
               setState(() {
                 _itineraryError = error;
                 _nameError = null;
               });
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(error ?? 'Please select an itinerary.'),
+                  content: Text(error ?? 'Vui lòng chọn một lịch trình.'),
                   backgroundColor: Theme.of(context).colorScheme.error,
                 ),
               );
@@ -86,7 +88,6 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
             }
             _formKey.currentState?.validate();
           case CreateTravelGroupStatus.initial:
-            // returned from validationFailure; error already shown
             break;
           case CreateTravelGroupStatus.success:
             setState(() {
@@ -96,14 +97,13 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
             final group = state.result;
             final router = GoRouter.maybeOf(context);
             if (group != null && router != null) {
-              // MSG54: Travel group created successfully! You are the Group Host.
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Travel group created successfully! You are the Group Host.',
+                SnackBar(
+                  content: const Text(
+                    'Tạo nhóm du lịch thành công! Bạn là Trưởng nhóm.',
                   ),
-                  backgroundColor: AppColors.success,
-                  duration: Duration(seconds: 3),
+                  backgroundColor: c.success,
+                  duration: const Duration(seconds: 3),
                 ),
               );
               Future<void>.delayed(const Duration(milliseconds: 500), () {
@@ -142,29 +142,24 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
         return Stack(
           children: [
             AppPageScaffold(
-              title: 'Create Travel Group',
+              title: 'Tạo nhóm du lịch',
               content: [
-                // Server error banner
                 if (state.status == CreateTravelGroupStatus.failure) ...[
                   AppAlert(
                     message:
                         state.errorMessage ??
-                        'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+                        'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.',
                     type: AppAlertType.error,
                   ),
                   const SizedBox(height: AppSpacing.md),
                 ],
-                // Success banner
                 if (isSuccess) ...[
                   const AppAlert(
-                    message:
-                        'Travel group created successfully! You are the Group Host.',
+                    message: 'Tạo nhóm du lịch thành công! Bạn là Trưởng nhóm.',
                     type: AppAlertType.success,
                   ),
                   const SizedBox(height: AppSpacing.md),
                 ],
-
-                // Read-only itinerary summary card (SRS 3.4.1)
                 if (hasMeta) ...[
                   AppCard(
                     padding: const EdgeInsets.all(AppSpacing.md),
@@ -173,19 +168,27 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
                       children: [
                         Row(
                           children: [
-                            const Icon(
-                              Icons.map_outlined,
-                              size: 18,
-                              color: AppColors.primary,
+                            Container(
+                              width: 34,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: c.tealSoftContainer,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                Icons.map_outlined,
+                                size: 18,
+                                color: c.brandTeal,
+                              ),
                             ),
-                            const SizedBox(width: AppSpacing.xs),
+                            const SizedBox(width: AppSpacing.sm),
                             Expanded(
                               child: Text(
                                 widget.itineraryTitle,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  color: AppColors.ink,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14.5,
+                                  color: c.textPrimary,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -198,18 +201,18 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
                           const SizedBox(height: AppSpacing.xs),
                           Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.location_on_outlined,
                                 size: 16,
-                                color: AppColors.muted,
+                                color: c.textMuted,
                               ),
                               const SizedBox(width: AppSpacing.xs),
                               Expanded(
                                 child: Text(
                                   widget.destination!,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.muted,
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: c.textSecondary,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -223,17 +226,17 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.calendar_today_outlined,
                                 size: 15,
-                                color: AppColors.muted,
+                                color: c.textMuted,
                               ),
                               const SizedBox(width: AppSpacing.xs),
                               Text(
                                 widget.dateRange!,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.muted,
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  color: c.textSecondary,
                                 ),
                               ),
                             ],
@@ -244,113 +247,110 @@ class _CreateTravelGroupPageState extends State<CreateTravelGroupPage> {
                   ),
                   const SizedBox(height: AppSpacing.md),
                 ],
-
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Group Name field (SRS 3.4.1) — uses validator for inline error
-                      AppTextField(
-                        label: 'Group Name',
-                        controller: _nameController,
-                        enabled: !isDisabled,
-                        validator: (val) {
-                          if (_nameError != null) return _nameError;
-                          if (val == null || val.trim().isEmpty) {
-                            return 'This field is required.';
-                          }
-                          if (val.trim().length > 150) {
-                            return 'Group name must not exceed 150 characters.';
-                          }
-                          return null;
-                        },
-                        helperText: 'Max 150 characters',
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Selected itinerary association (BR-41)
-                      AppTextField(
-                        label: 'Itinerary',
-                        controller: _itineraryController,
-                        enabled: !isDisabled,
-                        readOnly: true,
-                        validator: (_) => _itineraryError,
-                        helperText: 'Selected eligible itinerary',
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Host role notice (BR-42)
-                      Container(
-                        padding: const EdgeInsets.all(AppSpacing.sm),
-                        decoration: BoxDecoration(
-                          color: AppColors.primarySoft,
-                          borderRadius: BorderRadius.circular(8),
+                AppSectionCard(
+                  title: 'Thông tin nhóm',
+                  icon: Icons.groups_outlined,
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        AppTextField(
+                          label: 'Tên nhóm',
+                          controller: _nameController,
+                          enabled: !isDisabled,
+                          validator: (val) {
+                            if (_nameError != null) return _nameError;
+                            if (val == null || val.trim().isEmpty) {
+                              return 'Trường này là bắt buộc.';
+                            }
+                            if (val.trim().length > 150) {
+                              return 'Tên nhóm không được vượt quá 150 ký tự.';
+                            }
+                            return null;
+                          },
+                          helperText: 'Tối đa 150 ký tự',
                         ),
-                        child: const Row(
-                          children: [
-                            Icon(
-                              Icons.stars_rounded,
-                              size: 18,
-                              color: AppColors.primary,
+                        const SizedBox(height: AppSpacing.md),
+                        AppTextField(
+                          label: 'Lịch trình',
+                          controller: _itineraryController,
+                          enabled: !isDisabled,
+                          readOnly: true,
+                          validator: (_) => _itineraryError,
+                          helperText: 'Lịch trình hợp lệ đã chọn',
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.sm),
+                          decoration: BoxDecoration(
+                            color: c.tealSoftContainer,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: c.brandTeal.withValues(alpha: 0.2),
                             ),
-                            SizedBox(width: AppSpacing.xs),
-                            Expanded(
-                              child: Text(
-                                'You will become the Group Host for this travel group.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w600,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.stars_rounded,
+                                size: 18,
+                                color: c.brandTeal,
+                              ),
+                              const SizedBox(width: AppSpacing.xs),
+                              Expanded(
+                                child: Text(
+                                  'Bạn sẽ trở thành Trưởng nhóm của nhóm du lịch này.',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: c.brandTeal,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-
-                      // Primary Action: [Create Group] (SRS 3.4.1)
-                      AppButton(
-                        label: 'Create Group',
-                        onPressed: isDisabled
-                            ? null
-                            : () {
-                                if (_formKey.currentState?.validate() ??
-                                    false) {
-                                  context.read<CreateTravelGroupCubit>().submit(
-                                    name: _nameController.text,
-                                    itineraryId: widget.itineraryId,
-                                  );
-                                }
-                              },
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-
-                      // Secondary Action: [Cancel] (SRS 3.4.1)
-                      OutlinedButton(
-                        key: const Key('cancel_button'),
-                        onPressed: isDisabled
-                            ? null
-                            : () {
-                                if (context.canPop()) {
-                                  context.pop();
-                                } else {
-                                  context.go(AppRoutes.traveler);
-                                }
-                              },
-                        child: const Text('Cancel'),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                AppButton(
+                  label: 'Tạo nhóm',
+                  onPressed: isDisabled
+                      ? null
+                      : () {
+                          if (_formKey.currentState?.validate() ?? false) {
+                            context.read<CreateTravelGroupCubit>().submit(
+                              name: _nameController.text,
+                              itineraryId: widget.itineraryId,
+                            );
+                          }
+                        },
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                OutlinedButton(
+                  key: const Key('cancel_button'),
+                  onPressed: isDisabled
+                      ? null
+                      : () {
+                          if (context.canPop()) {
+                            context.pop();
+                          } else {
+                            context.go(AppRoutes.traveler);
+                          }
+                        },
+                  child: const Text('Hủy'),
                 ),
               ],
             ),
-            // Full-screen loading overlay
             if (isSubmitting)
-              const ColoredBox(
+              ColoredBox(
                 color: Colors.black26,
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(
+                  child: CircularProgressIndicator(color: c.brandTeal),
+                ),
               ),
           ],
         );

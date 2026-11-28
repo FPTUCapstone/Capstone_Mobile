@@ -172,7 +172,7 @@ void main() {
       expect: () => const [
         RegisterLoading(),
         RegisterFailure(
-          'An account with this email already exists. Please sign in or use another email.',
+          'Email này đã được sử dụng. Vui lòng đăng nhập hoặc dùng email khác.',
         ),
       ],
       verify: (_) => expect(mockRepository.lastRequest, isNull),
@@ -198,7 +198,7 @@ void main() {
       expect: () => const [
         RegisterLoading(),
         RegisterFailure(
-          'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+          'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.',
         ),
       ],
       verify: (_) => expect(mockRepository.lastRequest, isNull),

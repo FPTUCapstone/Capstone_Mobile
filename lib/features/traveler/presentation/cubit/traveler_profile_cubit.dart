@@ -32,7 +32,7 @@ class TravelerProfileCubit extends Cubit<TravelerProfileState> {
       if (!isClosed && generation == _loadGeneration) {
         emit(
           const TravelerProfileState(
-            error: 'Unable to load your profile. Please retry.',
+            error: 'Không thể tải hồ sơ của bạn. Vui lòng thử lại.',
           ),
         );
       }
@@ -65,7 +65,7 @@ class TravelerProfileCubit extends Cubit<TravelerProfileState> {
         emit(
           TravelerProfileState(
             profile: previous,
-            error: 'Unable to save your profile. Please try again.',
+            error: 'Không thể lưu hồ sơ của bạn. Vui lòng thử lại.',
           ),
         );
       }

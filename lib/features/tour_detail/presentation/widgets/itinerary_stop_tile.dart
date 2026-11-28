@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/utils/trip_time_format.dart';
 import 'package:trip_mate_mobile/features/tour_detail/domain/entities/tour_itinerary_stop.dart';
 import 'package:trip_mate_mobile/features/tour_detail/presentation/resources/tour_detail_strings.dart';
-import 'package:trip_mate_mobile/features/tour_search/presentation/theme/tour_search_palette.dart';
 
 /// One place on a tour day: planned time, name, address, stay and notes.
 class ItineraryStopTile extends StatelessWidget {
@@ -13,6 +13,7 @@ class ItineraryStopTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final stay = stop.stayMinutes;
     final address = stop.address?.trim();
     final notes = stop.notes?.trim();
@@ -26,10 +27,10 @@ class ItineraryStopTile extends StatelessWidget {
             width: 48,
             child: Text(
               stop.plannedTime ?? '–',
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 13,
-                color: TourSearchPalette.teal,
+                color: c.brandTeal,
               ),
             ),
           ),
@@ -39,34 +40,28 @@ class ItineraryStopTile extends StatelessWidget {
               children: [
                 Text(
                   stop.poiName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: TourSearchPalette.navy,
+                    color: c.textPrimary,
                   ),
                 ),
                 if (address != null && address.isNotEmpty)
                   Text(
                     address,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: TourSearchPalette.muted,
-                    ),
+                    style: TextStyle(fontSize: 12, color: c.textMuted),
                   ),
                 if (stay != null && stay > 0)
                   Text(
                     TourDetailStrings.stayLine(tripDuration(stay)),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF475569),
-                    ),
+                    style: TextStyle(fontSize: 12, color: c.textSecondary),
                   ),
                 if (notes != null && notes.isNotEmpty)
                   Text(
                     notes,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontStyle: FontStyle.italic,
-                      color: Color(0xFF475569),
+                      color: c.textSecondary,
                     ),
                   ),
               ],

@@ -109,7 +109,7 @@ TourItineraryDay _day(Object? entry) {
     ..sort((a, b) => a.sequenceNo.compareTo(b.sequenceNo));
   return TourItineraryDay(
     dayNumber: dayNo,
-    title: 'Day $dayNo',
+    title: 'Ngày $dayNo',
     description: '',
     stops: stops.map((stop) => stop.stop).toList(),
   );

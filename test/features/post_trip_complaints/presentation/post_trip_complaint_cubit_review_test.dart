@@ -114,11 +114,11 @@ void main() {
     await cubit.load();
     cubit.setDetail('Valid details');
     await cubit.submit();
-    expect(cubit.state.message, 'Choose a reason category.');
+    expect(cubit.state.message, 'Vui lòng chọn danh mục lý do.');
     cubit.setCategory(PostTripComplaintReasonCategory.other);
     cubit.setDetail('a' * 2001);
     await cubit.submit();
-    expect(cubit.state.message, contains('2,000'));
+    expect(cubit.state.message, contains('2.000'));
     expect(repository.keys, isEmpty);
   });
 
@@ -144,9 +144,9 @@ void main() {
       expect(
         cubit.state.message,
         contains(switch (failure) {
-          NetworkFailure() => 'internet',
-          RateLimitFailure() => 'wait',
-          _ => 'sign in',
+          NetworkFailure() => 'kết nối mạng',
+          RateLimitFailure() => 'đợi',
+          _ => 'đăng nhập',
         }),
       );
     });

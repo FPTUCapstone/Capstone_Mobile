@@ -14,8 +14,9 @@ import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/c
 import 'package:trip_mate_mobile/features/operator_weather_safety/presentation/widgets/emergency_evidence_editor.dart';
 import 'package:trip_mate_mobile/features/operator_weather_safety/resources/operator_weather_safety_vi.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
-import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_coastal_app_bar.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_empty_state.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_section_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/loading_indicator.dart';
 
 typedef _Strings = OperatorWeatherSafetyStringsVi;
@@ -211,50 +212,56 @@ class _EmergencyDecisionPageState extends State<EmergencyDecisionPage>
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text(_Strings.decisionTitle)),
-    body: BlocConsumer<EmergencyDecisionCubit, EmergencyDecisionState>(
-      listenWhen: (previous, current) => previous.stage != current.stage,
-      listener: (context, state) {
-        // Nothing is on its way to the Backend, so the password does not stay.
-        if (state.stage
-            case EmergencyDecisionStage.ready ||
-                EmergencyDecisionStage.blocked) {
-          _password.clear();
-        }
-        switch (state.stage) {
-          case EmergencyDecisionStage.awaitingConfirmation:
-            _confirm(state);
-          case EmergencyDecisionStage.succeeded:
-            widget.onDecided?.call();
-          case EmergencyDecisionStage.ready
-              when state.isPasswordRejected ||
-                  state.failure is ValidationFailure && _password.text.isEmpty:
-            // The field is disabled until this state has been built.
-            WidgetsBinding.instance.addPostFrameCallback(
-              (_) => _passwordFocus.requestFocus(),
-            );
-          default:
-            break;
-        }
-      },
-      // From the build, so a state reached before the first frame still counts.
-      builder: (context, state) {
-        _syncSecureWindow(state);
-        return switch (state.stage) {
-          EmergencyDecisionStage.loading => const LoadingIndicator(),
-          EmergencyDecisionStage.notFound => const AppEmptyState(
-            title: _Strings.departureNotFound,
-            message: _Strings.departureNotFoundMessage,
-            icon: Icons.search_off_rounded,
-          ),
-          _ => _content(context, state),
-        };
-      },
-    ),
-  );
+  Widget build(BuildContext context) {
+    final c = context.tmColors;
+    return Scaffold(
+      backgroundColor: c.canvas,
+      appBar: const AppCoastalAppBar(title: _Strings.decisionTitle),
+      body: BlocConsumer<EmergencyDecisionCubit, EmergencyDecisionState>(
+        listenWhen: (previous, current) => previous.stage != current.stage,
+        listener: (context, state) {
+          // Nothing is on its way to the Backend, so the password does not stay.
+          if (state.stage
+              case EmergencyDecisionStage.ready ||
+                  EmergencyDecisionStage.blocked) {
+            _password.clear();
+          }
+          switch (state.stage) {
+            case EmergencyDecisionStage.awaitingConfirmation:
+              _confirm(state);
+            case EmergencyDecisionStage.succeeded:
+              widget.onDecided?.call();
+            case EmergencyDecisionStage.ready
+                when state.isPasswordRejected ||
+                    state.failure is ValidationFailure &&
+                        _password.text.isEmpty:
+              // The field is disabled until this state has been built.
+              WidgetsBinding.instance.addPostFrameCallback(
+                (_) => _passwordFocus.requestFocus(),
+              );
+            default:
+              break;
+          }
+        },
+        // From the build, so a state reached before the first frame still counts.
+        builder: (context, state) {
+          _syncSecureWindow(state);
+          return switch (state.stage) {
+            EmergencyDecisionStage.loading => const LoadingIndicator(),
+            EmergencyDecisionStage.notFound => const AppEmptyState(
+              title: _Strings.departureNotFound,
+              message: _Strings.departureNotFoundMessage,
+              icon: Icons.search_off_rounded,
+            ),
+            _ => _content(context, state),
+          };
+        },
+      ),
+    );
+  }
 
   Widget _content(BuildContext context, EmergencyDecisionState state) {
+    final c = context.tmColors;
     final impact = state.impact;
     final cubit = context.read<EmergencyDecisionCubit>();
     final isDecided =
@@ -277,11 +284,31 @@ class _EmergencyDecisionPageState extends State<EmergencyDecisionPage>
             if (state.result case final result?)
               _Success(result: result)
             else if (impact != null) ...[
-              Text(
-                impact.action == EmergencyAction.emergencyStop
-                    ? _Strings.stopAction
-                    : _Strings.cancelAction,
-                style: Theme.of(context).textTheme.titleLarge,
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: c.errorContainer,
+                  borderRadius: BorderRadius.circular(TripMateRadius.lg),
+                  border: Border.all(color: c.error.withValues(alpha: 0.35)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded, color: c.error, size: 24),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        impact.action == EmergencyAction.emergencyStop
+                            ? _Strings.stopAction
+                            : _Strings.cancelAction,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: c.error,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: AppSpacing.sm),
               _ImpactPanel(impact: impact),
@@ -316,6 +343,7 @@ class _EmergencyDecisionPageState extends State<EmergencyDecisionPage>
   }
 
   Widget _decisionForm(EmergencyDecisionState state, EmergencyImpact impact) {
+    final c = context.tmColors;
     final isStop = impact.action == EmergencyAction.emergencyStop;
     final isAmbiguous = state.stage == EmergencyDecisionStage.ambiguous;
     final canEdit = state.stage == EmergencyDecisionStage.ready;
@@ -327,132 +355,157 @@ class _EmergencyDecisionPageState extends State<EmergencyDecisionPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          DropdownButtonFormField<EmergencyReason>(
-            key: const Key('emergency-reason'),
-            initialValue: _reason,
-            isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: _Strings.reason,
-              border: OutlineInputBorder(),
+          AppSectionCard(
+            title: _Strings.reason,
+            icon: Icons.assignment_late_outlined,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                DropdownButtonFormField<EmergencyReason>(
+                  key: const Key('emergency-reason'),
+                  initialValue: _reason,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: _Strings.reason,
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    for (final reason in EmergencyReason.values)
+                      DropdownMenuItem(
+                        value: reason,
+                        child: Text(reason.label),
+                      ),
+                  ],
+                  onChanged: canEdit
+                      ? (value) => setState(() => _reason = value ?? _reason)
+                      : null,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                _field(
+                  key: 'emergency-reason-details',
+                  focusNode: _detailsFocus,
+                  controller: _details,
+                  label: _Strings.reasonDetails,
+                  enabled: canEdit,
+                  maxLength: EmergencyDecision.reasonDetailsMaxLength,
+                  lines: 3,
+                  required: _Strings.reasonRequired,
+                ),
+                if (isStop)
+                  _field(
+                    key: 'emergency-instructions',
+                    focusNode: _instructionsFocus,
+                    controller: _instructions,
+                    label: _Strings.instructions,
+                    enabled: canEdit,
+                    maxLength: EmergencyDecision.instructionsMaxLength,
+                    lines: 3,
+                    required: _Strings.instructionsRequired,
+                  ),
+                _field(
+                  key: 'emergency-contact',
+                  focusNode: _contactFocus,
+                  controller: _contact,
+                  label: isStop ? _Strings.contact : _Strings.contactOptional,
+                  enabled: canEdit,
+                  maxLength: EmergencyDecision.contactMaxLength,
+                  required: isStop ? _Strings.contactRequired : null,
+                ),
+              ],
             ),
-            items: [
-              for (final reason in EmergencyReason.values)
-                DropdownMenuItem(value: reason, child: Text(reason.label)),
-            ],
-            onChanged: canEdit
-                ? (value) => setState(() => _reason = value ?? _reason)
-                : null,
           ),
           const SizedBox(height: AppSpacing.sm),
-          _field(
-            key: 'emergency-reason-details',
-            focusNode: _detailsFocus,
-            controller: _details,
-            label: _Strings.reasonDetails,
-            enabled: canEdit,
-            maxLength: EmergencyDecision.reasonDetailsMaxLength,
-            lines: 3,
-            required: _Strings.reasonRequired,
-          ),
-          if (isStop)
-            _field(
-              key: 'emergency-instructions',
-              focusNode: _instructionsFocus,
-              controller: _instructions,
-              label: _Strings.instructions,
-              enabled: canEdit,
-              maxLength: EmergencyDecision.instructionsMaxLength,
-              lines: 3,
-              required: _Strings.instructionsRequired,
+          AppSectionCard(
+            title: _Strings.evidenceTitle,
+            icon: Icons.verified_outlined,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
+                  key: const Key('emergency-evidence-url'),
+                  focusNode: _evidenceUrlFocus,
+                  controller: _evidenceUrl,
+                  enabled: canEdit,
+                  keyboardType: TextInputType.url,
+                  maxLength: EmergencyEvidence.urlMaxLength,
+                  decoration: const InputDecoration(
+                    labelText: _Strings.evidenceUrl,
+                    hintText: _Strings.evidenceUrlHint,
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    final text = value?.trim() ?? '';
+                    return text.isEmpty ||
+                            EmergencyEvidence.isAcceptableUrl(text)
+                        ? null
+                        : _Strings.evidenceUrlInvalid;
+                  },
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                TextFormField(
+                  key: const Key('emergency-authority'),
+                  focusNode: _authorityFocus,
+                  controller: _authority,
+                  enabled: canEdit,
+                  maxLength: EmergencyEvidence.authorityReferenceMaxLength,
+                  decoration: const InputDecoration(
+                    labelText: _Strings.authorityReference,
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (_) => _lacksAuthorityEvidence
+                      ? _Strings.authorityEvidenceRequired
+                      : null,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                TextFormField(
+                  key: const Key('emergency-evidence-reference'),
+                  controller: _reference,
+                  enabled: canEdit,
+                  maxLength: EmergencyEvidence.referenceMaxLength,
+                  decoration: const InputDecoration(
+                    labelText: _Strings.evidenceReference,
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                Material(
+                  color: Colors.transparent,
+                  child: CheckboxListTile(
+                    key: const Key('emergency-add-later'),
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: const Text(_Strings.addLater),
+                    value: _addLater,
+                    onChanged: canEdit
+                        ? (value) => setState(() => _addLater = value ?? false)
+                        : null,
+                  ),
+                ),
+              ],
             ),
-          _field(
-            key: 'emergency-contact',
-            focusNode: _contactFocus,
-            controller: _contact,
-            label: isStop ? _Strings.contact : _Strings.contactOptional,
-            enabled: canEdit,
-            maxLength: EmergencyDecision.contactMaxLength,
-            required: isStop ? _Strings.contactRequired : null,
-          ),
-          Text(
-            _Strings.evidenceTitle,
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          TextFormField(
-            key: const Key('emergency-evidence-url'),
-            focusNode: _evidenceUrlFocus,
-            controller: _evidenceUrl,
-            enabled: canEdit,
-            keyboardType: TextInputType.url,
-            maxLength: EmergencyEvidence.urlMaxLength,
-            decoration: const InputDecoration(
-              labelText: _Strings.evidenceUrl,
-              hintText: _Strings.evidenceUrlHint,
-              border: OutlineInputBorder(),
-            ),
-            validator: (value) {
-              final text = value?.trim() ?? '';
-              return text.isEmpty || EmergencyEvidence.isAcceptableUrl(text)
-                  ? null
-                  : _Strings.evidenceUrlInvalid;
-            },
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          TextFormField(
-            key: const Key('emergency-authority'),
-            focusNode: _authorityFocus,
-            controller: _authority,
-            enabled: canEdit,
-            maxLength: EmergencyEvidence.authorityReferenceMaxLength,
-            decoration: const InputDecoration(
-              labelText: _Strings.authorityReference,
-              border: OutlineInputBorder(),
-            ),
-            validator: (_) => _lacksAuthorityEvidence
-                ? _Strings.authorityEvidenceRequired
-                : null,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          TextFormField(
-            key: const Key('emergency-evidence-reference'),
-            controller: _reference,
-            enabled: canEdit,
-            maxLength: EmergencyEvidence.referenceMaxLength,
-            decoration: const InputDecoration(
-              labelText: _Strings.evidenceReference,
-              border: OutlineInputBorder(),
-            ),
-          ),
-          CheckboxListTile(
-            key: const Key('emergency-add-later'),
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.leading,
-            title: const Text(_Strings.addLater),
-            value: _addLater,
-            onChanged: canEdit
-                ? (value) => setState(() => _addLater = value ?? false)
-                : null,
           ),
           if (isStop) ...[
             const SizedBox(height: AppSpacing.sm),
-            TextFormField(
-              key: const Key('emergency-password'),
-              controller: _password,
-              focusNode: _passwordFocus,
-              enabled: canEdit || isAmbiguous,
-              obscureText: true,
-              enableSuggestions: false,
-              autocorrect: false,
-              enableIMEPersonalizedLearning: false,
-              keyboardType: TextInputType.visiblePassword,
-              decoration: const InputDecoration(
-                labelText: _Strings.password,
-                border: OutlineInputBorder(),
+            AppSectionCard(
+              title: _Strings.password,
+              icon: Icons.lock_outline,
+              child: TextFormField(
+                key: const Key('emergency-password'),
+                controller: _password,
+                focusNode: _passwordFocus,
+                enabled: canEdit || isAmbiguous,
+                obscureText: true,
+                enableSuggestions: false,
+                autocorrect: false,
+                enableIMEPersonalizedLearning: false,
+                keyboardType: TextInputType.visiblePassword,
+                decoration: const InputDecoration(
+                  labelText: _Strings.password,
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) => value == null || value.isEmpty
+                    ? _Strings.passwordRequired
+                    : null,
               ),
-              validator: (value) => value == null || value.isEmpty
-                  ? _Strings.passwordRequired
-                  : null,
             ),
           ],
           const SizedBox(height: AppSpacing.md),
@@ -462,14 +515,17 @@ class _EmergencyDecisionPageState extends State<EmergencyDecisionPage>
             FilledButton.icon(
               key: const Key('emergency-review-decision'),
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.error,
+                backgroundColor: c.error,
                 foregroundColor: Colors.white,
               ),
               onPressed: canEdit ? () => _review(impact) : null,
               icon: isBusy
                   ? const SizedBox.square(
                       dimension: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Icon(Icons.warning_amber_rounded),
               label: const Text(_Strings.reviewAndConfirm),
@@ -544,28 +600,28 @@ class _ImpactPanel extends StatelessWidget {
   final EmergencyImpact impact;
 
   @override
-  Widget build(BuildContext context) => AppCard(
-    key: const Key('emergency-impact-panel'),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          _Strings.impactTitle,
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Text('${_Strings.passengers}: ${impact.totalPassengerCount}'),
-        Text('${_Strings.paidBookings}: ${impact.paidBookingCount}'),
-        Text('${_Strings.unpaidBookings}: ${impact.unpaidBookingCount}'),
-        Text('${_Strings.activeSessions}: ${impact.activeSessionCount}'),
-        Text('${_Strings.unusedTickets}: ${impact.unusedTicketCount}'),
-        if (_refundNotice case final notice?) ...[
-          const SizedBox(height: AppSpacing.xs),
-          Text(notice, style: const TextStyle(color: AppColors.muted)),
+  Widget build(BuildContext context) {
+    final c = context.tmColors;
+    return AppSectionCard(
+      key: const Key('emergency-impact-panel'),
+      title: _Strings.impactTitle,
+      icon: Icons.analytics_outlined,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('${_Strings.passengers}: ${impact.totalPassengerCount}'),
+          Text('${_Strings.paidBookings}: ${impact.paidBookingCount}'),
+          Text('${_Strings.unpaidBookings}: ${impact.unpaidBookingCount}'),
+          Text('${_Strings.activeSessions}: ${impact.activeSessionCount}'),
+          Text('${_Strings.unusedTickets}: ${impact.unusedTicketCount}'),
+          if (_refundNotice case final notice?) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(notice, style: TextStyle(color: c.textSecondary, height: 1.4)),
+          ],
         ],
-      ],
-    ),
-  );
+      ),
+    );
+  }
 
   /// What happens to paid bookings, told before the Operator confirms. An
   /// unrecognised action promises nothing.

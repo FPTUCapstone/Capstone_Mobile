@@ -14,7 +14,9 @@ final class SendSupportMessage {
     Future<void>? cancellation,
   }) async {
     if (!_validContent(message)) {
-      throw const ValidationFailure('Enter a message of 1–2000 characters.');
+      throw const ValidationFailure(
+        'Vui lòng nhập tin nhắn từ 1 đến 2.000 ký tự.',
+      );
     }
     if (history.length > 10 ||
         history.any(
@@ -22,10 +24,12 @@ final class SendSupportMessage {
               (entry.role != 'user' && entry.role != 'assistant') ||
               !_validContent(entry.content),
         )) {
-      throw const ValidationFailure('Please start a new support conversation.');
+      throw const ValidationFailure(
+        'Vui lòng bắt đầu cuộc trò chuyện hỗ trợ mới.',
+      );
     }
     if (context != null && !context.isValid) {
-      throw const ValidationFailure('Choose a valid support context.');
+      throw const ValidationFailure('Vui lòng chọn ngữ cảnh hỗ trợ hợp lệ.');
     }
     return _repository.send(
       message: message,

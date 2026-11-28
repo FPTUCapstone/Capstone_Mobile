@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/features/tour_detail/domain/entities/tour_schedule_item.dart';
 import 'package:trip_mate_mobile/features/tour_detail/presentation/formatters/tour_detail_formatters.dart';
 import 'package:trip_mate_mobile/features/tour_detail/presentation/resources/tour_detail_strings.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/availability_status.dart';
-import 'package:trip_mate_mobile/features/tour_search/presentation/theme/tour_search_palette.dart';
 
 /// The state a traveler sees for a departure, taken from what the server knows
 /// (sold out, capacity unknown, registration closed) rather than guessed.
@@ -35,16 +36,15 @@ class DepartureScheduleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final selectable = schedule.isSelectable;
     final window = formatDepartureWindow(
       schedule.departureAtUtc,
       schedule.endAtUtc,
     );
     final state = departureStateLabel(schedule);
-    final muted = selectable ? null : Colors.grey;
-    final accent = selectable
-        ? const Color(0xFF16A34A)
-        : const Color(0xFFEF4444);
+    final muted = selectable ? null : c.textMuted;
+    final accent = selectable ? c.brandTeal : c.error;
     final childPrice = schedule.childPrice;
     final infantPrice = schedule.infantPrice;
     final meetingPoint = schedule.meetingPoint?.trim();
@@ -79,96 +79,97 @@ class DepartureScheduleCard extends StatelessWidget {
         ].join(', '),
         onTap: onTap,
         excludeSemantics: true,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(10),
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 48),
-            padding: const EdgeInsets.all(AppSpacing.sm),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? (selectable
-                        ? const Color(0xFFF0FDF4)
-                        : const Color(0xFFFEF2F2))
-                  : Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isSelected ? accent : const Color(0xFFE2E8F0),
-                width: isSelected ? 1.5 : 1.0,
-              ),
+        child: Material(
+          color: isSelected
+              ? (selectable ? c.tealSoftContainer : c.errorContainer)
+              : c.surfaceCard,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(TripMateRadius.sm),
+            side: BorderSide(
+              color: isSelected ? accent : c.borderSubtle,
+              width: isSelected ? 1.5 : 1.0,
             ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Icon(
-                    isSelected
-                        ? Icons.radio_button_checked
-                        : Icons.radio_button_off,
-                    size: 20,
-                    color: isSelected ? accent : Colors.grey,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        window,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: muted ?? TourSearchPalette.navy,
-                        ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 48),
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Icon(
+                        isSelected
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_off,
+                        size: 20,
+                        color: isSelected ? accent : c.textMuted,
                       ),
-                      const SizedBox(height: 2),
-                      Wrap(
-                        spacing: AppSpacing.xs,
-                        runSpacing: 4,
-                        crossAxisAlignment: WrapCrossAlignment.center,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            formatVnd(schedule.price),
+                            window,
                             style: TextStyle(
-                              fontSize: 13,
-                              color: muted ?? TourSearchPalette.teal,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w700,
+                              color: muted ?? c.textPrimary,
                             ),
                           ),
-                          _StateBadge(label: state, selectable: selectable),
+                          const SizedBox(height: 2),
+                          Wrap(
+                            spacing: AppSpacing.xs,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(
+                                formatVnd(schedule.price),
+                                style: AppTypography.price(
+                                  muted ?? c.brandTeal,
+                                  fontSize: 13.5,
+                                ),
+                              ),
+                              _StateBadge(label: state, selectable: selectable),
+                            ],
+                          ),
+                          if (childPrice != null)
+                            _DetailLine(
+                              TourDetailStrings.childPriceLine(
+                                childPrice == 0
+                                    ? TourDetailStrings.free
+                                    : formatVnd(childPrice),
+                              ),
+                            ),
+                          if (infantPrice != null)
+                            _DetailLine(
+                              TourDetailStrings.infantPriceLine(
+                                infantPrice == 0
+                                    ? TourDetailStrings.free
+                                    : formatVnd(infantPrice),
+                              ),
+                            ),
+                          if (meetingPoint != null && meetingPoint.isNotEmpty)
+                            _DetailLine(
+                              TourDetailStrings.meetingPointLine(meetingPoint),
+                            ),
+                          if (deadline != null)
+                            _DetailLine(
+                              TourDetailStrings.registrationClosesLine(
+                                formatVietnamDateTime(deadline),
+                              ),
+                            ),
                         ],
                       ),
-                      if (childPrice != null)
-                        _DetailLine(
-                          TourDetailStrings.childPriceLine(
-                            childPrice == 0
-                                ? TourDetailStrings.free
-                                : formatVnd(childPrice),
-                          ),
-                        ),
-                      if (infantPrice != null)
-                        _DetailLine(
-                          TourDetailStrings.infantPriceLine(
-                            infantPrice == 0
-                                ? TourDetailStrings.free
-                                : formatVnd(infantPrice),
-                          ),
-                        ),
-                      if (meetingPoint != null && meetingPoint.isNotEmpty)
-                        _DetailLine(
-                          TourDetailStrings.meetingPointLine(meetingPoint),
-                        ),
-                      if (deadline != null)
-                        _DetailLine(
-                          TourDetailStrings.registrationClosesLine(
-                            formatVietnamDateTime(deadline),
-                          ),
-                        ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -185,18 +186,20 @@ class _StateBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: selectable ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
-        borderRadius: BorderRadius.circular(6),
+        color: selectable ? c.successContainer : c.errorContainer,
+        borderRadius: BorderRadius.circular(TripMateRadius.pill),
       ),
       child: Text(
         label,
         style: TextStyle(
+          fontFamily: AppTypography.uiFont,
           fontSize: 11,
           fontWeight: FontWeight.w700,
-          color: selectable ? const Color(0xFF15803D) : const Color(0xFFB91C1C),
+          color: selectable ? c.success : c.error,
         ),
       ),
     );
@@ -210,12 +213,10 @@ class _DetailLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return Padding(
       padding: const EdgeInsets.only(top: 4),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
-      ),
+      child: Text(text, style: TextStyle(fontSize: 12, color: c.textSecondary)),
     );
   }
 }

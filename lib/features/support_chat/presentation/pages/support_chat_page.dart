@@ -184,14 +184,14 @@ class _SupportChatPageState extends State<SupportChatPage> {
             TextButton.icon(
               onPressed: state.loading ? null : () => _performAction(choice),
               icon: const Icon(Icons.chat_bubble_outline, size: 18),
-              label: const Text('Ask about tour'),
+              label: const Text('Hỏi về tour'),
             ),
             TextButton.icon(
               onPressed: state.loading
                   ? null
                   : () => _performAction(navigation),
               icon: const Icon(Icons.arrow_forward, size: 18),
-              label: const Text('View tour'),
+              label: const Text('Xem tour'),
             ),
           ],
         ),
@@ -226,7 +226,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              isUser ? 'You' : 'TripMate support',
+              isUser ? 'Bạn' : 'Hỗ trợ TripMate',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: isUser
                     ? Colors.white.withValues(alpha: 0.78)
@@ -246,7 +246,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
             if (entry.sources.isNotEmpty)
               ExpansionTile(
                 title: Text(
-                  'Sources (${entry.sources.length})',
+                  'Nguồn tham khảo (${entry.sources.length})',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: isUser ? Colors.white70 : AppColors.muted,
                   ),
@@ -278,6 +278,14 @@ class _SupportChatPageState extends State<SupportChatPage> {
     );
   }
 
+  String _contextKindLabel(String? kind) => switch (kind) {
+    'tour' => 'tour',
+    'refund' => 'hoàn tiền',
+    'itinerary' => 'lịch trình',
+    'booking' => 'đơn đặt tour',
+    _ => kind ?? '',
+  };
+
   @override
   Widget build(
     BuildContext context,
@@ -291,7 +299,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
       return Scaffold(
         backgroundColor: AppColors.surface,
         appBar: AppBar(
-          title: const Text('Support chat'),
+          title: const Text('Trò chuyện hỗ trợ'),
           backgroundColor: AppColors.cardBackground,
           surfaceTintColor: Colors.transparent,
           bottom: const PreferredSize(
@@ -300,7 +308,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
           ),
           actions: [
             IconButton(
-              tooltip: 'Clear chat',
+              tooltip: 'Xóa cuộc trò chuyện',
               onPressed: cubit.reset,
               icon: const Icon(Icons.refresh),
             ),
@@ -329,7 +337,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Selected ${state.context?.kind} #${state.context?.id}',
+                          'Đang chọn ${_contextKindLabel(state.context?.kind)} #${state.context?.id}',
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -339,7 +347,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
                       ),
                       if (state.context != null)
                         IconButton(
-                          tooltip: 'Clear context',
+                          tooltip: 'Xóa ngữ cảnh',
                           visualDensity: VisualDensity.compact,
                           onPressed: () => cubit.selectContext(null),
                           icon: const Icon(
@@ -353,7 +361,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
                 ),
               if (state.loading)
                 Semantics(
-                  label: 'Support is replying',
+                  label: 'Hỗ trợ đang phản hồi',
                   liveRegion: true,
                   child: const LinearProgressIndicator(),
                 ),
@@ -392,7 +400,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
                             ),
                             const SizedBox(height: AppSpacing.md),
                             Text(
-                              'How can I help?',
+                              'TripMate có thể giúp gì cho bạn?',
                               style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(
                                     fontWeight: FontWeight.w700,
@@ -401,7 +409,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
                             ),
                             const SizedBox(height: AppSpacing.xs),
                             const Text(
-                              'Ask about tours, bookings, refunds or itineraries.',
+                              'Hãy hỏi về tour, đơn đặt tour, hoàn tiền hoặc lịch trình.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 13.5,
@@ -451,7 +459,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
                               if (state.canRetry)
                                 TextButton(
                                   onPressed: cubit.retry,
-                                  child: const Text('Retry'),
+                                  child: const Text('Thử lại'),
                                 ),
                             ],
                           ),
@@ -479,7 +487,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
                         child: TextField(
                           controller: _message,
                           decoration: const InputDecoration(
-                            labelText: 'Message',
+                            labelText: 'Tin nhắn',
                             filled: true,
                             fillColor: AppColors.surface,
                             contentPadding: EdgeInsets.symmetric(
@@ -504,7 +512,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
                         child: IconButton.filled(
-                          tooltip: 'Send message',
+                          tooltip: 'Gửi tin nhắn',
                           onPressed: state.loading ? null : _send,
                           icon: const Icon(Icons.send_rounded, size: 20),
                         ),

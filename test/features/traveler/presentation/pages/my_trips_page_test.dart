@@ -173,7 +173,10 @@ void main() {
     })..failure = const ServerFailure();
     await pumpTrips(tester, repository);
 
-    expect(find.text('The service is currently unavailable.'), findsOneWidget);
+    expect(
+      find.text('Dịch vụ hiện đang tạm gián đoạn. Vui lòng thử lại sau.'),
+      findsOneWidget,
+    );
     repository.failure = null;
     await tester.tap(find.text('Thử lại'));
     await tester.pumpAndSettle();

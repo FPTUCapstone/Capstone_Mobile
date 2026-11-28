@@ -18,7 +18,9 @@ import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_se
 import 'package:trip_mate_mobile/features/tour_search/presentation/cubit/tour_search_state.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/pages/tour_search_page.dart';
 import 'package:trip_mate_mobile/features/trip_history/utils/trip_formatters.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_bottom_sheet_scaffold.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_coastal_app_bar.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_shimmer.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_sliding_bottom_nav.dart';
 
@@ -526,9 +528,9 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       Icons.star_rounded,
-                                      color: Color(0xFFF59E0B),
+                                      color: context.tmColors.brandCoral,
                                       size: 13,
                                     ),
                                     const SizedBox(width: 2),
@@ -714,10 +716,10 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.star,
                                     size: 11,
-                                    color: Color(0xFFF59E0B),
+                                    color: context.tmColors.brandCoral,
                                   ),
                                   const SizedBox(width: 2),
                                   Text(
@@ -785,6 +787,7 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
   }
 
   Widget _buildPoiSkeletonList() {
+    final c = context.tmColors;
     return AppShimmer(
       child: SizedBox(
         height: 195,
@@ -795,17 +798,17 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
           itemBuilder: (_, _) => Container(
             width: 190,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: c.surfaceCard,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.line),
+              border: Border.all(color: c.borderSubtle),
             ),
             child: Column(
               children: [
                 Container(
                   height: 105,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.vertical(
+                  decoration: BoxDecoration(
+                    color: c.shimmerBase,
+                    borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(16),
                     ),
                   ),
@@ -819,7 +822,7 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
                         height: 14,
                         width: 120,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
+                          color: c.shimmerBase,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -828,7 +831,7 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
                         height: 10,
                         width: 80,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
+                          color: c.shimmerBase,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -1238,10 +1241,10 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.star,
                                     size: 11,
-                                    color: Color(0xFFF59E0B),
+                                    color: context.tmColors.brandCoral,
                                   ),
                                   const SizedBox(width: 2),
                                   Text(
@@ -1313,6 +1316,7 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
   }
 
   Widget _buildTourSkeletonList() {
+    final c = context.tmColors;
     return AppShimmer(
       child: SizedBox(
         height: 215,
@@ -1323,17 +1327,17 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
           itemBuilder: (_, _) => Container(
             width: 220,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: c.surfaceCard,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.line),
+              border: Border.all(color: c.borderSubtle),
             ),
             child: Column(
               children: [
                 Container(
                   height: 105,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.vertical(
+                  decoration: BoxDecoration(
+                    color: c.shimmerBase,
+                    borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(16),
                     ),
                   ),
@@ -1347,7 +1351,7 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
                         height: 14,
                         width: 140,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
+                          color: c.shimmerBase,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -1356,7 +1360,7 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
                         height: 12,
                         width: 70,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
+                          color: c.shimmerBase,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -1372,16 +1376,17 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
   }
 
   Widget _buildSmartItineraryCta(BuildContext context) {
+    final c = context.tmColors;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFE8F0EA), Color(0xFFF3F6F1)],
+        gradient: LinearGradient(
+          colors: [c.tealSoftContainer, c.surfaceElevated],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFC8D7CE)),
+        border: Border.all(color: c.borderStrong),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1389,20 +1394,20 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.10),
+              color: c.brandTeal.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(999),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.auto_awesome, size: 12, color: AppColors.primary),
-                SizedBox(width: 4),
+                Icon(Icons.auto_awesome, size: 12, color: c.brandTeal),
+                const SizedBox(width: 4),
                 Text(
                   'TỐI ƯU BỞI AI',
                   style: TextStyle(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
+                    color: c.brandTeal,
                     letterSpacing: 0.4,
                   ),
                 ),
@@ -1410,21 +1415,21 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Khám phá nhiều hơn,\nlên lịch trình thông minh hơn',
             style: TextStyle(
               fontSize: 16.5,
               fontWeight: FontWeight.w700,
-              color: AppColors.ink,
+              color: c.textPrimary,
               height: 1.25,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Tự động tối ưu thứ tự tham quan, tránh tắc đường và cá nhân hóa chuyến đi theo sở thích của bạn.',
             style: TextStyle(
               fontSize: 12.5,
-              color: AppColors.muted,
+              color: c.textSecondary,
               height: 1.4,
             ),
           ),
@@ -1439,8 +1444,8 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
             icon: const Icon(Icons.auto_awesome_outlined, size: 16),
             label: const Text('Lên lịch trình cùng AI'),
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
+              backgroundColor: c.brandTeal,
+              foregroundColor: c.textOnBrand,
               minimumSize: const Size(0, 40),
               padding: const EdgeInsets.symmetric(horizontal: 14),
               shape: RoundedRectangleBorder(
@@ -1573,17 +1578,7 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
   }
 
   PreferredSizeWidget _buildGuestAccountAppBar(BuildContext context) {
-    return AppBar(
-      title: const Text(
-        'Tài khoản',
-        style: TextStyle(
-          fontWeight: FontWeight.w700,
-          fontSize: 18,
-          color: AppColors.primary,
-        ),
-      ),
-      centerTitle: true,
-    );
+    return const AppCoastalAppBar(title: 'Tài khoản', centerTitle: true);
   }
 
   Widget _buildGuestAccountView(BuildContext context) {
@@ -1815,37 +1810,31 @@ class _GuestLandingPageState extends State<GuestLandingPage> {
     String? actionLabel,
     VoidCallback? onAction,
   }) {
-    showModalBottomSheet<void>(
+    final c = context.tmColors;
+    showAppModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(title, style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 8),
-              Text(
-                message,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
-              ),
-              if (actionLabel != null && onAction != null) ...[
-                const SizedBox(height: 14),
-                FilledButton(
-                  onPressed: () {
-                    Navigator.pop(sheetContext);
-                    onAction();
-                  },
-                  child: Text(actionLabel),
-                ),
-              ],
-            ],
+      title: title,
+      builder: (sheetContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            message,
+            style: Theme.of(
+              sheetContext,
+            ).textTheme.bodyMedium?.copyWith(color: c.textSecondary),
           ),
-        ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(sheetContext);
+                onAction();
+              },
+              child: Text(actionLabel),
+            ),
+          ],
+        ],
       ),
     );
   }

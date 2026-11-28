@@ -50,8 +50,8 @@ void main() {
       await tester.enterText(find.byType(TextFormField), '  Staff context  ');
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      await tester.ensureVisible(find.text('Cancel'));
-      await tester.tap(find.text('Cancel'));
+      await tester.ensureVisible(find.text('Hủy'));
+      await tester.tap(find.text('Hủy'));
       await tester.pumpAndSettle();
       expect(find.byType(SubmitTourDialog), findsNothing);
     },
@@ -61,9 +61,9 @@ void main() {
   ) async {
     await open(tester, size: const Size(800, 1000), scale: 1);
     await tester.enterText(find.byType(TextFormField), '\u{1F600}' * 2001);
-    await tester.tap(find.text('Submit'));
+    await tester.tap(find.text('Gửi duyệt'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Shorten the submission note'), findsOneWidget);
+    expect(find.textContaining('rút gọn ghi chú gửi duyệt'), findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
     expect(find.byType(SubmitTourDialog), findsNothing);
@@ -71,9 +71,12 @@ void main() {
   test('all readiness blockers and unknown codes use human copy', () {
     expect(
       tourBlockerMessage('required_fields_missing'),
-      contains('required tour information'),
+      contains('thông tin tour bắt buộc'),
     );
-    expect(tourBlockerMessage('itinerary_missing'), contains('every tour day'));
+    expect(
+      tourBlockerMessage('itinerary_missing'),
+      contains('từng ngày của tour'),
+    );
     expect(
       tourBlockerMessage('internal_secret_code'),
       isNot(contains('internal_secret_code')),

@@ -42,16 +42,17 @@ void main() {
     cubit.setAgreedToTerms(true);
     await tester.pumpAndSettle();
     expect(cubit.state.canAttemptSubmit, isTrue);
-    final submit = find.widgetWithText(FilledButton, 'Confirm booking');
+    final submit = find.widgetWithText(FilledButton, 'Xác nhận đặt tour');
     await tester.ensureVisible(submit);
     await tester.pumpAndSettle();
     expect(tester.widget<FilledButton>(submit).onPressed, isNotNull);
     await tester.tap(submit);
     await tester.pumpAndSettle();
     for (final entry in {
-      'booking-lead-full-name': 'Full name is required.',
-      'booking-lead-phone': 'Phone number must be 10 digits starting with 0.',
-      'booking-lead-email': 'Enter a valid email address.',
+      'booking-lead-full-name': 'Vui lòng nhập họ và tên.',
+      'booking-lead-phone':
+          'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng số 0.',
+      'booking-lead-email': 'Vui lòng nhập địa chỉ email hợp lệ.',
     }.entries) {
       expect(
         tester
@@ -89,8 +90,8 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Book Tour'), findsOneWidget);
-      expect(find.text('Apply'), findsOneWidget);
+      expect(find.text('Đặt tour'), findsOneWidget);
+      expect(find.text('Áp dụng'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

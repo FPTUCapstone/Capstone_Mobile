@@ -35,13 +35,13 @@ final class SupportChatRepositoryImpl implements SupportChatRepository {
     } catch (error) {
       if (error is FormatException || error is TypeError) {
         throw const ServerFailure(
-          'Support is temporarily unavailable. Please try again.',
+          'Hỗ trợ tạm thời gián đoạn. Vui lòng thử lại.',
         );
       }
       // Do not expose arbitrary ProblemDetails titles, details or field values.
       if (error is DioException && error.response?.statusCode == 400) {
         throw const ValidationFailure(
-          'Please check your message and selected context.',
+          'Vui lòng kiểm tra tin nhắn và ngữ cảnh đã chọn.',
         );
       }
       throw ErrorMapper.toFailure(error);

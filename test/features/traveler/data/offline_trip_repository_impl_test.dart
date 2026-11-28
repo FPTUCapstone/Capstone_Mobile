@@ -159,7 +159,7 @@ void main() {
           isA<NetworkFailure>().having(
             (error) => error.message,
             'message',
-            contains('nothing partial was kept'),
+            contains('không lưu dữ liệu dở dang'),
           ),
         ),
       );

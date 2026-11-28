@@ -737,7 +737,7 @@ final class _DraftTripCard extends StatelessWidget {
                         _StatusPill(
                           label: trip.status.toLowerCase() == 'draft'
                               ? 'Bản nháp'
-                              : trip.status,
+                              : itineraryStatusLabel(trip.status),
                           bg: palette.warningBg,
                           fg: palette.warningText,
                         ),

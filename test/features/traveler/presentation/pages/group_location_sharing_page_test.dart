@@ -196,26 +196,24 @@ void main() {
     await tester.pumpAndSettle();
 
     // 1. Header & Title
-    expect(find.text('Location Sharing'), findsOneWidget);
-    expect(find.byTooltip('Close'), findsOneWidget);
+    expect(find.text('Chia sẻ vị trí'), findsOneWidget);
+    expect(find.byTooltip('Đóng'), findsOneWidget);
 
     // 2. Production Truthful Banner
-    expect(find.text('Pending Server Integration'), findsOneWidget);
+    expect(find.text('Đang chờ tích hợp máy chủ'), findsOneWidget);
     expect(
-      find.textContaining(
-        'Location sharing configuration is pending server integration',
-      ),
+      find.textContaining('Cấu hình chia sẻ vị trí đang chờ tích hợp máy chủ'),
       findsOneWidget,
     );
 
     // 3. Status Hero Card
-    expect(find.text('Location Sharing Off'), findsOneWidget);
+    expect(find.text('Chia sẻ vị trí đang tắt'), findsOneWidget);
 
     // 4. Primary Setting Card & Switch
-    expect(find.text('Share my live location'), findsOneWidget);
+    expect(find.text('Chia sẻ vị trí trực tiếp của tôi'), findsOneWidget);
     expect(
       find.text(
-        'With members of this group only (Editing disabled pending server integration)',
+        'Chỉ với thành viên của nhóm này (Tạm khóa chỉnh sửa do chờ tích hợp máy chủ)',
       ),
       findsOneWidget,
     );
@@ -226,25 +224,25 @@ void main() {
     expect(switchWidget.onChanged, isNull);
 
     // 5. Audience Card
-    expect(find.text('Who can see my location'), findsOneWidget);
-    expect(find.text('Members of Hoi An Ancient Tour'), findsOneWidget);
+    expect(find.text('Ai có thể xem vị trí của tôi'), findsOneWidget);
+    expect(find.text('Thành viên của Hoi An Ancient Tour'), findsOneWidget);
 
     // 6. Device Permission Card
-    expect(find.text('Device Location Permission'), findsOneWidget);
-    expect(find.text('Permission Denied'), findsOneWidget);
-    expect(find.text('Request Permission'), findsOneWidget);
+    expect(find.text('Quyền vị trí thiết bị'), findsOneWidget);
+    expect(find.text('Chưa cấp quyền vị trí'), findsOneWidget);
+    expect(find.text('Yêu cầu quyền'), findsOneWidget);
 
     // 7. Privacy Notice Card
     expect(
       find.textContaining(
-        'Your location is shared only with active members of this travel group',
+        'Vị trí của bạn chỉ được chia sẻ với các thành viên đang hoạt động trong nhóm du lịch này',
       ),
       findsOneWidget,
     );
 
     // 8. Demo controls should NOT be visible in production mode
     expect(find.byIcon(Icons.bug_report), findsNothing);
-    expect(find.text('DEMO_ONLY Test Controls'), findsNothing);
+    expect(find.text('Điều khiển thử nghiệm (Demo)'), findsNothing);
   });
 
   testWidgets(
@@ -275,10 +273,10 @@ void main() {
 
       // No success snackbars faked
       expect(
-        find.text('Live location sharing is now active with group members.'),
+        find.text('Đã bật chia sẻ vị trí trực tiếp với thành viên nhóm.'),
         findsNothing,
       );
-      expect(find.text('Live location sharing disabled.'), findsNothing);
+      expect(find.text('Đã tắt chia sẻ vị trí trực tiếp.'), findsNothing);
     },
   );
 
@@ -299,14 +297,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Request Permission'), findsOneWidget);
-    await tester.ensureVisible(find.text('Request Permission'));
+    expect(find.text('Yêu cầu quyền'), findsOneWidget);
+    await tester.ensureVisible(find.text('Yêu cầu quyền'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Request Permission'));
+    await tester.tap(find.text('Yêu cầu quyền'));
     await tester.pumpAndSettle();
 
     expect(locationService.requestCalls, equals(1));
-    expect(find.text('Permission Granted'), findsOneWidget);
+    expect(find.text('Đã cấp quyền vị trí'), findsOneWidget);
   });
 
   testWidgets('permanently denied shows Open Device Settings button', (
@@ -328,12 +326,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Permanently Denied'), findsOneWidget);
-    expect(find.text('Open Device Settings'), findsOneWidget);
+    expect(find.text('Bị từ chối vĩnh viễn'), findsOneWidget);
+    expect(find.text('Mở cài đặt thiết bị'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('Open Device Settings'));
+    await tester.ensureVisible(find.text('Mở cài đặt thiết bị'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Open Device Settings'));
+    await tester.tap(find.text('Mở cài đặt thiết bị'));
     await tester.pumpAndSettle();
 
     expect(locationService.openAppSettingsCalls, equals(1));
@@ -359,12 +357,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Location Services Disabled'), findsOneWidget);
-    expect(find.text('Open Location Settings'), findsOneWidget);
+    expect(find.text('Dịch vụ định vị đang tắt'), findsOneWidget);
+    expect(find.text('Mở cài đặt định vị'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('Open Location Settings'));
+    await tester.ensureVisible(find.text('Mở cài đặt định vị'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Open Location Settings'));
+    await tester.tap(find.text('Mở cài đặt định vị'));
     await tester.pumpAndSettle();
 
     expect(locationService.openLocationSettingsCalls, equals(1));
@@ -389,21 +387,21 @@ void main() {
       await tester.tap(find.byIcon(Icons.bug_report_outlined));
       await tester.pumpAndSettle();
 
-      expect(find.text('DEMO_ONLY Test Controls'), findsOneWidget);
+      expect(find.text('Điều khiển thử nghiệm (Demo)'), findsOneWidget);
 
       // Grant permission via demo control chip
-      await tester.ensureVisible(find.text('Grant Permission'));
+      await tester.ensureVisible(find.text('Cấp quyền vị trí'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Grant Permission'));
+      await tester.tap(find.text('Cấp quyền vị trí'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Permission Granted'), findsOneWidget);
+      expect(find.text('Đã cấp quyền vị trí'), findsOneWidget);
 
       // Toggle switch ON in demo mode with active membership
       // First simulate active member
-      await tester.ensureVisible(find.text('Simulate Active Member'));
+      await tester.ensureVisible(find.text('Giả lập thành viên hoạt động'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Simulate Active Member'));
+      await tester.tap(find.text('Giả lập thành viên hoạt động'));
       await tester.pumpAndSettle();
 
       await tester.ensureVisible(find.byType(Switch));
@@ -412,31 +410,28 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify effective sharing becomes active with truthful demo labeling
-      expect(find.text('Demo Preview: Sharing Active'), findsOneWidget);
+      expect(find.text('Bản xem thử: Đang chia sẻ vị trí'), findsOneWidget);
       expect(
-        find.text('Live location sharing is now active with group members.'),
+        find.text('Đã bật chia sẻ vị trí trực tiếp với thành viên nhóm.'),
         findsOneWidget,
       );
 
       // Verify toggling simulated broadcast off changes status to Unavailable
-      await tester.ensureVisible(find.text('Simulate Broadcast Off'));
+      await tester.ensureVisible(find.text('Giả lập tắt phát vị trí'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Simulate Broadcast Off'));
+      await tester.tap(find.text('Giả lập tắt phát vị trí'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Location Sharing Unavailable'), findsOneWidget);
-      expect(
-        find.textContaining('server broadcast integration is pending'),
-        findsOneWidget,
-      );
+      expect(find.text('Chia sẻ vị trí tạm chưa khả dụng'), findsOneWidget);
+      expect(find.textContaining('chờ tích hợp máy chủ'), findsOneWidget);
 
       // Verify toggling simulated broadcast back on restores Active status
-      await tester.ensureVisible(find.text('Simulate Broadcast On'));
+      await tester.ensureVisible(find.text('Giả lập bật phát vị trí'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Simulate Broadcast On'));
+      await tester.tap(find.text('Giả lập bật phát vị trí'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Demo Preview: Sharing Active'), findsOneWidget);
+      expect(find.text('Bản xem thử: Đang chia sẻ vị trí'), findsOneWidget);
     },
   );
 
@@ -487,8 +482,8 @@ void main() {
       FlutterError.onError = originalOnError;
 
       // Header and cards render without RenderFlex overflow exception
-      expect(find.text('Location Sharing'), findsOneWidget);
-      expect(find.text('Pending Server Integration'), findsOneWidget);
+      expect(find.text('Chia sẻ vị trí'), findsOneWidget);
+      expect(find.text('Đang chờ tích hợp máy chủ'), findsOneWidget);
       expect(caughtDetails, isNull);
     },
   );
@@ -527,14 +522,16 @@ void main() {
       await tester.pumpAndSettle();
 
       // Hero card must be truthful: NOT "Sharing is Active", but "Location Sharing Unavailable"
-      expect(find.text('Location Sharing Unavailable'), findsOneWidget);
+      expect(find.text('Chia sẻ vị trí tạm chưa khả dụng'), findsOneWidget);
       expect(
-        find.textContaining('server broadcast integration is pending'),
+        find.textContaining(
+          'Tính năng phát vị trí trực tiếp đang tạm dừng do chờ tích hợp máy chủ',
+        ),
         findsOneWidget,
       );
-      expect(find.text('Sharing is Active'), findsNothing);
+      expect(find.text('Bản xem thử: Đang chia sẻ vị trí'), findsNothing);
       expect(
-        find.textContaining('Your location is shared with members'),
+        find.textContaining('Vị trí của bạn đang được chia sẻ'),
         findsNothing,
       );
 
@@ -546,7 +543,7 @@ void main() {
       expect(switchWidget.onChanged, isNull);
       expect(
         find.text(
-          'With members of this group only (Consent is ON — editing disabled pending server integration)',
+          'Chỉ với thành viên của nhóm này (Đã đồng ý — tạm khóa chỉnh sửa do chờ tích hợp máy chủ)',
         ),
         findsOneWidget,
       );
@@ -572,12 +569,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Membership Inactive'), findsOneWidget);
+      expect(find.text('Không còn là thành viên hoạt động'), findsOneWidget);
       final switchWidget = tester.widget<Switch>(find.byType(Switch));
       expect(switchWidget.onChanged, isNull);
       expect(
         find.text(
-          'With members of this group only (Editing disabled pending server integration)',
+          'Chỉ với thành viên của nhóm này (Tạm khóa chỉnh sửa do chờ tích hợp máy chủ)',
         ),
         findsOneWidget,
       );

@@ -163,7 +163,7 @@ void main() {
       ).toEntity().itineraryDays.single;
 
       expect(day.dayNumber, 1);
-      expect(day.title, 'Day 1');
+      expect(day.title, 'Ngày 1');
       expect(day.stops.map((stop) => stop.poiName), [
         'Marble Mountains',
         'Dragon Bridge',

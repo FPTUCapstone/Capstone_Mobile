@@ -542,7 +542,12 @@ class _OperatorProfileEditPageState extends State<OperatorProfileEditPage> {
                       const Divider(height: 10, color: AppColors.line),
                       _ReadOnlyRow(
                         label: 'Trạng thái duyệt',
-                        value: profile.approvalStatus,
+                        value: switch (profile.approvalStatus) {
+                          'Approved' => 'Đã duyệt',
+                          'Pending' => 'Chờ duyệt',
+                          'Rejected' => 'Bị từ chối',
+                          _ => profile.approvalStatus,
+                        },
                       ),
                       const Divider(height: 10, color: AppColors.line),
                       _ReadOnlyRow(

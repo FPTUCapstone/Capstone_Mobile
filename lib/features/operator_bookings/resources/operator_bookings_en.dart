@@ -7,113 +7,114 @@ abstract final class OperatorBookingsStringsEn {
 
   /// MSG126: the booking, tour or role is not accessible to this operator.
   static const String accessDenied =
-      'You do not have permission to access this function.';
+      'Bạn không có quyền truy cập chức năng này.';
 
   /// MSG127: generic network or server failure.
   static const String systemError =
-      'TripMate is temporarily unable to process your request. '
-      'Please check your connection and try again.';
+      'TripMate tạm thời không thể xử lý yêu cầu của bạn. '
+      'Vui lòng kiểm tra kết nối mạng và thử lại.';
 
   /// MSG128: the list has no result for the applied filters.
-  static const String noRecords = 'No records found matching your criteria.';
+  static const String noRecords =
+      'Không tìm thấy đơn đặt tour nào phù hợp với bộ lọc.';
 
   /// MSG31: the departure range is inverted.
   static const String dateRangeInvalid =
-      'End date must be on or after the start date.';
+      'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.';
 
   // Common
-  static const String retry = 'Retry';
-  static const String close = 'Close';
+  static const String retry = 'Thử lại';
+  static const String close = 'Đóng';
   static const String notAvailable = '-';
 
   // List screen (#84)
-  static const String listTitle = 'Customer bookings';
-  static const String emptyTitle = 'No bookings found';
-  static const String searchHint = 'Search by code, name or e-mail';
-  static const String filtersButton = 'Filters';
-  static const String loadMore = 'Load more';
-  static const String loadingMore = 'Loading...';
+  static const String listTitle = 'Đơn đặt tour của khách';
+  static const String emptyTitle = 'Không tìm thấy đơn đặt tour';
+  static const String searchHint = 'Tìm theo mã đơn, tên hoặc email';
+  static const String filtersButton = 'Bộ lọc';
+  static const String loadMore = 'Tải thêm';
+  static const String loadingMore = 'Đang tải...';
   static const String demoBanner =
-      'Demo data: these bookings are samples, not live data.';
-  static const String summaryBookings = 'Bookings';
-  static const String summaryBookingsHint = 'Matching the filters';
-  static const String summaryParticipants = 'Participants';
-  static const String summaryParticipantsHint = 'Confirmed and completed';
-  static const String summaryRevenue = 'Confirmed revenue';
-  static const String summaryRevenueHint = 'Confirmed and completed';
-  static const String cardDeparture = 'Departure';
-  static const String cardBooker = 'Booker';
-  static const String cardParticipants = 'Participants';
-  static const String cardTotal = 'Total';
-  static const String cardOpenDetails = 'View details';
+      'Dữ liệu mẫu: các đơn đặt tour này chỉ mang tính minh họa, không phải dữ liệu thực tế.';
+  static const String summaryBookings = 'Đơn đặt tour';
+  static const String summaryBookingsHint = 'Theo bộ lọc hiện tại';
+  static const String summaryParticipants = 'Hành khách';
+  static const String summaryParticipantsHint = 'Đã xác nhận và hoàn thành';
+  static const String summaryRevenue = 'Doanh thu xác nhận';
+  static const String summaryRevenueHint = 'Đã xác nhận và hoàn thành';
+  static const String cardDeparture = 'Khởi hành';
+  static const String cardBooker = 'Người đặt';
+  static const String cardParticipants = 'Hành khách';
+  static const String cardTotal = 'Tổng tiền';
+  static const String cardOpenDetails = 'Xem chi tiết';
 
   // Status chips and badges
-  static const String statusAll = 'All';
-  static const String statusPendingPayment = 'Pending payment';
-  static const String statusConfirmed = 'Confirmed';
-  static const String statusCancelled = 'Cancelled';
-  static const String statusCompleted = 'Completed';
-  static const String statusExpired = 'Expired';
-  static const String statusInterrupted = 'Interrupted';
-  static const String paymentUnpaid = 'Unpaid';
-  static const String paymentPaid = 'Paid';
-  static const String paymentRefunded = 'Refunded';
-  static const String paymentPartiallyRefunded = 'Partially refunded';
-  static const String checkedIn = 'Checked in';
-  static const String notCheckedIn = 'Not checked in';
+  static const String statusAll = 'Tất cả';
+  static const String statusPendingPayment = 'Chờ thanh toán';
+  static const String statusConfirmed = 'Đã xác nhận';
+  static const String statusCancelled = 'Đã hủy';
+  static const String statusCompleted = 'Hoàn thành';
+  static const String statusExpired = 'Hết hạn';
+  static const String statusInterrupted = 'Bị gián đoạn';
+  static const String paymentUnpaid = 'Chưa thanh toán';
+  static const String paymentPaid = 'Đã thanh toán';
+  static const String paymentRefunded = 'Đã hoàn tiền';
+  static const String paymentPartiallyRefunded = 'Hoàn tiền một phần';
+  static const String checkedIn = 'Đã điểm danh';
+  static const String notCheckedIn = 'Chưa điểm danh';
 
   // Filter sheet
-  static const String filterTitle = 'Filters';
+  static const String filterTitle = 'Bộ lọc';
   static const String filterTour = 'Tour';
-  static const String filterAllTours = 'All tours';
+  static const String filterAllTours = 'Tất cả tour';
   static const String filterToursUnavailable =
-      'The tour list is unavailable right now; showing all tours.';
-  static const String filterDepartureFrom = 'Departure from';
-  static const String filterDepartureTo = 'Departure to';
-  static const String filterSelectDate = 'Select date';
-  static const String filterClearDate = 'Clear date';
-  static const String filterApply = 'Apply';
-  static const String filterReset = 'Reset';
+      'Hiện không thể tải danh sách tour; đang hiển thị tất cả tour.';
+  static const String filterDepartureFrom = 'Khởi hành từ ngày';
+  static const String filterDepartureTo = 'Khởi hành đến ngày';
+  static const String filterSelectDate = 'Chọn ngày';
+  static const String filterClearDate = 'Xóa ngày';
+  static const String filterApply = 'Áp dụng';
+  static const String filterReset = 'Đặt lại';
 
   // Detail screen (#85)
-  static const String detailTitle = 'Booking details';
-  static const String detailTour = 'Tour';
-  static const String detailDeparture = 'Departure';
-  static const String detailMeetingPoint = 'Meeting point';
-  static const String detailCheckIn = 'Check-in';
-  static const String detailCheckedInAt = 'Checked in at';
-  static const String detailBookedAt = 'Booked at';
-  static const String detailBooker = 'Booker';
-  static const String detailPhone = 'Phone';
-  static const String detailEmail = 'E-mail';
-  static const String detailManifest = 'Passenger manifest';
-  static const String detailTicket = 'E-ticket';
-  static const String detailTicketCode = 'Ticket code';
-  static const String detailTicketStatus = 'Ticket status';
-  static const String detailPayment = 'Payment (read-only)';
-  static const String detailGateway = 'Gateway';
-  static const String detailReference = 'Transaction reference';
-  static const String detailPaidAt = 'Paid at';
-  static const String detailAmount = 'Amount';
-  static const String detailPricing = 'Pricing';
-  static const String detailPaymentStatus = 'Payment status';
-  static const String detailPaidAmount = 'Paid amount';
-  static const String detailSubtotal = 'Subtotal';
-  static const String detailDiscount = 'Discount';
-  static const String detailCoupon = 'Coupon';
-  static const String detailTotal = 'Total';
-  static const String detailCancellation = 'Cancellation';
-  static const String detailCancelledAt = 'Cancelled at';
-  static const String detailCancelReason = 'Reason';
+  static const String detailTitle = 'Chi tiết đơn đặt tour';
+  static const String detailTour = 'Thông tin tour';
+  static const String detailDeparture = 'Khởi hành';
+  static const String detailMeetingPoint = 'Điểm đón';
+  static const String detailCheckIn = 'Điểm danh';
+  static const String detailCheckedInAt = 'Thời gian điểm danh';
+  static const String detailBookedAt = 'Ngày đặt';
+  static const String detailBooker = 'Người đặt';
+  static const String detailPhone = 'Số điện thoại';
+  static const String detailEmail = 'Email';
+  static const String detailManifest = 'Danh sách hành khách';
+  static const String detailTicket = 'Vé điện tử';
+  static const String detailTicketCode = 'Mã vé';
+  static const String detailTicketStatus = 'Trạng thái vé';
+  static const String detailPayment = 'Thanh toán (chỉ xem)';
+  static const String detailGateway = 'Cổng thanh toán';
+  static const String detailReference = 'Mã giao dịch';
+  static const String detailPaidAt = 'Thời gian thanh toán';
+  static const String detailAmount = 'Số tiền';
+  static const String detailPricing = 'Chi tiết giá';
+  static const String detailPaymentStatus = 'Trạng thái thanh toán';
+  static const String detailPaidAmount = 'Đã thanh toán';
+  static const String detailSubtotal = 'Tạm tính';
+  static const String detailDiscount = 'Giảm giá';
+  static const String detailCoupon = 'Mã ưu đãi';
+  static const String detailTotal = 'Tổng cộng';
+  static const String detailCancellation = 'Thông tin hủy đơn';
+  static const String detailCancelledAt = 'Thời gian hủy';
+  static const String detailCancelReason = 'Lý do';
 
   // Participant types
-  static const String participantAdult = 'Adult';
-  static const String participantChild = 'Child';
-  static const String participantInfant = 'Infant';
+  static const String participantAdult = 'Người lớn';
+  static const String participantChild = 'Trẻ em';
+  static const String participantInfant = 'Em bé';
 
   // Ticket statuses
-  static const String ticketValid = 'Valid';
-  static const String ticketUsed = 'Used';
-  static const String ticketCancelled = 'Cancelled';
-  static const String ticketExpired = 'Expired';
+  static const String ticketValid = 'Hợp lệ';
+  static const String ticketUsed = 'Đã sử dụng';
+  static const String ticketCancelled = 'Đã hủy';
+  static const String ticketExpired = 'Hết hạn';
 }

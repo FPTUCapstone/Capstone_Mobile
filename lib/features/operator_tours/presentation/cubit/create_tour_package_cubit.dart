@@ -254,7 +254,7 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
         state.copyWith(
           reviewStatus: TourReviewStatus.failure,
           reviewFailure: const ValidationFailure(
-            'Shorten the submission note to 4,000 characters.',
+            'Vui lòng rút gọn ghi chú gửi duyệt xuống tối đa 4.000 ký tự.',
           ),
         ),
       );
@@ -315,7 +315,7 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
           state.copyWith(
             reviewStatus: TourReviewStatus.uncertain,
             reviewFailure: const NetworkFailure(
-              'Submission status could not be confirmed. Reload the tour before trying again.',
+              'Chưa thể xác nhận trạng thái gửi duyệt. Vui lòng tải lại gói tour trước khi thử lại.',
             ),
           ),
         );
@@ -374,7 +374,7 @@ final class CreateTourPackageCubit extends Cubit<CreateTourPackageState> {
         state.copyWith(
           mediaBusy: false,
           mediaFailure: const ValidationFailure(
-            'Choose a JPG or PNG image up to 5 MB.',
+            'Vui lòng chọn ảnh định dạng JPG hoặc PNG dung lượng tối đa 5 MB.',
           ),
         ),
       );

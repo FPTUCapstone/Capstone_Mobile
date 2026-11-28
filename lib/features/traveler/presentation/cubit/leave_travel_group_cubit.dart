@@ -50,7 +50,7 @@ final class LeaveTravelGroupCubit extends Cubit<LeaveTravelGroupState> {
       emit(
         const LeaveTravelGroupState(
           status: LeaveTravelGroupStatus.failure,
-          message: 'This group is unavailable.',
+          message: 'Nhóm này hiện không khả dụng.',
         ),
       );
       return;
@@ -77,7 +77,7 @@ final class LeaveTravelGroupCubit extends Cubit<LeaveTravelGroupState> {
           const LeaveTravelGroupState(
             status: LeaveTravelGroupStatus.uncertain,
             message:
-                'We could not confirm whether you left. Check your connection and retry.',
+                'Không thể xác nhận bạn đã rời nhóm chưa. Vui lòng kiểm tra kết nối mạng và thử lại.',
           ),
         );
       }
@@ -86,7 +86,8 @@ final class LeaveTravelGroupCubit extends Cubit<LeaveTravelGroupState> {
         emit(
           const LeaveTravelGroupState(
             status: LeaveTravelGroupStatus.uncertain,
-            message: 'We could not confirm whether you left. Please retry.',
+            message:
+                'Không thể xác nhận bạn đã rời nhóm chưa. Vui lòng thử lại.',
           ),
         );
       }
@@ -97,7 +98,7 @@ final class LeaveTravelGroupCubit extends Cubit<LeaveTravelGroupState> {
           const LeaveTravelGroupState(
             status: LeaveTravelGroupStatus.stale,
             message:
-                'Group membership has changed. Please review the latest details.',
+                'Danh sách thành viên nhóm đã thay đổi. Vui lòng xem lại thông tin mới nhất.',
           ),
         );
       }
@@ -107,7 +108,8 @@ final class LeaveTravelGroupCubit extends Cubit<LeaveTravelGroupState> {
           emit(
             const LeaveTravelGroupState(
               status: LeaveTravelGroupStatus.uncertain,
-              message: 'We could not confirm whether you left. Please retry.',
+              message:
+                  'Không thể xác nhận bạn đã rời nhóm chưa. Vui lòng thử lại.',
             ),
           );
         }
@@ -119,10 +121,10 @@ final class LeaveTravelGroupCubit extends Cubit<LeaveTravelGroupState> {
           LeaveTravelGroupState(
             status: LeaveTravelGroupStatus.failure,
             message: switch (failure) {
-              AuthenticationFailure() => 'Please sign in again to continue.',
+              AuthenticationFailure() => 'Vui lòng đăng nhập lại để tiếp tục.',
               PermissionFailure() ||
-              NotFoundFailure() => 'This group is no longer available to you.',
-              _ => 'Unable to leave this group right now. Please try again.',
+              NotFoundFailure() => 'Nhóm này không còn khả dụng với bạn.',
+              _ => 'Không thể rời nhóm lúc này. Vui lòng thử lại.',
             },
           ),
         );
@@ -132,7 +134,8 @@ final class LeaveTravelGroupCubit extends Cubit<LeaveTravelGroupState> {
         emit(
           const LeaveTravelGroupState(
             status: LeaveTravelGroupStatus.uncertain,
-            message: 'We could not confirm whether you left. Please retry.',
+            message:
+                'Không thể xác nhận bạn đã rời nhóm chưa. Vui lòng thử lại.',
           ),
         );
       }

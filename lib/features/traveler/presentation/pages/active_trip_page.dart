@@ -103,7 +103,8 @@ class _ActiveTripPageState extends State<ActiveTripPage>
     if (widget.isDemoMode || hasInitialTitle || widget.cubit != null) {
       _isLoadingMetadata = false;
       _resolvedTitle =
-          widget.title ?? (widget.isDemoMode ? 'Đà Nẵng Day Trip' : null);
+          widget.title ??
+          (widget.isDemoMode ? 'Chuyến đi Đà Nẵng trong ngày' : null);
     } else {
       _isLoadingMetadata = true;
       _fetchMetadata();
@@ -1120,7 +1121,7 @@ class _ActiveTripPageState extends State<ActiveTripPage>
                     const SizedBox(width: AppSpacing.xs),
                     Flexible(
                       child: Text(
-                        'DEMO_ONLY Test Controls',
+                        'Điều khiển thử nghiệm (Demo)',
                         style: Theme.of(sheetContext).textTheme.titleMedium
                             ?.copyWith(
                               fontWeight: FontWeight.bold,
@@ -1142,7 +1143,7 @@ class _ActiveTripPageState extends State<ActiveTripPage>
                   children: [
                     ActionChip(
                       avatar: const Icon(Icons.check_circle_outline, size: 16),
-                      label: const Text('Simulate Stop Arrival'),
+                      label: const Text('Giả lập đã đến điểm dừng'),
                       onPressed: () {
                         Navigator.pop(sheetContext);
                         cubit.demoSimulateArrivalAtNextStop();
@@ -1150,7 +1151,7 @@ class _ActiveTripPageState extends State<ActiveTripPage>
                     ),
                     ActionChip(
                       avatar: const Icon(Icons.gps_not_fixed, size: 16),
-                      label: const Text('Toggle GPS Acquiring'),
+                      label: const Text('Chuyển trạng thái đang dò GPS'),
                       onPressed: () {
                         Navigator.pop(sheetContext);
                         cubit.demoSimulateGpsAcquiring();
@@ -1158,7 +1159,7 @@ class _ActiveTripPageState extends State<ActiveTripPage>
                     ),
                     ActionChip(
                       avatar: const Icon(Icons.gps_off, size: 16),
-                      label: const Text('Simulate GPS Lost'),
+                      label: const Text('Giả lập mất tín hiệu GPS'),
                       onPressed: () {
                         Navigator.pop(sheetContext);
                         cubit.demoSimulateGpsLost();
@@ -1166,7 +1167,7 @@ class _ActiveTripPageState extends State<ActiveTripPage>
                     ),
                     ActionChip(
                       avatar: const Icon(Icons.location_disabled, size: 16),
-                      label: const Text('Simulate Permission Denied'),
+                      label: const Text('Giả lập từ chối quyền vị trí'),
                       onPressed: () {
                         Navigator.pop(sheetContext);
                         cubit.demoSimulatePermissionDenied();
@@ -1736,7 +1737,7 @@ class _TopHeaderBar extends StatelessWidget {
               ),
               constraints: const BoxConstraints.tightFor(width: 36, height: 36),
               padding: EdgeInsets.zero,
-              tooltip: 'DEMO_ONLY Controls',
+              tooltip: 'Điều khiển demo',
               onPressed: onOpenDemoControls,
             ),
           ],

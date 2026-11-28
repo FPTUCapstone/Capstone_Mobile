@@ -62,9 +62,9 @@ void main() {
     expect(alert.affectedStopName, 'Cham Museum');
     expect(alert.plannedDeparture, DateTime.utc(2026, 10, 23, 3));
     expect(alert.isOverstay, isTrue);
-    expect(alert.title, 'Stay time exceeded');
+    expect(alert.title, 'Quá thời gian dừng chân');
     expect(alert.description, contains('Cham Museum'));
-    expect(alert.description, contains('planned departure'));
+    expect(alert.description, contains('quá giờ rời đi dự kiến'));
   });
 
   test('rejects unknown alert taxonomy instead of showing wrong copy', () {
@@ -106,8 +106,8 @@ void main() {
     expect(alert.weatherAtUtc, DateTime.utc(2026, 10, 28, 9));
     expect(alert.rainIntensityMmPerHour, 4.5);
     expect(alert.description, contains('Marble Mountains'));
-    expect(alert.description, contains('forecast'));
-    expect(alert.description, contains('Weather data at'));
+    expect(alert.description, contains('Dự báo có mưa'));
+    expect(alert.description, contains('Dữ liệu thời tiết lúc'));
   });
 
   test(
@@ -135,12 +135,15 @@ void main() {
 
       expect(alert.weatherBasis, WeatherBasis.currentAtDestination);
       expect(alert.canSkipAffectedStop, isTrue);
-      expect(alert.description, contains('currently at My Khe Beach'));
-      expect(alert.description, contains('thunderstorm'));
-      expect(alert.description, isNot(contains('Heavy rain')));
-      expect(alert.description, contains('Weather data at'));
-      expect(alert.description, isNot(contains('when you arrive')));
-      expect(alert.description, contains('postponing or skipping'));
+      expect(alert.description, contains('đang xảy ra tại My Khe Beach'));
+      expect(alert.description, contains('Dông bão'));
+      expect(alert.description, isNot(contains('Mưa to')));
+      expect(alert.description, contains('Dữ liệu thời tiết lúc'));
+      expect(
+        alert.description,
+        isNot(contains('vào thời gian tham quan dự kiến')),
+      );
+      expect(alert.description, contains('hoãn hoặc bỏ qua'));
     },
   );
 

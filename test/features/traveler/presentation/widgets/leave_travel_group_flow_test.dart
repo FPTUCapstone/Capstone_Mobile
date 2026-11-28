@@ -59,7 +59,7 @@ void main() {
 
     await tester.tap(find.text('Open'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('tickets'), findsWidgets);
+    expect(find.textContaining('vé'), findsWidgets);
     await tester.tap(
       find.byKey(const Key('transfer_and_leave_confirm_button')),
     );
@@ -101,7 +101,7 @@ void main() {
     await tester.tap(find.byKey(const Key('leave_group_confirm_button')));
     await tester.pumpAndSettle();
     expect(find.byType(LeaveTravelGroupDialog), findsOneWidget);
-    expect(find.textContaining('could not confirm'), findsOneWidget);
+    expect(find.textContaining('Không thể xác nhận'), findsOneWidget);
     final firstKey = repository.keys.single;
 
     repository.failure = null;
@@ -201,7 +201,10 @@ void main() {
 
     expect(find.byType(LeaveTravelGroupDialog), findsOneWidget);
     expect(membersRepository.calls, 1);
-    expect(find.textContaining('membership has changed'), findsOneWidget);
+    expect(
+      find.textContaining('Danh sách thành viên nhóm đã thay đổi'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('stale leave exits dialog when membership access is gone', (

@@ -322,7 +322,7 @@ final class _DetailContent extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            tooltip: 'Tải để dùng offline',
+            tooltip: 'Tải về xem ngoại tuyến',
             icon: const Icon(Icons.download_for_offline_outlined),
             onPressed: () => context.push(
               AppRoutes.offlinePackage(detail.itineraryId),
@@ -330,7 +330,7 @@ final class _DetailContent extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Ask about this itinerary',
+            tooltip: 'Hỏi về lịch trình này',
             icon: const Icon(Icons.support_agent),
             onPressed: () => context.push(
               AppRoutes.supportChat,
@@ -936,7 +936,7 @@ final class _DetailContent extends StatelessWidget {
   static String _statusLabel(String status) => switch (status) {
     'Draft' => 'Bản nháp',
     'Active' => 'Đang dùng',
-    _ => status,
+    _ => itineraryStatusLabel(status),
   };
 
   Future<void> _regenerate(BuildContext context) async {

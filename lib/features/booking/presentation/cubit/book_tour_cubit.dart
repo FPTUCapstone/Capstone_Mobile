@@ -172,17 +172,17 @@ final class BookTourCubit extends Cubit<BookTourState> {
       lead,
       for (var i = 1; i < counts.adult; i++)
         BookingParticipant(
-          fullName: 'Adult ${i + 1}',
+          fullName: 'Người lớn ${i + 1}',
           participantType: ParticipantType.adult,
         ),
       for (var i = 0; i < counts.child; i++)
         BookingParticipant(
-          fullName: 'Child ${i + 1}',
+          fullName: 'Trẻ em ${i + 1}',
           participantType: ParticipantType.child,
         ),
       for (var i = 0; i < counts.infant; i++)
         BookingParticipant(
-          fullName: 'Infant ${i + 1}',
+          fullName: 'Em bé ${i + 1}',
           participantType: ParticipantType.infant,
         ),
     ];

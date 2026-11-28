@@ -111,7 +111,7 @@ void main() {
         isA<NetworkFailure>().having(
           (failure) => failure.message,
           'message',
-          'Please check your connection.',
+          'Vui lòng kiểm tra kết nối mạng.',
         ),
       ),
     );
@@ -178,7 +178,7 @@ void main() {
         isA<ConstraintFailure>().having(
           (f) => f.message,
           'message',
-          contains('planned visit times'),
+          contains('thời gian tham quan dự kiến'),
         ),
       ),
     );

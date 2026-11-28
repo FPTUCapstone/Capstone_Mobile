@@ -22,7 +22,7 @@ class CheckInRecentScansCard extends StatelessWidget {
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 8),
           child: Text(
-            'Recent scans',
+            'Lượt quét gần đây',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
@@ -88,8 +88,8 @@ class CheckInRecentScansCard extends StatelessWidget {
                           const SizedBox(height: 2),
                           Text(
                             isValid
-                                ? '${item.participantCount} pax · $timeStr'
-                                : 'Attempt $timeStr · ${item.reason ?? (isUncertain ? 'not confirmed' : 'rejected')}',
+                                ? '${item.participantCount} khách · $timeStr'
+                                : 'Thử lúc $timeStr · ${item.reason ?? (isUncertain ? 'chưa xác nhận' : 'bị từ chối')}',
                             style: const TextStyle(
                               fontSize: 11,
                               color: AppColors.muted,
@@ -113,8 +113,8 @@ class CheckInRecentScansCard extends StatelessWidget {
                       ),
                       child: Text(
                         isValid
-                            ? 'Valid'
-                            : (isUncertain ? 'Not confirmed' : 'Rejected'),
+                            ? 'Hợp lệ'
+                            : (isUncertain ? 'Chưa xác nhận' : 'Từ chối'),
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,

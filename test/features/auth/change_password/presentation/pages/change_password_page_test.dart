@@ -24,12 +24,12 @@ void main() {
     addTearDown(cubit.close);
     await tester.pumpWidget(_testApp(cubit));
 
-    await tester.tap(find.widgetWithText(AppButton, 'Change password'));
+    await tester.tap(find.widgetWithText(AppButton, 'Đổi mật khẩu'));
     await tester.pump();
 
-    expect(find.text('Current password is required.'), findsOneWidget);
-    expect(find.text('Password is required.'), findsOneWidget);
-    expect(find.text('Confirm new password is required.'), findsOneWidget);
+    expect(find.text('Vui lòng nhập mật khẩu hiện tại.'), findsOneWidget);
+    expect(find.text('Vui lòng nhập mật khẩu.'), findsOneWidget);
+    expect(find.text('Vui lòng nhập xác nhận mật khẩu mới.'), findsOneWidget);
     expect(repository.calls, 0);
   });
 
@@ -42,22 +42,22 @@ void main() {
     await tester.pumpWidget(_testApp(cubit));
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Current password'),
+      find.widgetWithText(TextFormField, 'Mật khẩu hiện tại'),
       'SamePass123!',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'New password'),
+      find.widgetWithText(TextFormField, 'Mật khẩu mới'),
       'SamePass123!',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Confirm new password'),
+      find.widgetWithText(TextFormField, 'Xác nhận mật khẩu mới'),
       'SamePass123!',
     );
-    await tester.tap(find.widgetWithText(AppButton, 'Change password'));
+    await tester.tap(find.widgetWithText(AppButton, 'Đổi mật khẩu'));
     await tester.pump();
 
     expect(
-      find.text('New password must be different from the current password.'),
+      find.text('Mật khẩu mới phải khác mật khẩu hiện tại.'),
       findsOneWidget,
     );
     expect(repository.calls, 0);
@@ -72,21 +72,21 @@ void main() {
     await tester.pumpWidget(_testApp(cubit));
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Current password'),
+      find.widgetWithText(TextFormField, 'Mật khẩu hiện tại'),
       'CurrentPass1!',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'New password'),
+      find.widgetWithText(TextFormField, 'Mật khẩu mới'),
       'NewPass2@aaaa',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Confirm new password'),
+      find.widgetWithText(TextFormField, 'Xác nhận mật khẩu mới'),
       'Different3#aaa',
     );
-    await tester.tap(find.widgetWithText(AppButton, 'Change password'));
+    await tester.tap(find.widgetWithText(AppButton, 'Đổi mật khẩu'));
     await tester.pump();
 
-    expect(find.text('Passwords do not match.'), findsOneWidget);
+    expect(find.text('Mật khẩu xác nhận không khớp.'), findsOneWidget);
     expect(repository.calls, 0);
   });
 
@@ -127,24 +127,24 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Current password'),
+        find.widgetWithText(TextFormField, 'Mật khẩu hiện tại'),
         'CurrentPass1!',
       );
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'New password'),
+        find.widgetWithText(TextFormField, 'Mật khẩu mới'),
         'NewPass2@aaaa',
       );
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Confirm new password'),
+        find.widgetWithText(TextFormField, 'Xác nhận mật khẩu mới'),
         'NewPass2@aaaa',
       );
-      await tester.tap(find.widgetWithText(AppButton, 'Change password'));
+      await tester.tap(find.widgetWithText(AppButton, 'Đổi mật khẩu'));
       await tester.pumpAndSettle();
 
       expect(repository.calls, 1);
       expect(repository.lastCurrentPassword, 'CurrentPass1!');
       expect(repository.lastNewPassword, 'NewPass2@aaaa');
-      expect(find.text('Password updated successfully.'), findsOneWidget);
+      expect(find.text('Đổi mật khẩu thành công.'), findsOneWidget);
       // Popped back to the page that pushed this route.
       expect(find.text('Settings page'), findsOneWidget);
       expect(find.byType(ChangePasswordPage), findsNothing);
@@ -210,18 +210,18 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Current password'),
+        find.widgetWithText(TextFormField, 'Mật khẩu hiện tại'),
         'CurrentPass1!',
       );
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'New password'),
+        find.widgetWithText(TextFormField, 'Mật khẩu mới'),
         'NewPass2@aaaa',
       );
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Confirm new password'),
+        find.widgetWithText(TextFormField, 'Xác nhận mật khẩu mới'),
         'NewPass2@aaaa',
       );
-      await tester.tap(find.widgetWithText(AppButton, 'Change password'));
+      await tester.tap(find.widgetWithText(AppButton, 'Đổi mật khẩu'));
       await tester.pumpAndSettle();
 
       // There was no back stack (this route was the initial location); the
@@ -241,24 +241,21 @@ void main() {
     await tester.pumpWidget(_testApp(cubit));
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Current password'),
+      find.widgetWithText(TextFormField, 'Mật khẩu hiện tại'),
       'WrongPass1!',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'New password'),
+      find.widgetWithText(TextFormField, 'Mật khẩu mới'),
       'NewPass2@aaaa',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Confirm new password'),
+      find.widgetWithText(TextFormField, 'Xác nhận mật khẩu mới'),
       'NewPass2@aaaa',
     );
-    await tester.tap(find.widgetWithText(AppButton, 'Change password'));
+    await tester.tap(find.widgetWithText(AppButton, 'Đổi mật khẩu'));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('Current password does not match our records.'),
-      findsOneWidget,
-    );
+    expect(find.text('Mật khẩu hiện tại không đúng.'), findsOneWidget);
   });
 }
 

@@ -93,7 +93,7 @@ class OfflineTripRemoteDataSource {
       return await _detail(itineraryId, cancellation);
     } on OfflineItineraryAccessDenied {
       throw const PermissionFailure(
-        'You no longer have access to this itinerary.',
+        'Bạn không còn quyền truy cập lịch trình này.',
       );
     } finally {
       if (identical(_activeRequest, cancellation)) _activeRequest = null;
@@ -105,7 +105,7 @@ class OfflineTripRemoteDataSource {
     if (OfflineTripManifestModel.itineraryFingerprint(snapshot.itinerary) !=
         OfflineTripManifestModel.itineraryFingerprint(latest)) {
       throw const ConflictFailure(
-        'The itinerary changed while downloading. Please try again.',
+        'Lịch trình đã thay đổi trong lúc tải xuống. Vui lòng thử lại.',
       );
     }
   }
@@ -146,7 +146,9 @@ class OfflineTripRemoteDataSource {
 
     check();
     if (ownerId <= 0 || itineraryId <= 0) {
-      throw const ValidationFailure('Please select an accessible itinerary.');
+      throw const ValidationFailure(
+        'Vui lòng chọn một lịch trình hợp lệ có quyền truy cập.',
+      );
     }
     final first = await _detail(itineraryId, cancellation);
     final routeProvider = client != null && mapboxAccessToken != null
@@ -174,7 +176,7 @@ class OfflineTripRemoteDataSource {
       final lon = item.longitude;
       if (id == null || lat == null || lon == null || !_valid(lat, lon)) {
         throw const ValidationFailure(
-          'This itinerary is missing a location required for offline maps.',
+          'Lịch trình này thiếu tọa độ địa điểm cần thiết để tải bản đồ ngoại tuyến.',
         );
       }
       if (!details.containsKey(id)) details[id] = await _poi(id, cancellation);
@@ -182,12 +184,12 @@ class OfflineTripRemoteDataSource {
       final poi = details[id]!;
       if (poi.id != id) {
         throw const ValidationFailure(
-          'A point of interest response does not match the itinerary. Please try again.',
+          'Dữ liệu điểm đến không khớp với lịch trình. Vui lòng thử lại.',
         );
       }
       if (!_valid(poi.latitude, poi.longitude)) {
         throw const ValidationFailure(
-          'A point of interest has invalid map coordinates.',
+          'Điểm đến có tọa độ bản đồ không hợp lệ.',
         );
       }
       final coordinate = NavigationCoordinate(latitude: lat, longitude: lon);
@@ -227,7 +229,7 @@ class OfflineTripRemoteDataSource {
     if (OfflineTripManifestModel.itineraryFingerprint(first) !=
         OfflineTripManifestModel.itineraryFingerprint(second)) {
       throw const ConflictFailure(
-        'The itinerary changed while downloading. Please try again.',
+        'Lịch trình đã thay đổi trong lúc tải xuống. Vui lòng thử lại.',
       );
     }
     return OfflineTripSnapshot(
@@ -250,7 +252,7 @@ class OfflineTripRemoteDataSource {
         !_valid(from.latitude, from.longitude) ||
         !_valid(to.latitude, to.longitude)) {
       throw const RoutingProviderFailure(
-        'Offline route download is not configured or a location is invalid.',
+        'Tính năng tải tuyến đường ngoại tuyến chưa được cấu hình hoặc địa điểm không hợp lệ.',
       );
     }
     final route = await provider.getRoute(
@@ -261,7 +263,7 @@ class OfflineTripRemoteDataSource {
     if (route.geometry.length < 2 ||
         route.geometry.any((p) => !_valid(p.latitude, p.longitude))) {
       throw const RoutingProviderFailure(
-        'The route could not be saved for offline use.',
+        'Không thể lưu tuyến đường để dùng ngoại tuyến.',
       );
     }
     return route;

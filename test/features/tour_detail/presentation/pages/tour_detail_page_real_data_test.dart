@@ -254,9 +254,9 @@ void main() {
       expect(find.text('Da Nang Discovery 3D2N'), findsOneWidget);
       expect(find.text('Central Vietnam Travel'), findsOneWidget);
       expect(find.text('Explore Da Nang, Son Tra and Hoi An.'), findsOneWidget);
-      expect(find.text('Destinations: Da Nang • Hoi An'), findsOneWidget);
-      expect(find.text('Contact Operator: 1900 1808'), findsOneWidget);
-      expect(find.text('3 days'), findsOneWidget);
+      expect(find.text('Điểm đến: Da Nang • Hoi An'), findsOneWidget);
+      expect(find.text('Liên hệ nhà điều hành: 1900 1808'), findsOneWidget);
+      expect(find.text('3 ngày'), findsOneWidget);
       expect(find.text('4.5 (12)'), findsOneWidget);
 
       // Itinerary stops
@@ -264,10 +264,10 @@ void main() {
       expect(find.text('Marble Mountains'), findsOneWidget);
       expect(find.text('08:30'), findsOneWidget);
       expect(find.text('81 Huyen Tran Cong Chua'), findsOneWidget);
-      expect(find.text('Stay: 1 h 30 min'), findsOneWidget);
+      expect(find.text('Lưu lại: 1 giờ 30 phút'), findsOneWidget);
       expect(find.text('Wear comfortable shoes'), findsOneWidget);
       expect(find.text('Dragon Bridge'), findsOneWidget);
-      expect(find.text('Stay: 30 min'), findsOneWidget);
+      expect(find.text('Lưu lại: 30 phút'), findsOneWidget);
       expect(find.text(TourDetailStrings.noStopsForDay), findsOneWidget);
 
       // Services
@@ -277,15 +277,15 @@ void main() {
 
       // Cancellation rules as notice ranges
       expect(
-        find.text('Cancel 30 or more days before departure: free of charge'),
+        find.text('Hủy từ 30 ngày trở lên trước khởi hành: miễn phí'),
         findsOneWidget,
       );
       expect(
-        find.text('Cancel 15 to 29 days before departure: 25% fee'),
+        find.text('Hủy từ 15 đến 29 ngày trước khởi hành: phí 25%'),
         findsOneWidget,
       );
       expect(
-        find.text('Cancel less than 7 days before departure: 100% fee'),
+        find.text('Hủy dưới 7 ngày trước khởi hành: phí 100%'),
         findsOneWidget,
       );
 
@@ -307,18 +307,15 @@ void main() {
 
       // Bookable departure, Vietnam time (01:00 UTC is 08:00).
       expect(find.text('06/11/2026 08:00 – 08/11/2026 17:00'), findsOneWidget);
-      expect(find.text('8 slots remaining'), findsOneWidget);
+      expect(find.text('Còn 8 chỗ'), findsOneWidget);
       expect(
-        find.text('Meeting point: Sảnh khách sạn Mường Thanh, Đà Nẵng'),
+        find.text('Điểm đón: Sảnh khách sạn Mường Thanh, Đà Nẵng'),
         findsOneWidget,
       );
-      expect(find.text('Child: 900,000 VND'), findsOneWidget);
-      expect(find.text('Infant: Free'), findsOneWidget);
+      expect(find.text('Trẻ em: 900,000 VND'), findsOneWidget);
+      expect(find.text('Em bé: Miễn phí'), findsOneWidget);
       // 17:00 UTC is midnight in Vietnam: the deadline falls on the next date.
-      expect(
-        find.text('Registration closes: 06/11/2026 00:00'),
-        findsOneWidget,
-      );
+      expect(find.text('Hạn đăng ký: 06/11/2026 00:00'), findsOneWidget);
 
       // Other states
       expect(find.text(TourDetailStrings.registrationClosed), findsOneWidget);
@@ -334,10 +331,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // Four departures, only one has a meeting point and child/infant prices.
-      expect(find.textContaining('Meeting point:'), findsOneWidget);
-      expect(find.textContaining('Child:'), findsOneWidget);
-      expect(find.textContaining('Infant:'), findsOneWidget);
-      expect(find.textContaining('Registration closes:'), findsOneWidget);
+      expect(find.textContaining('Điểm đón:'), findsOneWidget);
+      expect(find.textContaining('Trẻ em:'), findsOneWidget);
+      expect(find.textContaining('Em bé:'), findsOneWidget);
+      expect(find.textContaining('Hạn đăng ký:'), findsOneWidget);
     });
 
     testWidgets('states that slot counts are a snapshot, not a reservation', (
@@ -350,8 +347,8 @@ void main() {
       // 09:00 UTC is 16:00 in Vietnam.
       expect(
         find.text(
-          'Slot counts as of 17/10/2026 16:00 (Vietnam time). '
-          'Availability is not a reservation.',
+          'Số chỗ cập nhật lúc 17/10/2026 16:00 (giờ Việt Nam). '
+          'Hiển thị chỗ trống chưa giữ chỗ.',
         ),
         findsOneWidget,
       );
@@ -392,7 +389,7 @@ void main() {
       expect(find.text(TourDetailStrings.noSchedules), findsOneWidget);
       expect(find.text(TourDetailStrings.noItinerary), findsOneWidget);
       expect(find.text(TourDetailStrings.noCancellationPolicy), findsOneWidget);
-      expect(find.textContaining('Contact Operator'), findsNothing);
+      expect(find.textContaining('Liên hệ nhà điều hành'), findsNothing);
       expect(find.text(TourDetailStrings.inclusionsTitle), findsNothing);
       expect(find.text(TourDetailState.msg128), findsOneWidget);
       final book = tester.widget<FilledButton>(
@@ -436,10 +433,10 @@ void main() {
           .getSemantics(find.byKey(const Key('schedule-501')))
           .label;
       expect(rich, contains('2,890,000 VND'));
-      expect(rich, contains('Child: 900,000 VND'));
-      expect(rich, contains('Infant: Free'));
-      expect(rich, contains('Meeting point: Sảnh khách sạn Mường Thanh'));
-      expect(rich, contains('8 slots remaining'));
+      expect(rich, contains('Trẻ em: 900,000 VND'));
+      expect(rich, contains('Em bé: Miễn phí'));
+      expect(rich, contains('Điểm đón: Sảnh khách sạn Mường Thanh'));
+      expect(rich, contains('Còn 8 chỗ'));
       handle.dispose();
     });
   });

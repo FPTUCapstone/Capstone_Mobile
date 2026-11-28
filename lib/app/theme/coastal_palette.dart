@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 
-/// Web-aligned Coastal Heritage light palette with automatic dark-mode fallback
-/// to [TripMateColors.dark].
+/// Compatibility adapter mapping Coastal Heritage palette slots onto
+/// [TripMateColors] (`context.tmColors`) with Light/Dark support.
+///
+/// New widgets should read `context.tmColors` directly (see `DESIGN.md`).
 @immutable
 final class CoastalPalette {
   const CoastalPalette._({

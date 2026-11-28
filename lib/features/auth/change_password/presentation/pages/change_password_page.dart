@@ -12,6 +12,7 @@ import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_password_field.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_section_card.dart';
 
 /// UC-07: self-service change password for the authenticated Traveler or
 /// Tour Operator. Confirm New Password is presentation-only and never sent
@@ -52,7 +53,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
           _newPasswordController.clear();
           _confirmPasswordController.clear();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Password updated successfully.')),
+            const SnackBar(content: Text('Đổi mật khẩu thành công.')),
           );
           // Returns to whichever account/settings page pushed this route
           // (Traveler Settings or the Tour Operator Profile tab) — spec §3/§8.
@@ -74,53 +75,61 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       builder: (context, state) {
         final busy = state.isSubmitting;
         return AppPageScaffold(
-          title: 'Change password',
+          title: 'Đổi mật khẩu',
           content: [
-            const SizedBox(height: AppSpacing.md),
             if (state.status == ChangePasswordStatus.success) ...[
-              const AppAlert(message: 'Password updated successfully.'),
+              const AppAlert(
+                type: AppAlertType.success,
+                message: 'Đổi mật khẩu thành công.',
+              ),
               const SizedBox(height: AppSpacing.md),
             ],
-            Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  AppPasswordField(
-                    controller: _currentPasswordController,
-                    enabled: !busy,
-                    label: 'Current password',
-                    errorText:
-                        state.fieldErrors['currentPassword']?.firstOrNull,
-                    onChanged: (_) => context
-                        .read<ChangePasswordCubit>()
-                        .clearFieldError('currentPassword'),
-                    validator: (value) => Validators.requiredField(
-                      value,
-                      fieldName: 'Current password',
+            AppSectionCard(
+              title: 'Thông tin bảo mật',
+              subtitle:
+                  'Chọn mật khẩu mạnh để bảo vệ tài khoản TripMate của bạn.',
+              icon: Icons.lock_outline_rounded,
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    AppPasswordField(
+                      controller: _currentPasswordController,
+                      enabled: !busy,
+                      label: 'Mật khẩu hiện tại',
+                      errorText:
+                          state.fieldErrors['currentPassword']?.firstOrNull,
+                      onChanged: (_) => context
+                          .read<ChangePasswordCubit>()
+                          .clearFieldError('currentPassword'),
+                      validator: (value) => Validators.requiredField(
+                        value,
+                        fieldName: 'mật khẩu hiện tại',
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  AppPasswordField(
-                    controller: _newPasswordController,
-                    enabled: !busy,
-                    label: 'New password',
-                    helperText:
-                        '8–72 characters with uppercase, lowercase, number, and special character.',
-                    errorText: state.fieldErrors['newPassword']?.firstOrNull,
-                    onChanged: (_) => context
-                        .read<ChangePasswordCubit>()
-                        .clearFieldError('newPassword'),
-                    validator: _validateNewPassword,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  AppPasswordField(
-                    controller: _confirmPasswordController,
-                    enabled: !busy,
-                    label: 'Confirm new password',
-                    textInputAction: TextInputAction.done,
-                    validator: _validateConfirmPassword,
-                  ),
-                ],
+                    const SizedBox(height: AppSpacing.md),
+                    AppPasswordField(
+                      controller: _newPasswordController,
+                      enabled: !busy,
+                      label: 'Mật khẩu mới',
+                      helperText:
+                          '8–72 ký tự gồm chữ hoa, chữ thường, chữ số và ký tự đặc biệt.',
+                      errorText: state.fieldErrors['newPassword']?.firstOrNull,
+                      onChanged: (_) => context
+                          .read<ChangePasswordCubit>()
+                          .clearFieldError('newPassword'),
+                      validator: _validateNewPassword,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    AppPasswordField(
+                      controller: _confirmPasswordController,
+                      enabled: !busy,
+                      label: 'Xác nhận mật khẩu mới',
+                      textInputAction: TextInputAction.done,
+                      validator: _validateConfirmPassword,
+                    ),
+                  ],
+                ),
               ),
             ),
             if (state.status == ChangePasswordStatus.failure &&
@@ -130,7 +139,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
             ],
             const SizedBox(height: AppSpacing.lg),
             AppButton(
-              label: 'Change password',
+              label: 'Đổi mật khẩu',
               isLoading: busy,
               onPressed: busy ? null : _submit,
             ),
@@ -146,7 +155,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     // Early client-side feedback only; the Backend remains authoritative
     // because it checks the stored hash (UC-07 spec §5).
     if (value == _currentPasswordController.text) {
-      return 'New password must be different from the current password.';
+      return 'Mật khẩu mới phải khác mật khẩu hiện tại.';
     }
     return null;
   }
@@ -154,10 +163,12 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   String? _validateConfirmPassword(String? value) {
     final required = Validators.requiredField(
       value,
-      fieldName: 'Confirm new password',
+      fieldName: 'xác nhận mật khẩu mới',
     );
     if (required != null) return required;
-    if (value != _newPasswordController.text) return 'Passwords do not match.';
+    if (value != _newPasswordController.text) {
+      return 'Mật khẩu xác nhận không khớp.';
+    }
     return null;
   }
 

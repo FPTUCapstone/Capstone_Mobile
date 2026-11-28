@@ -78,7 +78,7 @@ void main() {
         find.byKey(const Key('manual_qr_input_field')),
         'HOIAN8KP',
       );
-      await tester.tap(find.widgetWithText(AppButton, 'Redeem'));
+      await tester.tap(find.widgetWithText(AppButton, 'Xác nhận'));
       await tester.pumpAndSettle();
 
       expect(scannedCode, 'HOIAN8KP');
@@ -126,7 +126,7 @@ void main() {
           find.byKey(const Key('manual_qr_input_field')),
           'tripmate://groups/join?code=DALAT999',
         );
-        await tester.tap(find.widgetWithText(AppButton, 'Redeem'));
+        await tester.tap(find.widgetWithText(AppButton, 'Xác nhận'));
         await tester.pumpAndSettle();
 
         expect(scannedCode, 'DALAT999');
@@ -185,7 +185,7 @@ void main() {
         find.byKey(const Key('manual_qr_input_field')),
         'https://malformed-url.com',
       );
-      await tester.tap(find.widgetWithText(AppButton, 'Redeem'));
+      await tester.tap(find.widgetWithText(AppButton, 'Xác nhận'));
       await tester.pumpAndSettle();
 
       expect(find.text(QrScannerDialog.msg56), findsOneWidget);

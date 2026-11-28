@@ -86,7 +86,7 @@ void main() {
               isA<InvalidResetCredentialFailure>().having(
                 (failure) => failure.message,
                 'message',
-                'The reset code is invalid or no longer usable. Request a new code and try again.',
+                'Mã đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu mã mới và thử lại.',
               ),
             ),
           );
@@ -99,7 +99,7 @@ void main() {
         (
           _dioError(429, const {'title': 'raw limiter detail'}),
           RateLimitFailure,
-          'Too many reset attempts. Please wait and try again.',
+          'Bạn đã yêu cầu đặt lại mật khẩu quá nhiều lần. Vui lòng đợi và thử lại.',
         ),
         (
           _dioError(400, const {
@@ -107,7 +107,7 @@ void main() {
             'detail': 'raw stack detail',
           }),
           ServerFailure,
-          'Something went wrong. Please try again later.',
+          'Đã có lỗi xảy ra. Vui lòng thử lại sau.',
         ),
         (
           DioException(
@@ -115,7 +115,7 @@ void main() {
             type: DioExceptionType.connectionError,
           ),
           NetworkFailure,
-          'Please check your connection and try again.',
+          'Vui lòng kiểm tra kết nối mạng và thử lại.',
         ),
       ];
 

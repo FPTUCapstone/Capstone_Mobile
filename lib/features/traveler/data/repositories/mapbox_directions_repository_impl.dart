@@ -73,7 +73,9 @@ final class MapboxDirectionsRepositoryImpl
       if (error.response == null) throw const NetworkFailure();
       throw const RoutingProviderFailure();
     } on FormatException {
-      throw const RoutingProviderFailure('No route was found to this stop.');
+      throw const RoutingProviderFailure(
+        'Không tìm thấy tuyến đường đến điểm dừng này.',
+      );
     }
   }
 }
@@ -93,6 +95,6 @@ final class UnavailableRouteDirectionsRepository
     required NavigationCoordinate destination,
     TransportMode? transportMode,
   }) async => throw const RoutingProviderFailure(
-    'Turn-by-turn guidance is not configured.',
+    'Tính năng dẫn đường từng chặng chưa được cấu hình.',
   );
 }

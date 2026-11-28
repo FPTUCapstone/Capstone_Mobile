@@ -90,7 +90,7 @@ final class OperatorCheckInRepositoryImpl implements OperatorCheckInRepository {
         error.type == DioExceptionType.connectionError) {
       return const CheckInFailure(
         kind: CheckInFailureKind.network,
-        message: 'Network connection issue. Please verify your connection.',
+        message: 'Sự cố kết nối mạng. Vui lòng kiểm tra lại kết nối.',
       );
     }
 

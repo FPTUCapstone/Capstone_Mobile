@@ -90,10 +90,10 @@ void main() {
           _rule(0, 100),
         ]),
         [
-          'Cancel 30 or more days before departure: free of charge',
-          'Cancel 15 to 29 days before departure: 25% fee',
-          'Cancel 7 to 14 days before departure: 50% fee',
-          'Cancel less than 7 days before departure: 100% fee',
+          'Hủy từ 30 ngày trở lên trước khởi hành: miễn phí',
+          'Hủy từ 15 đến 29 ngày trước khởi hành: phí 25%',
+          'Hủy từ 7 đến 14 ngày trước khởi hành: phí 50%',
+          'Hủy dưới 7 ngày trước khởi hành: phí 100%',
         ],
       );
     });
@@ -102,28 +102,28 @@ void main() {
       final lines = describeCancellationRules([_rule(0, 100), _rule(30, 0)]);
 
       expect(lines, [
-        'Cancel 30 or more days before departure: free of charge',
-        'Cancel less than 30 days before departure: 100% fee',
+        'Hủy từ 30 ngày trở lên trước khởi hành: miễn phí',
+        'Hủy dưới 30 ngày trước khởi hành: phí 100%',
       ]);
     });
 
     test('a single rule at zero days applies at any time', () {
       expect(describeCancellationRules([_rule(0, 100)]), [
-        'Cancel at any time: 100% fee',
+        'Hủy bất kỳ lúc nào: phí 100%',
       ]);
     });
 
     test('uses singular wording and exact days for adjacent rules', () {
       expect(describeCancellationRules([_rule(2, 0), _rule(1, 50)]), [
-        'Cancel 2 or more days before departure: free of charge',
-        'Cancel exactly 1 day before departure: 50% fee',
+        'Hủy từ 2 ngày trở lên trước khởi hành: miễn phí',
+        'Hủy đúng 1 ngày trước khởi hành: phí 50%',
       ]);
     });
 
     test('keeps fractional percentages and trims trailing zeros', () {
       expect(describeCancellationRules([_rule(5, 12.5), _rule(0, 100)]), [
-        'Cancel 5 or more days before departure: 12.5% fee',
-        'Cancel less than 5 days before departure: 100% fee',
+        'Hủy từ 5 ngày trở lên trước khởi hành: phí 12.5%',
+        'Hủy dưới 5 ngày trước khởi hành: phí 100%',
       ]);
     });
 

@@ -255,7 +255,7 @@ void main() {
     });
 
     test('preserves free label for zero VND amounts', () {
-      expect(formatTourDiscoveryPrice(0, 'VND'), 'Free');
+      expect(formatTourDiscoveryPrice(0, 'VND'), 'Miễn phí');
     });
 
     test(

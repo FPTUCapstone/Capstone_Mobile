@@ -5,25 +5,25 @@ import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_pa
 import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_draft.dart';
 
 const tourPackingQuickTags = [
-  'Sports shoes',
-  'Swimwear & towel',
-  'Raincoat / umbrella',
-  'Windbreaker jacket',
-  'Personal / motion sickness medicine',
-  'ID card / Passport',
+  'Giày thể thao',
+  'Đồ bơi & khăn tắm',
+  'Áo mưa / ô dù',
+  'Áo khoác gió',
+  'Thuốc cá nhân / chống say xe',
+  'CCCD / Hộ chiếu',
 ];
 
 const _depositPercentPresets = [
-  (value: 30, label: '30% · Domestic'),
-  (value: 50, label: '50% · Holiday / Flight'),
-  (value: 70, label: '70% · International'),
+  (value: 30, label: '30% · Nội địa'),
+  (value: 50, label: '50% · Lễ Tết / Bay'),
+  (value: 70, label: '70% · Quốc tế'),
 ];
 
 const _balanceDueDayPresets = [
-  (value: 5, label: '5 days'),
-  (value: 7, label: '7 days'),
-  (value: 14, label: '14 days'),
-  (value: 30, label: '30 days'),
+  (value: 5, label: '5 ngày'),
+  (value: 7, label: '7 ngày'),
+  (value: 14, label: '14 ngày'),
+  (value: 30, label: '30 ngày'),
 ];
 
 final _bulletPrefix = RegExp(r'^[-•*]\s*');
@@ -92,7 +92,7 @@ final class TourPackingChecklistTags extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Quick packing suggestions:',
+          'Gợi ý chuẩn bị hành lý nhanh:',
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
@@ -164,14 +164,14 @@ final class TourDepositSettingsSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Payment & Deposit Setup',
+            'Cài đặt thanh toán & đặt cọc',
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Allow travelers to pay 100% upfront or leave a deposit (10%–90%) and settle the balance before departure.',
+            'Cho phép du khách thanh toán trước 100% hoặc đặt cọc (10%–90%) và thanh toán phần còn lại trước ngày khởi hành.',
             style: theme.textTheme.bodySmall,
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -179,12 +179,12 @@ final class TourDepositSettingsSection extends StatelessWidget {
             segments: const [
               ButtonSegment<bool>(
                 value: false,
-                label: Text('100% upfront'),
+                label: Text('Trả trước 100%'),
                 icon: Icon(Icons.payments_outlined),
               ),
               ButtonSegment<bool>(
                 value: true,
-                label: Text('Allow deposit'),
+                label: Text('Cho phép đặt cọc'),
                 icon: Icon(Icons.percent),
               ),
             ],
@@ -195,7 +195,7 @@ final class TourDepositSettingsSection extends StatelessWidget {
           ),
           if (allowDeposit) ...[
             const SizedBox(height: AppSpacing.md),
-            Text('Deposit percentage (%)', style: theme.textTheme.labelMedium),
+            Text('Tỷ lệ đặt cọc (%)', style: theme.textTheme.labelMedium),
             const SizedBox(height: AppSpacing.xs),
             Wrap(
               spacing: AppSpacing.xs,
@@ -220,19 +220,21 @@ final class TourDepositSettingsSection extends StatelessWidget {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration: const InputDecoration(labelText: 'Deposit % (10–90)'),
+              decoration: const InputDecoration(
+                labelText: 'Tỷ lệ đặt cọc % (10–90)',
+              ),
               validator: (value) {
                 if (!allowDeposit) return null;
                 final parsed = num.tryParse((value ?? '').trim());
                 if (parsed == null || parsed < 10 || parsed > 90) {
-                  return 'Deposit percentage must be between 10% and 90%.';
+                  return 'Tỷ lệ đặt cọc phải từ 10% đến 90%.';
                 }
                 return null;
               },
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Balance due before departure (days)',
+              'Hạn thanh toán phần còn lại trước khởi hành (ngày)',
               style: theme.textTheme.labelMedium,
             ),
             const SizedBox(height: AppSpacing.xs),
@@ -258,15 +260,15 @@ final class TourDepositSettingsSection extends StatelessWidget {
               enabled: enabled,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: 'Balance due days (4–180)',
+                labelText: 'Số ngày trước khởi hành (4–180)',
                 helperText:
-                    'At least 4 days before departure before the 72-hour cutoff (BR-154).',
+                    'Tối thiểu 4 ngày trước khởi hành, trước mốc khóa 72 giờ.',
               ),
               validator: (value) {
                 if (!allowDeposit) return null;
                 final parsed = int.tryParse((value ?? '').trim());
                 if (parsed == null || parsed < 4 || parsed > 180) {
-                  return 'Balance deadline must be between 4 and 180 days before departure.';
+                  return 'Hạn thanh toán phần còn lại phải từ 4 đến 180 ngày trước khởi hành.';
                 }
                 return null;
               },
@@ -283,8 +285,8 @@ final class TourDepositSettingsSection extends StatelessWidget {
               ),
               child: Text(
                 effectiveBase > 0
-                    ? 'Deposit $currentPercent% (${_formatVnd(sampleDeposit)}/guest) at booking; remaining ${100 - currentPercent}% (${_formatVnd(sampleRemaining)}/guest) due $currentDays days before departure. Bookings placed inside $currentDays days require 100% upfront payment.'
-                    : 'Deposit $currentPercent% at booking; remaining ${100 - currentPercent}% due $currentDays days before departure. Bookings placed inside $currentDays days require 100% upfront payment.',
+                    ? 'Đặt cọc $currentPercent% (${_formatVnd(sampleDeposit)}/khách) khi đặt tour; phần còn lại ${100 - currentPercent}% (${_formatVnd(sampleRemaining)}/khách) thanh toán trước ngày khởi hành $currentDays ngày. Đơn đặt trong vòng $currentDays ngày trước khởi hành phải thanh toán trước 100%.'
+                    : 'Đặt cọc $currentPercent% khi đặt tour; phần còn lại ${100 - currentPercent}% thanh toán trước ngày khởi hành $currentDays ngày. Đơn đặt trong vòng $currentDays ngày trước khởi hành phải thanh toán trước 100%.',
                 style: theme.textTheme.bodySmall,
               ),
             ),
@@ -336,7 +338,7 @@ final class TourVersionHistorySection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Version History',
+            'Lịch sử phiên bản',
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
             ),
@@ -380,17 +382,17 @@ final class TourVersionHistorySection extends StatelessWidget {
                             ),
                             Text(
                               isCurrent
-                                  ? 'Currently open'
+                                  ? 'Đang mở'
                                   : (timestamp != null
                                         ? formatVietnamTimestamp(timestamp)
-                                        : 'Previous version'),
+                                        : 'Phiên bản trước'),
                               style: theme.textTheme.bodySmall,
                             ),
                             if (!isCurrent &&
                                 item.status == TourPackageStatus.rejected &&
                                 item.rejectionReason != null)
                               Text(
-                                'Reason: ${item.rejectionReason}',
+                                'Lý do: ${item.rejectionReason}',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.error,
                                 ),
@@ -401,14 +403,16 @@ final class TourVersionHistorySection extends StatelessWidget {
                         ),
                       ),
                       if (isCurrent)
-                        Chip(
-                          label: const Text('Current'),
+                        const Chip(
+                          label: Text('Hiện tại'),
                           visualDensity: VisualDensity.compact,
                         )
                       else
                         TextButton(
                           onPressed: () => onOpenVersion(item.tourId),
-                          child: Text(item.status.isEditable ? 'Edit' : 'View'),
+                          child: Text(
+                            item.status.isEditable ? 'Chỉnh sửa' : 'Xem',
+                          ),
                         ),
                     ],
                   ),
@@ -506,21 +510,21 @@ Future<TourScheduleDraft?> showAddTourDepartureDialog(
           ),
         );
         return AlertDialog(
-          title: const Text('Open new departure'),
+          title: const Text('Mở lịch khởi hành mới'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Adds a bookable departure without cloning the tour or changing existing bookings.',
+                  'Thêm một lịch khởi hành có thể đặt chỗ mà không cần tạo phiên bản tour mới hay ảnh hưởng các đơn đặt hiện tại.',
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
                     Expanded(
                       child: Text(
-                        'Departure: ${formatCalendarDate(selectedStart)}',
+                        'Ngày khởi hành: ${formatCalendarDate(selectedStart)}',
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
@@ -552,7 +556,7 @@ Future<TourScheduleDraft?> showAddTourDepartureDialog(
                           });
                         }
                       },
-                      child: const Text('Change'),
+                      child: const Text('Thay đổi'),
                     ),
                   ],
                 ),
@@ -569,41 +573,39 @@ Future<TourScheduleDraft?> showAddTourDepartureDialog(
                 TextField(
                   controller: capacity,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Total capacity',
-                  ),
+                  decoration: const InputDecoration(labelText: 'Tổng số chỗ'),
                 ),
                 TextField(
                   controller: minCapacity,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Minimum passengers',
+                    labelText: 'Số khách tối thiểu',
                   ),
                 ),
                 TextField(
                   controller: adultPrice,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Adult price (whole VND)',
+                    labelText: 'Giá người lớn (VND nguyên)',
                   ),
                 ),
                 TextField(
                   controller: childPrice,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Child price (optional)',
+                    labelText: 'Giá trẻ em (tùy chọn)',
                   ),
                 ),
                 TextField(
                   controller: infantPrice,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Infant price (optional)',
+                    labelText: 'Giá em bé (tùy chọn)',
                   ),
                 ),
                 TextField(
                   controller: meetingPoint,
-                  decoration: const InputDecoration(labelText: 'Meeting point'),
+                  decoration: const InputDecoration(labelText: 'Điểm đón'),
                 ),
                 Row(
                   children: [
@@ -615,7 +617,7 @@ Future<TourScheduleDraft?> showAddTourDepartureDialog(
                           signed: true,
                         ),
                         decoration: const InputDecoration(
-                          labelText: 'Latitude (optional)',
+                          labelText: 'Vĩ độ (tùy chọn)',
                         ),
                       ),
                     ),
@@ -628,7 +630,7 @@ Future<TourScheduleDraft?> showAddTourDepartureDialog(
                           signed: true,
                         ),
                         decoration: const InputDecoration(
-                          labelText: 'Longitude (optional)',
+                          labelText: 'Kinh độ (tùy chọn)',
                         ),
                       ),
                     ),
@@ -640,8 +642,8 @@ Future<TourScheduleDraft?> showAddTourDepartureDialog(
                     Expanded(
                       child: Text(
                         registrationDeadline == null
-                            ? 'No registration deadline'
-                            : 'Register by ${formatCalendarDate(registrationDeadline!)}',
+                            ? 'Không có hạn đăng ký'
+                            : 'Hạn đăng ký: ${formatCalendarDate(registrationDeadline!)}',
                       ),
                     ),
                     TextButton(
@@ -660,13 +662,13 @@ Future<TourScheduleDraft?> showAddTourDepartureDialog(
                           setDialogState(() => registrationDeadline = picked);
                         }
                       },
-                      child: const Text('Set'),
+                      child: const Text('Đặt'),
                     ),
                     if (registrationDeadline != null)
                       TextButton(
                         onPressed: () =>
                             setDialogState(() => registrationDeadline = null),
-                        child: const Text('Clear'),
+                        child: const Text('Xóa'),
                       ),
                   ],
                 ),
@@ -676,7 +678,7 @@ Future<TourScheduleDraft?> showAddTourDepartureDialog(
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
+              child: const Text('Hủy'),
             ),
             FilledButton(
               onPressed: () {
@@ -698,7 +700,7 @@ Future<TourScheduleDraft?> showAddTourDepartureDialog(
                 if (cap == null || cap <= 0 || minCap <= 0 || minCap > cap) {
                   setDialogState(
                     () => validationError =
-                        'Minimum capacity must be at least 1 and no more than total capacity.',
+                        'Số khách tối thiểu phải từ 1 trở lên và không vượt quá tổng số chỗ.',
                   );
                   return;
                 }
@@ -711,7 +713,7 @@ Future<TourScheduleDraft?> showAddTourDepartureDialog(
                         (infant < 0 || infant != infant.truncate()))) {
                   setDialogState(
                     () => validationError =
-                        'Prices must be valid whole VND amounts.',
+                        'Giá phải là số tiền VND nguyên hợp lệ.',
                   );
                   return;
                 }
@@ -725,7 +727,7 @@ Future<TourScheduleDraft?> showAddTourDepartureDialog(
                       lng > 180) {
                     setDialogState(
                       () => validationError =
-                          'Meeting coordinates require a meeting point and valid latitude (-90..90) and longitude (-180..180).',
+                          'Tọa độ điểm đón yêu cầu có tên điểm đón cùng vĩ độ (-90..90) và kinh độ (-180..180) hợp lệ.',
                     );
                     return;
                   }
@@ -734,7 +736,7 @@ Future<TourScheduleDraft?> showAddTourDepartureDialog(
                     !registrationDeadline!.isBefore(selectedStart)) {
                   setDialogState(
                     () => validationError =
-                        'Registration deadline must be before the departure date.',
+                        'Hạn đăng ký phải trước ngày khởi hành.',
                   );
                   return;
                 }
@@ -756,7 +758,7 @@ Future<TourScheduleDraft?> showAddTourDepartureDialog(
                   ),
                 );
               },
-              child: const Text('Publish departure'),
+              child: const Text('Mở bán lịch khởi hành'),
             ),
           ],
         );

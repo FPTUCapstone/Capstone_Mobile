@@ -31,7 +31,7 @@ class MessagingUseCases {
         name.contains('@') ||
         RegExp(r'^\+?[\d\s().-]{7,}$').hasMatch(name)) {
       throw const ValidationFailure(
-        'Search by display name, using 2 to 100 characters.',
+        'Tìm kiếm theo tên hiển thị từ 2 đến 100 ký tự.',
       );
     }
     return repository.searchUsers(name);
@@ -44,7 +44,7 @@ class MessagingUseCases {
     if (currentUserId <= 0) throw const AuthenticationFailure();
     if (otherUserId <= 0 || otherUserId == currentUserId) {
       throw const ValidationFailure(
-        'Choose another user to start a conversation.',
+        'Vui lòng chọn người dùng khác để bắt đầu cuộc trò chuyện.',
       );
     }
     return repository.startDirect(otherUserId);
@@ -60,15 +60,17 @@ class MessagingUseCases {
     _writable(thread);
     final text = content.trim();
     if (text.isEmpty || text.length > 4000) {
-      throw const ValidationFailure('Enter a message of 1 to 4000 characters.');
+      throw const ValidationFailure(
+        'Vui lòng nhập tin nhắn từ 1 đến 4.000 ký tự.',
+      );
     }
     if (!isChatNonce(clientMessageId)) {
-      throw const ValidationFailure('A valid client message ID is required.');
+      throw const ValidationFailure('Mã tin nhắn hợp lệ là bắt buộc.');
     }
     if (thread.kind == ChatKind.direct &&
         (type != ChatMessageType.text || metadata != null)) {
       throw const ValidationFailure(
-        'Direct conversations support text messages only.',
+        'Trò chuyện riêng tư chỉ hỗ trợ tin nhắn văn bản.',
       );
     }
     if (type == ChatMessageType.poll &&
@@ -76,7 +78,9 @@ class MessagingUseCases {
             metadata.pollOptions.length < 2 ||
             metadata.pollOptions.length > 6 ||
             metadata.pollOptions.any((o) => o.trim().isEmpty))) {
-      throw const ValidationFailure('A poll needs 2 to 6 nonblank options.');
+      throw const ValidationFailure(
+        'Bình chọn cần từ 2 đến 6 lựa chọn hợp lệ.',
+      );
     }
     if (type == ChatMessageType.splitBill) {
       final shares = metadata?.shares ?? const <ChatExpenseShare>[];
@@ -99,7 +103,7 @@ class MessagingUseCases {
             metadata?.accountName,
           ].any((s) => s == null || s.trim().isEmpty)) {
         throw const ValidationFailure(
-          'Enter recipient details and valid integer VND shares matching the total.',
+          'Vui lòng nhập thông tin người nhận và số tiền chia hợp lệ khớp với tổng chi phí.',
         );
       }
       // Membership comes from the authorized endpoint, never display names or a fallback count.
@@ -107,7 +111,7 @@ class MessagingUseCases {
       final ids = active.map((m) => m.userId).toSet();
       if (shares.any((s) => !ids.contains(s.userId))) {
         throw const ValidationFailure(
-          'Expense shares must use current group members.',
+          'Khoản chia tiền chỉ áp dụng cho thành viên hiện tại của nhóm.',
         );
       }
     }
@@ -130,7 +134,7 @@ class MessagingUseCases {
     _thread(thread);
     if (thread.kind != ChatKind.group) {
       throw const ValidationFailure(
-        'Member lists are available for groups only.',
+        'Danh sách thành viên chỉ khả dụng cho trò chuyện nhóm.',
       );
     }
     return repository.members(thread);
@@ -146,7 +150,9 @@ class MessagingUseCases {
     _writable(thread);
     _id(message.id);
     if (thread.kind != ChatKind.group || message.thread != thread.ref) {
-      throw const ValidationFailure('Choose a message in this group.');
+      throw const ValidationFailure(
+        'Vui lòng chọn một tin nhắn trong nhóm này.',
+      );
     }
     final expected = switch (action) {
       ChatInteraction.acknowledge => ChatMessageType.broadcast,
@@ -156,18 +162,18 @@ class MessagingUseCases {
     };
     if (message.type != expected || message.groupState == null) {
       throw const ValidationFailure(
-        'This action is unavailable for this message.',
+        'Thao tác này không khả dụng cho tin nhắn đã chọn.',
       );
     }
     if (action == ChatInteraction.togglePayment && isPaid == null) {
-      throw const ValidationFailure('Specify the payment confirmation.');
+      throw const ValidationFailure('Vui lòng xác nhận trạng thái thanh toán.');
     }
     if (action == ChatInteraction.vote &&
         (optionIndex == null ||
             optionIndex < -1 ||
             optionIndex >= (message.metadata?.pollOptions.length ?? 0))) {
       throw const ValidationFailure(
-        'Choose a valid poll option or cancel your vote.',
+        'Vui lòng chọn một phương án bình chọn hợp lệ hoặc hủy bình chọn.',
       );
     }
     return repository.interact(
@@ -179,7 +185,7 @@ class MessagingUseCases {
   }
 
   static void _id(int id) {
-    if (id <= 0) throw const ValidationFailure('A positive ID is required.');
+    if (id <= 0) throw const ValidationFailure('Mã định danh không hợp lệ.');
   }
 
   static void _cursor(int? id) {
@@ -190,9 +196,7 @@ class MessagingUseCases {
   static void _writable(ChatThread thread) {
     _thread(thread.ref);
     if (thread.isReadOnly) {
-      throw const ConflictFailure(
-        'This group is closed. You can view its history.',
-      );
+      throw const ConflictFailure('Nhóm đã đóng. Bạn chỉ có thể xem lịch sử.');
     }
   }
 }

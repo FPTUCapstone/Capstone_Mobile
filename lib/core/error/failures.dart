@@ -10,36 +10,39 @@ sealed class Failure extends Equatable implements Exception {
 }
 
 final class NetworkFailure extends Failure {
-  const NetworkFailure([super.message = 'Please check your connection.']);
+  const NetworkFailure([super.message = 'Vui lòng kiểm tra kết nối mạng.']);
 }
 
 final class ServerFailure extends Failure {
   const ServerFailure([
-    super.message = 'The service is currently unavailable.',
+    super.message = 'Dịch vụ hiện đang tạm gián đoạn. Vui lòng thử lại sau.',
   ]);
 }
 
 final class RateLimitFailure extends Failure {
   const RateLimitFailure([
-    super.message = 'Too many requests. Please wait and try again.',
+    super.message =
+        'Bạn thao tác quá nhiều lần. Vui lòng đợi một chút rồi thử lại.',
   ]);
 }
 
 final class RoutingProviderFailure extends Failure {
   const RoutingProviderFailure([
     super.message =
-        'The routing service is temporarily unavailable. Please try again later.',
+        'Dịch vụ tìm đường tạm thời gián đoạn. Vui lòng thử lại sau.',
   ]);
 }
 
 final class AuthenticationFailure extends Failure {
-  const AuthenticationFailure([super.message = 'Please sign in to continue.']);
+  const AuthenticationFailure([
+    super.message = 'Vui lòng đăng nhập để tiếp tục.',
+  ]);
 }
 
 final class InvalidResetCredentialFailure extends Failure {
   const InvalidResetCredentialFailure([
     super.message =
-        'The reset code is invalid or no longer usable. Request a new code and try again.',
+        'Mã đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu mã mới và thử lại.',
   ]);
 }
 
@@ -47,7 +50,7 @@ final class InvalidResetCredentialFailure extends Failure {
 /// (Backend MSG17).
 final class IncorrectCurrentPasswordFailure extends Failure {
   const IncorrectCurrentPasswordFailure([
-    super.message = 'Current password does not match our records.',
+    super.message = 'Mật khẩu hiện tại không đúng.',
   ]);
 }
 
@@ -55,20 +58,18 @@ final class IncorrectCurrentPasswordFailure extends Failure {
 /// (Google-only account; Backend 403 auth.local_password_unavailable).
 final class LocalPasswordUnavailableFailure extends Failure {
   const LocalPasswordUnavailableFailure([
-    super.message = 'A local password is not available for this account.',
+    super.message = 'Tài khoản này chưa thiết lập mật khẩu đăng nhập nội bộ.',
   ]);
 }
 
 final class PermissionFailure extends Failure {
   const PermissionFailure([
-    super.message = 'You do not have permission to access this function.',
+    super.message = 'Bạn không có quyền truy cập chức năng này.',
   ]);
 }
 
 final class NotFoundFailure extends Failure {
-  const NotFoundFailure([
-    super.message = 'The requested resource could not be found.',
-  ]);
+  const NotFoundFailure([super.message = 'Không tìm thấy nội dung yêu cầu.']);
 }
 
 final class ValidationFailure extends Failure {
@@ -92,7 +93,7 @@ final class LocationPermissionFailure extends Failure {
 
 final class ConflictFailure extends Failure {
   const ConflictFailure([
-    super.message = 'Conflict occurred. Please try again.',
+    super.message = 'Đã xảy ra xung đột dữ liệu. Vui lòng thử lại.',
     this.groupId,
     this.isIdempotencyKeyPayloadMismatch = false,
   ]);
@@ -111,7 +112,7 @@ final class ConflictFailure extends Failure {
 final class ConstraintFailure extends Failure {
   const ConstraintFailure([
     super.message =
-        'Your selected time, locations, or budget cannot form an itinerary.',
+        'Thời gian, địa điểm hoặc ngân sách đã chọn chưa thể tạo lịch trình phù hợp.',
   ]);
 }
 
@@ -127,7 +128,7 @@ final class StopInfeasibleFailure extends Failure {
     this.closesAt,
     this.overflowMinutes,
     this.overflowVnd,
-  }) : super('A selected location does not fit the itinerary.');
+  }) : super('Một địa điểm đã chọn không phù hợp với lịch trình.');
 
   final int? poiId;
   final String? reason;
@@ -216,7 +217,5 @@ final class EmergencyTourFailure extends Failure {
 }
 
 final class UnknownFailure extends Failure {
-  const UnknownFailure([
-    super.message = 'Something went wrong. Please try again.',
-  ]);
+  const UnknownFailure([super.message = 'Đã có lỗi xảy ra. Vui lòng thử lại.']);
 }

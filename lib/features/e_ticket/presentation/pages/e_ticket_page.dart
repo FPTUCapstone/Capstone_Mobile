@@ -31,7 +31,7 @@ class ETicketPage extends StatelessWidget {
           child: Divider(height: 1, thickness: 1, color: AppColors.line),
         ),
         leading: IconButton(
-          tooltip: 'Back',
+          tooltip: ETicketStrings.back,
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             if (context.canPop()) {
@@ -265,7 +265,7 @@ final class _TicketView extends StatelessWidget {
                                   content: qr.content,
                                   size: size,
                                   semanticsLabel:
-                                      'QR code of ticket ${ticket.ticketCode}',
+                                      'Mã QR của vé ${ticket.ticketCode}',
                                 ),
                               ),
                             );
@@ -393,7 +393,7 @@ final class _TicketView extends StatelessWidget {
                   ),
                 ),
                 icon: const Icon(Icons.cancel_outlined, size: 18),
-                label: const Text('Cancel booking'),
+                label: const Text('Hủy đặt tour'),
               ),
             ),
           ],

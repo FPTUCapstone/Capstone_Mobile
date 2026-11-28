@@ -60,7 +60,9 @@ class AppTextField extends StatelessWidget {
       textInputAction: textInputAction,
       validator: validator,
       decoration: InputDecoration(
+        errorMaxLines: 3,
         errorText: errorText,
+        helperMaxLines: 2,
         helperText: helperText,
         labelText: label,
         prefixIcon: prefixIcon,
