@@ -5,10 +5,10 @@ import 'package:trip_mate_mobile/core/push/emergency_push_hint.dart';
 /// The foreground surface. A SnackBar with an action stays until dismissed unless
 /// told otherwise, and this one must not outlive the moment it announces.
 SnackBar emergencyUpdateSnackBar({required VoidCallback onOpen}) => SnackBar(
-  content: const Text('TripMate has an important update for you.'),
+  content: const Text('TripMate có thông báo quan trọng dành cho bạn.'),
   persist: false,
   duration: const Duration(seconds: 6),
-  action: SnackBarAction(label: 'Open', onPressed: onOpen),
+  action: SnackBarAction(label: 'Mở', onPressed: onOpen),
 );
 
 /// Turns a UC-70 hint into a REST refresh plus either the guarded route (tapped)

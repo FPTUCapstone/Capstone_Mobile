@@ -32,24 +32,24 @@ final class OperatorTourRepositoryImpl implements OperatorTourRepository {
       // Do not display arbitrary backend validation strings or internal field names.
       if (error.response?.statusCode == 400) {
         throw const ValidationFailure(
-          'Check the tour information and submission note, then try again.',
+          'Vui lòng kiểm tra lại thông tin gói tour và ghi chú gửi duyệt rồi thử lại.',
         );
       }
       if (error.response?.statusCode == 409 &&
           errorCode == 'operator_tour.duplicate_departure') {
         throw const ConflictFailure(
-          'A departure schedule with that start date and time already exists for this tour.',
+          'Lịch khởi hành với ngày giờ này đã tồn tại cho gói tour.',
         );
       }
       if (error.response?.statusCode == 422 &&
           errorCode == 'operator_tour.departure_itinerary_mismatch') {
         throw const ConstraintFailure(
-          'The itinerary is missing planned visit times for one or more stops. Create a new draft version, add planned times, and submit it for review before reopening departures.',
+          'Lịch trình đang thiếu thời gian tham quan dự kiến ở một hoặc nhiều điểm dừng. Vui lòng tạo bản nháp phiên bản mới, bổ sung giờ dự kiến và gửi duyệt trước khi mở thêm lịch khởi hành.',
         );
       }
       if (error.response?.statusCode == 422) {
         throw const ConstraintFailure(
-          'Complete the required tour information, an itinerary for every day, a destination, a cover photo, a cancellation policy and a valid priced future departure before submitting.',
+          'Vui lòng hoàn thiện thông tin tour bắt buộc, lịch trình cho từng ngày, điểm đến, ảnh bìa, chính sách hủy và ít nhất một lịch khởi hành sắp tới có giá hợp lệ trước khi gửi duyệt.',
         );
       }
       throw ErrorMapper.toFailure(error);

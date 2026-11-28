@@ -29,10 +29,10 @@ void main() {
       expect(cubit.state.cooldownSeconds, 60);
       expect(
         cubit.state.feedbackMessage,
-        'If a reset code was sent, check your email.',
+        'Nếu mã đặt lại đã được gửi, vui lòng kiểm tra hộp thư của bạn.',
       );
-      expect(cubit.state.feedbackMessage, isNot(contains('successfully')));
-      expect(cubit.state.feedbackMessage, isNot('Code sent successfully'));
+      expect(cubit.state.feedbackMessage, isNot(contains('thành công')));
+      expect(cubit.state.feedbackMessage, isNot('Đã gửi mã thành công'));
     });
 
     test('request failure stays retryable with safe field errors', () async {
@@ -100,37 +100,40 @@ void main() {
       },
     );
 
-    test('resend waits for cooldown and restarts it with neutral copy', () async {
-      final ticks = StreamController<int>.broadcast();
-      final repository = _FakePasswordRecoveryRepository();
-      final cubit = PasswordRecoveryCubit(
-        repository,
-        cooldownStream: (_) => ticks.stream,
-      );
-      addTearDown(() async {
-        await cubit.close();
-        await ticks.close();
-      });
+    test(
+      'resend waits for cooldown and restarts it with neutral copy',
+      () async {
+        final ticks = StreamController<int>.broadcast();
+        final repository = _FakePasswordRecoveryRepository();
+        final cubit = PasswordRecoveryCubit(
+          repository,
+          cooldownStream: (_) => ticks.stream,
+        );
+        addTearDown(() async {
+          await cubit.close();
+          await ticks.close();
+        });
 
-      await cubit.requestReset('user@example.com');
-      expect(await cubit.resend(), isFalse);
-      expect(repository.requestedEmails, ['user@example.com']);
+        await cubit.requestReset('user@example.com');
+        expect(await cubit.resend(), isFalse);
+        expect(repository.requestedEmails, ['user@example.com']);
 
-      ticks.add(0);
-      await Future<void>.delayed(Duration.zero);
+        ticks.add(0);
+        await Future<void>.delayed(Duration.zero);
 
-      expect(await cubit.resend(), isTrue);
-      expect(repository.requestedEmails, [
-        'user@example.com',
-        'user@example.com',
-      ]);
-      expect(cubit.state.cooldownSeconds, 60);
-      expect(
-        cubit.state.feedbackMessage,
-        'If a new reset code was sent, any previous code may no longer be valid.',
-      );
-      expect(cubit.state.feedbackMessage, isNot(contains('successfully')));
-    });
+        expect(await cubit.resend(), isTrue);
+        expect(repository.requestedEmails, [
+          'user@example.com',
+          'user@example.com',
+        ]);
+        expect(cubit.state.cooldownSeconds, 60);
+        expect(
+          cubit.state.feedbackMessage,
+          'Nếu mã mới đã được gửi, mọi mã trước đó có thể không còn hiệu lực.',
+        );
+        expect(cubit.state.feedbackMessage, isNot(contains('thành công')));
+      },
+    );
 
     test('pending resend completes safely after the cubit is closed', () async {
       final pending = Completer<void>();
@@ -212,7 +215,7 @@ void main() {
       expect(cubit.state.cooldownSeconds, 0);
       expect(
         cubit.state.feedbackMessage,
-        'Your password has been reset. Sign in with your new password.',
+        'Mật khẩu của bạn đã được đặt lại. Hãy đăng nhập bằng mật khẩu mới.',
       );
     });
 

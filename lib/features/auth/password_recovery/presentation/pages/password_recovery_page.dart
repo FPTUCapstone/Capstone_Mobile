@@ -148,11 +148,13 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
                           color: palette.surface,
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(color: palette.border),
-                          boxShadow: const [
+                          boxShadow: [
                             BoxShadow(
-                              color: Color(0x0D00152A),
+                              color: palette.primaryHover.withValues(
+                                alpha: 0.05,
+                              ),
                               blurRadius: 16,
-                              offset: Offset(0, 6),
+                              offset: const Offset(0, 6),
                             ),
                           ],
                         ),
@@ -161,8 +163,8 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
                           children: [
                             Text(
                               isStepTwo
-                                  ? 'Reset your password'
-                                  : 'Forgot password',
+                                  ? 'Đặt lại mật khẩu của bạn'
+                                  : 'Quên mật khẩu',
                               style: Theme.of(context).textTheme.titleLarge
                                   ?.copyWith(
                                     fontFamily: AppTypography.displayFont,
@@ -202,7 +204,7 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
     final sameEmailCooldown = state.hasActiveCooldownFor(_emailController.text);
     return [
       Text(
-        'Enter the email address associated with your TripMate account.',
+        'Nhập địa chỉ email liên kết với tài khoản TripMate của bạn.',
         style: Theme.of(
           context,
         ).textTheme.bodySmall?.copyWith(color: palette.secondary),
@@ -214,7 +216,7 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
           controller: _emailController,
           enabled: !state.isBusy,
           keyboardType: TextInputType.emailAddress,
-          label: 'Email address',
+          label: 'Địa chỉ email',
           prefixIcon: const Icon(Icons.mail_outline),
           textInputAction: TextInputAction.done,
           validator: Validators.email,
@@ -240,8 +242,8 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'A code was recently requested for this email. Wait '
-                '${state.cooldownSeconds}s to send another.',
+                'Bạn vừa yêu cầu mã cho email này. Vui lòng đợi '
+                '${state.cooldownSeconds} giây để gửi lại.',
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: palette.primaryHover),
@@ -258,7 +260,7 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
                     : () => context.read<PasswordRecoveryCubit>().resumeReset(
                         _emailController.text,
                       ),
-                child: const Text('Enter existing code'),
+                child: const Text('Nhập mã đã nhận'),
               ),
             ],
           ),
@@ -271,8 +273,8 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
       const SizedBox(height: 14),
       AppButton(
         label: sameEmailCooldown
-            ? 'Send Reset Code (${state.cooldownSeconds}s)'
-            : 'Send Reset Code',
+            ? 'Gửi mã đặt lại (${state.cooldownSeconds}s)'
+            : 'Gửi mã đặt lại',
         isLoading: state.status == PasswordRecoveryStatus.requesting,
         onPressed: state.isBusy || sameEmailCooldown ? null : _submitRequest,
       ),
@@ -280,7 +282,7 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
       Center(
         child: TextButton(
           onPressed: state.isBusy ? null : () => context.go(AppRoutes.login),
-          child: const Text('Back to sign in'),
+          child: const Text('Quay lại đăng nhập'),
         ),
       ),
     ];
@@ -305,7 +307,7 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
           children: [
             Text.rich(
               TextSpan(
-                text: 'Code sent to ',
+                text: 'Mã đã gửi tới ',
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: palette.secondary),
@@ -332,7 +334,7 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
                       _emailController.text = state.normalizedEmail ?? '';
                       context.read<PasswordRecoveryCubit>().editEmail();
                     },
-              child: const Text('Change email'),
+              child: const Text('Đổi email'),
             ),
           ],
         ),
@@ -358,7 +360,7 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'RESET CODE',
+                'MÃ ĐẶT LẠI',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: palette.secondary,
                   letterSpacing: 0.5,
@@ -381,7 +383,7 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
               AppPasswordField(
                 controller: _passwordController,
                 enabled: !state.isBusy,
-                label: 'New password',
+                label: 'Mật khẩu mới',
                 errorText: state.fieldErrors['newPassword']?.firstOrNull,
                 onChanged: (_) {
                   context.read<PasswordRecoveryCubit>().clearFieldError(
@@ -397,7 +399,7 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
               AppPasswordField(
                 controller: _confirmPasswordController,
                 enabled: !state.isBusy,
-                label: 'Confirm password',
+                label: 'Xác nhận mật khẩu',
                 textInputAction: TextInputAction.done,
                 onChanged: (_) => setState(() {}),
                 validator: _validateConfirmPassword,
@@ -405,7 +407,7 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
               if (passwordsMatch) ...[
                 const SizedBox(height: 2),
                 Text(
-                  'Passwords match',
+                  'Mật khẩu khớp',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: palette.success,
                     fontWeight: FontWeight.w600,
@@ -444,7 +446,7 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
                   ),
                 ),
                 Text(
-                  'The code is single-use and expires in 3 minutes.',
+                  'Mã chỉ sử dụng một lần và hết hạn sau 3 phút.',
                   style: TextStyle(fontSize: 10.5, color: palette.secondary),
                 ),
               ],
@@ -454,13 +456,13 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
       ] else ...[
         const SizedBox(height: 4),
         Text(
-          'The code is single-use and expires in 3 minutes.',
+          'Mã chỉ sử dụng một lần và hết hạn sau 3 phút.',
           style: TextStyle(fontSize: 11, color: palette.secondary),
         ),
       ],
       const SizedBox(height: 6),
       AppButton(
-        label: 'Reset Password',
+        label: 'Đặt lại mật khẩu',
         isLoading: state.status == PasswordRecoveryStatus.confirming,
         onPressed: state.isBusy ? null : _submitReset,
       ),
@@ -481,8 +483,8 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
                       unawaited(context.read<PasswordRecoveryCubit>().resend()),
             child: Text(
               state.cooldownSeconds > 0
-                  ? 'Resend code (${state.cooldownSeconds}s)'
-                  : 'Resend code',
+                  ? 'Gửi lại mã (${state.cooldownSeconds}s)'
+                  : 'Gửi lại mã',
             ),
           ),
           TextButton(
@@ -492,7 +494,7 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             onPressed: state.isBusy ? null : () => context.go(AppRoutes.login),
-            child: const Text('Back to sign in'),
+            child: const Text('Quay lại đăng nhập'),
           ),
         ],
       ),
@@ -509,10 +511,12 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
   String? _validateConfirmPassword(String? value) {
     final required = Validators.requiredField(
       value,
-      fieldName: 'Confirm password',
+      fieldName: 'xác nhận mật khẩu',
     );
     if (required != null) return required;
-    if (value != _passwordController.text) return 'Passwords do not match.';
+    if (value != _passwordController.text) {
+      return 'Mật khẩu xác nhận không khớp.';
+    }
     return null;
   }
 
@@ -539,7 +543,7 @@ final class _RecoveryStepper extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: _step(1, 'Request')),
+        Expanded(child: _step(1, 'Yêu cầu')),
         Expanded(
           child: Container(
             height: 1.5,
@@ -547,7 +551,7 @@ final class _RecoveryStepper extends StatelessWidget {
             color: currentStep >= 2 ? palette.primary : palette.border,
           ),
         ),
-        Expanded(flex: 2, child: _step(2, 'New Password')),
+        Expanded(flex: 2, child: _step(2, 'Mật khẩu mới')),
         Expanded(
           child: Container(
             height: 1.5,
@@ -555,7 +559,7 @@ final class _RecoveryStepper extends StatelessWidget {
             color: currentStep >= 3 ? palette.primary : palette.border,
           ),
         ),
-        Expanded(child: _step(3, 'Done')),
+        Expanded(child: _step(3, 'Hoàn tất')),
       ],
     );
   }
@@ -682,7 +686,7 @@ final class _OtpSixBoxField extends StatelessWidget {
           decoration: InputDecoration(
             filled: false,
             isDense: true,
-            labelText: 'Reset code',
+            labelText: 'Mã đặt lại',
             floatingLabelBehavior: FloatingLabelBehavior.always,
             labelStyle: const TextStyle(color: Colors.transparent, fontSize: 1),
             floatingLabelStyle: const TextStyle(
@@ -761,10 +765,10 @@ final class _PasswordStrengthChecklist extends StatelessWidget {
           spacing: 10,
           runSpacing: 2,
           children: [
-            _ruleDot(context, '8+ characters', hasLength),
-            _ruleDot(context, 'Upper & lowercase', hasCase),
-            _ruleDot(context, '1 number', hasNumber),
-            _ruleDot(context, '1 special symbol', hasSymbol),
+            _ruleDot(context, 'Từ 8 ký tự', hasLength),
+            _ruleDot(context, 'Chữ hoa & thường', hasCase),
+            _ruleDot(context, '1 chữ số', hasNumber),
+            _ruleDot(context, '1 ký tự đặc biệt', hasSymbol),
           ],
         ),
       ],

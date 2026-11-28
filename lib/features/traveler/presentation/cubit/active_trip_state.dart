@@ -48,7 +48,7 @@ final class ActiveTripState extends Equatable {
   const ActiveTripState({
     this.status = ActiveTripStatus.navigationInitial,
     required this.itineraryId,
-    this.itineraryTitle = 'Active Trip',
+    this.itineraryTitle = 'Chuyến đi đang diễn ra',
     this.itineraryVersion = 1,
     this.loadStatus = ActiveTripLoadStatus.loading,
     this.loadErrorMessage,

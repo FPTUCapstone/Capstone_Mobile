@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/domain/entities/operator_booking.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/operator_booking_detail_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_bookings/presentation/cubit/operator_booking_detail_state.dart';
@@ -9,6 +10,8 @@ import 'package:trip_mate_mobile/features/operator_bookings/resources/operator_b
 import 'package:trip_mate_mobile/features/operator_bookings/utils/operator_booking_formatters.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_coastal_app_bar.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_section_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_shimmer.dart';
 import 'package:trip_mate_mobile/shared/widgets/status_badge.dart';
 
@@ -22,17 +25,15 @@ class OperatorBookingDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          OperatorBookingsStringsEn.detailTitle,
-          style: TextStyle(fontWeight: FontWeight.w700),
-        ),
+      backgroundColor: c.canvas,
+      appBar: const AppCoastalAppBar(
+        title: OperatorBookingsStringsEn.detailTitle,
       ),
       body: BlocBuilder<OperatorBookingDetailCubit, OperatorBookingDetailState>(
         builder: (context, state) {
           final detail = state.detail;
-          // A booking has a bounded number of sections, so it is one scroll view: everything is built.
           return SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(
@@ -72,6 +73,7 @@ class OperatorBookingDetailPage extends StatelessWidget {
         detail.cancelledAtUtc != null || detail.cancelReason != null;
     return [
       _Section(
+        icon: Icons.tour_outlined,
         title: OperatorBookingsStringsEn.detailTour,
         children: [
           _Line(
@@ -99,6 +101,7 @@ class OperatorBookingDetailPage extends StatelessWidget {
         ],
       ),
       _Section(
+        icon: Icons.person_outline,
         title: OperatorBookingsStringsEn.detailBooker,
         children: [
           _Line(OperatorBookingsStringsEn.cardBooker, booker.fullName),
@@ -113,6 +116,7 @@ class OperatorBookingDetailPage extends StatelessWidget {
         ],
       ),
       _Section(
+        icon: Icons.groups_outlined,
         title: OperatorBookingsStringsEn.detailManifest,
         trailing: '(${detail.participants.length})',
         children: [
@@ -122,6 +126,7 @@ class OperatorBookingDetailPage extends StatelessWidget {
       ),
       if (ticket != null)
         _Section(
+          icon: Icons.confirmation_number_outlined,
           title: OperatorBookingsStringsEn.detailTicket,
           children: [
             _Line(
@@ -136,6 +141,7 @@ class OperatorBookingDetailPage extends StatelessWidget {
         ),
       if (payment != null)
         _Section(
+          icon: Icons.payment_outlined,
           title: OperatorBookingsStringsEn.detailPayment,
           children: [
             _Line(
@@ -159,6 +165,7 @@ class OperatorBookingDetailPage extends StatelessWidget {
           ],
         ),
       _Section(
+        icon: Icons.receipt_long_outlined,
         title: OperatorBookingsStringsEn.detailPricing,
         children: [
           _Line(
@@ -192,6 +199,7 @@ class OperatorBookingDetailPage extends StatelessWidget {
       ),
       if (hasCancellation)
         _Section(
+          icon: Icons.cancel_outlined,
           title: OperatorBookingsStringsEn.detailCancellation,
           children: [
             if (detail.cancelledAtUtc != null)
@@ -243,6 +251,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final textTheme = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -258,9 +267,11 @@ class _Header extends StatelessWidget {
               children: [
                 Text(
                   code,
-                  style: textTheme.titleMedium?.copyWith(
+                  style: TextStyle(
+                    fontFamily: AppTypography.displayFont,
+                    fontSize: 17,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.ink,
+                    color: c.textPrimary,
                   ),
                 ),
                 StatusBadge(
@@ -270,12 +281,18 @@ class _Header extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.xxs),
-            Text(tourTitle, style: textTheme.bodyMedium),
+            Text(
+              tourTitle,
+              style: textTheme.bodyMedium?.copyWith(
+                color: c.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: AppSpacing.xxs),
             Text(
               '${OperatorBookingsStringsEn.cardDeparture}: '
               '${OperatorBookingFormatters.date(departure)}',
-              style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+              style: textTheme.bodySmall?.copyWith(color: c.textSecondary),
             ),
             const SizedBox(height: AppSpacing.xs),
             StatusBadge(
@@ -290,44 +307,38 @@ class _Header extends StatelessWidget {
 }
 
 class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.children, this.trailing});
+  const _Section({
+    required this.icon,
+    required this.title,
+    required this.children,
+    this.trailing,
+  });
 
+  final IconData icon;
   final String title;
   final String? trailing;
   final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final c = context.tmColors;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: AppCard(
-        padding: const EdgeInsets.all(AppSpacing.md),
+      child: AppSectionCard(
+        title: title,
+        icon: icon,
+        trailing: trailing != null
+            ? Text(
+                trailing!,
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: c.textMuted,
+                ),
+              )
+            : null,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Wrap(
-              spacing: AppSpacing.xs,
-              children: [
-                Text(
-                  title,
-                  style: textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.ink,
-                  ),
-                ),
-                if (trailing != null)
-                  Text(
-                    trailing!,
-                    style: textTheme.titleSmall?.copyWith(
-                      color: AppColors.muted,
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            ...children,
-          ],
+          children: children,
         ),
       ),
     );
@@ -343,15 +354,16 @@ class _Line extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final style = Theme.of(context).textTheme.bodyMedium;
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             flex: 2,
-            child: Text(label, style: style?.copyWith(color: AppColors.muted)),
+            child: Text(label, style: style?.copyWith(color: c.textSecondary)),
           ),
           const SizedBox(width: AppSpacing.xs),
           Expanded(
@@ -360,7 +372,7 @@ class _Line extends StatelessWidget {
               value,
               textAlign: TextAlign.end,
               style: style?.copyWith(
-                color: AppColors.ink,
+                color: emphasised ? c.brandTeal : c.textPrimary,
                 fontWeight: emphasised ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
@@ -379,24 +391,41 @@ class _ParticipantRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final style = Theme.of(context).textTheme.bodyMedium;
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 28,
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 28),
             child: Text(
               '$index.',
-              style: style?.copyWith(color: AppColors.muted),
+              style: style?.copyWith(
+                color: c.brandTeal,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
-          Expanded(child: Text(participant.fullName, style: style)),
+          Expanded(
+            flex: 3,
+            child: Text(
+              participant.fullName,
+              style: style?.copyWith(
+                color: c.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
           const SizedBox(width: AppSpacing.xs),
-          Text(
-            OperatorBookingFormatters.participantTypeLabel(participant.type),
-            style: style?.copyWith(color: AppColors.muted),
+          Expanded(
+            flex: 2,
+            child: Text(
+              OperatorBookingFormatters.participantTypeLabel(participant.type),
+              textAlign: TextAlign.end,
+              style: style?.copyWith(color: c.textSecondary),
+            ),
           ),
         ],
       ),
@@ -409,6 +438,7 @@ class _LoadingPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return Column(
       key: const Key('operator-booking-detail-loading'),
       children: [
@@ -419,8 +449,8 @@ class _LoadingPlaceholder extends StatelessWidget {
               child: Container(
                 height: height,
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  color: c.shimmerBase,
+                  borderRadius: BorderRadius.circular(TripMateRadius.lg),
                 ),
               ),
             ),
@@ -438,17 +468,26 @@ class _FailureBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 48,
-            color: Theme.of(context).colorScheme.error,
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: c.errorContainer,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.error_outline, size: 30, color: c.error),
           ),
           const SizedBox(height: AppSpacing.md),
-          Text(message, textAlign: TextAlign.center),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: c.textSecondary, height: 1.4),
+          ),
           if (onRetry != null) ...[
             const SizedBox(height: AppSpacing.lg),
             AppButton(

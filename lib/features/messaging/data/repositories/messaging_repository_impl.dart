@@ -21,7 +21,7 @@ final class MessagingRepositoryImpl implements MessagingRepository {
       if (error is Failure) rethrow;
       if (error is FormatException || error is TypeError) {
         throw const ServerFailure(
-          'Chat data could not be loaded. Please try again.',
+          'Không thể tải dữ liệu trò chuyện. Vui lòng thử lại.',
         );
       }
       // Never expose ProblemDetails titles or validation fields containing private data.
@@ -29,21 +29,21 @@ final class MessagingRepositoryImpl implements MessagingRepository {
         switch (error.response?.statusCode) {
           case 400:
             throw const ValidationFailure(
-              'Please check your message or selected action.',
+              'Vui lòng kiểm tra tin nhắn hoặc thao tác đã chọn.',
             );
           case 401:
             throw const AuthenticationFailure();
           case 403:
             throw const PermissionFailure(
-              'You no longer have access to this conversation.',
+              'Bạn không còn quyền truy cập cuộc trò chuyện này.',
             );
           case 404:
             throw const NotFoundFailure(
-              'This conversation or message is unavailable.',
+              'Cuộc trò chuyện hoặc tin nhắn này không còn khả dụng.',
             );
           case 409:
             throw const ConflictFailure(
-              'This group is closed or the action conflicts with an earlier request. Reload the conversation.',
+              'Nhóm này đã đóng hoặc thao tác xung đột với yêu cầu trước đó. Vui lòng tải lại cuộc trò chuyện.',
             );
           case 429:
             throw const RateLimitFailure();
@@ -187,7 +187,7 @@ final class MessagingRepositoryImpl implements MessagingRepository {
   Future<List<ChatMember>> members(ChatThreadRef thread) => _safe(() async {
     if (thread.kind != ChatKind.group) {
       throw const ValidationFailure(
-        'Member lists are available for groups only.',
+        'Danh sách thành viên chỉ khả dụng cho trò chuyện nhóm.',
       );
     }
     final data = chatObject(await _remote.get('${_base(thread)}/members'));
@@ -216,7 +216,7 @@ final class MessagingRepositoryImpl implements MessagingRepository {
   }) => _safe(() async {
     final old = message.groupState;
     if (old == null || message.thread.kind != ChatKind.group) {
-      throw const ValidationFailure('Choose a group message.');
+      throw const ValidationFailure('Vui lòng chọn một tin nhắn trong nhóm.');
     }
     final suffix = switch (action) {
       ChatInteraction.acknowledge => 'acknowledge',

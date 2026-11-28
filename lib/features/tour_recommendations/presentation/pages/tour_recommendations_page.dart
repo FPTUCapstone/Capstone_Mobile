@@ -9,8 +9,8 @@ import 'package:trip_mate_mobile/features/tour_recommendations/domain/entities/t
 import 'package:trip_mate_mobile/features/tour_recommendations/presentation/cubit/tour_recommendations_cubit.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/presentation/cubit/tour_recommendations_state.dart';
 import 'package:trip_mate_mobile/features/tour_recommendations/presentation/resources/tour_recommendations_strings.dart';
-import 'package:trip_mate_mobile/features/tour_search/presentation/theme/tour_search_palette.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/widgets/tour_list_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_coastal_app_bar.dart';
 
 class TourRecommendationsPage extends StatelessWidget {
   const TourRecommendationsPage({this.isDemoMode = false, super.key});
@@ -38,21 +38,14 @@ class _TourRecommendationsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final cubit = context.watch<TourRecommendationsCubit>();
     final state = cubit.state;
 
     return Scaffold(
-      backgroundColor: TourSearchPalette.background,
-      appBar: AppBar(
-        title: const Text(TourRecommendationsStrings.appBarTitle),
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        foregroundColor: TourSearchPalette.navy,
-        elevation: 0,
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, thickness: 1, color: AppColors.line),
-        ),
+      backgroundColor: c.canvas,
+      appBar: AppCoastalAppBar(
+        title: TourRecommendationsStrings.appBarTitle,
         actions: [
           IconButton(
             tooltip: TourRecommendationsStrings.preferencesTooltip,
@@ -64,7 +57,7 @@ class _TourRecommendationsView extends StatelessWidget {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: cubit.refresh,
-          color: TourSearchPalette.teal,
+          color: c.brandTeal,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
@@ -85,7 +78,11 @@ class _TourRecommendationsView extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(AppSpacing.md),
                     child: MaterialBanner(
-                      content: Text(TourRecommendationsState.msg127),
+                      backgroundColor: c.errorContainer,
+                      content: Text(
+                        TourRecommendationsState.msg127,
+                        style: TextStyle(color: c.textPrimary),
+                      ),
                       actions: [
                         TextButton(
                           onPressed: cubit.refresh,
@@ -99,12 +96,10 @@ class _TourRecommendationsView extends StatelessWidget {
               // ── Main Body based on Status ──────────────────────────────────
               switch (state.status) {
                 TourRecommendationsStatus.initial ||
-                TourRecommendationsStatus.loading => const SliverFillRemaining(
+                TourRecommendationsStatus.loading => SliverFillRemaining(
                   hasScrollBody: false,
                   child: Center(
-                    child: CircularProgressIndicator(
-                      color: TourSearchPalette.teal,
-                    ),
+                    child: CircularProgressIndicator(color: c.brandTeal),
                   ),
                 ),
 
@@ -165,6 +160,7 @@ class _RecommendationExplanationBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final c = context.tmColors;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
@@ -175,14 +171,14 @@ class _RecommendationExplanationBanner extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.primarySoft,
+          color: c.tealSoftContainer,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.line),
+          border: Border.all(color: c.borderSubtle),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.auto_awesome, color: AppColors.primary, size: 20),
+            Icon(Icons.auto_awesome, color: c.brandTeal, size: 20),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Column(
@@ -191,7 +187,7 @@ class _RecommendationExplanationBanner extends StatelessWidget {
                   Text(
                     TourRecommendationsStrings.bannerTitle,
                     style: theme.textTheme.titleSmall?.copyWith(
-                      color: AppColors.ink,
+                      color: c.textPrimary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -199,19 +195,20 @@ class _RecommendationExplanationBanner extends StatelessWidget {
                   Text(
                     TourRecommendationsStrings.bannerDescription,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.muted,
+                      color: c.textSecondary,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   GestureDetector(
                     onTap: () => _openPreferencesAndRefresh(context),
-                    child: const Text(
+                    child: Text(
                       TourRecommendationsStrings.bannerEditPreferences,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
+                        color: c.brandTeal,
                         decoration: TextDecoration.underline,
+                        decorationColor: c.brandTeal,
                       ),
                     ),
                   ),
@@ -235,6 +232,7 @@ class _PendingIntegrationView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final c = context.tmColors;
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Center(
@@ -244,22 +242,18 @@ class _PendingIntegrationView extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
+                color: c.tealSoftContainer,
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFBFDBFE)),
+                border: Border.all(color: c.borderStrong),
               ),
-              child: const Icon(
-                Icons.hub_outlined,
-                size: 48,
-                color: Color(0xFF2563EB),
-              ),
+              child: Icon(Icons.hub_outlined, size: 48, color: c.brandTeal),
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
               TourRecommendationsStrings.pendingIntegrationTitle,
               textAlign: TextAlign.center,
               style: theme.textTheme.titleMedium?.copyWith(
-                color: TourSearchPalette.navy,
+                color: c.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -268,7 +262,7 @@ class _PendingIntegrationView extends StatelessWidget {
               TourRecommendationsStrings.pendingIntegrationDescription,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: TourSearchPalette.muted,
+                color: c.textSecondary,
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -276,13 +270,6 @@ class _PendingIntegrationView extends StatelessWidget {
               onPressed: () => context.push(AppRoutes.tourSearch),
               icon: const Icon(Icons.travel_explore),
               label: const Text(TourRecommendationsStrings.exploreAllTours),
-              style: FilledButton.styleFrom(
-                backgroundColor: TourSearchPalette.teal,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: AppSpacing.sm,
-                ),
-              ),
             ),
             const SizedBox(height: AppSpacing.sm),
             OutlinedButton.icon(
@@ -311,22 +298,31 @@ class _NoPreferencesView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final c = context.tmColors;
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.bookmark_add_outlined,
-              size: 52,
-              color: Color(0xFFF59E0B),
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: c.coralSoftContainer,
+                shape: BoxShape.circle,
+                border: Border.all(color: c.borderSubtle),
+              ),
+              child: Icon(
+                Icons.bookmark_add_outlined,
+                size: 44,
+                color: c.brandCoral,
+              ),
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
               TourRecommendationsStrings.noPreferencesTitle,
               style: theme.textTheme.titleMedium?.copyWith(
-                color: TourSearchPalette.navy,
+                color: c.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -335,7 +331,7 @@ class _NoPreferencesView extends StatelessWidget {
               message,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: TourSearchPalette.muted,
+                color: c.textSecondary,
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -344,9 +340,6 @@ class _NoPreferencesView extends StatelessWidget {
               icon: const Icon(Icons.tune),
               label: const Text(
                 TourRecommendationsStrings.setupTravelPreferences,
-              ),
-              style: FilledButton.styleFrom(
-                backgroundColor: TourSearchPalette.teal,
               ),
             ),
           ],
@@ -368,22 +361,31 @@ class _NoMatchesView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final c = context.tmColors;
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.search_off_outlined,
-              size: 52,
-              color: Color(0xFF6B7280),
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: c.surfaceElevated,
+                shape: BoxShape.circle,
+                border: Border.all(color: c.borderSubtle),
+              ),
+              child: Icon(
+                Icons.search_off_outlined,
+                size: 44,
+                color: c.textMuted,
+              ),
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
               TourRecommendationsStrings.noMatchesTitle,
               style: theme.textTheme.titleMedium?.copyWith(
-                color: TourSearchPalette.navy,
+                color: c.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -392,7 +394,7 @@ class _NoMatchesView extends StatelessWidget {
               message,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: TourSearchPalette.muted,
+                color: c.textSecondary,
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -400,9 +402,6 @@ class _NoMatchesView extends StatelessWidget {
               onPressed: () => context.push(AppRoutes.tourSearch),
               icon: const Icon(Icons.travel_explore),
               label: const Text(TourRecommendationsStrings.exploreAllTours),
-              style: FilledButton.styleFrom(
-                backgroundColor: TourSearchPalette.teal,
-              ),
             ),
             const SizedBox(height: AppSpacing.sm),
             OutlinedButton.icon(
@@ -430,22 +429,27 @@ class _ErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final c = context.tmColors;
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.cloud_off_outlined,
-              size: 52,
-              color: Color(0xFFDC2626),
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: c.errorContainer,
+                shape: BoxShape.circle,
+                border: Border.all(color: c.error.withValues(alpha: 0.35)),
+              ),
+              child: Icon(Icons.cloud_off_outlined, size: 44, color: c.error),
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
               TourRecommendationsStrings.errorTitle,
               style: theme.textTheme.titleMedium?.copyWith(
-                color: TourSearchPalette.navy,
+                color: c.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -454,7 +458,7 @@ class _ErrorView extends StatelessWidget {
               message,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: TourSearchPalette.muted,
+                color: c.textSecondary,
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -462,9 +466,6 @@ class _ErrorView extends StatelessWidget {
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
               label: const Text(TourRecommendationsStrings.retry),
-              style: FilledButton.styleFrom(
-                backgroundColor: TourSearchPalette.teal,
-              ),
             ),
           ],
         ),
@@ -494,6 +495,7 @@ class _RecommendationListSliver extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
@@ -518,7 +520,7 @@ class _RecommendationListSliver extends StatelessWidget {
                           totalItems,
                         ),
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: TourSearchPalette.navy,
+                          color: c.textPrimary,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -530,7 +532,7 @@ class _RecommendationListSliver extends StatelessWidget {
                         totalPages,
                       ),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: TourSearchPalette.muted,
+                        color: c.textSecondary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -578,17 +580,15 @@ class _RecommendationListSliver extends StatelessWidget {
                                     vertical: 3,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF1F5F9),
+                                    color: c.surfaceElevated,
                                     borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(
-                                      color: const Color(0xFFE2E8F0),
-                                    ),
+                                    border: Border.all(color: c.borderSubtle),
                                   ),
                                   child: Text(
                                     reason,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 11,
-                                      color: Color(0xFF475569),
+                                      color: c.textSecondary,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -636,6 +636,7 @@ class _PaginationControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
       child: Wrap(
@@ -654,9 +655,9 @@ class _PaginationControls extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
             child: Text(
               TourRecommendationsStrings.pageRatio(currentPage, totalPages),
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w700,
-                color: TourSearchPalette.navy,
+                color: c.textPrimary,
               ),
             ),
           ),
@@ -684,8 +685,14 @@ class _DemoControlsBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return Container(
-      color: const Color(0xFFFEF3C7),
+      decoration: BoxDecoration(
+        color: c.warningContainer,
+        border: Border(
+          bottom: BorderSide(color: c.warning.withValues(alpha: 0.35)),
+        ),
+      ),
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: AppSpacing.xs,
@@ -693,17 +700,17 @@ class _DemoControlsBar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.bug_report, size: 14, color: Color(0xFFB45309)),
-              SizedBox(width: 4),
+              Icon(Icons.bug_report, size: 14, color: c.warning),
+              const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   TourRecommendationsStrings.demoControlsTitle,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFFB45309),
+                    color: c.warning,
                   ),
                 ),
               ),

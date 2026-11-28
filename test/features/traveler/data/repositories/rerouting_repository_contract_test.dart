@@ -14,10 +14,10 @@ import 'package:trip_mate_mobile/features/traveler/domain/entities/reroute_propo
 import '../models/navigation_session_model_test.dart'
     show navigationSessionJson;
 
-const _msg44 = 'No re-routing suggestion is available at the moment.';
+const _msg44 = 'Hiện không có đề xuất đổi lộ trình nào khả dụng.';
 const _msg127 =
-    'TripMate is temporarily unable to process your request. '
-    'Please check your connection and try again.';
+    'TripMate tạm thời không thể xử lý yêu cầu của bạn. '
+    'Vui lòng kiểm tra kết nối mạng và thử lại.';
 const _base = '/api/v1/navigation-sessions/501/rerouting-proposals/77';
 
 void main() {

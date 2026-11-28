@@ -8,31 +8,33 @@ import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/crea
 const maxTourDestinations = 10;
 
 const _blockerMessages = {
-  'required_fields_missing': 'Complete all required tour information.',
-  'itinerary_missing': 'Add an itinerary activity for every tour day.',
-  'primary_image_missing': 'Add a cover photo (an active primary image).',
+  'required_fields_missing': 'Hoàn thiện toàn bộ thông tin tour bắt buộc.',
+  'itinerary_missing': 'Thêm hoạt động lịch trình cho từng ngày của tour.',
+  'primary_image_missing': 'Thêm ảnh bìa (ảnh chính đang hoạt động).',
   'future_departure_missing':
-      'Add at least one future departure with an adult price.',
-  'cancellation_policy_missing': 'Select a cancellation policy.',
-  'destination_missing': 'Select at least one destination.',
+      'Thêm ít nhất một lịch khởi hành sắp tới kèm giá người lớn.',
+  'cancellation_policy_missing': 'Chọn chính sách hủy tour.',
+  'destination_missing': 'Chọn ít nhất một điểm đến.',
   'payment_channel_not_ready':
       'Thiết lập kênh thanh toán payOS trước khi nộp tour duyệt.',
 };
 
 const _warningMessages = {
-  'duplicate_poi': 'This place already appears earlier in the itinerary.',
-  'poi_closed_on_day': 'This place is closed on that day of the trip.',
+  'duplicate_poi': 'Địa điểm này đã xuất hiện trước đó trong lịch trình.',
+  'poi_closed_on_day':
+      'Địa điểm này đóng cửa vào ngày tương ứng của chuyến đi.',
   'outside_opening_hours':
-      'The planned visit is outside the opening hours of this place.',
+      'Thời gian tham quan dự kiến nằm ngoài giờ mở cửa của địa điểm này.',
   'opening_hours_unknown':
-      'Opening hours for that day are unknown, so the visit could not be checked.',
+      'Chưa có thông tin giờ mở cửa của ngày này nên chưa thể kiểm tra lịch tham quan.',
 };
 
 String tourBlockerMessage(String code) =>
-    _blockerMessages[code] ?? 'Review the tour requirements before submitting.';
+    _blockerMessages[code] ??
+    'Vui lòng kiểm tra lại các yêu cầu của gói tour trước khi gửi duyệt.';
 
 String tourWarningMessage(String code) =>
-    _warningMessages[code] ?? 'Review this itinerary activity.';
+    _warningMessages[code] ?? 'Vui lòng xem lại hoạt động lịch trình này.';
 
 final class TourPackageBanner extends StatelessWidget {
   const TourPackageBanner({
@@ -102,9 +104,9 @@ final class TourOptionsSection extends StatelessWidget {
           children: [
             Text(
               state.optionsFailure?.message ??
-                  'Could not load destinations and cancellation policies.',
+                  'Không thể tải danh sách điểm đến và chính sách hủy.',
             ),
-            TextButton(onPressed: onRetry, child: const Text('Retry')),
+            TextButton(onPressed: onRetry, child: const Text('Thử lại')),
           ],
         );
       case TourPackageOptionsStatus.ready:
@@ -112,7 +114,7 @@ final class TourOptionsSection extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Destinations', style: Theme.of(context).textTheme.titleSmall),
+            Text('Điểm đến', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: AppSpacing.xs),
             Wrap(
               spacing: AppSpacing.xs,
@@ -131,9 +133,7 @@ final class TourOptionsSection extends StatelessWidget {
             DropdownButtonFormField<int>(
               initialValue: selectedPolicyId,
               isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'Cancellation policy',
-              ),
+              decoration: const InputDecoration(labelText: 'Chính sách hủy'),
               items: [
                 for (final policy in options.policies)
                   DropdownMenuItem(
@@ -152,12 +152,12 @@ final class TourOptionsSection extends StatelessWidget {
                     : null,
                 isExpanded: true,
                 decoration: const InputDecoration(
-                  labelText: 'Category (optional)',
+                  labelText: 'Danh mục (tùy chọn)',
                 ),
                 items: [
                   const DropdownMenuItem<int?>(
                     value: null,
-                    child: Text('No category'),
+                    child: Text('Không chọn danh mục'),
                   ),
                   for (final category in options.categories)
                     DropdownMenuItem<int?>(
@@ -200,10 +200,10 @@ final class TourPhotosSection extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       const Text(
-        'JPG or PNG up to 5 MB. A cover photo is required before the package can be submitted for review.',
+        'Hỗ trợ ảnh JPG hoặc PNG tối đa 5 MB. Cần có ảnh bìa trước khi gửi gói tour phê duyệt.',
       ),
       const SizedBox(height: AppSpacing.sm),
-      if (media.isEmpty) const Text('No photos yet.'),
+      if (media.isEmpty) const Text('Chưa có hình ảnh nào.'),
       for (final item in media)
         ListTile(
           contentPadding: EdgeInsets.zero,
@@ -217,7 +217,7 @@ final class TourPhotosSection extends StatelessWidget {
                   const Icon(Icons.broken_image_outlined),
             ),
           ),
-          title: Text(item.isPrimary ? 'Cover photo' : 'Photo'),
+          title: Text(item.isPrimary ? 'Ảnh bìa' : 'Hình ảnh'),
           subtitle: item.altText == null ? null : Text(item.altText!),
           trailing: readOnly
               ? null
@@ -226,12 +226,12 @@ final class TourPhotosSection extends StatelessWidget {
                     if (!item.isPrimary)
                       IconButton(
                         icon: const Icon(Icons.star_outline),
-                        tooltip: 'Make cover photo',
+                        tooltip: 'Đặt làm ảnh bìa',
                         onPressed: busy ? null : () => onSetPrimary(item.id),
                       ),
                     IconButton(
                       icon: const Icon(Icons.delete_outline),
-                      tooltip: 'Remove photo',
+                      tooltip: 'Xóa ảnh',
                       onPressed: busy ? null : () => onDelete(item.id),
                     ),
                   ],
@@ -243,7 +243,7 @@ final class TourPhotosSection extends StatelessWidget {
           child: OutlinedButton.icon(
             onPressed: busy ? null : onAdd,
             icon: const Icon(Icons.add_photo_alternate_outlined),
-            label: Text(busy ? 'Working...' : 'Add photo'),
+            label: Text(busy ? 'Đang xử lý...' : 'Thêm ảnh'),
           ),
         ),
     ],
@@ -326,31 +326,31 @@ final class TourPreviewCard extends StatelessWidget {
                 Text(
                   [
                     if (destinations.isNotEmpty) destinations.join(', '),
-                    if (durationDays != null) '$durationDays day(s)',
-                    if (basePrice != null) 'from $basePrice VND',
+                    if (durationDays != null) '$durationDays ngày',
+                    if (basePrice != null) 'từ $basePrice VND',
                   ].join(' · '),
                 ),
                 if (coverUrl == null)
                   const Padding(
                     padding: EdgeInsets.only(top: AppSpacing.xs),
-                    child: Text('No cover photo yet.'),
+                    child: Text('Chưa có ảnh bìa.'),
                   ),
-                section('Highlights', highlights),
+                section('Điểm nổi bật', highlights),
                 for (final entry in days.entries)
-                  section('Day ${entry.key}', entry.value.join(' → ')),
-                section('Included', inclusions),
-                section('Not included', exclusions),
-                section('Traveller requirements', travellerRequirements),
-                if (policyName != null) section('Cancellation', policyName!),
+                  section('Ngày ${entry.key}', entry.value.join(' → ')),
+                section('Bao gồm', inclusions),
+                section('Không bao gồm', exclusions),
+                section('Yêu cầu đối với du khách', travellerRequirements),
+                if (policyName != null) section('Chính sách hủy', policyName!),
                 section(
-                  'Payment & deposit',
+                  'Thanh toán & đặt cọc',
                   allowDeposit &&
                           depositPercent != null &&
                           balanceDueDaysBeforeDeparture != null
-                      ? 'Deposit $depositPercent% at booking · Balance due $balanceDueDaysBeforeDeparture days before departure'
-                      : '100% upfront payment at booking',
+                      ? 'Đặt cọc $depositPercent% khi đặt tour · Thanh toán phần còn lại trước ngày khởi hành $balanceDueDaysBeforeDeparture ngày'
+                      : 'Thanh toán trước 100% khi đặt tour',
                 ),
-                section('Departures', departures.join('\n')),
+                section('Lịch khởi hành', departures.join('\n')),
               ],
             ),
           ),
@@ -375,14 +375,14 @@ final class TourReadinessSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (blockers.isEmpty && warnings.isEmpty) {
-      return const Text('Ready to submit for review.');
+      return const Text('Đã sẵn sàng gửi phê duyệt.');
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (blockers.isNotEmpty) ...[
           Text(
-            'Needed before review:',
+            'Cần hoàn thiện trước khi gửi duyệt:',
             style: Theme.of(context).textTheme.titleSmall,
           ),
           for (final code in blockers)
@@ -422,12 +422,12 @@ final class TourReadinessSection extends StatelessWidget {
         if (warnings.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.sm),
           Text(
-            'Itinerary warnings (they do not block saving):',
+            'Cảnh báo lịch trình (không chặn lưu bản nháp):',
             style: Theme.of(context).textTheme.titleSmall,
           ),
           for (final warning in warnings)
             Text(
-              '• ${[if (warning.dayNo != null) 'Day ${warning.dayNo}', if (warning.poiId != null) poiNames[warning.poiId] ?? 'Place #${warning.poiId}'].join(', ')}: ${tourWarningMessage(warning.code)}',
+              '• ${[if (warning.dayNo != null) 'Ngày ${warning.dayNo}', if (warning.poiId != null) poiNames[warning.poiId] ?? 'Địa điểm #${warning.poiId}'].join(', ')}: ${tourWarningMessage(warning.code)}',
             ),
         ],
       ],

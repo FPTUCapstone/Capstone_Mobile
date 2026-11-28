@@ -43,8 +43,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('You are the Group Host.'), findsOneWidget);
-      expect(find.text('Invite Members'), findsOneWidget);
+      expect(find.text('Bạn là Trưởng nhóm.'), findsOneWidget);
+      expect(find.text('Mời thành viên'), findsOneWidget);
     },
   );
 
@@ -146,7 +146,7 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(MaterialApp.router(routerConfig: router));
-    await tester.tap(find.text('View members'));
+    await tester.tap(find.text('Xem thành viên'));
     await tester.pumpAndSettle();
 
     expect(find.text('Members screen'), findsOneWidget);
@@ -165,10 +165,10 @@ void main() {
         ),
       );
 
-      expect(find.text('You are the Group Host.'), findsOneWidget);
-      expect(find.text('Invite code: HOIAN8KP'), findsOneWidget);
-      expect(find.text('View members'), findsOneWidget);
-      expect(find.text('Invite Members'), findsOneWidget);
+      expect(find.text('Bạn là Trưởng nhóm.'), findsOneWidget);
+      expect(find.text('Mã mời: HOIAN8KP'), findsOneWidget);
+      expect(find.text('Xem thành viên'), findsOneWidget);
+      expect(find.text('Mời thành viên'), findsOneWidget);
     },
   );
 
@@ -181,11 +181,11 @@ void main() {
       ),
     );
 
-    expect(find.text('You are a Group Member.'), findsOneWidget);
-    expect(find.text('You are the Group Host.'), findsNothing);
-    expect(find.textContaining('Invite code:'), findsNothing);
-    expect(find.text('View members'), findsOneWidget);
-    expect(find.text('Invite Members'), findsNothing);
+    expect(find.text('Bạn là Thành viên nhóm.'), findsOneWidget);
+    expect(find.text('Bạn là Trưởng nhóm.'), findsNothing);
+    expect(find.textContaining('Mã mời:'), findsNothing);
+    expect(find.text('Xem thành viên'), findsOneWidget);
+    expect(find.text('Mời thành viên'), findsNothing);
   });
 
   testWidgets('unknown membership does not claim Host or allow invitations', (
@@ -195,9 +195,9 @@ void main() {
       const MaterialApp(home: TravelGroupDetailsPage(groupId: 42)),
     );
 
-    expect(find.text('You are the Group Host.'), findsNothing);
-    expect(find.text('View members'), findsOneWidget);
-    expect(find.text('Invite Members'), findsNothing);
+    expect(find.text('Bạn là Trưởng nhóm.'), findsNothing);
+    expect(find.text('Xem thành viên'), findsOneWidget);
+    expect(find.text('Mời thành viên'), findsNothing);
   });
 
   testWidgets('mismatched Host route data does not expose Host controls', (
@@ -209,11 +209,11 @@ void main() {
       ),
     );
 
-    expect(find.text('Travel Group #99'), findsOneWidget);
-    expect(find.text('You are the Group Host.'), findsNothing);
-    expect(find.textContaining('Invite code:'), findsNothing);
-    expect(find.text('View members'), findsOneWidget);
-    expect(find.text('Invite Members'), findsNothing);
+    expect(find.text('Nhóm du lịch #99'), findsOneWidget);
+    expect(find.text('Bạn là Trưởng nhóm.'), findsNothing);
+    expect(find.textContaining('Mã mời:'), findsNothing);
+    expect(find.text('Xem thành viên'), findsOneWidget);
+    expect(find.text('Mời thành viên'), findsNothing);
   });
 
   testWidgets('Host opens correct group invitation and returns to details', (
@@ -243,15 +243,15 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(MaterialApp.router(routerConfig: router));
-    await tester.tap(find.text('Invite Members'));
+    await tester.tap(find.text('Mời thành viên'));
     await tester.pumpAndSettle();
     expect(find.text('Invitation for 42'), findsOneWidget);
 
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.text('Da Nang Group'), findsOneWidget);
-    expect(find.text('Invite Members'), findsOneWidget);
-    expect(find.text('View members'), findsOneWidget);
+    expect(find.text('Mời thành viên'), findsOneWidget);
+    expect(find.text('Xem thành viên'), findsOneWidget);
   });
 
   testWidgets(
@@ -367,7 +367,7 @@ void main() {
       );
       expect(
         find.text(
-          'You are the final member of this travel group. Leaving will close the group for everyone.',
+          'Bạn là thành viên cuối cùng của nhóm du lịch này. Khi rời đi, nhóm sẽ bị đóng với tất cả mọi người.',
         ),
         findsOneWidget,
       );

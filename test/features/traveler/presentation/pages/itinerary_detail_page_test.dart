@@ -41,7 +41,7 @@ void main() {
     addTearDown(router.dispose);
     await tester.pumpWidget(MaterialApp.router(routerConfig: router));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Ask about this itinerary'));
+    await tester.tap(find.byTooltip('Hỏi về lịch trình này'));
     await tester.pumpAndSettle();
     expect(selected, const SupportChatContext(kind: 'itinerary', id: '10'));
     expect(find.text('Itinerary support'), findsOneWidget);

@@ -64,7 +64,7 @@ void main() {
     pending.complete(InAppNotificationPage(items: [], nextBeforeId: null));
     await load;
     await tester.pump();
-    expect(find.text('No notifications yet.'), findsOneWidget);
+    expect(find.text('Chưa có thông báo nào.'), findsOneWidget);
   });
 
   testWidgets('shows notice without group navigation and marks read', (
@@ -86,13 +86,13 @@ void main() {
     );
 
     expect(find.text('Removed from Da Nang Weekend'), findsOneWidget);
-    expect(find.text('Unread'), findsOneWidget);
+    expect(find.text('Chưa đọc'), findsOneWidget);
     expect(find.text('You were removed from Da Nang Weekend.'), findsOneWidget);
     expect(find.text('Open group'), findsNothing);
     await tester.tap(find.byKey(const Key('inbox_mark_read_3')));
     await tester.pump();
     expect(repository.reads, 1);
-    expect(find.text('Unread'), findsNothing);
+    expect(find.text('Chưa đọc'), findsNothing);
     expect(find.byKey(const Key('inbox_mark_read_3')), findsNothing);
   });
 
@@ -138,13 +138,13 @@ void main() {
         home: BlocProvider.value(value: cubit, child: const InAppInboxPage()),
       ),
     );
-    await tester.tap(find.text('Load more'));
+    await tester.tap(find.text('Tải thêm'));
     await tester.pump();
     expect(repository.loads, 2);
     await tester.tap(find.byKey(const Key('inbox_unread_filter')));
     await tester.pump();
     expect(repository.unreadOnly, isTrue);
-    expect(find.text('No unread notifications.'), findsOneWidget);
+    expect(find.text('Không có thông báo chưa đọc.'), findsOneWidget);
   });
 
   testWidgets('shows load error and recovers on retry', (tester) async {
@@ -160,9 +160,9 @@ void main() {
         home: BlocProvider.value(value: cubit, child: const InAppInboxPage()),
       ),
     );
-    expect(find.text('Retry'), findsOneWidget);
-    await tester.tap(find.text('Retry'));
+    expect(find.text('Thử lại'), findsOneWidget);
+    await tester.tap(find.text('Thử lại'));
     await tester.pump();
-    expect(find.text('No notifications yet.'), findsOneWidget);
+    expect(find.text('Chưa có thông báo nào.'), findsOneWidget);
   });
 }

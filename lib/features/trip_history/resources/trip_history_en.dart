@@ -36,7 +36,7 @@ abstract final class TripHistoryStringsEn {
   static const String labelDepartureDate = 'Ngày đi';
   static const String labelParticipants = 'Hành khách';
   static const String labelTotalAmount = 'Tổng thanh toán';
-  static const String labelFree = 'Free';
+  static const String labelFree = 'Miễn phí';
   static const String labelStatus = 'Trạng thái';
   static const String labelType = 'Loại';
 
@@ -177,6 +177,12 @@ abstract final class TripHistoryStringsEn {
   static const String channelUnavailable = 'Chưa có thông tin';
   static String refundStatusLabel(String status) => switch (status) {
     'Pending' => 'Đang chờ',
+    'PendingOperatorConfirmation' => 'Chờ xác nhận',
+    'AwaitingPartnerReturn' => 'Chờ đối tác hoàn trả',
+    'ReturnReported' => 'Đã ghi nhận hoàn trả',
+    'ReturnReceived' => 'Đã nhận tiền hoàn trả',
+    'Reconciliation' => 'Đang đối soát',
+    'Escalated' => 'Đang hỗ trợ xử lý',
     'Processing' || 'RetryPending' => 'Đang xử lý',
     'ManualReview' => 'Đang xem xét',
     'Processed' => 'Đã hoàn tiền',

@@ -475,7 +475,7 @@ void main() {
 
         expect(cubit.state, isA<OperatorCheckInError>());
         final error = cubit.state as OperatorCheckInError;
-        expect(error.message, 'Failed to load departures');
+        expect(error.message, 'Không thể tải danh sách chuyến khởi hành');
         expect(error.message.toLowerCase(), isNot(contains('qr')));
         expect(error.message.toLowerCase(), isNot(contains('booking code')));
       },

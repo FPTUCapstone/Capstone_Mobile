@@ -15,6 +15,8 @@ import 'package:trip_mate_mobile/features/operator_check_in/presentation/widgets
 import 'package:trip_mate_mobile/features/operator_check_in/presentation/widgets/check_in_result_banner.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_coastal_app_bar.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_sticky_action_bar.dart';
 
 /// Screen #88: Check In Traveler by QR Code (TM-89 / UC-43)
 class OperatorCheckInPage extends StatefulWidget {
@@ -67,6 +69,7 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final current = context.watch<OperatorCheckInCubit>().state;
     final scanInFlight =
         current is OperatorCheckInLoaded &&
@@ -74,23 +77,13 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
             current.isManualEntryActive ||
             current.isRefreshing);
     return Scaffold(
-      backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        title: const Text(
-          'Check-in',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            color: AppColors.ink,
-            fontSize: 18,
-          ),
-        ),
-        centerTitle: false,
-        backgroundColor: Colors.white,
-        elevation: 0,
+      backgroundColor: c.canvas,
+      appBar: AppCoastalAppBar(
+        title: 'Điểm danh',
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: AppColors.ink),
-            tooltip: 'Refresh departures',
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Làm mới danh sách khởi hành',
             onPressed: scanInFlight
                 ? null
                 : () {
@@ -109,7 +102,7 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
         listener: (context, state) {},
         builder: (context, state) {
           if (state is OperatorCheckInLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(child: CircularProgressIndicator(color: c.brandTeal));
           }
 
           if (state is OperatorCheckInError) {
@@ -119,23 +112,32 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(
-                      Icons.error_outline_rounded,
-                      size: 54,
-                      color: AppColors.error,
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: c.errorContainer,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.error_outline_rounded,
+                        size: 32,
+                        color: c.error,
+                      ),
                     ),
-                    const SizedBox(height: AppSpacing.sm),
+                    const SizedBox(height: AppSpacing.md),
                     Text(
                       state.message,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
-                        color: AppColors.ink,
+                        color: c.textPrimary,
+                        height: 1.4,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     AppButton(
-                      label: 'Retry',
+                      label: 'Thử lại',
                       minimumHeight: 44,
                       onPressed: () {
                         unawaited(
@@ -159,29 +161,38 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
-                        Icons.event_busy_outlined,
-                        size: 56,
-                        color: AppColors.muted,
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: c.tealSoftContainer,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.event_busy_outlined,
+                          size: 32,
+                          color: c.brandTeal,
+                        ),
                       ),
-                      const SizedBox(height: AppSpacing.sm),
-                      const Text(
-                        'No departures scheduled for today',
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        'Không có chuyến khởi hành nào hôm nay',
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.ink,
+                          color: c.textPrimary,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.xs),
-                      const Text(
-                        'Check back when a tour departure is active.',
-                        style: TextStyle(fontSize: 13, color: AppColors.muted),
+                      Text(
+                        'Quay lại khi có lịch khởi hành đang diễn ra.',
+                        style: TextStyle(fontSize: 13, color: c.textSecondary),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: AppSpacing.md),
                       AppButton(
-                        label: 'Refresh',
+                        label: 'Làm mới',
                         minimumHeight: 44,
                         onPressed: () {
                           unawaited(
@@ -266,9 +277,7 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
                     const SizedBox(height: AppSpacing.sm),
                     CheckInRecentScansCard(scans: state.recentScans),
                   ],
-                  const SizedBox(
-                    height: 80,
-                  ), // Space for floating bottom actions
+                  const SizedBox(height: 80),
                 ],
               ),
             );
@@ -283,72 +292,54 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
             return const SizedBox.shrink();
           }
 
-          return Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.sm,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: const Border(top: BorderSide(color: AppColors.line)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  offset: const Offset(0, -2),
-                  blurRadius: 6,
+          return AppStickyActionBar(
+            child: Row(
+              children: [
+                Expanded(
+                  child: AppButton(
+                    label: 'Quét khách tiếp theo',
+                    icon: Icon(
+                      Icons.qr_code_scanner,
+                      size: 18,
+                      color: c.textOnBrand,
+                    ),
+                    minimumHeight: 46,
+                    onPressed:
+                        state.selectedDeparture == null ||
+                            state.isSubmittingScan ||
+                            state.isManualEntryActive ||
+                            state.isRefreshing
+                        ? null
+                        : () {
+                            context
+                                .read<OperatorCheckInCubit>()
+                                .clearActiveBanner();
+                          },
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: AppButton(
+                    label: 'Nhập mã thủ công',
+                    isOutlined: true,
+                    icon: Icon(
+                      Icons.keyboard_outlined,
+                      size: 18,
+                      color: c.brandTeal,
+                    ),
+                    minimumHeight: 46,
+                    onPressed:
+                        state.selectedDeparture == null ||
+                            state.isSubmittingScan ||
+                            state.isManualEntryActive ||
+                            state.isRefreshing
+                        ? null
+                        : () {
+                            unawaited(_openManualEntryDialog());
+                          },
+                  ),
                 ),
               ],
-            ),
-            child: SafeArea(
-              top: false,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: AppButton(
-                      label: 'Scan next traveler',
-                      icon: const Icon(
-                        Icons.qr_code_scanner,
-                        size: 18,
-                        color: Colors.white,
-                      ),
-                      minimumHeight: 46,
-                      onPressed:
-                          state.selectedDeparture == null ||
-                              state.isSubmittingScan ||
-                              state.isManualEntryActive ||
-                              state.isRefreshing
-                          ? null
-                          : () {
-                              context
-                                  .read<OperatorCheckInCubit>()
-                                  .clearActiveBanner();
-                            },
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: AppButton(
-                      label: 'Manual code',
-                      isOutlined: true,
-                      icon: const Icon(
-                        Icons.keyboard_outlined,
-                        size: 18,
-                        color: AppColors.primary,
-                      ),
-                      minimumHeight: 46,
-                      onPressed:
-                          state.selectedDeparture == null ||
-                              state.isSubmittingScan ||
-                              state.isManualEntryActive ||
-                              state.isRefreshing
-                          ? null
-                          : () {
-                              unawaited(_openManualEntryDialog());
-                            },
-                    ),
-                  ),
-                ],
-              ),
             ),
           );
         },
@@ -360,6 +351,7 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
     BuildContext context,
     OperatorCheckInLoaded state,
   ) {
+    final c = context.tmColors;
     return AppCard(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.sm,
@@ -369,8 +361,8 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
         child: DropdownButton<int>(
           value: state.selectedDeparture?.scheduleId,
           isExpanded: true,
-          hint: const Text('Select departure'),
-          icon: const Icon(Icons.arrow_drop_down, color: AppColors.ink),
+          hint: const Text('Chọn chuyến khởi hành'),
+          icon: Icon(Icons.arrow_drop_down, color: c.textPrimary),
           items: state.departures.map((departure) {
             final timeStr = CheckInTimeFormat.dateTime(departure.startAtUtc);
             return DropdownMenuItem<int>(
@@ -379,10 +371,10 @@ class _OperatorCheckInPageState extends State<OperatorCheckInPage> {
                 '$timeStr · ${departure.tourTitle}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.ink,
+                  color: c.textPrimary,
                 ),
               ),
             );

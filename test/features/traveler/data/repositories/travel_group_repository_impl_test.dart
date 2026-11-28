@@ -200,7 +200,7 @@ void main() {
           isA<AuthenticationFailure>().having(
             (failure) => failure.message,
             'safe message',
-            'Please sign in to continue.',
+            'Vui lòng đăng nhập để tiếp tục.',
           ),
         ),
       );

@@ -42,29 +42,35 @@ void main() {
     test('explains each alert code with the affected place', () {
       expect(
         reason('trip_alert.severe_weather', poi: 'Han Market'),
-        'Severe weather is expected at Han Market.',
+        'Dự báo thời tiết xấu tại Han Market.',
       );
       expect(
         reason('trip_alert.poi_closure', poi: 'Cham Museum'),
-        'Cham Museum is closed.',
+        'Cham Museum hiện đang đóng cửa.',
       );
       expect(
         reason('trip_alert.schedule_delay'),
-        'Your trip is running behind schedule.',
+        'Chuyến đi của bạn đang trễ so với lịch trình.',
       );
       expect(
         reason('trip_alert.route_deviation'),
-        'You have left the planned route.',
+        'Bạn đã đi lệch khỏi lộ trình dự kiến.',
       );
     });
 
     test('falls back when the place or the code is unknown', () {
-      expect(reason('trip_alert.poi_closure'), 'Your next stop is closed.');
+      expect(
+        reason('trip_alert.poi_closure'),
+        'Điểm dừng tiếp theo hiện đang đóng cửa.',
+      );
       expect(
         reason('trip_alert.severe_weather', poi: '  '),
-        'Severe weather is expected at your next stop.',
+        'Dự báo thời tiết xấu tại điểm dừng tiếp theo.',
       );
-      expect(reason('something.else'), 'Your plan needs a change.');
+      expect(
+        reason('something.else'),
+        'Lịch trình của bạn cần được điều chỉnh.',
+      );
     });
   });
 
@@ -98,14 +104,11 @@ void main() {
     ) async {
       await pumpSheet(tester);
 
-      expect(
-        find.text('Severe weather is expected at Chợ Hàn.'),
-        findsOneWidget,
-      );
+      expect(find.text('Dự báo thời tiết xấu tại Chợ Hàn.'), findsOneWidget);
       expect(find.text('Helio Center'), findsOneWidget);
-      expect(find.text('New'), findsOneWidget);
-      expect(find.text('Moved'), findsOneWidget);
-      expect(find.text('Removed from your plan: Chợ Hàn'), findsOneWidget);
+      expect(find.text('Mới'), findsOneWidget);
+      expect(find.text('Đổi giờ'), findsOneWidget);
+      expect(find.text('Đã loại khỏi lịch trình: Chợ Hàn'), findsOneWidget);
       expect(find.text('Chợ Hàn'), findsOneWidget);
     });
 

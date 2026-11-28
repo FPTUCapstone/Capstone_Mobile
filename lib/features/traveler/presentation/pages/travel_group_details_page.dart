@@ -122,7 +122,7 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
       barrierDismissible: false,
       builder: (_) => LeaveTravelGroupDialog(
         groupId: widget.groupId,
-        groupName: _resolvedGroup?.name ?? 'Travel Group #${widget.groupId}',
+        groupName: _resolvedGroup?.name ?? 'Nhóm du lịch #${widget.groupId}',
         isHost: _isHost,
         currentUserId: _resolvedUserId,
         members: widget.members,
@@ -134,19 +134,17 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
     if (!mounted) return;
     if (accessLost) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You no longer have access to this group.'),
-        ),
+        const SnackBar(content: Text('Bạn không còn quyền truy cập nhóm này.')),
       );
       context.go(AppRoutes.traveler);
       return;
     }
     if (result == null) return;
     final message = result.groupClosed
-        ? 'You left and the group is now closed.'
+        ? 'Bạn đã rời nhóm và nhóm đã được đóng.'
         : result.newHostUserId != null
-        ? 'You left the group. Host privileges were transferred.'
-        : 'You left the travel group.';
+        ? 'Bạn đã rời nhóm. Quyền Trưởng nhóm đã được chuyển giao.'
+        : 'Bạn đã rời khỏi nhóm du lịch.';
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
@@ -160,7 +158,7 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
       return Scaffold(
         backgroundColor: AppColors.surface,
         appBar: AppBar(
-          title: const Text('Travel Group'),
+          title: const Text('Nhóm du lịch'),
           backgroundColor: AppColors.cardBackground,
           surfaceTintColor: Colors.transparent,
           bottom: const PreferredSize(
@@ -173,13 +171,13 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
               ? Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('Could not confirm group membership.'),
+                    const Text('Không thể xác nhận tư cách thành viên nhóm.'),
                     const SizedBox(height: AppSpacing.sm),
                     TextButton(
                       onPressed: _resolvedUserId == null
                           ? _resolveUserId
                           : _refreshGroupMembership,
-                      child: const Text('Retry'),
+                      child: const Text('Thử lại'),
                     ),
                   ],
                 )
@@ -191,12 +189,12 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
         ? _resolvedGroup
         : null;
 
-    final groupName = currentGroup?.name ?? 'Travel Group #${widget.groupId}';
+    final groupName = currentGroup?.name ?? 'Nhóm du lịch #${widget.groupId}';
 
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: const Text('Travel Group'),
+        title: const Text('Nhóm du lịch'),
         backgroundColor: AppColors.cardBackground,
         surfaceTintColor: Colors.transparent,
         bottom: const PreferredSize(
@@ -247,8 +245,8 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
                             const SizedBox(height: 3),
                             Text(
                               _isHost
-                                  ? 'You are the Group Host.'
-                                  : 'You are a Group Member.',
+                                  ? 'Bạn là Trưởng nhóm.'
+                                  : 'Bạn là Thành viên nhóm.',
                               style: TextStyle(
                                 fontSize: 12.5,
                                 fontWeight: _isHost
@@ -289,7 +287,7 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: SelectableText(
-                            'Invite code: ${currentGroup.inviteCode}',
+                            'Mã mời: ${currentGroup.inviteCode}',
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 13,
@@ -303,7 +301,7 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
                             size: 16,
                             color: AppColors.primary,
                           ),
-                          tooltip: 'Copy',
+                          tooltip: 'Sao chép',
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                           onPressed: () {
@@ -340,7 +338,7 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
                     extra: _isHost,
                   ),
                   icon: const Icon(Icons.group_outlined, size: 18),
-                  label: const Text('View members'),
+                  label: const Text('Xem thành viên'),
                 ),
                 const SizedBox(height: 10),
                 FilledButton.icon(
@@ -354,7 +352,7 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
                     extra: currentGroup,
                   ),
                   icon: const Icon(Icons.forum_outlined, size: 18),
-                  label: const Text('Trò chuyện nhóm (Messenger)'),
+                  label: const Text('Trò chuyện nhóm'),
                 ),
                 const SizedBox(height: 10),
                 OutlinedButton.icon(
@@ -365,7 +363,7 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
                     extra: currentGroup?.name,
                   ),
                   icon: const Icon(Icons.share_location_outlined, size: 18),
-                  label: const Text('Location Sharing'),
+                  label: const Text('Chia sẻ vị trí'),
                 ),
                 if (currentGroup != null && _isHost) ...[
                   const SizedBox(height: 10),
@@ -375,7 +373,7 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
                       pathParameters: {'groupId': widget.groupId.toString()},
                     ),
                     icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
-                    label: const Text('Invite Members'),
+                    label: const Text('Mời thành viên'),
                   ),
                 ],
               ],
@@ -393,7 +391,7 @@ final class _TravelGroupDetailsPageState extends State<TravelGroupDetailsPage> {
             ),
             onPressed: _openLeaveDialog,
             icon: const Icon(Icons.exit_to_app_outlined, size: 18),
-            label: const Text('Leave Group'),
+            label: const Text('Rời nhóm'),
           ),
         ],
       ),

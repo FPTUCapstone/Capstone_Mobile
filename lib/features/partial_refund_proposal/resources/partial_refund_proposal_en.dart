@@ -6,64 +6,63 @@ abstract final class PartialRefundProposalStrings {
 
   /// MSG126: the booking of the complaint belongs to another Traveler.
   static const String accessDenied =
-      'You do not have permission to access this function.';
+      'Bạn không có quyền truy cập chức năng này.';
 
   /// MSG127: generic network or server failure.
   static const String systemError =
-      'TripMate is temporarily unable to process your request. '
-      'Please check your connection and try again.';
+      'TripMate tạm thời không thể xử lý yêu cầu của bạn. '
+      'Vui lòng kiểm tra kết nối và thử lại.';
 
   /// MSG164: the response is recorded (shown as a toast).
-  static const String recorded = 'Your response has been recorded.';
+  static const String recorded = 'Phản hồi của bạn đã được ghi nhận.';
 
   /// MSG165: answered already, or the 3-day response window has closed (BR-153).
   static const String responseClosed =
-      'The response period has closed. This request can no longer be answered.';
+      'Thời hạn phản hồi đã kết thúc. Yêu cầu này không còn có thể trả lời.';
 
   static const String notFound =
-      'This partial refund proposal could not be found.';
+      'Không tìm thấy đề xuất hoàn tiền một phần này.';
 
   // Screen
-  static const String title = 'Partial refund proposal';
-  static const String bookingLabel = 'BOOKING';
-  static const String proposedAmount = 'Proposed amount';
-  static const String responseDeadline = 'Response deadline';
-  static const String accept = 'Accept';
-  static const String decline = 'Decline';
-  static const String cancel = 'Cancel';
-  static const String retry = 'Try again';
+  static const String title = 'Đề xuất hoàn tiền một phần';
+  static const String bookingLabel = 'MÃ ĐẶT TOUR';
+  static const String proposedAmount = 'Số tiền đề xuất';
+  static const String responseDeadline = 'Hạn phản hồi';
+  static const String accept = 'Chấp nhận';
+  static const String decline = 'Từ chối';
+  static const String cancel = 'Hủy';
+  static const String retry = 'Thử lại';
 
   // Confirmation (Normal Flow step 3)
-  static const String acceptTitle = 'Accept this partial refund?';
+  static const String acceptTitle = 'Chấp nhận hoàn tiền một phần?';
   static String acceptMessage(String amount) =>
-      'You agree to a refund of $amount for this complaint. '
-      'The refund is paid after the Tour Operator confirms it.';
-  static const String declineTitle = 'Decline this partial refund?';
+      'Bạn đồng ý nhận khoản hoàn tiền $amount cho khiếu nại này. '
+      'Khoản tiền sẽ được chi trả sau khi nhà điều hành tour xác nhận.';
+  static const String declineTitle = 'Từ chối hoàn tiền một phần?';
   static const String declineMessage =
-      'The complaint will then be handled under the partnership contract.';
+      'Khiếu nại sẽ được xử lý theo hợp đồng hợp tác.';
 
   // Status
-  static const String statusAwaitingTraveler = 'Awaiting your response';
+  static const String statusAwaitingTraveler = 'Chờ phản hồi của bạn';
   static const String descriptionAwaitingTraveler =
-      'The Tour Operator proposed a partial refund for your complaint. '
-      'Accept or decline it before the deadline.';
-  static const String statusApproved = 'Accepted';
+      'Nhà điều hành tour đã đề xuất hoàn tiền một phần cho khiếu nại của bạn. '
+      'Hãy chấp nhận hoặc từ chối trước hạn phản hồi.';
+  static const String statusApproved = 'Đã chấp nhận';
   static const String descriptionApproved =
-      'You accepted the proposed amount. The refund is paid after the '
-      'Tour Operator confirms it.';
-  static const String statusDeclined = 'Declined';
+      'Bạn đã chấp nhận mức tiền đề xuất. Khoản hoàn tiền sẽ được chi trả '
+      'sau khi nhà điều hành tour xác nhận.';
+  static const String statusDeclined = 'Đã từ chối';
   static const String descriptionDeclined =
-      'The proposal was declined. The complaint is handled under the '
-      'partnership contract.';
-  static const String statusAwaitingOperator = 'Awaiting Tour Operator';
+      'Đề xuất đã bị từ chối. Khiếu nại sẽ được xử lý theo hợp đồng hợp tác.';
+  static const String statusAwaitingOperator = 'Chờ nhà điều hành';
   static const String descriptionAwaitingOperator =
-      'The Tour Operator has not responded to this complaint yet.';
-  static const String statusRejected = 'Rejected';
+      'Nhà điều hành tour chưa phản hồi khiếu nại này.';
+  static const String statusRejected = 'Bị từ chối';
   static const String descriptionRejected =
-      'The Tour Operator rejected this complaint. It is handled under the '
-      'partnership contract.';
-  static const String statusExpired = 'Expired';
+      'Nhà điều hành tour đã từ chối khiếu nại này. Khiếu nại sẽ được xử lý '
+      'theo hợp đồng hợp tác.';
+  static const String statusExpired = 'Đã hết hạn';
   static const String descriptionExpired =
-      'The Tour Operator did not respond in time. The complaint is handled '
-      'under the partnership contract.';
+      'Nhà điều hành tour không phản hồi đúng hạn. Khiếu nại sẽ được xử lý '
+      'theo hợp đồng hợp tác.';
 }

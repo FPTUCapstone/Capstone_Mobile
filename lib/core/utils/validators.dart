@@ -1,52 +1,55 @@
 abstract final class Validators {
   static final RegExp _emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 
-  static String? requiredField(String? value, {String fieldName = 'Field'}) {
+  static String? requiredField(
+    String? value, {
+    String fieldName = 'Trường này',
+  }) {
     if (value == null || value.trim().isEmpty) {
-      return '$fieldName is required.';
+      return 'Vui lòng nhập $fieldName.';
     }
     return null;
   }
 
   static String? email(String? value) {
-    final requiredError = requiredField(value, fieldName: 'Email');
+    final requiredError = requiredField(value, fieldName: 'email');
     if (requiredError != null) {
       return requiredError;
     }
     final normalized = value!.trim();
     if (normalized.length > 254) {
-      return 'Email must be 254 characters or fewer.';
+      return 'Email không được vượt quá 254 ký tự.';
     }
     if (!_emailPattern.hasMatch(normalized)) {
-      return 'Enter a valid email address.';
+      return 'Vui lòng nhập địa chỉ email hợp lệ.';
     }
     return null;
   }
 
   static String? password(String? value) {
-    final requiredError = requiredField(value, fieldName: 'Password');
+    final requiredError = requiredField(value, fieldName: 'mật khẩu');
     if (requiredError != null) {
       return requiredError;
     }
     if (value!.length < 8 || value.length > 72) {
-      return 'Password must be between 8 and 72 characters.';
+      return 'Mật khẩu phải từ 8 đến 72 ký tự.';
     }
     if (value != value.trim()) {
-      return 'Password cannot start or end with whitespace.';
+      return 'Mật khẩu không được có khoảng trắng ở đầu hoặc cuối.';
     }
     if (!RegExp(r'[A-Z]').hasMatch(value) ||
         !RegExp(r'[a-z]').hasMatch(value) ||
         !RegExp(r'\d').hasMatch(value) ||
         !RegExp(r'[^A-Za-z0-9]').hasMatch(value)) {
-      return 'Password must contain uppercase, lowercase, number, and special character.';
+      return 'Mật khẩu phải gồm chữ hoa, chữ thường, chữ số và ký tự đặc biệt.';
     }
     return null;
   }
 
   static String? otp(String? value) {
-    if (value == null || value.isEmpty) return 'Reset code is required.';
+    if (value == null || value.isEmpty) return 'Vui lòng nhập mã xác nhận.';
     if (!RegExp(r'^[0-9]{6}$').hasMatch(value)) {
-      return 'Enter exactly 6 ASCII digits.';
+      return 'Vui lòng nhập đúng 6 chữ số.';
     }
     return null;
   }
@@ -56,22 +59,22 @@ abstract final class Validators {
       return null;
     }
     if (!RegExp(r'^0\d{9}$').hasMatch(value.trim())) {
-      return 'Phone number must be 10 digits starting with 0.';
+      return 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng số 0.';
     }
     return null;
   }
 
   static String? fullName(String? value) {
-    final requiredError = requiredField(value, fieldName: 'Full name');
+    final requiredError = requiredField(value, fieldName: 'họ và tên');
     if (requiredError != null) {
       return requiredError;
     }
     final normalized = value!.trim().replaceAll(RegExp(r'\s+'), ' ');
     if (normalized.length < 2 || normalized.length > 150) {
-      return 'Full name must be between 2 and 150 characters.';
+      return 'Họ và tên phải từ 2 đến 150 ký tự.';
     }
     if (!RegExp(r'^[\p{L}\p{Zs}]+$', unicode: true).hasMatch(normalized)) {
-      return 'Full name can only contain letters and spaces.';
+      return 'Họ và tên chỉ được chứa chữ cái và khoảng trắng.';
     }
     return null;
   }

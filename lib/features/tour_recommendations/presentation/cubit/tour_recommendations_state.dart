@@ -97,15 +97,15 @@ final class TourRecommendationsState extends Equatable {
 
   /// MSG183: Add at least one interest tag in Travel Preferences (current SRS).
   static const String msg183 =
-      'Please configure at least one travel interest tag in Travel Preferences to receive personalized tour recommendations.';
+      'Vui lòng chọn ít nhất một thẻ sở thích trong mục Sở thích du lịch để nhận gợi ý tour phù hợp.';
 
   /// MSG64: No tours reach the similarity threshold (> 80%).
   static const String msg64 =
-      'No tours currently reach the recommendation threshold (> 80%). Try updating your preferences or explore all tours.';
+      'Hiện chưa có tour nào đạt ngưỡng độ phù hợp (> 80%). Hãy thử cập nhật sở thích hoặc khám phá tất cả tour.';
 
   /// MSG127: System/network failure.
   static const String msg127 =
-      'TripMate is temporarily unable to process your request. Please check your connection and try again.';
+      'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối và thử lại.';
 
   TourRecommendationsState copyWith({
     TourRecommendationsStatus? status,

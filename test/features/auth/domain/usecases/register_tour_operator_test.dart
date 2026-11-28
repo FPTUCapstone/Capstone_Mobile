@@ -141,12 +141,12 @@ void main() {
               .having(
                 (failure) => failure.fieldErrors['taxCode']?.single,
                 'tax code',
-                contains('10 digits'),
+                contains('10 chữ số'),
               )
               .having(
                 (failure) => failure.fieldErrors['businessLicenseNo']?.single,
                 'licence',
-                contains('Travel Licence Number'),
+                contains('Số giấy phép lữ hành'),
               ),
         ),
       );

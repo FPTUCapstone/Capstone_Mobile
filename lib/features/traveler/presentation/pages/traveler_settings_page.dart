@@ -8,6 +8,7 @@ import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_c
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
 
 class TravelerSettingsPage extends StatefulWidget {
@@ -22,6 +23,7 @@ class _TravelerSettingsPageState extends State<TravelerSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final session = context.watch<AuthSessionCubit>();
     final state = session.state;
     // Only the approved local-cleanup notice is surfaced here; unrelated auth
@@ -32,85 +34,136 @@ class _TravelerSettingsPageState extends State<TravelerSettingsPage> {
             AuthSessionCubit.signOutLocalCleanupFailureMessage;
 
     return AppPageScaffold(
-      title: 'Settings',
+      title: 'Cài đặt',
       content: [
         if (localCleanupFailure) ...[
           AppAlert(message: state.errorMessage!, type: AppAlertType.error),
           const SizedBox(height: AppSpacing.md),
         ],
-        Card(
-          child: Column(
-            children: [
-              _SettingsRow(
-                icon: Icons.person_outline,
-                label: 'Profile information',
-                onTap: () => context.push(AppRoutes.travelerProfile),
-              ),
-              const Divider(height: 1),
-              _SettingsRow(
-                icon: Icons.tune,
-                label: 'Travel preferences',
-                onTap: () => context.push(AppRoutes.travelerPreferences),
-              ),
-              const Divider(height: 1),
-              _SettingsRow(
-                icon: Icons.lock_outline,
-                label: 'Change password',
-                onTap: () => context.push(AppRoutes.travelerChangePassword),
-              ),
-              const Divider(height: 1),
-              SwitchListTile(
-                secondary: const Icon(Icons.notifications_none),
-                title: const Text('Notifications'),
-                value: _notificationsEnabled,
-                onChanged: (value) {
-                  setState(() => _notificationsEnabled = value);
-                },
-              ),
-              const Divider(height: 1),
-              const ListTile(
-                leading: Icon(Icons.cloud_download_outlined),
-                title: Text('Offline downloads'),
-                subtitle: Text('Manage packages from itinerary details'),
-                trailing: Text('Per trip  ›'),
-              ),
-            ],
+        AppCard(
+          padding: EdgeInsets.zero,
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(TripMateRadius.lg),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                _SettingsRow(
+                  icon: Icons.person_outline,
+                  label: 'Thông tin cá nhân',
+                  onTap: () => context.push(AppRoutes.travelerProfile),
+                ),
+                Divider(height: 1, indent: 60, color: c.borderSubtle),
+                _SettingsRow(
+                  icon: Icons.tune,
+                  label: 'Sở thích du lịch',
+                  onTap: () => context.push(AppRoutes.travelerPreferences),
+                ),
+                Divider(height: 1, indent: 60, color: c.borderSubtle),
+                _SettingsRow(
+                  icon: Icons.lock_outline,
+                  label: 'Đổi mật khẩu',
+                  onTap: () => context.push(AppRoutes.travelerChangePassword),
+                ),
+                Divider(height: 1, indent: 60, color: c.borderSubtle),
+                SwitchListTile(
+                  secondary: _SettingsIconBadge(icon: Icons.notifications_none),
+                  title: Text(
+                    'Thông báo',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: c.textPrimary,
+                    ),
+                  ),
+                  activeThumbColor: c.brandTeal,
+                  value: _notificationsEnabled,
+                  onChanged: (value) {
+                    setState(() => _notificationsEnabled = value);
+                  },
+                ),
+                Divider(height: 1, indent: 60, color: c.borderSubtle),
+                ListTile(
+                  leading: const _SettingsIconBadge(
+                    icon: Icons.cloud_download_outlined,
+                  ),
+                  title: Text(
+                    'Dữ liệu tải ngoại tuyến',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: c.textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Quản lý gói ngoại tuyến trong chi tiết lịch trình',
+                    style: TextStyle(fontSize: 12.5, color: c.textSecondary),
+                  ),
+                  trailing: Text(
+                    'Theo chuyến  ›',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: c.textMuted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        const Card(
-          child: ListTile(title: Text('App version'), trailing: Text('1.0.0')),
+        AppCard(
+          padding: EdgeInsets.zero,
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(TripMateRadius.lg),
+            child: ListTile(
+              leading: const _SettingsIconBadge(icon: Icons.info_outline),
+              title: Text(
+                'Phiên bản ứng dụng',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: c.textPrimary,
+                ),
+              ),
+              trailing: Text(
+                '1.0.0',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: c.textMuted,
+                ),
+              ),
+            ),
+          ),
         ),
       ],
       footer: OutlinedButton.icon(
-        // Busy state comes from the Cubit's own sign-out marker, so no
-        // confirmation can be opened again while the action is active.
         onPressed: state.operation == AuthSessionOperation.signOut
             ? null
             : _confirmSignOut,
         icon: const Icon(Icons.logout),
-        label: const Text('Sign out'),
-        style: _signOutButtonStyle(),
+        label: const Text('Đăng xuất'),
+        style: _signOutButtonStyle(c),
       ),
     );
   }
 
   Future<void> _confirmSignOut() async {
+    final c = context.tmColors;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        icon: const Icon(Icons.logout, color: AppColors.error),
-        title: const Text('Sign out of TripMate?'),
+        icon: Icon(Icons.logout, color: c.error),
+        title: const Text('Đăng xuất khỏi TripMate?'),
         content: const Text(
-          'Your session on this device will end. Downloaded offline trips stay on the device.',
+          'Phiên đăng nhập trên thiết bị này sẽ kết thúc. Các lịch trình đã tải ngoại tuyến vẫn được giữ lại.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+            child: const Text('Hủy'),
           ),
           AppButton(
-            label: 'Sign out',
+            label: 'Đăng xuất',
             onPressed: () => Navigator.pop(dialogContext, true),
           ),
         ],
@@ -121,11 +174,31 @@ class _TravelerSettingsPageState extends State<TravelerSettingsPage> {
     }
   }
 
-  ButtonStyle _signOutButtonStyle() => OutlinedButton.styleFrom(
-    foregroundColor: AppColors.error,
-    side: const BorderSide(color: AppColors.error),
+  ButtonStyle _signOutButtonStyle(TripMateColors c) => OutlinedButton.styleFrom(
+    foregroundColor: c.error,
+    side: BorderSide(color: c.error.withValues(alpha: 0.55)),
     minimumSize: const Size.fromHeight(52),
   );
+}
+
+class _SettingsIconBadge extends StatelessWidget {
+  const _SettingsIconBadge({required this.icon});
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.tmColors;
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: c.tealSoftContainer,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Icon(icon, size: 19, color: c.brandTeal),
+    );
+  }
 }
 
 class _SettingsRow extends StatelessWidget {
@@ -141,10 +214,14 @@ class _SettingsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return ListTile(
-      leading: Icon(icon),
-      title: Text(label),
-      trailing: const Icon(Icons.chevron_right),
+      leading: _SettingsIconBadge(icon: icon),
+      title: Text(
+        label,
+        style: TextStyle(fontWeight: FontWeight.w600, color: c.textPrimary),
+      ),
+      trailing: Icon(Icons.chevron_right, color: c.textMuted),
       onTap: onTap,
     );
   }

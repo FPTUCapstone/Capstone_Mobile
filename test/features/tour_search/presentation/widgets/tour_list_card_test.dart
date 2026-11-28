@@ -36,7 +36,7 @@ void main() {
             ),
           ),
         );
-        expect(find.text('80% match'), findsOneWidget);
+        expect(find.text('80% phù hợp'), findsOneWidget);
         expect(
           find.byIcon(Icons.star_rounded),
           rating == null ? findsNothing : findsOneWidget,
@@ -387,10 +387,10 @@ void main() {
           ),
         );
 
-        expect(find.text('95% match'), findsOneWidget);
+        expect(find.text('95% phù hợp'), findsOneWidget);
         expect(
           tester.getSemantics(find.byType(TourListCard)).label,
-          contains('95% match'),
+          contains('95% phù hợp'),
         );
       },
     );

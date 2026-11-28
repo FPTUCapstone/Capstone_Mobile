@@ -53,43 +53,41 @@ final class TravelPreferencesRepositoryImpl
 
   Failure _toFailure(Object error) {
     if (error is FormatException) {
-      return const ServerFailure('Something went wrong. Please try again.');
+      return const ServerFailure('Đã có lỗi xảy ra. Vui lòng thử lại.');
     }
     if (error is DioException) {
       final errorCode = ErrorMapper.extractErrorCode(error.response?.data);
       switch (errorCode) {
         case 'TRAVEL_PREFERENCES.TOO_MANY_INTERESTS':
           return const ValidationFailure(
-            'You can select up to 10 interests.',
+            'Bạn chỉ có thể chọn tối đa 10 sở thích.',
             fieldErrors: {
-              'interests': ['You can select up to 10 interests.'],
+              'interests': ['Bạn chỉ có thể chọn tối đa 10 sở thích.'],
             },
           );
         case 'TRAVEL_PREFERENCES.FOOD_NO_RESTRICTION_EXCLUSIVE':
           return const ValidationFailure(
-            'No restriction cannot be combined with other food preferences.',
+            'Không thể kết hợp "Không kiêng cữ" với các lựa chọn ẩm thực khác.',
             fieldErrors: {
               'foodPreferences': [
-                'No restriction cannot be combined with other food preferences.',
+                'Không thể kết hợp "Không kiêng cữ" với các lựa chọn ẩm thực khác.',
               ],
             },
           );
         case 'TRAVEL_PREFERENCES.INVALID_OPTION':
           return const ValidationFailure(
-            'One or more selections are no longer available. Please reload and try again.',
+            'Một hoặc nhiều lựa chọn không còn khả dụng. Vui lòng tải lại và thử lại.',
           );
         case 'TRAVEL_PREFERENCES.VALUE_TOO_LONG':
           return const ValidationFailure(
-            'One or more selections are too long. Please reload and try again.',
+            'Một hoặc nhiều lựa chọn quá dài. Vui lòng tải lại và thử lại.',
           );
       }
     }
 
     final failure = ErrorMapper.toFailure(error);
     if (failure is ServerFailure || failure is UnknownFailure) {
-      return const ServerFailure(
-        'Something went wrong. Please try again later.',
-      );
+      return const ServerFailure('Đã có lỗi xảy ra. Vui lòng thử lại sau.');
     }
     return failure;
   }

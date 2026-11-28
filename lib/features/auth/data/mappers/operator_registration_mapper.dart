@@ -132,26 +132,25 @@ String? _knownCode(Object? value) => switch (value) {
 };
 
 String _messageForCode(String code, String field) => switch (code) {
-  'MSG01' => 'This field is required.',
-  'MSG02' => 'Enter a valid email address.',
-  'MSG03' => 'An account with this email already exists.',
-  'MSG04' => 'Phone number must be 10 digits starting with 0.',
-  'MSG05' => 'Password does not meet the required policy.',
-  'MSG06' => 'Passwords do not match. Please re-enter.',
-  'MSG157' => 'Please upload the required business licence document.',
+  'MSG01' => 'Vui lòng nhập thông tin này.',
+  'MSG02' => 'Vui lòng nhập địa chỉ email hợp lệ.',
+  'MSG03' => 'Email này đã được đăng ký tài khoản.',
+  'MSG04' => 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng số 0.',
+  'MSG05' => 'Mật khẩu không đáp ứng yêu cầu bảo mật.',
+  'MSG06' => 'Mật khẩu xác nhận không khớp. Vui lòng nhập lại.',
+  'MSG157' => 'Vui lòng tải lên bản sao giấy phép kinh doanh.',
   'MSG158' =>
-    'The uploaded file type is not supported or the file exceeds the size limit.',
-  'MSG159' => 'This business licence number or tax code is already registered.',
-  'MSG160' =>
-    'An application is already pending review for this business information.',
+    'Định dạng tệp không được hỗ trợ hoặc vượt quá dung lượng cho phép.',
+  'MSG159' => 'Số giấy phép kinh doanh hoặc mã số thuế này đã được đăng ký.',
+  'MSG160' => 'Thông tin doanh nghiệp này đã có hồ sơ đang chờ phê duyệt.',
   'OPERATOR_TAX_CODE_INVALID' => operatorTaxCodeFormatError,
   'OPERATOR_TRAVEL_LICENSE_INVALID' => operatorTravelLicenseFormatError,
   'MSG_TOS' =>
-    'You must accept the Terms of Service, Privacy Policy and Partner Agreement.',
+    'Bạn phải đồng ý với Điều khoản dịch vụ, Chính sách bảo mật và Thỏa thuận đối tác.',
   'AUTH_TOKEN_MISSING' || 'AUTH_TOKEN_INVALID' || 'AUTH_EMAIL_MISMATCH' =>
-    'Please sign in with the registration email and try again.',
+    'Vui lòng đăng nhập bằng đúng email đăng ký và thử lại.',
   _ =>
     field == 'supportingDocuments'
-        ? 'Check the supporting documents and try again.'
-        : 'Check this field and try again.',
+        ? 'Vui lòng kiểm tra lại các tài liệu bổ sung và thử lại.'
+        : 'Vui lòng kiểm tra lại thông tin này và thử lại.',
 };

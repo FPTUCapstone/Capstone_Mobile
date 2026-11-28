@@ -4,6 +4,9 @@ import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/trip_alert.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/active_trip_cubit.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_coastal_app_bar.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_empty_state.dart';
 
 class TripAlertsPage extends StatelessWidget {
   const TripAlertsPage({super.key, required this.itineraryId, this.alerts});
@@ -13,12 +16,14 @@ class TripAlertsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     // If wrapped in ActiveTripCubit, read from state; otherwise use the provided list.
     final cubit = context.readOrNull<ActiveTripCubit>();
     final activeAlerts = alerts ?? cubit?.state.alerts ?? const <TripAlert>[];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Trip Alerts')),
+      backgroundColor: c.canvas,
+      appBar: const AppCoastalAppBar(title: 'Cảnh báo chuyến đi'),
       body: SafeArea(
         child: Column(
           children: [
@@ -28,21 +33,20 @@ class TripAlertsPage extends StatelessWidget {
                 horizontal: AppSpacing.md,
                 vertical: AppSpacing.sm,
               ),
-              color: AppColors.primarySoft,
+              decoration: BoxDecoration(
+                color: c.tealSoftContainer,
+                border: Border(bottom: BorderSide(color: c.borderSubtle)),
+              ),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.info_outline,
-                    size: 16,
-                    color: AppColors.primary,
-                  ),
+                  Icon(Icons.info_outline, size: 16, color: c.brandTeal),
                   const SizedBox(width: AppSpacing.xs),
                   Expanded(
                     child: Text(
-                      'Trip #$itineraryId · ${activeAlerts.length} active alerts logged',
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 12,
+                      'Chuyến đi #$itineraryId · ${activeAlerts.length} cảnh báo đang hoạt động',
+                      style: TextStyle(
+                        color: c.brandTeal,
+                        fontSize: 12.5,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -52,7 +56,10 @@ class TripAlertsPage extends StatelessWidget {
             ),
             Expanded(
               child: activeAlerts.isEmpty
-                  ? const Center(child: Text('No alerts found for this trip.'))
+                  ? const AppEmptyState(
+                      icon: Icons.notifications_none_rounded,
+                      title: 'Không có cảnh báo nào cho chuyến đi này.',
+                    )
                   : ListView.separated(
                       padding: const EdgeInsets.all(AppSpacing.md),
                       itemCount: activeAlerts.length,
@@ -78,29 +85,39 @@ class _AlertItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (borderColor, icon, severityLabel) = switch (alert.severity) {
+    final c = context.tmColors;
+    final (
+      accentColor,
+      badgeBg,
+      icon,
+      severityLabel,
+    ) = switch (alert.severity) {
       AlertSeverity.critical => (
-        AppColors.error,
+        c.error,
+        c.errorContainer,
         Icons.warning_amber_rounded,
-        'CRITICAL',
+        'KHẨN CẤP',
       ),
       AlertSeverity.warning => (
-        AppColors.warning,
+        c.warning,
+        c.warningContainer,
         Icons.schedule_rounded,
-        'WARNING',
+        'CẢNH BÁO',
       ),
       AlertSeverity.info => (
-        AppColors.primary,
+        c.brandTeal,
+        c.tealSoftContainer,
         Icons.info_outline_rounded,
-        'NOTICE',
+        'THÔNG BÁO',
       ),
     };
 
-    return Card(
+    return AppCard(
+      padding: EdgeInsets.zero,
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppSpacing.md),
-          border: Border(left: BorderSide(color: borderColor, width: 4)),
+          borderRadius: BorderRadius.circular(TripMateRadius.lg),
+          border: Border(left: BorderSide(color: accentColor, width: 4)),
         ),
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
@@ -108,34 +125,57 @@ class _AlertItemCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, color: borderColor, size: 16),
-                const SizedBox(width: AppSpacing.xxs),
-                Text(
-                  severityLabel,
-                  style: TextStyle(
-                    color: borderColor,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: badgeBg,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, color: accentColor, size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        severityLabel,
+                        style: TextStyle(
+                          color: accentColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const Spacer(),
                 Text(
                   '${alert.timestamp.hour.toString().padLeft(2, '0')}:${alert.timestamp.minute.toString().padLeft(2, '0')}',
-                  style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                  style: TextStyle(
+                    color: c.textMuted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
               alert.title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: c.textPrimary,
+              ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 3),
             Text(
               alert.description,
-              style: Theme.of(context).textTheme.bodySmall,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: c.textSecondary,
+                height: 1.4,
+              ),
             ),
           ],
         ),

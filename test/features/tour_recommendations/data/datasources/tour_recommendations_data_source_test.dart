@@ -25,7 +25,7 @@ void main() {
     },
   );
 
-  test('demo source contains only English fixture copy', () async {
+  test('demo source contains Vietnamese fixture copy', () async {
     const source = DemoTourRecommendationsDataSource();
 
     final result = await source.fetchCandidates(
@@ -34,13 +34,10 @@ void main() {
     final candidates = (result as TourRecommendationCandidatesAvailable).items;
 
     expect(candidates, isNotEmpty);
-    expect(
-      candidates.map((item) => item.tour.title).join(),
-      isNot(contains('Đ')),
-    );
+    expect(candidates.map((item) => item.tour.title).join(), contains('Đ'));
     expect(
       candidates.expand((item) => item.matchReasons).join(),
-      isNot(contains('Phù hợp')),
+      contains('Phù hợp'),
     );
   });
 

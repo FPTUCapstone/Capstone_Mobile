@@ -159,7 +159,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(repository.scanCalls, 1);
       expect((cubit.state as OperatorCheckInLoaded).lastResult, isNotNull);
-      await tester.tap(find.text('Scan next traveler'));
+      await tester.tap(find.text('Quét khách tiếp theo'));
       await tester.pumpAndSettle();
       detect('QR-B');
       await tester.pumpAndSettle();
@@ -196,7 +196,7 @@ void main() {
           CheckInScanStatus.notConfirmed,
         );
       }
-      await tester.tap(find.text('Scan next traveler'));
+      await tester.tap(find.text('Quét khách tiếp theo'));
       await tester.pumpAndSettle();
       detect('QR-A');
       await tester.pumpAndSettle();
@@ -208,20 +208,20 @@ void main() {
     tester,
   ) async {
     await mount(tester);
-    await tester.tap(find.text('Manual code'));
+    await tester.tap(find.text('Nhập mã thủ công'));
     // Callback before the Bloc rebuild must neither submit nor consume the latch.
     detect('CAMERA-OVERLAP');
     await tester.pumpAndSettle();
     expect(repository.scanCalls, 0);
-    await tester.tap(find.text('Cancel'));
+    await tester.tap(find.text('Hủy'));
     await tester.pumpAndSettle();
     detect('QR-A');
     await tester.pumpAndSettle();
     expect(repository.scanCalls, 1);
     final result = (cubit.state as OperatorCheckInLoaded).lastResult;
-    await tester.tap(find.text('Manual code'));
+    await tester.tap(find.text('Nhập mã thủ công'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Cancel'));
+    await tester.tap(find.text('Hủy'));
     await tester.pumpAndSettle();
     detect('QR-B');
     await tester.pumpAndSettle();
@@ -233,14 +233,14 @@ void main() {
     'manual dialog excludes camera callbacks through request completion',
     (tester) async {
       await mount(tester);
-      await tester.tap(find.text('Manual code'));
+      await tester.tap(find.text('Nhập mã thủ công'));
       await tester.pumpAndSettle();
       detect('CAMERA');
       await tester.pumpAndSettle();
       expect(repository.scanCalls, 0);
       repository.pending = Completer<CheckInResult>();
       await tester.enterText(find.byType(TextFormField), 'BK-MANUAL');
-      await tester.tap(find.text('Check In'));
+      await tester.tap(find.widgetWithText(AppButton, 'Điểm danh'));
       await tester.pumpAndSettle();
       detect('CAMERA');
       await tester.pump();
@@ -261,7 +261,7 @@ void main() {
       detect('QR-A');
       await tester.pumpAndSettle();
       final accepted = (cubit.state as OperatorCheckInLoaded).lastResult;
-      await tester.tap(find.byTooltip('Refresh departures'));
+      await tester.tap(find.byTooltip('Làm mới danh sách khởi hành'));
       await tester.pumpAndSettle();
       expect((cubit.state as OperatorCheckInLoaded).lastResult, accepted);
       await beyondDebounce(tester);
@@ -295,19 +295,19 @@ void main() {
 
       // Simulate the server rolling its Vietnam calendar-day list forward.
       repository.availableSchedules = [2];
-      await tester.tap(find.byTooltip('Refresh departures'));
+      await tester.tap(find.byTooltip('Làm mới danh sách khởi hành'));
       await tester.pumpAndSettle();
       final refreshed = cubit.state as OperatorCheckInLoaded;
       expect(refreshed.departures.map((d) => d.scheduleId), [2]);
       expect(refreshed.selectedDeparture, isNull);
       expect(refreshed.progress, isNull);
       expect(refreshed.lastResult, accepted);
-      expect(find.text('Booking Code: BK-1'), findsOneWidget);
+      expect(find.text('Mã đơn đặt tour: BK-1'), findsOneWidget);
       expect(
         find.byWidgetPredicate(
           (widget) =>
               widget is AppButton &&
-              widget.label == 'Manual code' &&
+              widget.label == 'Nhập mã thủ công' &&
               widget.onPressed != null,
         ),
         findsNothing,
@@ -322,7 +322,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('01/01/2027 00:00 · Departure 2').last);
       await tester.pumpAndSettle();
-      expect(find.text('Booking Code: BK-1'), findsNothing);
+      expect(find.text('Mã đơn đặt tour: BK-1'), findsNothing);
       detect('QR-B');
       detect('QR-B');
       await tester.pumpAndSettle();
@@ -339,18 +339,21 @@ void main() {
       await tester.pumpAndSettle();
       final held = cubit.state as OperatorCheckInLoaded;
       repository.availableSchedules = [];
-      await tester.tap(find.byTooltip('Refresh departures'));
+      await tester.tap(find.byTooltip('Làm mới danh sách khởi hành'));
       await tester.pumpAndSettle();
 
       final refreshed = cubit.state as OperatorCheckInLoaded;
-      expect(find.text('No departures scheduled for today'), findsOneWidget);
+      expect(
+        find.text('Không có chuyến khởi hành nào hôm nay'),
+        findsOneWidget,
+      );
       expect(refreshed.selectedDeparture, isNull);
       expect(refreshed.progress, isNull);
       expect(refreshed.lastResult, held.lastResult);
       expect(refreshed.recentScans, held.recentScans);
-      expect(find.text('Booking Code: BK-1'), findsOneWidget);
-      expect(find.text('Recent scans'), findsOneWidget);
-      expect(find.text('Manual code'), findsNothing);
+      expect(find.text('Mã đơn đặt tour: BK-1'), findsOneWidget);
+      expect(find.text('Lượt quét gần đây'), findsOneWidget);
+      expect(find.text('Nhập mã thủ công'), findsNothing);
       detect('STALE');
       await tester.pumpAndSettle();
       expect(repository.submittedSchedules, [1]);

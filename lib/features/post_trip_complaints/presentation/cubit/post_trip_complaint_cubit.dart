@@ -106,7 +106,7 @@ final class PostTripComplaintCubit extends Cubit<PostTripComplaintState> {
             message: context == null || !context.canSubmit
                 ? PostTripComplaintStrings.windowClosed
                 : category == null
-                ? 'Choose a reason category.'
+                ? 'Vui lòng chọn danh mục lý do.'
                 : detailIssue != null
                 ? PostTripComplaintStrings.validationMessage(detailIssue)
                 : PostTripComplaintStrings.validationMessage(evidenceIssue!),
@@ -164,7 +164,7 @@ final class PostTripComplaintCubit extends Cubit<PostTripComplaintState> {
           state.copyWith(
             message: issue != null
                 ? PostTripComplaintStrings.validationMessage(issue)
-                : 'Select evidence files before submitting.',
+                : 'Vui lòng chọn tệp minh chứng trước khi gửi.',
           ),
         );
       }
@@ -246,14 +246,14 @@ final class PostTripComplaintCubit extends Cubit<PostTripComplaintState> {
       .join('\u0001');
   static String _message(Object error) => switch (error) {
     AuthenticationFailure() =>
-      'Your session has expired. Please sign in again.',
-    PermissionFailure() => 'You do not have access to this complaint.',
-    NetworkFailure() => 'Check your internet connection and try again.',
+      'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+    PermissionFailure() => 'Bạn không có quyền truy cập khiếu nại này.',
+    NetworkFailure() => 'Vui lòng kiểm tra kết nối mạng và thử lại.',
     RateLimitFailure() =>
-      'Too many requests. Please wait a moment and try again.',
+      'Bạn thao tác quá nhiều lần. Vui lòng đợi một chút rồi thử lại.',
     ValidationFailure() =>
-      'The complaint could not be validated. Check the reason and evidence limits, then try again.',
-    NotFoundFailure() => 'This booking was not found.',
+      'Không thể xác thực khiếu nại. Vui lòng kiểm tra lý do và giới hạn tệp minh chứng rồi thử lại.',
+    NotFoundFailure() => 'Không tìm thấy đơn đặt tour này.',
     ConflictFailure() => PostTripComplaintStrings.existing,
     _ => PostTripComplaintStrings.systemError,
   };

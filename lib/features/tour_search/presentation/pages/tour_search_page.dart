@@ -63,7 +63,7 @@ class _TourSearchPageState extends State<TourSearchPage> {
                   isTraveler: widget.isTraveler,
                   showBackButton: widget.showBackButton,
                   useEnglish: useEnglish,
-                  showLocaleSelector: !cubit.devSearchEnabled,
+                  showLocaleSelector: false,
                   locale: locale,
                   onLocaleChanged: (value) async {
                     setState(() => _selection = value);
@@ -102,7 +102,7 @@ class _TourSearchPageState extends State<TourSearchPage> {
                         : publicSearchCopy(SearchText.systemError, useEnglish),
                     icon: Icons.cloud_off_outlined,
                     actionLabel: cubit.devSearchEnabled
-                        ? 'Retry search'
+                        ? 'Thử lại'
                         : publicSearchCopy(SearchText.retry, useEnglish),
                     onAction: cubit.retryFailedQuery,
                   ),
@@ -197,7 +197,7 @@ class _TourSearchHeader extends StatelessWidget {
               children: [
                 if (showBackButton)
                   IconButton(
-                    tooltip: useEnglish ? 'Back' : 'Quay lại',
+                    tooltip: 'Quay lại',
                     color: TourSearchPalette.navy,
                     visualDensity: VisualDensity.compact,
                     icon: const Icon(Icons.arrow_back, size: 22),
@@ -531,7 +531,7 @@ class _TourListBody extends StatelessWidget {
         icon: Icons.travel_explore,
         title: publicSearchCopy(SearchText.emptyTitle, useEnglish),
         message: cubit.devSearchEnabled
-            ? 'Try adjusting the filters.'
+            ? 'Hãy thử điều chỉnh bộ lọc.'
             : publicSearchCopy(SearchText.emptyMessage, useEnglish),
         actionLabel: publicSearchCopy(SearchText.resetEmpty, useEnglish),
         onAction: cubit.resetFilters,

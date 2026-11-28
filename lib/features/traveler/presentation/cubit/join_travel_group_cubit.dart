@@ -33,7 +33,7 @@ final class JoinTravelGroupCubit extends Cubit<JoinTravelGroupState> {
 
     if (trimmed.isEmpty) {
       emit(
-        const JoinTravelGroupState.validationFailure('This field is required.'),
+        const JoinTravelGroupState.validationFailure('Trường này là bắt buộc.'),
       );
       return;
     }
@@ -42,7 +42,7 @@ final class JoinTravelGroupCubit extends Cubit<JoinTravelGroupState> {
     if (parsedCode == null) {
       emit(
         const JoinTravelGroupState.failure(
-          'This invitation is invalid, expired, or no longer available. Please check the invitation and try again.',
+          'Lời mời này không hợp lệ, đã hết hạn hoặc không còn khả dụng. Vui lòng kiểm tra lại và thử lại.',
         ),
       );
       return;
@@ -60,7 +60,7 @@ final class JoinTravelGroupCubit extends Cubit<JoinTravelGroupState> {
       if (parsedCode == 'EXPIRED8') {
         emit(
           const JoinTravelGroupState.failure(
-            'This invitation is invalid, expired, or no longer available. Please check the invitation and try again.',
+            'Lời mời này không hợp lệ, đã hết hạn hoặc không còn khả dụng. Vui lòng kiểm tra lại và thử lại.',
           ),
         );
         return;
@@ -68,7 +68,7 @@ final class JoinTravelGroupCubit extends Cubit<JoinTravelGroupState> {
       if (parsedCode == 'ALREADY8') {
         emit(
           const JoinTravelGroupState.failure(
-            'You are already a member of this travel group.',
+            'Bạn đã là thành viên của nhóm du lịch này.',
             42,
           ),
         );
@@ -77,7 +77,7 @@ final class JoinTravelGroupCubit extends Cubit<JoinTravelGroupState> {
       if (parsedCode == 'SERVER12') {
         emit(
           const JoinTravelGroupState.failure(
-            'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+            'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.',
           ),
         );
         return;
@@ -86,7 +86,7 @@ final class JoinTravelGroupCubit extends Cubit<JoinTravelGroupState> {
         JoinTravelGroupState.success(
           const TravelGroup(
             id: 42,
-            name: 'Hoi An Ancient Tour',
+            name: 'Tour Phố cổ Hội An',
             itineraryId: 10,
           ),
         ),
@@ -103,13 +103,12 @@ final class JoinTravelGroupCubit extends Cubit<JoinTravelGroupState> {
     } on Failure catch (failure) {
       final message = switch (failure) {
         AuthenticationFailure() =>
-          'Your session has expired. Please sign in again to continue.',
-        PermissionFailure() =>
-          'You do not have permission to access this function.',
+          'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.',
+        PermissionFailure() => 'Bạn không có quyền truy cập chức năng này.',
         ValidationFailure(:final message) => message,
         ConflictFailure(:final message) => message,
         _ =>
-          'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+          'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.',
       };
       final existingGroupId = failure is ConflictFailure
           ? failure.groupId
@@ -118,7 +117,7 @@ final class JoinTravelGroupCubit extends Cubit<JoinTravelGroupState> {
     } catch (_) {
       emit(
         const JoinTravelGroupState.failure(
-          'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+          'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.',
         ),
       );
     }

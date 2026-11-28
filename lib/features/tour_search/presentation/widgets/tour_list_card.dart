@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/availability_status.dart';
 import 'package:trip_mate_mobile/features/tour_search/domain/entities/tour_summary.dart';
 import 'package:trip_mate_mobile/features/tour_search/presentation/resources/public_search_copy.dart';
-import 'package:trip_mate_mobile/features/tour_search/presentation/theme/tour_search_palette.dart';
 
 class TourListCard extends StatelessWidget {
   const TourListCard({
@@ -23,6 +23,7 @@ class TourListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final c = context.tmColors;
     final cardContent = Padding(
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -47,7 +48,7 @@ class TourListCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleMedium?.copyWith(
-                        color: TourSearchPalette.navy,
+                        color: c.textPrimary,
                         fontWeight: FontWeight.w700,
                         height: 1.25,
                       ),
@@ -61,7 +62,7 @@ class TourListCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: TourSearchPalette.muted,
+                          color: c.textSecondary,
                         ),
                       ),
                     const SizedBox(height: 6),
@@ -69,10 +70,10 @@ class TourListCard extends StatelessWidget {
                     // ── Operator & Duration ────────────────────────────────
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.business_outlined,
                           size: 14,
-                          color: TourSearchPalette.muted,
+                          color: c.textMuted,
                         ),
                         const SizedBox(width: AppSpacing.xxs),
                         Flexible(
@@ -81,21 +82,21 @@ class TourListCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: TourSearchPalette.navyLight,
+                              color: c.textSecondary,
                             ),
                           ),
                         ),
                         const SizedBox(width: AppSpacing.xs),
-                        const Icon(
+                        Icon(
                           Icons.schedule_outlined,
                           size: 14,
-                          color: TourSearchPalette.muted,
+                          color: c.textMuted,
                         ),
                         const SizedBox(width: AppSpacing.xxs),
                         Text(
                           publicSearchDays(tour.durationDays, useEnglish),
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: TourSearchPalette.navyLight,
+                            color: c.textSecondary,
                           ),
                         ),
                       ],
@@ -105,16 +106,16 @@ class TourListCard extends StatelessWidget {
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.star_rounded,
                             size: 15,
-                            color: TourSearchPalette.accent,
+                            color: c.brandCoral,
                           ),
                           const SizedBox(width: 3),
                           Text(
                             tour.aggregateRating!.toString(),
                             style: theme.textTheme.labelMedium?.copyWith(
-                              color: TourSearchPalette.navy,
+                              color: c.textPrimary,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -127,7 +128,7 @@ class TourListCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          const Divider(height: 1, thickness: 1, color: TourSearchPalette.line),
+          Divider(height: 1, thickness: 1, color: c.borderSubtle),
           const SizedBox(height: 8),
           // ── Price & Availability ───────────────────────────────
           Wrap(
@@ -138,10 +139,7 @@ class TourListCard extends StatelessWidget {
             children: [
               Text(
                 _formatPrice(tour.basePrice, tour.currency),
-                style: AppTypography.price(
-                  TourSearchPalette.teal,
-                  fontSize: 15.5,
-                ),
+                style: AppTypography.price(c.brandTeal, fontSize: 15.5),
               ),
               _AvailabilityBadge(tour: tour, useEnglish: useEnglish),
             ],
@@ -152,13 +150,13 @@ class TourListCard extends StatelessWidget {
 
     return Semantics(
       label:
-          '${tour.title}, ${_availabilityLabel(tour, useEnglish)}${matchingScore != null ? ', ${(matchingScore! * 100).round()}% match' : ''}',
+          '${tour.title}, ${_availabilityLabel(tour, useEnglish)}${matchingScore != null ? ', ${(matchingScore! * 100).round()}% phù hợp' : ''}',
       button: onTap != null,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: c.surfaceCard,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: TourSearchPalette.cardBorder),
+          border: Border.all(color: c.borderSubtle),
         ),
         child: Material(
           color: Colors.transparent,
@@ -222,25 +220,26 @@ class _AvailabilityBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final (label, color, icon) = switch (tour.availabilityStatus) {
       AvailabilityStatus.available => (
         _availableLabel(),
-        TourSearchPalette.available,
+        c.success,
         Icons.event_available_outlined,
       ),
       AvailabilityStatus.soldOut => (
         publicSearchCopy(SearchText.soldOut, useEnglish),
-        TourSearchPalette.soldOut,
+        c.error,
         Icons.event_busy_outlined,
       ),
       AvailabilityStatus.noUpcomingSchedule => (
         publicSearchCopy(SearchText.noSchedule, useEnglish),
-        TourSearchPalette.muted,
+        c.textMuted,
         Icons.event_outlined,
       ),
       AvailabilityStatus.unknown => (
         publicSearchCopy(SearchText.unknown, useEnglish),
-        TourSearchPalette.muted,
+        c.textMuted,
         Icons.help_outline,
       ),
     };
@@ -301,6 +300,7 @@ class _TourThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final rawUrl = tour.thumbnailUrl?.trim();
     final hasValidUrl = rawUrl != null && rawUrl.isNotEmpty;
 
@@ -311,7 +311,7 @@ class _TourThumbnail extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: TourSearchPalette.cardBorder),
+        border: Border.all(color: c.borderSubtle),
       ),
       child: hasValidUrl
           ? Image.network(
@@ -334,17 +334,18 @@ class _NeutralThumbnailPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const ExcludeSemantics(
+    final c = context.tmColors;
+    return ExcludeSemantics(
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFF1F5F9), Color(0xFFE2E8F0)],
+            colors: [c.surfaceElevated, c.canvas],
           ),
         ),
         child: Center(
-          child: Icon(Icons.image_outlined, size: 34, color: Color(0xFF94A3B8)),
+          child: Icon(Icons.image_outlined, size: 34, color: c.textMuted),
         ),
       ),
     );
@@ -358,30 +359,34 @@ class _MatchingScoreBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final percentage = (score * 100).round();
     return Semantics(
-      label: '$percentage% match',
+      label: '$percentage% phù hợp',
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
-          color: const Color(0xFFE8F5E9),
+          color: c.successContainer,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: const Color(0xFF81C784), width: 1),
+          border: Border.all(
+            color: c.success.withValues(alpha: 0.35),
+            width: 1,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.auto_awesome, size: 13, color: Color(0xFF2E7D32)),
+            Icon(Icons.auto_awesome, size: 13, color: c.success),
             const SizedBox(width: 4),
             Flexible(
               child: Text(
-                '$percentage% match',
+                '$percentage% phù hợp',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF2E7D32),
+                  color: c.success,
                 ),
               ),
             ),

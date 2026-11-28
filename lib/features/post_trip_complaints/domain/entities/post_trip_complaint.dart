@@ -20,12 +20,12 @@ enum PostTripComplaintReasonCategory {
   };
 
   String get label => switch (this) {
-    itineraryNotAsAdvertised => 'Itinerary not as advertised',
-    serviceQuality => 'Service quality',
-    guideOrStaffConduct => 'Guide or staff conduct',
-    safetyIssue => 'Safety issue',
-    scheduleChangeOrDelay => 'Schedule change or delay',
-    other => 'Other',
+    itineraryNotAsAdvertised => 'Lịch trình không đúng như mô tả',
+    serviceQuality => 'Chất lượng dịch vụ',
+    guideOrStaffConduct => 'Thái độ hướng dẫn viên hoặc nhân viên',
+    safetyIssue => 'Vấn đề an toàn',
+    scheduleChangeOrDelay => 'Thay đổi lịch trình hoặc chậm trễ',
+    other => 'Khác',
   };
 
   static PostTripComplaintReasonCategory? tryFromWire(String? value) {

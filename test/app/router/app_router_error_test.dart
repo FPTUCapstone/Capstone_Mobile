@@ -25,6 +25,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('internal-exception-marker'), findsNothing);
-    expect(find.text('Page not found.'), findsOneWidget);
+    expect(find.text('Không tìm thấy trang.'), findsOneWidget);
   });
 }

@@ -325,7 +325,7 @@ final class _CanonicalTripReviewPageState
                                       ),
                                       const SizedBox(height: 8),
                                       Semantics(
-                                        label: 'Rating',
+                                        label: 'Đánh giá',
                                         child: Wrap(
                                           crossAxisAlignment:
                                               WrapCrossAlignment.center,

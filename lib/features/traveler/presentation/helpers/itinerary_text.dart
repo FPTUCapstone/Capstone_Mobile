@@ -130,6 +130,17 @@ String transportLabel(TransportMode mode) => switch (mode) {
   TransportMode.publicTransit => 'Phương tiện công cộng',
 };
 
+String itineraryStatusLabel(String status) =>
+    switch (status.trim().toLowerCase()) {
+      'active' => 'Đang hoạt động',
+      'draft' => 'Bản nháp',
+      'completed' => 'Đã hoàn thành',
+      'archived' => 'Đã lưu trữ',
+      'cancelled' => 'Đã hủy',
+      'interrupted' => 'Đã gián đoạn',
+      _ => status,
+    };
+
 /// Average walking pace used for the "close enough to walk" hint.
 const walkingMetersPerMinute = 80;
 

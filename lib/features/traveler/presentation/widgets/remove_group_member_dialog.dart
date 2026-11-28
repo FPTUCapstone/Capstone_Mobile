@@ -18,7 +18,7 @@ final class RemoveGroupMemberDialog extends StatelessWidget {
 
   /// MSG59 locked message template.
   static String confirmationMessage(String name) =>
-      'Are you sure you want to remove $name from this group?';
+      'Bạn có chắc chắn muốn xóa $name khỏi nhóm này không?';
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +31,7 @@ final class RemoveGroupMemberDialog extends StatelessWidget {
         color: theme.colorScheme.error,
         size: 28,
       ),
-      title: const Text('Remove group member'),
+      title: const Text('Xóa thành viên nhóm'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -50,7 +50,7 @@ final class RemoveGroupMemberDialog extends StatelessWidget {
           key: const Key('remove_member_cancel_button'),
           style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
+          child: const Text('Hủy'),
         ),
         FilledButton(
           key: const Key('remove_member_confirm_button'),
@@ -60,7 +60,7 @@ final class RemoveGroupMemberDialog extends StatelessWidget {
             minimumSize: const Size(48, 48),
           ),
           onPressed: () => Navigator.of(context).pop(true),
-          child: const Text('Remove Member'),
+          child: const Text('Xóa thành viên'),
         ),
       ],
     );

@@ -46,7 +46,7 @@ class _AppPasswordFieldState extends State<AppPasswordField> {
         onPressed: widget.enabled
             ? () => setState(() => _obscured = !_obscured)
             : null,
-        tooltip: _obscured ? 'Show password' : 'Hide password',
+        tooltip: _obscured ? 'Hiện mật khẩu' : 'Ẩn mật khẩu',
         icon: Icon(
           _obscured ? Icons.visibility_outlined : Icons.visibility_off,
         ),

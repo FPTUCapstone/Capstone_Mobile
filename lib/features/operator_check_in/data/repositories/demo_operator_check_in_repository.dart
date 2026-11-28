@@ -34,7 +34,7 @@ final class DemoOperatorCheckInRepository implements OperatorCheckInRepository {
     if (combined.contains('already-used') || combined.contains('used')) {
       throw CheckInFailure(
         kind: CheckInFailureKind.alreadyUsed,
-        message: 'This ticket was already checked in.',
+        message: 'Vé này đã được điểm danh trước đó.',
         checkedInAt: DateTime.now().toUtc().subtract(
           const Duration(minutes: 15),
         ),
@@ -48,14 +48,14 @@ final class DemoOperatorCheckInRepository implements OperatorCheckInRepository {
         combined.contains('wrong-sched')) {
       throw const CheckInFailure(
         kind: CheckInFailureKind.wrongSchedule,
-        message: 'Ticket belongs to a different departure.',
+        message: 'Vé thuộc một chuyến khởi hành khác.',
       );
     }
 
     if (combined.contains('invalid')) {
       throw const CheckInFailure(
         kind: CheckInFailureKind.invalidQr,
-        message: 'Invalid or unverified QR code.',
+        message: 'Mã QR không hợp lệ hoặc chưa được xác thực.',
       );
     }
 

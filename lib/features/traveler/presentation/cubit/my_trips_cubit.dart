@@ -9,7 +9,8 @@ final class MyTripsCubit extends Cubit<MyTripsState> {
       super(const MyTripsState());
 
   static const pageSize = 20;
-  static const _unavailableMessage = 'Your trips are unavailable right now.';
+  static const _unavailableMessage =
+      'Hiện không thể tải danh sách chuyến đi của bạn.';
 
   final ItineraryListRepository _repository;
   int _generation = 0;

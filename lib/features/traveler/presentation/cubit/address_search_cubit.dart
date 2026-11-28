@@ -31,7 +31,7 @@ final class AddressSearchCubit extends Cubit<AddressSearchState> {
     : _repository = repository,
       super(const AddressSearchState());
 
-  static const _unavailableMessage = 'Address search is unavailable right now.';
+  static const _unavailableMessage = 'Hiện không thể tìm kiếm địa chỉ.';
 
   final AddressSearchRepository _repository;
   int _generation = 0;

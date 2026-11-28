@@ -20,11 +20,11 @@ void main() {
       );
 
       // Dialog title
-      expect(find.text('Remove group member'), findsOneWidget);
+      expect(find.text('Xóa thành viên nhóm'), findsOneWidget);
 
       // Locked MSG59 body text
       expect(
-        find.text('Are you sure you want to remove Minh Anh from this group?'),
+        find.text('Bạn có chắc chắn muốn xóa Minh Anh khỏi nhóm này không?'),
         findsOneWidget,
       );
 
@@ -74,12 +74,12 @@ void main() {
         await tester.tap(find.text('Open Dialog'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Remove group member'), findsOneWidget);
+        expect(find.text('Xóa thành viên nhóm'), findsOneWidget);
 
         await tester.tap(find.byKey(const Key('remove_member_cancel_button')));
         await tester.pumpAndSettle();
 
-        expect(find.text('Remove group member'), findsNothing);
+        expect(find.text('Xóa thành viên nhóm'), findsNothing);
         expect(dialogResult, isFalse);
       },
     );
@@ -105,10 +105,7 @@ void main() {
         expect(confirmButton.onPressed, isNotNull);
 
         // Absolutely NO fake MSG60 success
-        expect(
-          find.textContaining('has been removed from the group.'),
-          findsNothing,
-        );
+        expect(find.textContaining('khỏi nhóm.'), findsNothing);
       },
     );
 

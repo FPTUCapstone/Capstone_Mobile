@@ -8,7 +8,10 @@ void main() {
     });
 
     test('returns a safe validation message for malformed input', () {
-      expect(Validators.email('not-an-email'), 'Enter a valid email address.');
+      expect(
+        Validators.email('not-an-email'),
+        'Vui lòng nhập địa chỉ email hợp lệ.',
+      );
     });
 
     test('accepts 254 characters and rejects a longer address', () {
@@ -19,7 +22,7 @@ void main() {
       expect(Validators.email(maxLengthEmail), isNull);
       expect(
         Validators.email('a$maxLengthEmail'),
-        'Email must be 254 characters or fewer.',
+        'Email không được vượt quá 254 ký tự.',
       );
     });
   });

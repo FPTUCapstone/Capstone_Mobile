@@ -165,5 +165,5 @@ final class InAppInboxCubit extends Cubit<InAppInboxState> {
 
   String _message(Object error) => error is Failure
       ? error.message
-      : 'Something went wrong. Please try again later.';
+      : 'Đã có lỗi xảy ra. Vui lòng thử lại sau.';
 }

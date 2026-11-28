@@ -49,7 +49,7 @@ final class TravelPreferencesCubit extends Cubit<TravelPreferencesState> {
     final interests = Set<String>.of(state.preferences.interests);
     if (!interests.remove(key)) {
       if (interests.length >= maxInterests) {
-        _emitFieldError('interests', 'You can select up to 10 interests.');
+        _emitFieldError('interests', 'Bạn chỉ có thể chọn tối đa 10 sở thích.');
         return;
       }
       interests.add(key);
@@ -124,7 +124,7 @@ final class TravelPreferencesCubit extends Cubit<TravelPreferencesState> {
           status: TravelPreferencesStatus.ready,
           options: state.options,
           preferences: state.preferences,
-          errorMessage: 'Something went wrong. Please try again later.',
+          errorMessage: 'Đã có lỗi xảy ra. Vui lòng thử lại sau.',
         ),
       );
       return false;
@@ -197,5 +197,5 @@ final class TravelPreferencesCubit extends Cubit<TravelPreferencesState> {
 
   String _messageOf(Object error) => error is Failure
       ? error.message
-      : 'Something went wrong. Please try again later.';
+      : 'Đã có lỗi xảy ra. Vui lòng thử lại sau.';
 }

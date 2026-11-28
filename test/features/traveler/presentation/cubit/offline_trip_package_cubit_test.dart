@@ -72,7 +72,7 @@ void main() {
       );
       expect(
         lowStorageCubit.state.package.errorMessage,
-        contains('Insufficient storage space'),
+        contains('Không đủ dung lượng bộ nhớ'),
       );
 
       await lowStorageCubit.close();
@@ -102,7 +102,7 @@ void main() {
           OfflinePackageStatus.networkInterrupted,
         );
         expect(cubit.state.package.isAvailableOffline, isFalse);
-        expect(cubit.state.package.errorMessage, contains('interrupted'));
+        expect(cubit.state.package.errorMessage, contains('bị gián đoạn'));
       },
     );
 
@@ -207,7 +207,7 @@ void main() {
         );
         expect(
           prodCubit.state.package.errorMessage,
-          contains('not currently available'),
+          contains('hiện chưa khả dụng'),
         );
 
         await prodCubit.close();

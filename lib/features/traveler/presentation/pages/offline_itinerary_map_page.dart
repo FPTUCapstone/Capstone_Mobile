@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
+import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/core/network/network_info.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/entities/navigation_route.dart';
@@ -10,6 +11,9 @@ import 'package:trip_mate_mobile/features/traveler/domain/services/navigation_lo
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/live_offline_package_cubit.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/widgets/trip_map.dart';
 import 'package:trip_mate_mobile/features/traveler/resources/offline_ui_text.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_coastal_app_bar.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_empty_state.dart';
 
 class OfflineItineraryMapPage extends StatefulWidget {
   const OfflineItineraryMapPage({
@@ -67,11 +71,16 @@ class _OfflineItineraryMapPageState extends State<OfflineItineraryMapPage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final repo = widget.repository ?? locateOptional<OfflineTripRepository>();
     if (repo == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Bản đồ offline')),
-        body: const Center(child: Text(OfflineUiText.loadError)),
+        backgroundColor: c.canvas,
+        appBar: const AppCoastalAppBar(title: 'Bản đồ ngoại tuyến'),
+        body: const AppEmptyState(
+          icon: Icons.map_outlined,
+          title: OfflineUiText.loadError,
+        ),
       );
     }
     return BlocProvider(
@@ -82,14 +91,16 @@ class _OfflineItineraryMapPageState extends State<OfflineItineraryMapPage> {
       )..load(),
       child: BlocBuilder<LiveOfflinePackageCubit, LiveOfflinePackageState>(
         builder: (context, state) {
+          final c = context.tmColors;
           final manifest = state.manifest;
           final readable =
               manifest != null &&
               !manifest.locked &&
               manifest.mapResourcesAvailable;
           return Scaffold(
-            appBar: AppBar(
-              title: const Text('Bản đồ offline'),
+            backgroundColor: c.canvas,
+            appBar: AppCoastalAppBar(
+              title: 'Bản đồ ngoại tuyến',
               actions: [
                 if (readable)
                   IconButton(
@@ -100,33 +111,63 @@ class _OfflineItineraryMapPageState extends State<OfflineItineraryMapPage> {
               ],
             ),
             body: state.isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(child: CircularProgressIndicator(color: c.brandTeal))
                 : !readable
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Text(
-                        manifest?.locked == true
-                            ? OfflineUiText.locked
-                            : state.error ?? OfflineUiText.missing,
-                      ),
-                    ),
+                ? AppEmptyState(
+                    icon: manifest?.locked == true
+                        ? Icons.lock_outline
+                        : Icons.map_outlined,
+                    title: manifest?.locked == true
+                        ? OfflineUiText.locked
+                        : state.error ?? OfflineUiText.missing,
                   )
                 : Column(
                     children: [
-                      const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text(
-                          'Bản đồ chỉ dùng trong vùng đã tải. Tuyến đường được lưu sẵn; không tự tính lại đường khi mất mạng.',
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: AppSpacing.xs,
+                        ),
+                        decoration: BoxDecoration(
+                          color: c.tealSoftContainer,
+                          border: Border(
+                            bottom: BorderSide(color: c.borderSubtle),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.offline_bolt_outlined,
+                              size: 16,
+                              color: c.brandTeal,
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
+                            Expanded(
+                              child: Text(
+                                'Bản đồ chỉ dùng trong vùng đã tải. Tuyến đường được lưu sẵn; không tự tính lại đường khi mất mạng.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: c.textPrimary,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       if (_locationMessage != null)
                         Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.md,
+                            AppSpacing.xs,
+                            AppSpacing.md,
+                            AppSpacing.xs,
                           ),
-                          child: Text(_locationMessage!),
+                          child: AppAlert(
+                            type: AppAlertType.warning,
+                            message: _locationMessage!,
+                          ),
                         ),
                       Expanded(
                         child:
@@ -155,7 +196,7 @@ class _OfflineItineraryMapPageState extends State<OfflineItineraryMapPage> {
                                       longitude: poi.longitude,
                                     ),
                                     label: poi.name,
-                                    color: AppColors.primary,
+                                    color: c.brandTeal,
                                   ),
                               ],
                               lines: [

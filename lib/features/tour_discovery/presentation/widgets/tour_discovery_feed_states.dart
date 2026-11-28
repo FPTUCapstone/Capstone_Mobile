@@ -26,40 +26,20 @@ class TourDiscoveryMotionSkeleton extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const AspectRatio(
+                AspectRatio(
                   aspectRatio: 16 / 9,
-                  child: ColoredBox(color: Color(0xFFF1F5F9)),
+                  child: ColoredBox(color: c.shimmerBase),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(14),
+                const Padding(
+                  padding: EdgeInsets.all(14),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        height: 12,
-                        width: 170,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        height: 18,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Container(
-                        height: 14,
-                        width: 220,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
+                      SkeletonBox(height: 12, width: 170, borderRadius: 6),
+                      SizedBox(height: 8),
+                      SkeletonBox(height: 18, borderRadius: 8),
+                      SizedBox(height: 14),
+                      SkeletonBox(height: 14, width: 220, borderRadius: 6),
                     ],
                   ),
                 ),
@@ -76,46 +56,19 @@ class TourDiscoveryMotionSkeleton extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: c.borderSubtle),
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                  Container(
-                    width: 88,
-                    height: 88,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
+                  SkeletonBox(width: 88, height: 88, borderRadius: 10),
+                  SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          height: 11,
-                          width: 130,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          height: 16,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          height: 12,
-                          width: 150,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                        ),
+                        SkeletonBox(height: 11, width: 130, borderRadius: 5),
+                        SizedBox(height: 8),
+                        SkeletonBox(height: 16, borderRadius: 6),
+                        SizedBox(height: 8),
+                        SkeletonBox(height: 12, width: 150, borderRadius: 6),
                       ],
                     ),
                   ),

@@ -4,12 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/core/utils/validators.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/operator_email_recovery_cubit.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_page_scaffold.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_password_field.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_section_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
 
 class OperatorEmailRecoveryPage extends StatefulWidget {
@@ -64,54 +67,95 @@ class _OperatorEmailRecoveryPageState extends State<OperatorEmailRecoveryPage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return BlocConsumer<OperatorEmailRecoveryCubit, OperatorEmailRecoveryState>(
       listenWhen: (previous, current) =>
           previous.phase != OperatorEmailRecoveryPhase.sent &&
           current.phase == OperatorEmailRecoveryPhase.sent,
       listener: (_, _) => _startCooldown(),
       builder: (context, state) => AppPageScaffold(
-        title: 'Continue email verification',
+        title: 'Xác minh email đối tác',
         content: [
-          const Center(child: Icon(Icons.mark_email_read_outlined, size: 64)),
-          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: c.tealSoftContainer,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  Icons.mark_email_read_outlined,
+                  size: 26,
+                  color: c.brandTeal,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hoàn tất xác minh email',
+                      style: TextStyle(
+                        fontFamily: AppTypography.displayFont,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w700,
+                        color: c.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Xác nhận liên kết trong hộp thư để tiếp tục.',
+                      style: TextStyle(fontSize: 13, color: c.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
           Text(
-            'Finish email verification',
-            style: Theme.of(context).textTheme.headlineSmall,
-            textAlign: TextAlign.center,
+            'Nếu bạn đã gửi hồ sơ nhà điều hành tour, hãy nhập đúng email và mật khẩu đã đăng ký. '
+            'Mở liên kết trong hộp thư rồi quay lại đây để xác nhận.',
+            style: TextStyle(
+              fontSize: 13.5,
+              height: 1.45,
+              color: c.textSecondary,
+            ),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          const Text(
-            'If you already submitted your Tour Operator application, enter the same email and password. '
-            'Open the link in your inbox, then return here to confirm your email.',
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.md),
           const AppAlert(
             message:
-                'Verifying your email does not approve the application. '
-                'It remains Pending Approval until an administrator reviews it.',
+                'Việc xác minh email không tự động phê duyệt hồ sơ. '
+                'Hồ sơ vẫn ở trạng thái Chờ phê duyệt cho đến khi quản trị viên xét duyệt.',
           ),
-          const SizedBox(height: AppSpacing.lg),
-          Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                AppTextField(
-                  controller: _emailController,
-                  label: 'Email address',
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  validator: Validators.email,
-                ),
-                const SizedBox(height: AppSpacing.md),
-                AppPasswordField(
-                  controller: _passwordController,
-                  label: 'Password',
-                  textInputAction: TextInputAction.done,
-                  validator: (value) =>
-                      Validators.requiredField(value, fieldName: 'Password'),
-                ),
-              ],
+          const SizedBox(height: AppSpacing.md),
+          AppSectionCard(
+            title: 'Thông tin tài khoản',
+            icon: Icons.verified_user_outlined,
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  AppTextField(
+                    controller: _emailController,
+                    label: 'Địa chỉ email',
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    validator: Validators.email,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  AppPasswordField(
+                    controller: _passwordController,
+                    label: 'Mật khẩu',
+                    textInputAction: TextInputAction.done,
+                    validator: (value) =>
+                        Validators.requiredField(value, fieldName: 'mật khẩu'),
+                  ),
+                ],
+              ),
             ),
           ),
           if (state.message != null) ...[
@@ -125,8 +169,8 @@ class _OperatorEmailRecoveryPageState extends State<OperatorEmailRecoveryPage> {
               },
             ),
           ],
-          const SizedBox(height: AppSpacing.lg),
-          OutlinedButton(
+          const SizedBox(height: AppSpacing.md),
+          FilledButton(
             onPressed:
                 state.isBusy ||
                     state.phase == OperatorEmailRecoveryPhase.verified ||
@@ -135,23 +179,23 @@ class _OperatorEmailRecoveryPageState extends State<OperatorEmailRecoveryPage> {
                 : () => _submit(send: true),
             child: Text(
               _cooldownSeconds > 0
-                  ? 'Resend in ${_cooldownSeconds}s'
-                  : 'Send verification email',
+                  ? 'Gửi lại sau ${_cooldownSeconds}s'
+                  : 'Gửi email xác minh',
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
-          FilledButton(
+          OutlinedButton(
             onPressed:
                 state.isBusy ||
                     state.phase == OperatorEmailRecoveryPhase.verified
                 ? null
                 : () => _submit(send: false),
-            child: const Text("I've verified my email"),
+            child: const Text('Tôi đã xác minh email'),
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.xs),
           TextButton(
             onPressed: state.isBusy ? null : () => context.go(AppRoutes.login),
-            child: const Text('Sign In'),
+            child: const Text('Đăng nhập'),
           ),
         ],
       ),

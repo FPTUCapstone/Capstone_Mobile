@@ -84,7 +84,7 @@ final class MessengerCubit extends Cubit<MessengerState> {
             ? matches.first
             : ChatThread(
                 ref: ChatThreadRef(kind: ChatKind.group, id: initialGroupId),
-                title: 'Group conversation',
+                title: 'Trò chuyện nhóm',
                 unreadCount: 0,
               ),
       );
@@ -460,7 +460,7 @@ final class MessengerCubit extends Cubit<MessengerState> {
     if (text.isEmpty || text.length > 4000) {
       _setThreadFailure(
         thread,
-        const ValidationFailure('Enter a message of 1–4000 characters.'),
+        const ValidationFailure('Vui lòng nhập tin nhắn từ 1 đến 4.000 ký tự.'),
       );
       return false;
     }
@@ -790,32 +790,32 @@ final class MessengerCubit extends Cubit<MessengerState> {
 
   String _safeMessage(Object error) {
     if (error is AuthenticationFailure) {
-      return 'Your session has expired. Please sign in again.';
+      return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
     }
     if (error is PermissionFailure) {
-      return 'You no longer have access to this conversation.';
+      return 'Bạn không còn quyền truy cập cuộc trò chuyện này.';
     }
     if (error is NotFoundFailure) {
-      return 'This conversation or message is no longer available.';
+      return 'Cuộc trò chuyện hoặc tin nhắn này không còn khả dụng.';
     }
     if (error is ConflictFailure) {
-      return 'This conversation changed. Refresh it before trying again.';
+      return 'Cuộc trò chuyện đã thay đổi. Vui lòng tải lại trước khi thử lại.';
     }
     if (error is RateLimitFailure) {
-      return 'Too many requests. Please wait before trying again.';
+      return 'Bạn thao tác quá nhiều lần. Vui lòng đợi một chút rồi thử lại.';
     }
     if (error is NetworkFailure) {
-      return 'Connection lost. Your draft is saved. Please try again.';
+      return 'Mất kết nối mạng. Tin nhắn nháp đã được lưu, vui lòng thử lại.';
     }
     if (error is ServerFailure) {
-      return 'Messaging is temporarily unavailable. Please try again later.';
+      return 'Tính năng nhắn tin tạm thời gián đoạn. Vui lòng thử lại sau.';
     }
     // Domain validation is deliberately bounded below; arbitrary exception or
     // server messages are never displayed by this presentation boundary.
     if (error is ValidationFailure) {
-      return 'Check the message and selected options, then try again.';
+      return 'Vui lòng kiểm tra tin nhắn và các lựa chọn rồi thử lại.';
     }
-    return 'Unable to complete this action. Please try again.';
+    return 'Không thể hoàn tất thao tác này. Vui lòng thử lại.';
   }
 
   void _cancelTimers() {

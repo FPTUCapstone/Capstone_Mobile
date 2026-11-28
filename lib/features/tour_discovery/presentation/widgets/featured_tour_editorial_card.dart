@@ -49,13 +49,14 @@ class FeaturedTourEditorialCard extends StatelessWidget {
     return '${item.durationDays} ngày';
   }
 
-  Widget _buildDefaultImage() {
+  Widget _buildDefaultImage(BuildContext context) {
+    final c = context.tmColors;
     final url = tour.imageUrl;
     if (url == null || url.isEmpty) {
       return Container(
-        color: const Color(0xFFE2E8F0),
-        child: const Center(
-          child: Icon(Icons.image_outlined, size: 36, color: Colors.grey),
+        color: c.surfaceElevated,
+        child: Center(
+          child: Icon(Icons.image_outlined, size: 36, color: c.textMuted),
         ),
       );
     }
@@ -77,8 +78,8 @@ class FeaturedTourEditorialCard extends StatelessWidget {
     final stackFooter = compact && enlargedText;
 
     final imageWidget = imageBuilder != null
-        ? imageBuilder!(context, _buildDefaultImage())
-        : _buildDefaultImage();
+        ? imageBuilder!(context, _buildDefaultImage(context))
+        : _buildDefaultImage(context);
 
     return EditorialTactileCard(
       onTap: onTap,

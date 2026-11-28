@@ -58,11 +58,11 @@ final class PasswordRecoveryCubit extends Cubit<PasswordRecoveryState> {
 
   static const cooldownDurationSeconds = 60;
   static const requestAcceptedMessage =
-      'If a reset code was sent, check your email.';
+      'Nếu mã đặt lại đã được gửi, vui lòng kiểm tra hộp thư của bạn.';
   static const resendAcceptedMessage =
-      'If a new reset code was sent, any previous code may no longer be valid.';
+      'Nếu mã mới đã được gửi, mọi mã trước đó có thể không còn hiệu lực.';
   static const resetSuccessMessage =
-      'Your password has been reset. Sign in with your new password.';
+      'Mật khẩu của bạn đã được đặt lại. Hãy đăng nhập bằng mật khẩu mới.';
 
   final PasswordRecoveryRepository _repository;
   final CooldownStreamFactory _cooldownStream;
@@ -238,7 +238,7 @@ final class PasswordRecoveryCubit extends Cubit<PasswordRecoveryState> {
       emit(
         PasswordRecoveryState(
           status: PasswordRecoveryStatus.failure,
-          errorMessage: 'Something went wrong. Please try again later.',
+          errorMessage: 'Đã có lỗi xảy ra. Vui lòng thử lại sau.',
           cooldownSeconds: previousCooldownSeconds,
           cooldownEmail: previousCooldownEmail,
         ),
@@ -300,7 +300,7 @@ final class PasswordRecoveryCubit extends Cubit<PasswordRecoveryState> {
         PasswordRecoveryState(
           status: PasswordRecoveryStatus.failure,
           normalizedEmail: email,
-          errorMessage: 'Something went wrong. Please try again later.',
+          errorMessage: 'Đã có lỗi xảy ra. Vui lòng thử lại sau.',
         ),
       );
       return false;
@@ -361,7 +361,7 @@ final class PasswordRecoveryCubit extends Cubit<PasswordRecoveryState> {
         PasswordRecoveryState(
           status: PasswordRecoveryStatus.failure,
           normalizedEmail: email,
-          errorMessage: 'Something went wrong. Please try again later.',
+          errorMessage: 'Đã có lỗi xảy ra. Vui lòng thử lại sau.',
           cooldownSeconds: state.cooldownSeconds,
           cooldownEmail: state.cooldownEmail,
         ),

@@ -42,15 +42,15 @@ final class LeaveTravelGroupDialog extends StatefulWidget {
 
   /// MSG61 locked message template.
   static String hostSuccessionMessage(String nextMemberName) =>
-      'You are the Group Host. Leaving will transfer Host privileges to $nextMemberName. Confirm leave?';
+      'Bạn là Trưởng nhóm. Khi rời đi, quyền Trưởng nhóm sẽ được chuyển cho $nextMemberName. Xác nhận rời nhóm?';
 
   /// MSG130 locked message constant.
   static const String confirmationWarningMessage =
-      'Are you sure you want to continue? This action may not be reversible.';
+      'Bạn có chắc chắn muốn tiếp tục? Thao tác này không thể hoàn tác.';
 
   /// Shown only when the leave dependency is unavailable.
   static const String serverUnavailableNotice =
-      'Server support pending: Leaving travel group is waiting for backend capability and cannot be completed yet.';
+      'Chức năng rời nhóm du lịch đang chờ tích hợp máy chủ và chưa thể thực hiện lúc này.';
 
   @override
   State<LeaveTravelGroupDialog> createState() => _LeaveTravelGroupDialogState();
@@ -102,7 +102,7 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
         setState(() {
           _isLoading = false;
           _loadError =
-              'We could not determine group members. Leaving cannot be completed right now.';
+              'Không thể xác định danh sách thành viên nhóm. Hiện chưa thể rời nhóm.';
         });
         return;
       }
@@ -126,14 +126,14 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
       setState(() {
         _isLoading = false;
         _loadError =
-            'We could not determine group members. Leaving cannot be completed right now.';
+            'Không thể xác định danh sách thành viên nhóm. Hiện chưa thể rời nhóm.';
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
         _loadError =
-            'We could not determine group members. Leaving cannot be completed right now.';
+            'Không thể xác định danh sách thành viên nhóm. Hiện chưa thể rời nhóm.';
       });
     }
   }
@@ -173,7 +173,7 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
             children: [
               CircularProgressIndicator(),
               SizedBox(height: 16),
-              Text('Checking group members...'),
+              Text('Đang kiểm tra thành viên nhóm...'),
             ],
           ),
         ),
@@ -184,13 +184,13 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
       return AlertDialog(
         key: const Key('leave_group_error_dialog'),
         icon: Icon(Icons.error_outline, color: theme.colorScheme.error),
-        title: const Text('Cannot leave group'),
+        title: const Text('Không thể rời nhóm'),
         content: Text(_loadError!),
         actions: [
           TextButton(
             key: const Key('leave_group_cancel_button'),
             onPressed: _canCancel ? () => Navigator.of(context).pop() : null,
-            child: const Text('Cancel'),
+            child: const Text('Hủy'),
           ),
         ],
       );
@@ -227,32 +227,31 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
   Widget _buildCaseANonHost(ThemeData theme) {
     return AlertDialog(
       key: const Key('leave_travel_group_dialog_case_a'),
+      scrollable: true,
       icon: Icon(
         Icons.exit_to_app_outlined,
         color: theme.colorScheme.error,
         size: 28,
       ),
-      title: const Text('Leave travel group'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              LeaveTravelGroupDialog.confirmationWarningMessage,
-              style: theme.textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 16),
-            _buildCapabilityNotice(theme),
-          ],
-        ),
+      title: const Text('Rời nhóm du lịch'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            LeaveTravelGroupDialog.confirmationWarningMessage,
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 16),
+          _buildCapabilityNotice(theme),
+        ],
       ),
       actions: [
         TextButton(
           key: const Key('leave_group_cancel_button'),
           style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
           onPressed: _canCancel ? () => Navigator.of(context).pop() : null,
-          child: const Text('Cancel'),
+          child: const Text('Hủy'),
         ),
         FilledButton(
           key: const Key('leave_group_confirm_button'),
@@ -262,7 +261,7 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
             minimumSize: const Size(48, 48),
           ),
           onPressed: _canSubmit ? _handleConfirmLeave : null,
-          child: const Text('Leave Group'),
+          child: const Text('Rời nhóm'),
         ),
       ],
     );
@@ -274,85 +273,82 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
   ) {
     return AlertDialog(
       key: const Key('leave_travel_group_dialog_case_b'),
+      scrollable: true,
       icon: Icon(
         Icons.published_with_changes_outlined,
         color: theme.colorScheme.error,
         size: 28,
       ),
-      title: const Text('Transfer host privileges and leave'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // BR-49 successor preview card
-            Container(
-              key: const Key('successor_member_card'),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.6,
+      title: const Text('Chuyển quyền Trưởng nhóm và rời đi'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // BR-49 successor preview card
+          Container(
+            key: const Key('successor_member_card'),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.6,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: theme.colorScheme.outlineVariant),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundImage: successor.avatarUrl != null
+                          ? NetworkImage(successor.avatarUrl!)
+                          : null,
+                      child: successor.avatarUrl == null
+                          ? const Icon(Icons.person_outline)
+                          : null,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            successor.displayName,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'Tham gia ngày ${_formatDate(successor.joinedAtUtc)}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: theme.colorScheme.outlineVariant),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundImage: successor.avatarUrl != null
-                            ? NetworkImage(successor.avatarUrl!)
-                            : null,
-                        child: successor.avatarUrl == null
-                            ? const Icon(Icons.person_outline)
-                            : null,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              successor.displayName,
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              'Joined ${_formatDate(successor.joinedAtUtc)}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Chip(
-                    avatar: const Icon(Icons.star_outline, size: 16),
-                    label: const Text('New Host'),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ],
-              ),
+                const SizedBox(height: 8),
+                Chip(
+                  avatar: const Icon(Icons.star_outline, size: 16),
+                  label: const Text('Trưởng nhóm mới'),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              LeaveTravelGroupDialog.hostSuccessionMessage(
-                successor.displayName,
-              ),
-              style: theme.textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 16),
-            _buildCapabilityNotice(theme),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            LeaveTravelGroupDialog.hostSuccessionMessage(successor.displayName),
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 16),
+          _buildCapabilityNotice(theme),
+        ],
       ),
       actionsOverflowButtonSpacing: 8,
       actions: [
@@ -360,7 +356,7 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
           key: const Key('leave_group_cancel_button'),
           style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
           onPressed: _canCancel ? () => Navigator.of(context).pop() : null,
-          child: const Text('Cancel'),
+          child: const Text('Hủy'),
         ),
         FilledButton(
           key: const Key('transfer_and_leave_confirm_button'),
@@ -370,7 +366,7 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
             minimumSize: const Size(48, 48),
           ),
           onPressed: _canSubmit ? _handleConfirmLeave : null,
-          child: const Text('Transfer and leave'),
+          child: const Text('Chuyển quyền và rời nhóm'),
         ),
       ],
     );
@@ -379,40 +375,39 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
   Widget _buildCaseCFinalHost(ThemeData theme) {
     return AlertDialog(
       key: const Key('leave_travel_group_dialog_case_c'),
+      scrollable: true,
       icon: Icon(
         Icons.warning_amber_rounded,
         color: theme.colorScheme.error,
         size: 28,
       ),
-      title: const Text('Close group and leave'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'You are the final member of this travel group. Leaving will close the group for everyone.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.error,
-                fontWeight: FontWeight.w600,
-              ),
+      title: const Text('Đóng nhóm và rời đi'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Bạn là thành viên cuối cùng của nhóm du lịch này. Khi rời đi, nhóm sẽ bị đóng với tất cả mọi người.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.error,
+              fontWeight: FontWeight.w600,
             ),
-            const SizedBox(height: 12),
-            Text(
-              LeaveTravelGroupDialog.confirmationWarningMessage,
-              style: theme.textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 16),
-            _buildCapabilityNotice(theme),
-          ],
-        ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            LeaveTravelGroupDialog.confirmationWarningMessage,
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 16),
+          _buildCapabilityNotice(theme),
+        ],
       ),
       actions: [
         TextButton(
           key: const Key('leave_group_cancel_button'),
           style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
           onPressed: _canCancel ? () => Navigator.of(context).pop() : null,
-          child: const Text('Cancel'),
+          child: const Text('Hủy'),
         ),
         FilledButton(
           key: const Key('close_group_and_leave_confirm_button'),
@@ -422,7 +417,7 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
             minimumSize: const Size(48, 48),
           ),
           onPressed: _canSubmit ? _handleConfirmLeave : null,
-          child: const Text('Close group and leave'),
+          child: const Text('Đóng nhóm và rời đi'),
         ),
       ],
     );
@@ -445,7 +440,7 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
           Text(
             _leaveCubit == null
                 ? LeaveTravelGroupDialog.serverUnavailableNotice
-                : 'Leaving does not cancel or transfer bookings and tickets you arranged.',
+                : 'Việc rời nhóm sẽ không hủy hoặc chuyển nhượng các đặt chỗ và vé bạn đã đặt.',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -501,20 +496,8 @@ final class _LeaveTravelGroupDialogState extends State<LeaveTravelGroupDialog> {
 }
 
 String _formatDate(DateTime value) {
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
   final local = value.toLocal();
-  return '${months[local.month - 1]} ${local.day}, ${local.year}';
+  final dd = local.day.toString().padLeft(2, '0');
+  final mm = local.month.toString().padLeft(2, '0');
+  return '$dd/$mm/${local.year}';
 }

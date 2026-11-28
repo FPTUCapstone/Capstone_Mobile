@@ -15,15 +15,16 @@ class OperatorCouponsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tm = context.tmColors;
     if (!isDemoMode) {
       return Scaffold(
         backgroundColor: Colors.transparent,
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () => context.push(AppRoutes.createCoupon),
           icon: const Icon(Icons.add),
-          label: const Text('Tạo coupon mới'),
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
+          label: const Text('Tạo mã giảm giá'),
+          backgroundColor: tm.brandTeal,
+          foregroundColor: tm.textOnBrand,
         ),
         body: const Padding(
           padding: EdgeInsets.all(AppSpacing.lg),
@@ -71,9 +72,9 @@ class OperatorCouponsView extends StatelessWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(AppRoutes.createCoupon),
         icon: const Icon(Icons.add),
-        label: const Text('Tạo coupon mới'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        label: const Text('Tạo mã giảm giá'),
+        backgroundColor: tm.brandTeal,
+        foregroundColor: tm.textOnBrand,
       ),
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.md),
@@ -82,25 +83,21 @@ class OperatorCouponsView extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: AppSpacing.md),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFFEF3C7),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFF59E0B)),
+              color: tm.warningContainer,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: tm.warning.withValues(alpha: 0.4)),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  color: Color(0xFFD97706),
-                  size: 18,
-                ),
-                SizedBox(width: 8),
+                Icon(Icons.warning_amber_rounded, color: tm.warning, size: 18),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     '[DỮ LIỆU THỬ NGHIỆM - DEMO] Danh sách mã giảm giá dưới đây là dữ liệu mẫu.',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF92400E),
+                      color: tm.warning,
                     ),
                   ),
                 ),
@@ -111,15 +108,15 @@ class OperatorCouponsView extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Mã khuyến mãi & Coupon',
+                'Mã khuyến mãi',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: AppColors.ink,
+                  color: tm.textPrimary,
                 ),
               ),
               Text(
                 '${coupons.length} mã giảm giá',
-                style: const TextStyle(fontSize: 12, color: AppColors.muted),
+                style: TextStyle(fontSize: 12, color: tm.textMuted),
               ),
             ],
           ),
@@ -142,13 +139,13 @@ class OperatorCouponsView extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: c.isActive
-                                ? AppColors.primarySoft
-                                : const Color(0xFFF1F5F9),
+                                ? tm.tealSoftContainer
+                                : tm.surfaceElevated,
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(
                               color: c.isActive
-                                  ? AppColors.secondary.withValues(alpha: 0.3)
-                                  : AppColors.line,
+                                  ? tm.brandTeal.withValues(alpha: 0.3)
+                                  : tm.borderSubtle,
                             ),
                           ),
                           child: Text(
@@ -157,9 +154,7 @@ class OperatorCouponsView extends StatelessWidget {
                               fontFamily: 'monospace',
                               fontWeight: FontWeight.w800,
                               fontSize: 14,
-                              color: c.isActive
-                                  ? AppColors.secondary
-                                  : AppColors.muted,
+                              color: c.isActive ? tm.brandTeal : tm.textMuted,
                             ),
                           ),
                         ),
@@ -174,37 +169,31 @@ class OperatorCouponsView extends StatelessWidget {
                     const SizedBox(height: AppSpacing.xs),
                     Text(
                       c.discount,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.ink,
+                        color: tm.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       c.description,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.muted,
-                      ),
+                      style: TextStyle(fontSize: 12, color: tm.textSecondary),
                     ),
-                    const Divider(height: 18),
+                    Divider(height: 18, color: tm.borderSubtle),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           c.validUntil,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.muted,
-                          ),
+                          style: TextStyle(fontSize: 11, color: tm.textMuted),
                         ),
                         Text(
                           c.usage,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.ink,
+                            color: tm.textPrimary,
                           ),
                         ),
                       ],

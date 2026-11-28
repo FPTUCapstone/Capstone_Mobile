@@ -383,7 +383,7 @@ class _PublicTourSearchFilterSheetState
                   lastDate: lastDate,
                   builder: (context, child) => Localizations.override(
                     context: context,
-                    locale: Locale(widget.useEnglish ? 'en' : 'vi'),
+                    locale: const Locale('vi'),
                     delegates: GlobalMaterialLocalizations.delegates,
                     child: child,
                   ),

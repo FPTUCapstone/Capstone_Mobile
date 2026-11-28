@@ -112,9 +112,9 @@ class _CheckInCameraScannerViewState extends State<CheckInCameraScannerView> {
                   padding: const EdgeInsets.all(AppSpacing.md),
                   child: Text(
                     denied
-                        ? 'Camera permission denied. Please enable camera '
-                              'access in Settings or use manual code entry.'
-                        : 'Camera unavailable. Please use manual code entry.',
+                        ? 'Quyền truy cập camera bị từ chối. Vui lòng bật quyền '
+                              'camera trong Cài đặt hoặc nhập mã thủ công.'
+                        : 'Camera không khả dụng. Vui lòng nhập mã thủ công.',
                     style: const TextStyle(color: Colors.white70, fontSize: 12),
                     textAlign: TextAlign.center,
                   ),
@@ -173,7 +173,7 @@ class _CheckInCameraScannerViewState extends State<CheckInCameraScannerView> {
             left: 0,
             right: 0,
             child: Text(
-              "Scan the traveler's e-ticket QR code",
+              'Quét mã QR trên vé điện tử của hành khách',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white,

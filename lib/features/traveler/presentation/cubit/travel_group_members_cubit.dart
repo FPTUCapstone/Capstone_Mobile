@@ -80,7 +80,7 @@ final class TravelGroupMembersCubit extends Cubit<TravelGroupMembersState> {
         emit(
           TravelGroupMembersRemovalIssue(
             current,
-            'Membership changed. Refresh the list before trying again.',
+            'Danh sách thành viên đã thay đổi. Vui lòng làm mới trước khi thử lại.',
           ),
         );
       } else {
@@ -109,7 +109,7 @@ final class TravelGroupMembersCubit extends Cubit<TravelGroupMembersState> {
         emit(
           TravelGroupMembersRemovalIssue(
             members,
-            'Unable to remove this member. Please refresh and try again.',
+            'Không thể xóa thành viên này. Vui lòng làm mới và thử lại.',
           ),
         );
       }

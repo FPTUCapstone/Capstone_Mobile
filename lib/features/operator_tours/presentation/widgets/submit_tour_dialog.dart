@@ -23,7 +23,7 @@ final class _SubmitTourDialogState extends State<SubmitTourDialog> {
   @override
   Widget build(BuildContext context) => AlertDialog(
     scrollable: true,
-    title: const Text('Submit for review?'),
+    title: const Text('Gửi phê duyệt gói tour?'),
     content: Form(
       key: _form,
       child: Column(
@@ -33,7 +33,7 @@ final class _SubmitTourDialogState extends State<SubmitTourDialog> {
           Text(widget.title, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
           const Text(
-            'Your current changes will be saved first. The tour becomes Pending and read-only while Staff reviews it. It will not appear in public discovery or accept bookings until Staff approval and publication.',
+            'Các thay đổi hiện tại sẽ được lưu trước. Gói tour sẽ chuyển sang trạng thái Chờ duyệt và chỉ được xem trong khi nhân viên xét duyệt. Tour sẽ chưa hiển thị công khai hoặc nhận đặt chỗ cho đến khi được nhân viên phê duyệt và đăng bán.',
           ),
           const SizedBox(height: 16),
           TextFormField(
@@ -41,14 +41,14 @@ final class _SubmitTourDialogState extends State<SubmitTourDialog> {
             minLines: 2,
             maxLines: 5,
             decoration: const InputDecoration(
-              labelText: 'Submission note (optional)',
-              helperText: 'Add any context for Staff.',
+              labelText: 'Ghi chú gửi duyệt (tùy chọn)',
+              helperText: 'Thêm thông tin cần lưu ý cho nhân viên xét duyệt.',
               helperMaxLines: 2,
               errorMaxLines: 3,
             ),
             validator: (value) =>
                 (normalizeSubmissionNote(value)?.length ?? 0) > 4000
-                ? 'Shorten the submission note to 4,000 characters.'
+                ? 'Vui lòng rút gọn ghi chú gửi duyệt xuống tối đa 4.000 ký tự.'
                 : null,
           ),
         ],
@@ -57,7 +57,7 @@ final class _SubmitTourDialogState extends State<SubmitTourDialog> {
     actions: [
       TextButton(
         onPressed: () => Navigator.pop(context),
-        child: const Text('Cancel'),
+        child: const Text('Hủy'),
       ),
       FilledButton(
         onPressed: () {
@@ -65,7 +65,7 @@ final class _SubmitTourDialogState extends State<SubmitTourDialog> {
             Navigator.pop(context, (note: normalizeSubmissionNote(_note.text)));
           }
         },
-        child: const Text('Submit'),
+        child: const Text('Gửi duyệt'),
       ),
     ],
   );

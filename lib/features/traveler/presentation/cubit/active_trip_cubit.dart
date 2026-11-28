@@ -35,7 +35,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
     NavigationLocationTracker? locationTracker,
     RouteDirectionsRepository? directionsRepository,
     ItineraryRepository? itineraryRepository,
-    String itineraryTitle = 'Active Trip',
+    String itineraryTitle = 'Chuyến đi đang diễn ra',
     List<TripAlert>? initialAlerts,
     bool isDemoMode = false,
     ArrivalDetector? arrivalDetector,
@@ -112,7 +112,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
   Future<void> Function()? _retryAction;
 
   static const offlineMessage =
-      'You are offline. Check your connection and try again.';
+      'Bạn đang ngoại tuyến. Vui lòng kiểm tra kết nối mạng và thử lại.';
 
   /// One key per page instance so retried starts replay the same session.
   final String _idempotencyKey;
@@ -289,7 +289,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
     );
     _applySession(
       session,
-      feedback: resumed ? 'Resumed your trip in progress.' : null,
+      feedback: resumed ? 'Đã tiếp tục chuyến đi đang diễn ra.' : null,
     );
     if (!state.isDemoMode) unawaited(refreshAlerts());
     if (!session.isCompleted) unawaited(_startTracking());
@@ -643,7 +643,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
         itemId: itemId,
         occurredAt: time,
       ),
-      successMessage: 'Arrived at ${item.poiName}.',
+      successMessage: 'Đã đến ${item.poiName}.',
       retry: () => reachItem(itemId, occurredAt: time),
     );
   }
@@ -658,7 +658,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
         itemId: itemId,
         occurredAt: time,
       ),
-      successMessage: 'Skipped ${item.poiName}.',
+      successMessage: 'Đã bỏ qua ${item.poiName}.',
       retry: () => skipItem(itemId),
       // Skipping the stop the Traveler was heading to moves on to the next one.
       keepCurrentTarget: itemId != state.targetItemId,
@@ -927,7 +927,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
       _emit(
         state.copyWith(
           alertRefreshStatus: AlertRefreshStatus.failure,
-          alertRefreshError: 'Could not refresh alerts. Try again.',
+          alertRefreshError: 'Không thể làm mới cảnh báo. Vui lòng thử lại.',
         ),
       );
       return;
@@ -1009,7 +1009,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
             ? AlertRefreshStatus.failure
             : AlertRefreshStatus.success,
         alertRefreshError: alertFailed || advisoryFailed
-            ? 'Some alerts could not be refreshed.'
+            ? 'Một số cảnh báo không thể làm mới.'
             : null,
         clearAlertRefreshError: !alertFailed && !advisoryFailed,
       ),
@@ -1092,7 +1092,7 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
     addAlert(
       TripAlert(
         id: '${TripAlert.localOverstayIdPrefix}${item.itemId}',
-        title: 'Stay time exceeded',
+        title: 'Quá thời gian dừng chân',
         description: TripAlertModel.overstayDescription(
           item.poiName,
           item.plannedDeparture,
@@ -1212,11 +1212,11 @@ class ActiveTripCubit extends Cubit<ActiveTripState> {
 
   /// SRS MSG42 / MSG43 / MSG44.
   static const rerouteAcceptedMessage =
-      'Your itinerary has been updated. Navigation continues on the new route.';
+      'Lịch trình của bạn đã được cập nhật. Tiếp tục dẫn đường theo lộ trình mới.';
   static const rerouteDeclinedMessage =
-      'Suggestion declined. Continuing on your current route.';
+      'Đã từ chối đề xuất. Tiếp tục theo lộ trình hiện tại.';
   static const rerouteUnavailableMessage =
-      'No re-routing suggestion is available at the moment.';
+      'Hiện không có đề xuất đổi lộ trình nào khả dụng.';
 
   /// Loads the proposal attached to [alert] and opens the comparison sheet.
   /// Only a proposal the Traveler can still answer is shown (BR-33); anything

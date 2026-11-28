@@ -39,8 +39,8 @@ void main() {
         MaterialApp(home: ItineraryResultPage(itinerary: itinerary)),
       );
 
-      expect(find.text('Suggested break'), findsOneWidget);
-      expect(find.text('Food and drinks are not included.'), findsOneWidget);
+      expect(find.text('Nghỉ ngơi gợi ý'), findsOneWidget);
+      expect(find.text('Chưa bao gồm chi phí ăn uống.'), findsOneWidget);
     },
   );
 
@@ -65,9 +65,9 @@ void main() {
     );
 
     expect(find.text('My Son Sanctuary'), findsOneWidget);
-    expect(find.text('Must-see'), findsOneWidget);
+    expect(find.text('Điểm nổi bật'), findsOneWidget);
     // Non-mandatory visit items do not show the badge
-    expect(find.text('Food and drinks are not included.'), findsNothing);
+    expect(find.text('Chưa bao gồm chi phí ăn uống.'), findsNothing);
   });
 
   testWidgets('does not show Must-see badge for optional visit items', (
@@ -93,7 +93,7 @@ void main() {
     );
 
     expect(find.text('Marble Mountains'), findsOneWidget);
-    expect(find.text('Must-see'), findsNothing);
+    expect(find.text('Điểm nổi bật'), findsNothing);
   });
 
   testWidgets('shows total duration in summary', (tester) async {
@@ -103,8 +103,8 @@ void main() {
       MaterialApp(home: ItineraryResultPage(itinerary: itinerary)),
     );
 
-    // 455 minutes = 7 h 35 min
-    expect(find.textContaining('7 h 35 min'), findsOneWidget);
+    // 455 minutes = 7 giờ 35 phút
+    expect(find.textContaining('7 giờ 35 phút'), findsOneWidget);
   });
 
   testWidgets('shows estimated cost disclaimer', (tester) async {
@@ -115,7 +115,7 @@ void main() {
     );
 
     expect(
-      find.text('All costs are estimates for POI entry fees only.'),
+      find.text('Chi phí chỉ là ước tính vé tham quan các điểm đến.'),
       findsOneWidget,
     );
   });
@@ -152,11 +152,11 @@ void main() {
       MaterialApp(home: ItineraryResultPage(itinerary: itinerary)),
     );
 
-    expect(find.textContaining('Est.'), findsOneWidget);
+    expect(find.textContaining('Dự kiến'), findsOneWidget);
     // Same money format as the itinerary detail page.
     expect(find.textContaining('0 VNĐ'), findsOneWidget);
-    expect(find.textContaining('Travel: 15 min'), findsOneWidget);
-    expect(find.text('Create another itinerary'), findsOneWidget);
+    expect(find.textContaining('Di chuyển: 15 phút'), findsOneWidget);
+    expect(find.text('Tạo lịch trình khác'), findsOneWidget);
   });
 
   testWidgets('renders itinerary times in Vietnam planning time', (
@@ -207,17 +207,17 @@ void main() {
       );
 
       final startNavButton = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Start Navigation'),
+        find.widgetWithText(FilledButton, 'Bắt đầu dẫn đường'),
       );
       expect(startNavButton.onPressed, isNull);
       expect(
         find.textContaining(
-          'Navigation requires an Active itinerary (current: Draft)',
+          'Cần lịch trình đang hoạt động để dẫn đường (hiện tại: Bản nháp)',
         ),
         findsOneWidget,
       );
-      expect(find.text('Download for Offline Use'), findsOneWidget);
-      expect(find.text('Preview Navigation (Demo Mode)'), findsOneWidget);
+      expect(find.text('Tải về xem ngoại tuyến'), findsOneWidget);
+      expect(find.text('Xem thử dẫn đường (Demo)'), findsOneWidget);
     },
   );
 
@@ -244,14 +244,14 @@ void main() {
       );
 
       final startNavButton = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Start Navigation'),
+        find.widgetWithText(FilledButton, 'Bắt đầu dẫn đường'),
       );
       expect(startNavButton.onPressed, isNotNull);
       expect(
-        find.textContaining('Navigation requires an Active itinerary'),
+        find.textContaining('Cần lịch trình đang hoạt động để dẫn đường'),
         findsNothing,
       );
-      expect(find.text('Download for Offline Use'), findsOneWidget);
+      expect(find.text('Tải về xem ngoại tuyến'), findsOneWidget);
     },
   );
 }

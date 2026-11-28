@@ -127,7 +127,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(TourDetailStrings.appBarTitle), findsOneWidget);
-      expect(find.textContaining('Da Nang'), findsWidgets);
+      expect(find.textContaining('Đà Nẵng'), findsWidgets);
       expect(find.text('Central Vietnam Travel'), findsOneWidget);
       expect(find.text(TourDetailStrings.schedulesTitle), findsOneWidget);
       expect(find.text(TourDetailStrings.itineraryTitle), findsOneWidget);
@@ -210,6 +210,8 @@ void main() {
 
       final chip = find.text(TourDetailStrings.demoChipError);
       expect(chip, findsOneWidget);
+      await tester.ensureVisible(chip);
+      await tester.pumpAndSettle();
       await tester.tap(chip);
       await tester.pumpAndSettle();
 
@@ -375,8 +377,8 @@ void main() {
           find.byKey(const Key('tour-detail-deposit-policy')),
           findsOneWidget,
         );
-        expect(find.text('30% Deposit Option Available'), findsOneWidget);
-        expect(find.textContaining('30% deposit'), findsWidgets);
+        expect(find.text('Hỗ trợ đặt cọc 30%'), findsOneWidget);
+        expect(find.textContaining('Đặt cọc 30%'), findsWidgets);
       },
     );
   });

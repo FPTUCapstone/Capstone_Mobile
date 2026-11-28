@@ -70,8 +70,7 @@ final class ChangePasswordCubit extends Cubit<ChangePasswordState> {
         const ChangePasswordState(
           status: ChangePasswordStatus.failure,
           errorMessage:
-              'Your password was changed, but we could not refresh your '
-              'session on this device. Please sign in again.',
+              'Mật khẩu của bạn đã được đổi, nhưng không thể làm mới phiên đăng nhập trên thiết bị này. Vui lòng đăng nhập lại.',
         ),
       );
       return false;
@@ -80,7 +79,7 @@ final class ChangePasswordCubit extends Cubit<ChangePasswordState> {
       emit(
         const ChangePasswordState(
           status: ChangePasswordStatus.failure,
-          errorMessage: 'Something went wrong. Please try again later.',
+          errorMessage: 'Đã có lỗi xảy ra. Vui lòng thử lại sau.',
         ),
       );
       return false;

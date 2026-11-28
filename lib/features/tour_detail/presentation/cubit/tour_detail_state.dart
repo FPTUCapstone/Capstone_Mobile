@@ -99,18 +99,18 @@ final class TourDetailState extends Equatable {
   /// longer available/public, all departure schedules are sold out/expired, or
   /// the selected departure schedule has no remaining slots before Book Now).
   static const String msg65 =
-      'The selected departure date has no remaining slots. Please choose another departure date.';
+      'Ngày khởi hành đã chọn không còn chỗ trống. Vui lòng chọn ngày khởi hành khác.';
 
   /// MSG128: No published reviews yet.
   static const String msg128 =
-      'There are no published reviews for this tour yet.';
+      'Chưa có đánh giá nào được công bố cho tour này.';
 
   /// MSG127: System/network failure.
   static const String msg127 =
-      'TripMate is temporarily unable to process your request. Please check your connection and try again.';
+      'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối và thử lại.';
 
   static const String notFoundMessage =
-      'This tour is unavailable or no longer public.';
+      'Tour này không khả dụng hoặc không còn được công khai.';
 
   TourDetailState copyWith({
     TourDetailStatus? status,

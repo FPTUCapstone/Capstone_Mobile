@@ -50,8 +50,8 @@ void main() {
 
     expect(find.text('02/01/2000'), findsOneWidget);
     expect(find.text('2000-01-02'), findsNothing);
-    await tester.ensureVisible(find.text('Save changes'));
-    await tester.tap(find.text('Save changes'));
+    await tester.ensureVisible(find.text('Lưu thay đổi'));
+    await tester.tap(find.text('Lưu thay đổi'));
     await tester.pumpAndSettle();
     expect(repository.savedBirth, '2000-01-02');
 
@@ -60,8 +60,8 @@ void main() {
     await tester.ensureVisible(find.byType(TextFormField).first);
     await tester.enterText(find.byType(TextFormField).first, 'Unsaved name');
 
-    await tester.ensureVisible(find.text('Discard changes'));
-    await tester.tap(find.text('Discard changes'));
+    await tester.ensureVisible(find.text('Hủy thay đổi'));
+    await tester.tap(find.text('Hủy thay đổi'));
     await tester.pumpAndSettle();
     expect(find.text('02/01/2000'), findsOneWidget);
     expect(find.text('Traveler'), findsOneWidget);

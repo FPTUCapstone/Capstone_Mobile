@@ -62,13 +62,13 @@ void main() {
         find.byType(DropdownButtonFormField<PostTripComplaintReasonCategory>),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Itinerary not as advertised').last);
+      await tester.tap(find.text('Lịch trình không đúng như mô tả').last);
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       await tester.ensureVisible(find.byType(TextField));
       await tester.enterText(find.byType(TextField), 'Service quality issue');
       await tester.ensureVisible(
-        find.widgetWithText(FilledButton, 'Submit complaint'),
+        find.widgetWithText(FilledButton, 'Gửi khiếu nại'),
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);

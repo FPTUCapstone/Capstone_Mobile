@@ -45,7 +45,9 @@ final class PaymentCubit extends Cubit<PaymentState> {
       emit(
         state.copyWith(
           status: PaymentActionStatus.failure,
-          failure: const ServerFailure('Could not connect to payment gateway.'),
+          failure: const ServerFailure(
+            'Không thể kết nối tới cổng thanh toán.',
+          ),
         ),
       );
     }
@@ -71,7 +73,9 @@ final class PaymentCubit extends Cubit<PaymentState> {
       emit(
         state.copyWith(
           status: PaymentActionStatus.failure,
-          failure: const ServerFailure('Could not refresh payment status.'),
+          failure: const ServerFailure(
+            'Không thể cập nhật trạng thái thanh toán.',
+          ),
         ),
       );
     }
@@ -98,7 +102,7 @@ final class PaymentCubit extends Cubit<PaymentState> {
       emit(
         state.copyWith(
           status: PaymentActionStatus.failure,
-          failure: const ServerFailure('Could not cancel payment.'),
+          failure: const ServerFailure('Không thể hủy thanh toán.'),
         ),
       );
     }
@@ -129,7 +133,9 @@ final class PaymentCubit extends Cubit<PaymentState> {
       emit(
         state.copyWith(
           status: PaymentActionStatus.failure,
-          failure: const ServerFailure('Could not complete mock transaction.'),
+          failure: const ServerFailure(
+            'Không thể hoàn tất giao dịch mô phỏng.',
+          ),
         ),
       );
     }

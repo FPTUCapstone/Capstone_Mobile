@@ -7,9 +7,9 @@ import 'package:trip_mate_mobile/features/auth/domain/repositories/tour_operator
 import 'package:trip_mate_mobile/features/auth/domain/services/operator_registration_identity_service.dart';
 
 const operatorTaxCodeFormatError =
-    'Tax Code must be 10 digits or 10 digits followed by a hyphen and 3 digits.';
+    'Mã số thuế phải gồm 10 chữ số, hoặc 10 chữ số kèm dấu gạch ngang và 3 chữ số chi nhánh.';
 const operatorTravelLicenseFormatError =
-    'Travel Licence Number must follow 79-0123/2026/TCDL-GPLHQT or 01-0456/2025/SDL-GPLHND.';
+    'Số giấy phép lữ hành phải đúng định dạng 79-0123/2026/TCDL-GPLHQT hoặc 01-0456/2025/SDL-GPLHND.';
 
 final _operatorTaxCodePattern = RegExp(r'^[0-9]{10}(-[0-9]{3})?$');
 final _operatorTravelLicensePattern = RegExp(
@@ -263,22 +263,22 @@ final class RegisterTourOperator {
     void error(String field, String message) => errors[field] = [message];
     void requiredText(String field, String value, int maxLength) {
       if (value.trim().isEmpty) {
-        error(field, 'This field is required.');
+        error(field, 'Vui lòng nhập thông tin này.');
       } else if (value.length > maxLength) {
-        error(field, 'Must be $maxLength characters or fewer.');
+        error(field, 'Không được vượt quá $maxLength ký tự.');
       }
     }
 
     final email = input.email.trim().toLowerCase();
     if (email.isEmpty) {
-      error('email', 'This field is required.');
+      error('email', 'Vui lòng nhập thông tin này.');
     } else if (email.length > 254 ||
         !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
-      error('email', 'Enter a valid email address.');
+      error('email', 'Vui lòng nhập địa chỉ email hợp lệ.');
     }
     final password = input.password;
     if (password.isEmpty) {
-      error('password', 'This field is required.');
+      error('password', 'Vui lòng nhập thông tin này.');
     } else if (password.length < 8 ||
         password.length > 72 ||
         RegExp(r'\s').hasMatch(password) ||
@@ -288,13 +288,16 @@ final class RegisterTourOperator {
         !RegExp(r'[^a-zA-Z0-9]').hasMatch(password)) {
       error(
         'password',
-        'Password must be 8–72 characters, contain uppercase, lowercase, number and special character, and no whitespace.',
+        'Mật khẩu phải từ 8–72 ký tự, gồm chữ hoa, chữ thường, chữ số, ký tự đặc biệt và không chứa khoảng trắng.',
       );
     }
     if (input.confirmPassword.isEmpty) {
-      error('confirmPassword', 'This field is required.');
+      error('confirmPassword', 'Vui lòng nhập thông tin này.');
     } else if (input.confirmPassword != password) {
-      error('confirmPassword', 'Passwords do not match. Please re-enter.');
+      error(
+        'confirmPassword',
+        'Mật khẩu xác nhận không khớp. Vui lòng nhập lại.',
+      );
     }
     requiredText('companyName', input.companyName, 200);
     requiredText('businessLicenseNo', input.businessLicenseNo, 100);
@@ -310,23 +313,26 @@ final class RegisterTourOperator {
     requiredText('contactPerson', input.contactPerson, 150);
     final address = input.businessAddress?.trim();
     if (address != null && address.length > 300) {
-      error('businessAddress', 'Must be 300 characters or fewer.');
+      error('businessAddress', 'Không được vượt quá 300 ký tự.');
     }
     final phone = input.contactPhone?.trim();
     if (phone != null &&
         phone.isNotEmpty &&
         !RegExp(r'^0[0-9]{9}$').hasMatch(phone)) {
-      error('contactPhone', 'Phone number must be 10 digits starting with 0.');
+      error(
+        'contactPhone',
+        'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng số 0.',
+      );
     }
     if (input.businessLicenseDocument == null) {
       error(
         'businessLicenseDocument',
-        'Please upload the required business licence document.',
+        'Vui lòng tải lên bản sao giấy phép kinh doanh.',
       );
     } else if (!_validDocument(input.businessLicenseDocument!)) {
       error(
         'businessLicenseDocument',
-        'The uploaded file type is not supported or the file exceeds the size limit.',
+        'Định dạng tệp không được hỗ trợ hoặc vượt quá dung lượng cho phép.',
       );
     }
     if (input.supportingDocuments.length > 5 ||
@@ -334,19 +340,19 @@ final class RegisterTourOperator {
       error(
         'supportingDocuments',
         input.supportingDocuments.length > 5
-            ? 'No more than 5 supporting documents are allowed.'
-            : 'The uploaded file type is not supported or the file exceeds the size limit.',
+            ? 'Chỉ được tải lên tối đa 5 tài liệu bổ sung.'
+            : 'Định dạng tệp không được hỗ trợ hoặc vượt quá dung lượng cho phép.',
       );
     }
     if (!input.acceptedTerms) {
       error(
         'acceptTerms',
-        'You must accept the Terms of Service, Privacy Policy and Partner Agreement.',
+        'Bạn phải đồng ý với Điều khoản dịch vụ, Chính sách bảo mật và Thỏa thuận đối tác.',
       );
     }
     if (errors.isNotEmpty) {
       throw ValidationFailure(
-        'Check your registration details.',
+        'Vui lòng kiểm tra lại thông tin đăng ký.',
         fieldErrors: errors,
       );
     }

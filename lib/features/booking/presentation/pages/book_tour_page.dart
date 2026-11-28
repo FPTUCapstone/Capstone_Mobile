@@ -5,11 +5,16 @@ import 'package:go_router/go_router.dart';
 import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_colors.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
+import 'package:trip_mate_mobile/app/theme/app_typography.dart';
 import 'package:trip_mate_mobile/features/booking/domain/entities/booking_quote.dart';
 import 'package:trip_mate_mobile/features/booking/domain/entities/participant_type.dart';
 import 'package:trip_mate_mobile/features/booking/presentation/booking_contact_validation.dart';
 import 'package:trip_mate_mobile/features/booking/presentation/cubit/book_tour_cubit.dart';
 import 'package:trip_mate_mobile/features/booking/presentation/cubit/book_tour_state.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_coastal_app_bar.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_section_card.dart';
 
 String _formatMoney(int amount, String currency) {
   final text = amount.toString();
@@ -41,23 +46,10 @@ final class BookTourPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return Scaffold(
-      backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        title: const Text(
-          'Book Tour',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
-        ),
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        foregroundColor: AppColors.ink,
-        elevation: 0,
-        centerTitle: true,
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, thickness: 1, color: AppColors.line),
-        ),
-      ),
+      backgroundColor: c.canvas,
+      appBar: const AppCoastalAppBar(title: 'Đặt tour', centerTitle: true),
       body: BlocConsumer<BookTourCubit, BookTourState>(
         listenWhen: (previous, current) =>
             previous.submitStatus != current.submitStatus &&
@@ -65,19 +57,20 @@ final class BookTourPage extends StatelessWidget {
         listener: (context, state) {
           final failure = state.submitFailure;
           if (failure != null) {
+            final colors = context.tmColors;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.white),
+                    Icon(Icons.error_outline, color: colors.textOnBrand),
                     const SizedBox(width: AppSpacing.xs),
                     Expanded(child: Text(failure.message)),
                   ],
                 ),
-                backgroundColor: AppColors.error,
+                backgroundColor: colors.error,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(TripMateRadius.sm),
                 ),
               ),
             );
@@ -146,43 +139,67 @@ final class _BookingFormViewState extends State<_BookingFormView> {
     super.dispose();
   }
 
+  InputDecoration _inputDecoration(
+    TripMateColors c, {
+    required String labelText,
+    required String hintText,
+    required IconData icon,
+    String? errorText,
+  }) {
+    return InputDecoration(
+      labelText: labelText,
+      errorText: errorText,
+      hintText: hintText,
+      prefixIcon: Icon(icon, size: 20, color: c.textSecondary),
+      filled: true,
+      fillColor: c.canvas,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(TripMateRadius.sm),
+        borderSide: BorderSide(color: c.borderSubtle),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(TripMateRadius.sm),
+        borderSide: BorderSide(color: c.borderSubtle),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(TripMateRadius.sm),
+        borderSide: BorderSide(color: c.brandTeal, width: 1.5),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final state = widget.state;
     final cubit = context.read<BookTourCubit>();
     final theme = Theme.of(context);
 
     return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
-        vertical: AppSpacing.lg,
+        vertical: AppSpacing.md,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ── Step & Assurance Banner ──────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFE8F0EA), Color(0xFFF3F6F1)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.line),
-            ),
+          AppCard(
+            backgroundColor: c.tealSoftContainer,
+            borderColor: c.borderSubtle,
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.12),
+                    color: c.brandTeal.withValues(alpha: 0.14),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.event_available_rounded,
-                    color: AppColors.primary,
+                    color: c.brandTeal,
                     size: 22,
                   ),
                 ),
@@ -192,17 +209,17 @@ final class _BookingFormViewState extends State<_BookingFormView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Direct Operator Reservation',
+                        'Đặt trực tiếp với nhà điều hành',
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: AppColors.ink,
+                          color: c.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Real-time departure booking with live price quote.',
+                        'Xác nhận giữ chỗ và báo giá trực tiếp theo thời gian thực.',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.muted,
+                          color: c.textSecondary,
                         ),
                       ),
                     ],
@@ -214,15 +231,15 @@ final class _BookingFormViewState extends State<_BookingFormView> {
           const SizedBox(height: AppSpacing.md),
 
           // ── Section 1: Travelers Count ──────────────────────────────────
-          _CardContainer(
-            title: 'Travelers',
+          AppSectionCard(
+            title: 'Số lượng khách',
             icon: Icons.people_alt_outlined,
-            subtitle: 'Choose number of seats for this trip',
+            subtitle: 'Chọn số lượng chỗ cho chuyến đi này',
             child: Column(
               children: [
                 _ParticipantCounter(
-                  label: 'Adults',
-                  subtitle: 'Age 12 and above',
+                  label: 'Người lớn',
+                  subtitle: 'Từ 12 tuổi trở lên',
                   icon: Icons.person_outline,
                   value: state.participantCounts.adult,
                   minValue: 1,
@@ -230,20 +247,20 @@ final class _BookingFormViewState extends State<_BookingFormView> {
                     state.participantCounts.copyWith(adult: value),
                   ),
                 ),
-                const Divider(color: AppColors.line, height: 16),
+                Divider(color: c.borderSubtle, height: 16),
                 _ParticipantCounter(
-                  label: 'Children',
-                  subtitle: 'Age 2 to 11',
+                  label: 'Trẻ em',
+                  subtitle: 'Từ 2 đến 11 tuổi',
                   icon: Icons.child_care_outlined,
                   value: state.participantCounts.child,
                   onChanged: (value) => cubit.updateParticipantCounts(
                     state.participantCounts.copyWith(child: value),
                   ),
                 ),
-                const Divider(color: AppColors.line, height: 16),
+                Divider(color: c.borderSubtle, height: 16),
                 _ParticipantCounter(
-                  label: 'Infants',
-                  subtitle: 'Under 2 years old',
+                  label: 'Em bé',
+                  subtitle: 'Dưới 2 tuổi',
                   icon: Icons.baby_changing_station_outlined,
                   value: state.participantCounts.infant,
                   onChanged: (value) => cubit.updateParticipantCounts(
@@ -256,40 +273,24 @@ final class _BookingFormViewState extends State<_BookingFormView> {
           const SizedBox(height: AppSpacing.md),
 
           // ── Section 2: Lead Traveler Contact ───────────────────────────
-          _CardContainer(
-            title: 'Lead Traveler',
+          AppSectionCard(
+            title: 'Thông tin người đặt',
             icon: Icons.badge_outlined,
-            subtitle: 'Booking confirmation & tickets will be sent here',
+            subtitle: 'Xác nhận đặt tour và vé điện tử sẽ gửi về địa chỉ này',
             child: Column(
               children: [
                 TextField(
                   key: const Key('booking-lead-full-name'),
                   controller: _fullNameController,
                   textInputAction: TextInputAction.next,
-                  decoration: InputDecoration(
-                    labelText: 'Full name *',
+                  decoration: _inputDecoration(
+                    c,
+                    labelText: 'Họ và tên *',
+                    hintText: 'VD: Nguyễn Văn A',
+                    icon: Icons.person_outline_rounded,
                     errorText: _showContactErrors
                         ? BookingContactValidation.fullName(state.leadFullName)
                         : null,
-                    hintText: 'e.g. Nguyen Van A',
-                    prefixIcon: const Icon(
-                      Icons.person_outline_rounded,
-                      size: 20,
-                    ),
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
                   ),
                   onChanged: cubit.updateLeadFullName,
                 ),
@@ -303,27 +304,14 @@ final class _BookingFormViewState extends State<_BookingFormView> {
                     LengthLimitingTextInputFormatter(10),
                   ],
                   textInputAction: TextInputAction.next,
-                  decoration: InputDecoration(
-                    labelText: 'Phone number *',
+                  decoration: _inputDecoration(
+                    c,
+                    labelText: 'Số điện thoại *',
+                    hintText: 'VD: 0912345678',
+                    icon: Icons.phone_outlined,
                     errorText: _showContactErrors
                         ? BookingContactValidation.phone(state.leadPhone)
                         : null,
-                    hintText: 'e.g. 0912345678',
-                    prefixIcon: const Icon(Icons.phone_outlined, size: 20),
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
                   ),
                   onChanged: cubit.updateLeadPhone,
                 ),
@@ -333,30 +321,14 @@ final class _BookingFormViewState extends State<_BookingFormView> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.done,
-                  decoration: InputDecoration(
+                  decoration: _inputDecoration(
+                    c,
                     labelText: 'Email',
+                    hintText: 'VD: nguyenvana@example.com',
+                    icon: Icons.mail_outline_rounded,
                     errorText: _showContactErrors
                         ? BookingContactValidation.email(state.leadEmail)
                         : null,
-                    hintText: 'e.g. traveler@example.com',
-                    prefixIcon: const Icon(
-                      Icons.mail_outline_rounded,
-                      size: 20,
-                    ),
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
                   ),
                   onChanged: cubit.updateLeadEmail,
                 ),
@@ -366,8 +338,8 @@ final class _BookingFormViewState extends State<_BookingFormView> {
           const SizedBox(height: AppSpacing.md),
 
           // ── Section 3: Voucher Code ─────────────────────────────────────
-          _CardContainer(
-            title: 'Promo / Voucher Code',
+          AppSectionCard(
+            title: 'Mã ưu đãi / Voucher',
             icon: Icons.local_offer_outlined,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -379,31 +351,11 @@ final class _BookingFormViewState extends State<_BookingFormView> {
                       child: TextField(
                         controller: _voucherController,
                         textCapitalization: TextCapitalization.characters,
-                        decoration: InputDecoration(
-                          labelText: 'Voucher code',
-                          hintText: 'ENTER CODE',
-                          prefixIcon: const Icon(
-                            Icons.discount_outlined,
-                            size: 20,
-                          ),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 12,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: Color(0xFFE2E8F0),
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: Color(0xFFE2E8F0),
-                            ),
-                          ),
+                        decoration: _inputDecoration(
+                          c,
+                          labelText: 'Nhập mã ưu đãi',
+                          hintText: 'NHẬP MÃ',
+                          icon: Icons.discount_outlined,
                         ),
                       ),
                     ),
@@ -413,14 +365,15 @@ final class _BookingFormViewState extends State<_BookingFormView> {
                         _voucherController.text.trim(),
                       ),
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        minimumSize: const Size(80, 52),
+                        minimumSize: const Size(80, 48),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(
+                            TripMateRadius.sm,
+                          ),
                         ),
                       ),
                       child: const Text(
-                        'Apply',
+                        'Áp dụng',
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
@@ -434,26 +387,30 @@ final class _BookingFormViewState extends State<_BookingFormView> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFECFDF5),
+                      color: c.successContainer,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFA7F3D0)),
+                      border: Border.all(
+                        color: c.success.withValues(alpha: 0.35),
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.check_circle_rounded,
-                          color: AppColors.success,
+                          color: c.success,
                           size: 16,
                         ),
                         const SizedBox(width: 6),
-                        Text(
-                          'Applied code: ${state.quote!.appliedVoucherCode ?? ''} '
-                          '(-${_formatMoney(state.quote!.discountAmount, state.quote!.currency)})',
-                          style: const TextStyle(
-                            color: Color(0xFF065F46),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
+                        Flexible(
+                          child: Text(
+                            'Đã áp dụng mã: ${state.quote!.appliedVoucherCode ?? ''} '
+                            '(-${_formatMoney(state.quote!.discountAmount, state.quote!.currency)})',
+                            style: TextStyle(
+                              color: c.success,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                       ],
@@ -470,15 +427,10 @@ final class _BookingFormViewState extends State<_BookingFormView> {
           const SizedBox(height: AppSpacing.md),
 
           // ── Terms & Agreement ───────────────────────────────────────────
-          Container(
+          AppCard(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.xs,
               vertical: AppSpacing.xxs,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.line),
             ),
             child: Material(
               color: Colors.transparent,
@@ -488,11 +440,11 @@ final class _BookingFormViewState extends State<_BookingFormView> {
                 onChanged: (value) => cubit.setAgreedToTerms(value ?? false),
                 controlAffinity: ListTileControlAffinity.leading,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                activeColor: AppColors.primary,
+                activeColor: c.brandTeal,
                 title: Text(
-                  'I confirm the information is accurate and agree to the booking terms and cancellation policy.',
+                  'Tôi xác nhận thông tin trên là chính xác và đồng ý với điều khoản đặt tour cùng chính sách hủy.',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF334155),
+                    color: c.textSecondary,
                     height: 1.35,
                   ),
                 ),
@@ -510,21 +462,19 @@ final class _BookingFormViewState extends State<_BookingFormView> {
                   }
                 : null,
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              disabledBackgroundColor: AppColors.line,
               minimumSize: const Size.fromHeight(48),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(TripMateRadius.sm),
               ),
               elevation: 0,
             ),
             child: state.submitStatus == SubmitStatus.submitting
-                ? const SizedBox(
+                ? SizedBox(
                     height: 22,
                     width: 22,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
-                      color: Colors.white,
+                      color: c.textOnBrand,
                     ),
                   )
                 : const Row(
@@ -533,7 +483,7 @@ final class _BookingFormViewState extends State<_BookingFormView> {
                       Icon(Icons.lock_outline_rounded, size: 20),
                       SizedBox(width: 8),
                       Text(
-                        'Confirm booking',
+                        'Xác nhận đặt tour',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -546,90 +496,21 @@ final class _BookingFormViewState extends State<_BookingFormView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.verified_user_outlined,
-                size: 14,
-                color: AppColors.muted,
-              ),
+              Icon(Icons.verified_user_outlined, size: 14, color: c.textMuted),
               const SizedBox(width: 4),
-              Text(
-                'Your booking will be created as Pending Payment and held safely.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.muted,
-                  fontSize: 11,
+              Flexible(
+                child: Text(
+                  'Đơn đặt tour sẽ được tạo ở trạng thái Chờ thanh toán và giữ chỗ an toàn.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: c.textMuted,
+                    fontSize: 11,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: AppSpacing.xl),
-        ],
-      ),
-    );
-  }
-}
-
-/// Unified Card Container for consistent card-based UI.
-final class _CardContainer extends StatelessWidget {
-  const _CardContainer({
-    required this.title,
-    required this.child,
-    this.icon,
-    this.subtitle,
-  });
-
-  final String title;
-  final Widget child;
-  final IconData? icon;
-  final String? subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              if (icon != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEAF1FE),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, size: 18, color: AppColors.primary),
-                ),
-                const SizedBox(width: AppSpacing.xs),
-              ],
-              Expanded(
-                child: Text(
-                  title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.ink,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              subtitle!,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.muted,
-              ),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.md),
-          child,
         ],
       ),
     );
@@ -655,6 +536,7 @@ final class _ParticipantCounter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -663,10 +545,10 @@ final class _ParticipantCounter extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: c.surfaceElevated,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, size: 20, color: const Color(0xFF475569)),
+              child: Icon(icon, size: 20, color: c.textSecondary),
             ),
             const SizedBox(width: AppSpacing.sm),
           ],
@@ -676,20 +558,17 @@ final class _ParticipantCounter extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
-                    color: Color(0xFF0F1B2D),
+                    color: c.textPrimary,
                   ),
                 ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 2),
                   Text(
                     subtitle!,
-                    style: const TextStyle(
-                      color: AppColors.muted,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: c.textMuted, fontSize: 12),
                   ),
                 ],
               ],
@@ -697,9 +576,9 @@ final class _ParticipantCounter extends StatelessWidget {
           ),
           Container(
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.line),
+              color: c.canvas,
+              borderRadius: BorderRadius.circular(TripMateRadius.sm),
+              border: Border.all(color: c.borderSubtle),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -707,16 +586,16 @@ final class _ParticipantCounter extends StatelessWidget {
                 InkWell(
                   onTap: value > minValue ? () => onChanged(value - 1) : null,
                   borderRadius: const BorderRadius.horizontal(
-                    left: Radius.circular(12),
+                    left: Radius.circular(TripMateRadius.sm),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(10),
                     child: Icon(
                       Icons.remove_rounded,
                       size: 20,
                       color: value > minValue
-                          ? const Color(0xFF334155)
-                          : const Color(0xFFCBD5E1),
+                          ? c.textPrimary
+                          : c.actionDisabledText,
                     ),
                   ),
                 ),
@@ -725,24 +604,24 @@ final class _ParticipantCounter extends StatelessWidget {
                   alignment: Alignment.center,
                   child: Text(
                     '$value',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
-                      color: Color(0xFF0F1B2D),
+                      color: c.textPrimary,
                     ),
                   ),
                 ),
                 InkWell(
                   onTap: () => onChanged(value + 1),
                   borderRadius: const BorderRadius.horizontal(
-                    right: Radius.circular(12),
+                    right: Radius.circular(TripMateRadius.sm),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(10),
                     child: Icon(
                       Icons.add_rounded,
                       size: 20,
-                      color: AppColors.primary,
+                      color: c.brandTeal,
                     ),
                   ),
                 ),
@@ -762,117 +641,56 @@ final class _QuoteSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     if (state.quoteStatus == QuoteStatus.idle) return const SizedBox.shrink();
     if (state.quoteStatus == QuoteStatus.failure) {
-      return Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFEF2F2),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFFECACA)),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.error_outline, color: AppColors.error),
-            const SizedBox(width: AppSpacing.xs),
-            Expanded(
-              child: Text(
-                state.quoteFailure?.message ?? 'Unable to load pricing.',
-                style: const TextStyle(
-                  color: AppColors.error,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-        ),
+      return AppAlert(
+        type: AppAlertType.error,
+        message: state.quoteFailure?.message ?? 'Không thể tải báo giá.',
       );
     }
 
     final quote = state.quote;
-    final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.line),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x05000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+    return AppSectionCard(
+      title: 'Chi tiết giá',
+      icon: Icons.receipt_long_outlined,
+      trailing: quote != null
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: c.tealSoftContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEAF1FE),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.receipt_long_outlined,
-                      size: 18,
-                      color: AppColors.primary,
-                    ),
+                  Icon(
+                    Icons.airline_seat_recline_normal_rounded,
+                    size: 14,
+                    color: c.brandTeal,
                   ),
-                  const SizedBox(width: AppSpacing.xs),
+                  const SizedBox(width: 4),
                   Text(
-                    'Price Breakdown',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.ink,
+                    '${quote.remainingSlots} chỗ trống',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: c.brandTeal,
                     ),
                   ),
                 ],
               ),
-              if (quote != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.airline_seat_recline_normal_rounded,
-                        size: 14,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${quote.remainingSlots} slot(s) left',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
+            )
+          : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           if (state.quoteStatus == QuoteStatus.loading && quote == null)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
               child: Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
+                child: CircularProgressIndicator(color: c.brandTeal),
               ),
             )
           else if (quote != null) ...[
@@ -880,41 +698,13 @@ final class _QuoteSummary extends StatelessWidget {
               if (line.quantity > 0)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${line.quantity} × ${_participantLabel(line.participantType)}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                                color: Color(0xFF0F1B2D),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${_formatMoney(line.unitPrice, quote.currency)} each',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.muted,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Text(
-                        _formatMoney(line.lineAmount, quote.currency),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                          color: Color(0xFF0F1B2D),
-                        ),
-                      ),
-                    ],
+                  child: AppKeyValueRow(
+                    label:
+                        '${line.quantity} × ${_participantLabel(line.participantType)}',
+                    subtitle:
+                        '${_formatMoney(line.unitPrice, quote.currency)} / khách',
+                    value: _formatMoney(line.lineAmount, quote.currency),
+                    isPrice: true,
                   ),
                 ),
             if (quote.discountAmount > 0) ...[
@@ -924,73 +714,46 @@ final class _QuoteSummary extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.discount_outlined,
-                          size: 16,
-                          color: AppColors.success,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Discount (${quote.appliedVoucherCode ?? ''})',
-                          style: const TextStyle(
-                            color: AppColors.success,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.discount_outlined,
+                            size: 16,
+                            color: c.success,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              'Giảm giá (${quote.appliedVoucherCode ?? ''})',
+                              style: TextStyle(
+                                color: c.success,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     Text(
                       '-${_formatMoney(quote.discountAmount, quote.currency)}',
-                      style: const TextStyle(
-                        color: AppColors.success,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
+                      style: AppTypography.price(c.success, fontSize: 14),
                     ),
                   ],
                 ),
               ),
             ],
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 10),
-              child: Divider(color: Color(0xFFF1F5F9), height: 1),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Divider(color: c.borderSubtle, height: 1),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Total Amount',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF475569),
-                      ),
-                    ),
-                    Text(
-                      'All taxes & fees included',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.muted.withValues(alpha: 0.8),
-                      ),
-                    ),
-                  ],
-                ),
-                Text(
-                  _formatMoney(quote.totalAmount, quote.currency),
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ],
+            AppKeyValueRow(
+              label: 'Tổng thanh toán',
+              subtitle: 'Đã bao gồm thuế và phí',
+              value: _formatMoney(quote.totalAmount, quote.currency),
+              isPrice: true,
+              isProminent: true,
             ),
           ],
         ],
@@ -999,11 +762,20 @@ final class _QuoteSummary extends StatelessWidget {
   }
 
   static String _participantLabel(ParticipantType type) => switch (type) {
-    ParticipantType.adult => 'Adult',
-    ParticipantType.child => 'Child',
-    ParticipantType.infant => 'Infant',
+    ParticipantType.adult => 'Người lớn',
+    ParticipantType.child => 'Trẻ em',
+    ParticipantType.infant => 'Em bé',
   };
 }
+
+String _bookingStatusLabel(String status) => switch (status) {
+  'PendingPayment' => 'Chờ thanh toán',
+  'Confirmed' => 'Đã xác nhận',
+  'PendingOperatorConfirmation' => 'Chờ nhà điều hành xác nhận',
+  'Cancelled' => 'Đã hủy',
+  'Expired' => 'Đã hết hạn',
+  _ => status,
+};
 
 final class _BookingConfirmedView extends StatelessWidget {
   const _BookingConfirmedView({required this.booking});
@@ -1011,6 +783,7 @@ final class _BookingConfirmedView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.tmColors;
     final theme = Theme.of(context);
 
     return SingleChildScrollView(
@@ -1024,46 +797,35 @@ final class _BookingConfirmedView extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: const Color(0xFFECFDF5),
+              color: c.successContainer,
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFA7F3D0), width: 3),
+              border: Border.all(
+                color: c.success.withValues(alpha: 0.35),
+                width: 3,
+              ),
             ),
-            child: const Icon(
-              Icons.check_circle_rounded,
-              color: AppColors.success,
-              size: 64,
-            ),
+            child: Icon(Icons.check_circle_rounded, color: c.success, size: 64),
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            'Booking Confirmed!',
+            'Đặt tour thành công!',
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w800,
-              color: AppColors.ink,
+              color: c.textPrimary,
             ),
           ),
           const SizedBox(height: 6),
           Text(
-            'Your reservation is reserved and held in Pending Payment.',
+            'Đơn đặt tour của bạn đã được tạo và đang chờ thanh toán.',
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+            style: theme.textTheme.bodyMedium?.copyWith(color: c.textSecondary),
           ),
           const SizedBox(height: AppSpacing.lg),
 
           // ── Ticket / Summary Card ────────────────────────────────────────
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.line),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x0A000000),
-                  blurRadius: 16,
-                  offset: Offset(0, 6),
-                ),
-              ],
-            ),
+          AppCard(
+            padding: EdgeInsets.zero,
+            borderRadius: 18,
             child: Column(
               children: [
                 // Ticket Header: Booking Code
@@ -1072,10 +834,10 @@ final class _BookingConfirmedView extends StatelessWidget {
                     horizontal: AppSpacing.md,
                     vertical: AppSpacing.sm,
                   ),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(20),
+                  decoration: BoxDecoration(
+                    color: c.tealSoftContainer,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(17),
                     ),
                   ),
                   child: Row(
@@ -1084,33 +846,34 @@ final class _BookingConfirmedView extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'BOOKING CODE',
+                          Text(
+                            'MÃ ĐẶT TOUR',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.8,
-                              color: Color(0xFF64748B),
+                              color: c.textSecondary,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             booking.bookingCode,
-                            style: const TextStyle(
+                            style: TextStyle(
+                              fontFamily: AppTypography.uiFont,
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
-                              letterSpacing: 1.2,
-                              color: AppColors.primary,
+                              letterSpacing: 1.0,
+                              color: c.brandTeal,
                             ),
                           ),
                         ],
                       ),
                       IconButton(
-                        tooltip: 'Copy Code',
-                        icon: const Icon(
+                        tooltip: 'Sao chép mã',
+                        icon: Icon(
                           Icons.copy_rounded,
                           size: 18,
-                          color: AppColors.primary,
+                          color: c.brandTeal,
                         ),
                         onPressed: () {
                           Clipboard.setData(
@@ -1118,7 +881,7 @@ final class _BookingConfirmedView extends StatelessWidget {
                           );
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Booking code copied to clipboard'),
+                              content: Text('Đã sao chép mã đặt tour'),
                               duration: Duration(seconds: 2),
                             ),
                           );
@@ -1127,38 +890,40 @@ final class _BookingConfirmedView extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                Divider(height: 1, color: c.borderSubtle),
 
                 // Ticket Body details
                 Padding(
                   padding: const EdgeInsets.all(AppSpacing.md),
                   child: Column(
                     children: [
-                      _DetailRow(
-                        label: 'Status',
+                      AppKeyValueRow(
+                        label: 'Trạng thái',
                         valueWidget: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10,
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFEF3C7),
+                            color: c.warningContainer,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFFCD34D)),
+                            border: Border.all(
+                              color: c.warning.withValues(alpha: 0.35),
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.hourglass_top_rounded,
                                 size: 14,
-                                color: Color(0xFFD97706),
+                                color: c.warning,
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                booking.status,
-                                style: const TextStyle(
-                                  color: Color(0xFF92400E),
+                                _bookingStatusLabel(booking.status),
+                                style: TextStyle(
+                                  color: c.warning,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 12,
                                 ),
@@ -1168,32 +933,33 @@ final class _BookingConfirmedView extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      _DetailRow(
-                        label: 'Total Amount',
-                        valueText: _formatMoney(
+                      AppKeyValueRow(
+                        label: 'Tổng thanh toán',
+                        value: _formatMoney(
                           booking.totalAmount,
                           booking.currency,
                         ),
+                        isPrice: true,
                         isProminent: true,
                       ),
                       const SizedBox(height: 12),
-                      _DetailRow(
-                        label: 'Pay Before',
+                      AppKeyValueRow(
+                        label: 'Hạn thanh toán',
                         valueWidget: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.timer_outlined,
                               size: 14,
-                              color: Color(0xFFE02D4D),
+                              color: c.error,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               _formatDateTime(booking.paymentExpiresAt),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 13,
-                                color: Color(0xFFE02D4D),
+                                color: c.error,
                               ),
                             ),
                           ],
@@ -1208,33 +974,10 @@ final class _BookingConfirmedView extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
 
           // ── Payment Callout Notice ───────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFFBEB),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFFDE68A)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(
-                  Icons.info_outline_rounded,
-                  color: Color(0xFFD97706),
-                  size: 20,
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                Expanded(
-                  child: Text(
-                    'To complete your booking, please submit payment before the expiration deadline above.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFF92400E),
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          const AppAlert(
+            type: AppAlertType.warning,
+            message:
+                'Để hoàn tất đặt tour, vui lòng thanh toán trước thời hạn hết hạn ở trên.',
           ),
           const SizedBox(height: AppSpacing.xl),
 
@@ -1251,15 +994,14 @@ final class _BookingConfirmedView extends StatelessWidget {
               );
             },
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              minimumSize: const Size.fromHeight(54),
+              minimumSize: const Size.fromHeight(50),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(TripMateRadius.sm),
               ),
             ),
             icon: const Icon(Icons.payment_rounded, size: 20),
             label: const Text(
-              'Pay now',
+              'Thanh toán ngay',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
           ),
@@ -1271,62 +1013,18 @@ final class _BookingConfirmedView extends StatelessWidget {
               }
             },
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF475569),
-              side: const BorderSide(color: Color(0xFFCBD5E1)),
-              minimumSize: const Size.fromHeight(50),
+              minimumSize: const Size.fromHeight(48),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(TripMateRadius.sm),
               ),
             ),
             child: const Text(
-              'Back to tours',
+              'Quay lại danh sách tour',
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-final class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.label,
-    this.valueText,
-    this.valueWidget,
-    this.isProminent = false,
-  });
-
-  final String label;
-  final String? valueText;
-  final Widget? valueWidget;
-  final bool isProminent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Color(0xFF64748B),
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        if (valueWidget != null)
-          valueWidget!
-        else
-          Text(
-            valueText ?? '',
-            style: TextStyle(
-              fontSize: isProminent ? 17 : 14,
-              fontWeight: isProminent ? FontWeight.w800 : FontWeight.w600,
-              color: isProminent ? AppColors.primary : const Color(0xFF0F1B2D),
-            ),
-          ),
-      ],
     );
   }
 }

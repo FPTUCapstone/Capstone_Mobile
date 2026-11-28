@@ -16,9 +16,9 @@ import 'package:trip_mate_mobile/features/traveler/presentation/pages/traveler_s
 import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_button.dart';
 
-const _dialogTitle = 'Sign out of TripMate?';
+const _dialogTitle = 'Đăng xuất khỏi TripMate?';
 const _dialogBody =
-    'Your session on this device will end. Downloaded offline trips stay on the device.';
+    'Phiên đăng nhập trên thiết bị này sẽ kết thúc. Các lịch trình đã tải ngoại tuyến vẫn được giữ lại.';
 
 Future<AuthSessionCubit> _authenticatedCubit({
   _RecordingAuthRepository? repository,
@@ -52,7 +52,7 @@ Future<void> _pumpSettings(WidgetTester tester, AuthSessionCubit cubit) async {
 }
 
 Future<void> _openDialog(WidgetTester tester) async {
-  await tester.tap(find.widgetWithText(OutlinedButton, 'Sign out'));
+  await tester.tap(find.widgetWithText(OutlinedButton, 'Đăng xuất'));
   await tester.pumpAndSettle();
 }
 
@@ -64,7 +64,7 @@ void main() {
     addTearDown(cubit.close);
     await _pumpSettings(tester, cubit);
 
-    expect(find.widgetWithText(OutlinedButton, 'Sign out'), findsOneWidget);
+    expect(find.widgetWithText(OutlinedButton, 'Đăng xuất'), findsOneWidget);
     expect(find.byType(OutlinedButton), findsOneWidget);
   });
 
@@ -79,8 +79,8 @@ void main() {
 
     expect(find.text(_dialogTitle), findsOneWidget);
     expect(find.text(_dialogBody), findsOneWidget);
-    expect(find.text('Cancel'), findsOneWidget);
-    expect(find.widgetWithText(AppButton, 'Sign out'), findsOneWidget);
+    expect(find.text('Hủy'), findsOneWidget);
+    expect(find.widgetWithText(AppButton, 'Đăng xuất'), findsOneWidget);
   });
 
   testWidgets('cancel closes the dialog without any sign-out or backend call', (
@@ -92,7 +92,7 @@ void main() {
     await _pumpSettings(tester, cubit);
 
     await _openDialog(tester);
-    await tester.tap(find.text('Cancel'));
+    await tester.tap(find.text('Hủy'));
     await tester.pumpAndSettle();
 
     expect(find.text(_dialogTitle), findsNothing);
@@ -109,7 +109,7 @@ void main() {
     await _pumpSettings(tester, cubit);
 
     await _openDialog(tester);
-    await tester.tap(find.widgetWithText(AppButton, 'Sign out'));
+    await tester.tap(find.widgetWithText(AppButton, 'Đăng xuất'));
     await tester.pumpAndSettle();
 
     expect(repository.logoutCalls, 1);
@@ -128,7 +128,7 @@ void main() {
     await _pumpSettings(tester, cubit);
 
     await _openDialog(tester);
-    await tester.tap(find.widgetWithText(AppButton, 'Sign out'));
+    await tester.tap(find.widgetWithText(AppButton, 'Đăng xuất'));
     await tester.pumpAndSettle();
 
     // Busy state comes from the approved Cubit marker, not a page flag.
@@ -136,7 +136,7 @@ void main() {
     expect(
       tester
           .widget<OutlinedButton>(
-            find.widgetWithText(OutlinedButton, 'Sign out'),
+            find.widgetWithText(OutlinedButton, 'Đăng xuất'),
           )
           .onPressed,
       isNull,
@@ -144,7 +144,7 @@ void main() {
 
     // A second tap cannot open another dialog nor issue another intent.
     await tester.tap(
-      find.widgetWithText(OutlinedButton, 'Sign out'),
+      find.widgetWithText(OutlinedButton, 'Đăng xuất'),
       warnIfMissed: false,
     );
     await tester.pumpAndSettle();

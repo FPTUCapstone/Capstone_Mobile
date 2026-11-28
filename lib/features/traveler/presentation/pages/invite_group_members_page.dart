@@ -53,7 +53,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
   }
 
   List<Widget> get _closeAction => [
-    TextButton(onPressed: _close, child: const Text('Close')),
+    TextButton(onPressed: _close, child: const Text('Đóng')),
   ];
 
   Future<void> _copyInviteCode(String code) async {
@@ -62,7 +62,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Invite code "$code" copied to clipboard.'),
+          content: Text('Đã sao chép mã mời "$code".'),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -71,7 +71,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+            'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.',
           ),
         ),
       );
@@ -98,7 +98,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'TripMate is temporarily unable to process your request. Please check your connection and try again.',
+            'TripMate tạm thời không thể xử lý yêu cầu của bạn. Vui lòng kiểm tra kết nối mạng và thử lại.',
           ),
         ),
       );
@@ -109,18 +109,16 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Regenerate invitation?'),
-        content: const Text(
-          'The current invitation code will stop working immediately.',
-        ),
+        title: const Text('Tạo lại lời mời?'),
+        content: const Text('Mã mời hiện tại sẽ ngừng hoạt động ngay lập tức.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: const Text('Hủy'),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Regenerate'),
+            child: const Text('Tạo lại'),
           ),
         ],
       ),
@@ -140,7 +138,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
         '${hoChiMinhTime.month.toString().padLeft(2, '0')}/'
         '${hoChiMinhTime.year} '
         '${hoChiMinhTime.hour.toString().padLeft(2, '0')}:'
-        '${hoChiMinhTime.minute.toString().padLeft(2, '0')} ICT';
+        '${hoChiMinhTime.minute.toString().padLeft(2, '0')} (GMT+7)';
   }
 
   @override
@@ -152,7 +150,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
             (state.status == InviteGroupMembersStatus.regenerating &&
                 state.invitation == null)) {
           return AppPageScaffold(
-            title: 'Invite Members',
+            title: 'Mời thành viên',
             actions: _closeAction,
             content: [
               Center(
@@ -167,18 +165,18 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
 
         if (state.status == InviteGroupMembersStatus.regenerationUncertain) {
           return AppPageScaffold(
-            title: 'Invite Members',
+            title: 'Mời thành viên',
             actions: _closeAction,
             content: [
               AppAlert(
                 message:
                     state.errorMessage ??
-                    'The invitation may have changed. Retry to confirm the current code.',
+                    'Lời mời có thể đã thay đổi. Vui lòng thử lại để xác nhận mã hiện tại.',
                 type: AppAlertType.error,
               ),
               const SizedBox(height: AppSpacing.lg),
               AppButton(
-                label: 'Retry',
+                label: 'Thử lại',
                 onPressed: () => context
                     .read<InviteGroupMembersCubit>()
                     .regenerateInvitation(widget.groupId),
@@ -190,18 +188,18 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
         if (state.status == InviteGroupMembersStatus.failure &&
             state.invitation == null) {
           return AppPageScaffold(
-            title: 'Invite Members',
+            title: 'Mời thành viên',
             actions: _closeAction,
             content: [
               AppAlert(
                 message:
                     state.errorMessage ??
-                    'TripMate is temporarily unable to process your request.',
+                    'TripMate tạm thời không thể xử lý yêu cầu của bạn.',
                 type: AppAlertType.error,
               ),
               const SizedBox(height: AppSpacing.lg),
               AppButton(
-                label: 'Retry',
+                label: 'Thử lại',
                 onPressed: () => context
                     .read<InviteGroupMembersCubit>()
                     .loadInvitation(widget.groupId),
@@ -214,14 +212,14 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
         final isRegenerating =
             state.status == InviteGroupMembersStatus.regenerating;
         return AppPageScaffold(
-          title: 'Invite Members',
+          title: 'Mời thành viên',
           actions: _closeAction,
           content: [
             if (state.status == InviteGroupMembersStatus.failure) ...[
               AppAlert(
                 message:
                     state.errorMessage ??
-                    'TripMate is temporarily unable to process your request.',
+                    'TripMate tạm thời không thể xử lý yêu cầu của bạn.',
                 type: AppAlertType.error,
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -266,7 +264,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
                         ),
                         const SizedBox(height: 4),
                         const StatusBadge(
-                          label: 'GROUP HOST',
+                          label: 'TRƯỞNG NHÓM',
                           type: StatusBadgeType.info,
                         ),
                       ],
@@ -296,7 +294,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      'Scan QR to join group',
+                      'Quét mã QR để tham gia nhóm',
                       style: Theme.of(
                         context,
                       ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
@@ -318,7 +316,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
               child: Column(
                 children: [
                   Text(
-                    'INVITATION CODE',
+                    'MÃ MỜI',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: AppColors.muted,
                       letterSpacing: 1.2,
@@ -344,7 +342,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
                           Icons.copy_rounded,
                           color: AppColors.primary,
                         ),
-                        tooltip: 'Copy Code',
+                        tooltip: 'Sao chép mã',
                         onPressed: isRegenerating
                             ? null
                             : () => _copyInviteCode(invitation.inviteCode),
@@ -359,7 +357,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
             // Expiration text
             Center(
               child: Text(
-                'Valid until: ${_formatExpiry(invitation.expiresAt)}',
+                'Hiệu lực đến: ${_formatExpiry(invitation.expiresAt)}',
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
@@ -370,7 +368,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
             // Action buttons
             AppButton(
               key: _shareButtonKey,
-              label: 'Share Invitation',
+              label: 'Chia sẻ lời mời',
               onPressed: isRegenerating
                   ? null
                   : () => _shareInvitation(invitation.qrData),
@@ -380,9 +378,7 @@ class _InviteGroupMembersPageState extends State<InviteGroupMembersPage> {
               onPressed: isRegenerating ? null : _confirmRegenerateInvitation,
               icon: const Icon(Icons.refresh_rounded),
               label: Text(
-                isRegenerating
-                    ? 'Regenerating invitation...'
-                    : 'Regenerate Invitation',
+                isRegenerating ? 'Đang tạo lại lời mời...' : 'Tạo lại lời mời',
               ),
             ),
           ],

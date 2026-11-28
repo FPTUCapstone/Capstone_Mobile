@@ -48,9 +48,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(find.text('Application status unavailable'), findsOneWidget);
-      expect(find.text('Rejected'), findsNothing);
-      expect(find.text('Resubmit application'), findsNothing);
+      expect(find.text('Không thể tải trạng thái hồ sơ'), findsOneWidget);
+      expect(find.text('Bị từ chối'), findsNothing);
+      expect(find.text('Nộp lại hồ sơ'), findsNothing);
       expect(find.text('Operator workspace'), findsNothing);
     },
   );

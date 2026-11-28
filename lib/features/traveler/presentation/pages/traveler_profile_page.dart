@@ -2,11 +2,17 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:trip_mate_mobile/app/theme/app_colors.dart';
+import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/core/di/service_locator.dart';
 import 'package:trip_mate_mobile/core/utils/calendar_date_format.dart';
 import 'package:trip_mate_mobile/core/utils/validators.dart';
 import 'package:trip_mate_mobile/features/traveler/domain/repositories/traveler_profile_repository.dart';
 import 'package:trip_mate_mobile/features/traveler/presentation/cubit/traveler_profile_cubit.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_alert.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_card.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_coastal_app_bar.dart';
+import 'package:trip_mate_mobile/shared/widgets/app_section_card.dart';
 import 'package:trip_mate_mobile/shared/widgets/app_text_field.dart';
 
 class TravelerProfilePage extends StatefulWidget {
@@ -25,6 +31,7 @@ class _TravelerProfilePageState extends State<TravelerProfilePage> {
   Uint8List? avatar;
   String? avatarName;
   String? avatarMime;
+
   @override
   void initState() {
     super.initState();
@@ -80,7 +87,7 @@ class _TravelerProfilePageState extends State<TravelerProfilePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Choose a JPG, PNG or WEBP image up to 5 MB.'),
+            content: Text('Vui lòng chọn ảnh JPG, PNG hoặc WEBP tối đa 5 MB.'),
           ),
         );
       }
@@ -104,132 +111,211 @@ class _TravelerProfilePageState extends State<TravelerProfilePage> {
   }
 
   @override
-  Widget build(
-    BuildContext context,
-  ) => BlocConsumer<TravelerProfileCubit, TravelerProfileState>(
-    bloc: cubit,
-    listener: (context, state) {
-      if (state.profile != null && !state.busy && state.error == null) {
-        setState(() => fill(state.profile!));
-      }
-      if (state.saved) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully.')),
-        );
-      }
-    },
-    builder: (context, state) => Scaffold(
-      appBar: AppBar(title: const Text('Edit Profile')),
-      body: state.profile == null
-          ? Center(
-              child: state.busy
-                  ? const CircularProgressIndicator()
-                  : TextButton(
-                      onPressed: cubit.load,
-                      child: Text(state.error ?? 'Retry'),
-                    ),
-            )
-          : Form(
-              key: formKey,
-              child: ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  Center(
-                    child: CircleAvatar(
-                      radius: 44,
-                      backgroundImage: avatar != null
-                          ? MemoryImage(avatar!)
-                          : state.profile!.avatarUrl != null
-                          ? NetworkImage(state.profile!.avatarUrl!)
-                          : null,
-                      child: avatar == null && state.profile!.avatarUrl == null
-                          ? const Icon(Icons.person, size: 40)
-                          : null,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: state.busy ? null : pickAvatar,
-                    child: const Text('Change photo'),
-                  ),
-                  AppTextField(
-                    label: 'Full name',
-                    controller: name,
-                    enabled: !state.busy,
-                    validator: (value) => value == null || value.trim().isEmpty
-                        ? 'Full name is required.'
-                        : value.trim().length > 100
-                        ? 'Use at most 100 characters.'
-                        : null,
-                  ),
-                  const SizedBox(height: 16),
-                  AppTextField(
-                    label: 'Email address',
-                    initialValue: state.profile!.email,
-                    enabled: false,
-                  ),
-                  const SizedBox(height: 16),
-                  AppTextField(
-                    label: 'Phone number',
-                    controller: phone,
-                    enabled: !state.busy,
-                    keyboardType: TextInputType.phone,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(10),
-                    ],
-                    validator: Validators.phone,
-                  ),
-                  const SizedBox(height: 16),
-                  AppTextField(
-                    label: 'Date of birth',
-                    controller: birth,
-                    readOnly: true,
-                    enabled: !state.busy,
-                    onTap: () async {
-                      final now = DateTime.now();
-                      final limit = DateTime(now.year - 16, now.month, now.day);
-                      final parsed = selectedBirth;
-                      final selected = await showDatePicker(
-                        context: context,
-                        firstDate: DateTime(1900),
-                        lastDate: limit,
-                        initialDate:
-                            parsed != null &&
-                                !parsed.isAfter(limit) &&
-                                parsed.year >= 1900
-                            ? parsed
-                            : limit,
-                      );
-                      if (selected != null) {
-                        selectedBirth = selected;
-                        birth.text = formatCalendarDate(selected);
-                      }
-                    },
-                  ),
-                  if (state.error != null)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Text(
-                        state.error!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
+  Widget build(BuildContext context) {
+    final c = context.tmColors;
+    return BlocConsumer<TravelerProfileCubit, TravelerProfileState>(
+      bloc: cubit,
+      listener: (context, state) {
+        if (state.profile != null && !state.busy && state.error == null) {
+          setState(() => fill(state.profile!));
+        }
+        if (state.saved) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Cập nhật hồ sơ thành công.')),
+          );
+        }
+      },
+      builder: (context, state) => Scaffold(
+        backgroundColor: c.canvas,
+        appBar: const AppCoastalAppBar(title: 'Chỉnh sửa hồ sơ'),
+        body: state.profile == null
+            ? Center(
+                child: state.busy
+                    ? CircularProgressIndicator(color: c.brandTeal)
+                    : TextButton(
+                        onPressed: cubit.load,
+                        child: Text(state.error ?? 'Thử lại'),
+                      ),
+              )
+            : Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      AppCard(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(2.5),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: c.brandTeal.withValues(alpha: 0.3),
+                                  width: 2,
+                                ),
+                              ),
+                              child: CircleAvatar(
+                                radius: 34,
+                                backgroundColor: c.tealSoftContainer,
+                                backgroundImage: avatar != null
+                                    ? MemoryImage(avatar!)
+                                    : state.profile!.avatarUrl != null
+                                    ? NetworkImage(state.profile!.avatarUrl!)
+                                    : null,
+                                child:
+                                    avatar == null &&
+                                        state.profile!.avatarUrl == null
+                                    ? Icon(
+                                        Icons.person,
+                                        size: 32,
+                                        color: c.brandTeal,
+                                      )
+                                    : null,
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Ảnh đại diện',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleSmall
+                                        ?.copyWith(color: c.textPrimary),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'JPG, PNG hoặc WEBP tối đa 5 MB',
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(color: c.textMuted),
+                                  ),
+                                  const SizedBox(height: AppSpacing.xs),
+                                  TextButton.icon(
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppSpacing.sm,
+                                        vertical: AppSpacing.xs,
+                                      ),
+                                      minimumSize: const Size(0, 36),
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    onPressed: state.busy ? null : pickAvatar,
+                                    icon: const Icon(
+                                      Icons.photo_camera_outlined,
+                                      size: 18,
+                                    ),
+                                    label: const Text('Đổi ảnh'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: state.busy ? null : save,
-                    child: Text(state.busy ? 'Saving…' : 'Save changes'),
+                      const SizedBox(height: AppSpacing.md),
+                      AppSectionCard(
+                        title: 'Thông tin cá nhân',
+                        icon: Icons.badge_outlined,
+                        child: Column(
+                          children: [
+                            AppTextField(
+                              label: 'Họ và tên',
+                              controller: name,
+                              enabled: !state.busy,
+                              validator: (value) =>
+                                  value == null || value.trim().isEmpty
+                                  ? 'Vui lòng nhập họ và tên.'
+                                  : value.trim().length > 100
+                                  ? 'Sử dụng tối đa 100 ký tự.'
+                                  : null,
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            AppTextField(
+                              label: 'Địa chỉ email',
+                              initialValue: state.profile!.email,
+                              enabled: false,
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            AppTextField(
+                              label: 'Số điện thoại',
+                              controller: phone,
+                              enabled: !state.busy,
+                              keyboardType: TextInputType.phone,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(10),
+                              ],
+                              validator: Validators.phone,
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            AppTextField(
+                              label: 'Ngày sinh',
+                              controller: birth,
+                              readOnly: true,
+                              enabled: !state.busy,
+                              suffix: Icon(
+                                Icons.calendar_today_outlined,
+                                size: 18,
+                                color: c.textMuted,
+                              ),
+                              onTap: () async {
+                                final now = DateTime.now();
+                                final limit = DateTime(
+                                  now.year - 16,
+                                  now.month,
+                                  now.day,
+                                );
+                                final parsed = selectedBirth;
+                                final selected = await showDatePicker(
+                                  context: context,
+                                  firstDate: DateTime(1900),
+                                  lastDate: limit,
+                                  initialDate:
+                                      parsed != null &&
+                                          !parsed.isAfter(limit) &&
+                                          parsed.year >= 1900
+                                      ? parsed
+                                      : limit,
+                                );
+                                if (selected != null) {
+                                  selectedBirth = selected;
+                                  birth.text = formatCalendarDate(selected);
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (state.error != null) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        AppAlert(
+                          type: AppAlertType.error,
+                          message: state.error!,
+                        ),
+                      ],
+                      const SizedBox(height: AppSpacing.lg),
+                      FilledButton(
+                        onPressed: state.busy ? null : save,
+                        child: Text(state.busy ? 'Đang lưu…' : 'Lưu thay đổi'),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      TextButton(
+                        onPressed: state.busy
+                            ? null
+                            : () => setState(() => fill(state.profile!)),
+                        child: const Text('Hủy thay đổi'),
+                      ),
+                    ],
                   ),
-                  TextButton(
-                    onPressed: state.busy
-                        ? null
-                        : () => setState(() => fill(state.profile!)),
-                    child: const Text('Discard changes'),
-                  ),
-                ],
+                ),
               ),
-            ),
-    ),
-  );
+      ),
+    );
+  }
 }
