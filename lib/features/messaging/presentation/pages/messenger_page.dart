@@ -715,12 +715,16 @@ class _MessengerPageState extends State<MessengerPage>
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            '$memberCount thành viên',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
+                          Flexible(
+                            child: Text(
+                              '$memberCount thành viên',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 2),
