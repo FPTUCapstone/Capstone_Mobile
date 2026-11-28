@@ -43,7 +43,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Bạn là Trưởng nhóm.'), findsOneWidget);
+      expect(find.text('Trưởng nhóm'), findsOneWidget);
       expect(find.text('Mời thành viên'), findsOneWidget);
     },
   );
@@ -113,6 +113,8 @@ void main() {
     addTearDown(router.dispose);
     await tester.pumpWidget(MaterialApp.router(routerConfig: router));
 
+    await tester.ensureVisible(find.byKey(const Key('leave_group_button')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('leave_group_button')));
     await tester.pumpAndSettle();
     await tester.tap(
@@ -146,7 +148,7 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(MaterialApp.router(routerConfig: router));
-    await tester.tap(find.text('Xem thành viên'));
+    await tester.tap(find.byKey(const Key('view_members_button')));
     await tester.pumpAndSettle();
 
     expect(find.text('Members screen'), findsOneWidget);
@@ -165,9 +167,9 @@ void main() {
         ),
       );
 
-      expect(find.text('Bạn là Trưởng nhóm.'), findsOneWidget);
-      expect(find.text('Mã mời: HOIAN8KP'), findsOneWidget);
-      expect(find.text('Xem thành viên'), findsOneWidget);
+      expect(find.text('Trưởng nhóm'), findsOneWidget);
+      expect(find.text('HOIAN8KP'), findsOneWidget);
+      expect(find.byKey(const Key('view_members_button')), findsOneWidget);
       expect(find.text('Mời thành viên'), findsOneWidget);
     },
   );
@@ -181,10 +183,10 @@ void main() {
       ),
     );
 
-    expect(find.text('Bạn là Thành viên nhóm.'), findsOneWidget);
-    expect(find.text('Bạn là Trưởng nhóm.'), findsNothing);
-    expect(find.textContaining('Mã mời:'), findsNothing);
-    expect(find.text('Xem thành viên'), findsOneWidget);
+    expect(find.text('Thành viên'), findsOneWidget);
+    expect(find.text('Trưởng nhóm'), findsNothing);
+    expect(find.text('MÃ MỜI THAM GIA NHÓM'), findsNothing);
+    expect(find.byKey(const Key('view_members_button')), findsOneWidget);
     expect(find.text('Mời thành viên'), findsNothing);
   });
 
@@ -195,8 +197,8 @@ void main() {
       const MaterialApp(home: TravelGroupDetailsPage(groupId: 42)),
     );
 
-    expect(find.text('Bạn là Trưởng nhóm.'), findsNothing);
-    expect(find.text('Xem thành viên'), findsOneWidget);
+    expect(find.text('Trưởng nhóm'), findsNothing);
+    expect(find.byKey(const Key('view_members_button')), findsOneWidget);
     expect(find.text('Mời thành viên'), findsNothing);
   });
 
@@ -210,9 +212,9 @@ void main() {
     );
 
     expect(find.text('Nhóm du lịch #99'), findsOneWidget);
-    expect(find.text('Bạn là Trưởng nhóm.'), findsNothing);
-    expect(find.textContaining('Mã mời:'), findsNothing);
-    expect(find.text('Xem thành viên'), findsOneWidget);
+    expect(find.text('Trưởng nhóm'), findsNothing);
+    expect(find.text('MÃ MỜI THAM GIA NHÓM'), findsNothing);
+    expect(find.byKey(const Key('view_members_button')), findsOneWidget);
     expect(find.text('Mời thành viên'), findsNothing);
   });
 
@@ -243,15 +245,15 @@ void main() {
     addTearDown(router.dispose);
 
     await tester.pumpWidget(MaterialApp.router(routerConfig: router));
-    await tester.tap(find.text('Mời thành viên'));
+    await tester.tap(find.byKey(const Key('invite_members_button')));
     await tester.pumpAndSettle();
     expect(find.text('Invitation for 42'), findsOneWidget);
 
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.text('Da Nang Group'), findsOneWidget);
-    expect(find.text('Mời thành viên'), findsOneWidget);
-    expect(find.text('Xem thành viên'), findsOneWidget);
+    expect(find.byKey(const Key('invite_members_button')), findsOneWidget);
+    expect(find.byKey(const Key('view_members_button')), findsOneWidget);
   });
 
   testWidgets(
@@ -268,6 +270,8 @@ void main() {
       );
 
       expect(find.byKey(const Key('leave_group_button')), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const Key('leave_group_button')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('leave_group_button')));
       await tester.pumpAndSettle();
 
@@ -316,6 +320,8 @@ void main() {
       );
 
       expect(find.byKey(const Key('leave_group_button')), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const Key('leave_group_button')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('leave_group_button')));
       await tester.pumpAndSettle();
 
@@ -357,6 +363,8 @@ void main() {
       );
 
       expect(find.byKey(const Key('leave_group_button')), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const Key('leave_group_button')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('leave_group_button')));
       await tester.pumpAndSettle();
 
@@ -405,6 +413,71 @@ void main() {
       expect(router.canPop(), isTrue);
     },
   );
+
+  testWidgets('refreshes member count after returning from group members', (
+    tester,
+  ) async {
+    final repo = _MembersRepository([
+      TravelGroupMember(
+        memberId: 1,
+        displayName: 'Nguyễn Minh Anh',
+        isHost: true,
+        joinedAtUtc: DateTime.utc(2026, 11, 20),
+        locationSharingEnabled: true,
+      ),
+      TravelGroupMember(
+        memberId: 2,
+        displayName: 'Trần Gia Bảo',
+        isHost: false,
+        joinedAtUtc: DateTime.utc(2026, 11, 21),
+        locationSharingEnabled: true,
+      ),
+      TravelGroupMember(
+        memberId: 3,
+        displayName: 'Phạm Đức Minh',
+        isHost: false,
+        joinedAtUtc: DateTime.utc(2026, 11, 22),
+        locationSharingEnabled: true,
+      ),
+    ]);
+    final router = GoRouter(
+      initialLocation: '/traveler/groups/42',
+      routes: [
+        GoRoute(
+          path: AppRoutes.travelGroupDetails,
+          name: AppRouteNames.travelGroupDetails,
+          builder: (_, _) => TravelGroupDetailsPage(
+            groupId: 42,
+            currentUserId: 1,
+            repository: repo,
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.travelGroupMembers,
+          name: AppRouteNames.travelGroupMembers,
+          builder: (_, _) => const Scaffold(body: Text('Members screen')),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpAndSettle();
+
+    expect(find.text('3 thành viên'), findsOneWidget);
+    expect(find.text('3 người'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('view_members_button')));
+    await tester.pumpAndSettle();
+
+    // Simulate removing a member while on TravelGroupMembersPage.
+    repo.members.removeLast();
+    router.pop();
+    await tester.pumpAndSettle();
+
+    expect(find.text('2 thành viên'), findsOneWidget);
+    expect(find.text('2 người'), findsOneWidget);
+  });
 }
 
 final class _SuccessfulLeaveRepository implements LeaveTravelGroupRepository {

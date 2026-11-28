@@ -19,12 +19,12 @@ void main() {
         ),
       );
 
-      // Dialog title
-      expect(find.text('Xóa thành viên nhóm'), findsOneWidget);
+      // Sheet title
+      expect(find.text('Xóa thành viên khỏi nhóm?'), findsOneWidget);
 
-      // Locked MSG59 body text
+      // Vietnamese MSG59 body text
       expect(
-        find.text('Bạn có chắc chắn muốn xóa Minh Anh khỏi nhóm này không?'),
+        find.text('Bạn có chắc muốn xóa Minh Anh khỏi nhóm này không?'),
         findsOneWidget,
       );
 
@@ -74,12 +74,12 @@ void main() {
         await tester.tap(find.text('Open Dialog'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Xóa thành viên nhóm'), findsOneWidget);
+        expect(find.text('Xóa thành viên khỏi nhóm?'), findsOneWidget);
 
         await tester.tap(find.byKey(const Key('remove_member_cancel_button')));
         await tester.pumpAndSettle();
 
-        expect(find.text('Xóa thành viên nhóm'), findsNothing);
+        expect(find.text('Xóa thành viên khỏi nhóm?'), findsNothing);
         expect(dialogResult, isFalse);
       },
     );
@@ -105,7 +105,7 @@ void main() {
         expect(confirmButton.onPressed, isNotNull);
 
         // Absolutely NO fake MSG60 success
-        expect(find.textContaining('khỏi nhóm.'), findsNothing);
+        expect(find.textContaining('đã được xóa khỏi nhóm.'), findsNothing);
       },
     );
 

@@ -7,6 +7,7 @@ import 'package:trip_mate_mobile/core/utils/calendar_date_format.dart';
 import 'package:trip_mate_mobile/features/notifications/domain/entities/in_app_notification.dart';
 import 'package:trip_mate_mobile/features/notifications/presentation/cubit/in_app_inbox_cubit.dart';
 import 'package:trip_mate_mobile/features/notifications/presentation/cubit/in_app_inbox_state.dart';
+import 'package:trip_mate_mobile/features/notifications/resources/in_app_inbox_vi.dart';
 
 /// In-app notifications for the signed-in workspace.
 final class InAppInboxPage extends StatelessWidget {
@@ -18,7 +19,7 @@ final class InAppInboxPage extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: AppColors.surface,
     appBar: AppBar(
-      title: const Text('Thông báo'),
+      title: const Text(InAppInboxStringsVi.title),
       backgroundColor: AppColors.cardBackground,
       surfaceTintColor: Colors.transparent,
       bottom: const PreferredSize(
@@ -29,6 +30,7 @@ final class InAppInboxPage extends StatelessWidget {
     body: BlocBuilder<InAppInboxCubit, InAppInboxState>(
       builder: (context, state) {
         final cubit = context.read<InAppInboxCubit>();
+        final unreadCount = state.items.where((item) => !item.isRead).length;
         return Column(
           children: [
             Material(
@@ -36,20 +38,27 @@ final class InAppInboxPage extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  SwitchListTile(
-                    key: const Key('inbox_unread_filter'),
-                    dense: true,
-                    title: const Text(
-                      'Chỉ chưa đọc',
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.ink,
-                      ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        _InboxTabButton(
+                          key: const Key('inbox_all_filter'),
+                          label: InAppInboxStringsVi.tabAll,
+                          selected: !state.unreadOnly,
+                          onTap: () => cubit.setUnreadOnly(false),
+                        ),
+                        const SizedBox(width: 24),
+                        _InboxTabButton(
+                          key: const Key('inbox_unread_filter'),
+                          label: InAppInboxStringsVi.tabUnreadWithCount(
+                            unreadCount,
+                          ),
+                          selected: state.unreadOnly,
+                          onTap: () => cubit.setUnreadOnly(true),
+                        ),
+                      ],
                     ),
-                    activeThumbColor: AppColors.primary,
-                    value: state.unreadOnly,
-                    onChanged: cubit.setUnreadOnly,
                   ),
                   const Divider(height: 1, thickness: 1, color: AppColors.line),
                 ],
@@ -85,12 +94,15 @@ final class InAppInboxPage extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                state.errorMessage ?? 'Không thể tải thông báo.',
+                state.errorMessage ?? InAppInboxStringsVi.loadFailed,
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: AppColors.ink),
               ),
               const SizedBox(height: AppSpacing.xs),
-              TextButton(onPressed: cubit.retry, child: const Text('Thử lại')),
+              TextButton(
+                onPressed: cubit.retry,
+                child: const Text(InAppInboxStringsVi.retry),
+              ),
             ],
           ),
         ),
@@ -128,8 +140,8 @@ final class InAppInboxPage extends StatelessWidget {
                         const SizedBox(height: AppSpacing.md),
                         Text(
                           state.unreadOnly
-                              ? 'Không có thông báo chưa đọc.'
-                              : 'Chưa có thông báo nào.',
+                              ? InAppInboxStringsVi.emptyUnread
+                              : InAppInboxStringsVi.emptyAll,
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -150,7 +162,7 @@ final class InAppInboxPage extends StatelessWidget {
       onRefresh: cubit.load,
       child: ListView.builder(
         key: const Key('inbox_items'),
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         physics: const AlwaysScrollableScrollPhysics(),
         itemCount:
             state.items.length +
@@ -194,12 +206,53 @@ final class InAppInboxPage extends StatelessWidget {
                           ? cubit.loadMore
                           : cubit.retry,
                       child: Text(
-                        state.pageError == null ? 'Tải thêm' : 'Thử lại',
+                        state.pageError == null
+                            ? InAppInboxStringsVi.loadMore
+                            : InAppInboxStringsVi.retry,
                       ),
                     ),
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+final class _InboxTabButton extends StatelessWidget {
+  const _InboxTabButton({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 11),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: selected ? AppColors.primary : Colors.transparent,
+              width: 2,
+            ),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w700,
+            color: selected ? AppColors.primary : AppColors.muted,
+          ),
+        ),
       ),
     );
   }
@@ -223,18 +276,18 @@ final class _NotificationTile extends StatelessWidget {
     final unread = !item.isRead;
     return Card(
       elevation: 0,
-      color: unread ? const Color(0xFFF2F7F4) : AppColors.cardBackground,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      color: unread ? AppColors.cardBackground : const Color(0xFFFCFBF8),
+      margin: const EdgeInsets.only(bottom: 10),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         side: BorderSide(
           color: unread
-              ? AppColors.primary.withValues(alpha: 0.28)
+              ? AppColors.primary.withValues(alpha: 0.38)
               : AppColors.line,
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -243,17 +296,18 @@ final class _NotificationTile extends StatelessWidget {
               children: [
                 if (unread)
                   Container(
+                    key: Key('inbox_unread_dot_${item.id}'),
                     width: 8,
                     height: 8,
                     margin: const EdgeInsets.only(top: 6, right: 8),
                     decoration: const BoxDecoration(
-                      color: AppColors.primary,
+                      color: AppColors.error,
                       shape: BoxShape.circle,
                     ),
                   ),
                 Expanded(
                   child: Text(
-                    item.title ?? 'Thông báo',
+                    item.title ?? InAppInboxStringsVi.fallbackItemTitle,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: AppColors.ink,
@@ -261,27 +315,6 @@ final class _NotificationTile extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (unread) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primarySoft,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: const Text(
-                      'Chưa đọc',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
             if (item.body case final body?) ...[
@@ -289,21 +322,24 @@ final class _NotificationTile extends StatelessWidget {
               Text(
                 body,
                 style: const TextStyle(
-                  fontSize: 13.5,
-                  height: 1.4,
-                  color: AppColors.ink,
+                  fontSize: 13,
+                  height: 1.45,
+                  color: AppColors.muted,
                 ),
               ),
             ],
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
+            const Divider(height: 1, thickness: 1, color: Color(0xFFEFF1EE)),
+            const SizedBox(height: 6),
             Row(
               children: [
                 Expanded(
                   child: Text(
-                    formatCalendarDateTime(item.createdAtUtc.toLocal()),
+                    _formatInboxDateTime(item.createdAtUtc.toLocal()),
                     style: const TextStyle(
                       fontSize: 12,
-                      color: AppColors.muted,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF6D807B),
                     ),
                   ),
                 ),
@@ -312,9 +348,16 @@ final class _NotificationTile extends StatelessWidget {
                     style: TextButton.styleFrom(
                       visualDensity: VisualDensity.compact,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      foregroundColor: AppColors.primary,
                     ),
                     onPressed: pending ? null : onOpen,
-                    child: const Text('Mở'),
+                    child: const Text(
+                      InAppInboxStringsVi.openAction,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   )
                 else if (unread)
                   TextButton(
@@ -322,9 +365,21 @@ final class _NotificationTile extends StatelessWidget {
                     style: TextButton.styleFrom(
                       visualDensity: VisualDensity.compact,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      foregroundColor: AppColors.primary,
                     ),
                     onPressed: pending ? null : onMarkRead,
-                    child: const Text('Đánh dấu đã đọc'),
+                    child: const Text(
+                      InAppInboxStringsVi.markAsRead,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  )
+                else
+                  const Text(
+                    InAppInboxStringsVi.readLabel,
+                    style: TextStyle(fontSize: 12, color: Color(0xFF8DA09A)),
                   ),
               ],
             ),
@@ -333,4 +388,11 @@ final class _NotificationTile extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatInboxDateTime(DateTime local) {
+  final date = formatCalendarDate(local);
+  final hh = local.hour.toString().padLeft(2, '0');
+  final mm = local.minute.toString().padLeft(2, '0');
+  return '$date · $hh:$mm';
 }

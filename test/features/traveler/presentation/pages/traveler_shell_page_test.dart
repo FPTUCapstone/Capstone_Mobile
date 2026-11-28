@@ -17,6 +17,9 @@ import 'package:trip_mate_mobile/features/auth/domain/repositories/auth_reposito
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_cubit.dart';
 import 'package:trip_mate_mobile/features/auth/presentation/cubit/auth_session_state.dart';
 import 'package:trip_mate_mobile/features/emergency_tour/domain/entities/emergency_action.dart';
+import 'package:trip_mate_mobile/features/notifications/domain/entities/in_app_notification.dart';
+import 'package:trip_mate_mobile/features/notifications/domain/repositories/in_app_notification_realtime.dart';
+import 'package:trip_mate_mobile/features/notifications/domain/repositories/in_app_notification_repository.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/paged_poi_result.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_detail.dart';
 import 'package:trip_mate_mobile/features/poi/domain/entities/poi_query.dart';
@@ -197,6 +200,101 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Inbox destination'), findsOneWidget);
   });
+
+  testWidgets(
+    'notification bell shows unread badge count and refreshes on return from inbox',
+    (tester) async {
+      final inboxRepo = _FakeUnreadInboxRepository(
+        items: [_unreadNotice(1), _unreadNotice(2)],
+      );
+      serviceLocator.registerSingleton<InAppNotificationRepository>(inboxRepo);
+      final cubit = await _authenticatedCubit();
+      addTearDown(cubit.close);
+      final router = GoRouter(
+        initialLocation: AppRoutes.traveler,
+        routes: [
+          GoRoute(
+            path: AppRoutes.traveler,
+            builder: (_, _) => BlocProvider<AuthSessionCubit>.value(
+              value: cubit,
+              child: const TravelerShellPage(),
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.inAppInbox,
+            name: AppRouteNames.inAppInbox,
+            builder: (_, _) => const Scaffold(body: Text('Inbox destination')),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      final badgeBefore = tester.widget<Badge>(find.byType(Badge));
+      expect(badgeBefore.isLabelVisible, isTrue);
+      expect(find.text('2'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('traveler_inbox_nav_button')));
+      await tester.pumpAndSettle();
+      expect(find.text('Inbox destination'), findsOneWidget);
+
+      // Simulate user reading all notifications in inbox before popping back.
+      inboxRepo.items = const [];
+      router.pop();
+      await tester.pumpAndSettle();
+
+      final badgeAfter = tester.widget<Badge>(find.byType(Badge));
+      expect(badgeAfter.isLabelVisible, isFalse);
+    },
+  );
+
+  testWidgets(
+    'notification bell caps badge at 50+ when more unread pages exist',
+    (tester) async {
+      final inboxRepo = _FakeUnreadInboxRepository(
+        items: List.generate(50, (i) => _unreadNotice(i + 1)),
+        nextBeforeId: 100,
+      );
+      serviceLocator.registerSingleton<InAppNotificationRepository>(inboxRepo);
+      final cubit = await _authenticatedCubit();
+      addTearDown(cubit.close);
+
+      await _pumpShell(tester, cubit);
+      await tester.pumpAndSettle();
+
+      expect(find.text('50+'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'notification bell updates badge in real time on hub change hint',
+    (tester) async {
+      final inboxRepo = _FakeUnreadInboxRepository(items: [_unreadNotice(1)]);
+      final realtime = _FakeNotificationRealtime();
+      serviceLocator
+        ..registerSingleton<InAppNotificationRepository>(inboxRepo)
+        ..registerSingleton<InAppNotificationRealtime>(realtime);
+      final cubit = await _authenticatedCubit();
+      addTearDown(cubit.close);
+
+      await _pumpShell(tester, cubit);
+      await tester.pumpAndSettle();
+
+      expect(realtime.startCalls, 1);
+      expect(find.text('1'), findsOneWidget);
+
+      inboxRepo.items = [_unreadNotice(1), _unreadNotice(2)];
+      realtime.emitChange();
+      await tester.pumpAndSettle();
+
+      expect(find.text('2'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      expect(realtime.disposeCalls, 1);
+    },
+  );
 
   testWidgets('support action opens general help from the traveler shell', (
     tester,
@@ -557,4 +655,63 @@ final class _NoticeRepository implements TravelerEmergencyRepository {
 
   @override
   Future<DateTime> acknowledge(int bookingId) => throw UnimplementedError();
+}
+
+InAppNotification _unreadNotice(int id) => InAppNotification(
+  id: id,
+  type: 'TravelGroupMemberRemoved',
+  title: 'Removed from travel group',
+  body: 'You were removed from Đà Nẵng - Hội An 3N2Đ.',
+  relatedEntityType: 'TravelGroup',
+  relatedEntityId: 40002,
+  createdAtUtc: DateTime.utc(2026, 11, 28, 7),
+  isRead: false,
+);
+
+final class _FakeUnreadInboxRepository implements InAppNotificationRepository {
+  _FakeUnreadInboxRepository({required this.items, this.nextBeforeId});
+
+  List<InAppNotification> items;
+  int? nextBeforeId;
+
+  @override
+  Future<InAppNotificationPage> getInbox({
+    bool unreadOnly = false,
+    int limit = 20,
+    int? beforeId,
+  }) async {
+    expect(unreadOnly, isTrue);
+    return InAppNotificationPage(items: items, nextBeforeId: nextBeforeId);
+  }
+
+  @override
+  Future<void> markRead(int notificationId) async {}
+}
+
+final class _FakeNotificationRealtime implements InAppNotificationRealtime {
+  final StreamController<void> _controller = StreamController<void>.broadcast();
+  var startCalls = 0;
+  var stopCalls = 0;
+  var disposeCalls = 0;
+
+  @override
+  Stream<void> get changes => _controller.stream;
+
+  void emitChange() {
+    if (!_controller.isClosed) {
+      _controller.add(null);
+    }
+  }
+
+  @override
+  Future<void> start() async => startCalls += 1;
+
+  @override
+  Future<void> stop() async => stopCalls += 1;
+
+  @override
+  Future<void> dispose() async {
+    disposeCalls += 1;
+    await _controller.close();
+  }
 }

@@ -1,12 +1,24 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:trip_mate_mobile/core/error/failures.dart';
+import 'package:trip_mate_mobile/features/notifications/domain/repositories/in_app_notification_realtime.dart';
 import 'package:trip_mate_mobile/features/notifications/domain/repositories/in_app_notification_repository.dart';
 import 'package:trip_mate_mobile/features/notifications/presentation/cubit/in_app_inbox_state.dart';
+import 'package:trip_mate_mobile/features/notifications/resources/in_app_inbox_vi.dart';
 
 final class InAppInboxCubit extends Cubit<InAppInboxState> {
-  InAppInboxCubit(this._repository) : super(const InAppInboxState());
+  InAppInboxCubit(this._repository, {InAppNotificationRealtime? realtime})
+    : _realtime = realtime,
+      super(const InAppInboxState()) {
+    _realtimeSubscription = _realtime?.changes.listen(
+      (_) => unawaited(_refreshSilently()),
+    );
+  }
 
   final InAppNotificationRepository _repository;
+  final InAppNotificationRealtime? _realtime;
+  StreamSubscription<void>? _realtimeSubscription;
   int _loadGeneration = 0;
 
   Future<void> load() async {
@@ -18,6 +30,9 @@ final class InAppInboxCubit extends Cubit<InAppInboxState> {
     try {
       final page = await _repository.getInbox(unreadOnly: unreadOnly);
       if (isClosed || generation != _loadGeneration) return;
+      // Ensure SignalR starts only after an authorized HTTP fetch has
+      // refreshed any stale access token.
+      unawaited(_realtime?.start());
       emit(
         InAppInboxState(
           status: InAppInboxStatus.ready,
@@ -145,6 +160,38 @@ final class InAppInboxCubit extends Cubit<InAppInboxState> {
 
   Future<void> retry() => state.pageError != null ? loadMore() : load();
 
+  Future<void> _refreshSilently() async {
+    if (isClosed) return;
+    if (state.status != InAppInboxStatus.ready) {
+      await load();
+      return;
+    }
+    final generation = ++_loadGeneration;
+    final unreadOnly = state.unreadOnly;
+    try {
+      final page = await _repository.getInbox(unreadOnly: unreadOnly);
+      if (isClosed || generation != _loadGeneration) return;
+      emit(
+        InAppInboxState(
+          status: InAppInboxStatus.ready,
+          items: page.items,
+          unreadOnly: unreadOnly,
+          nextBeforeId: page.nextBeforeId,
+          markingReadIds: state.markingReadIds,
+        ),
+      );
+    } catch (_) {
+      // Keep the rendered inbox intact if a background refresh fails.
+    }
+  }
+
+  @override
+  Future<void> close() async {
+    await _realtimeSubscription?.cancel();
+    await _realtime?.dispose();
+    return super.close();
+  }
+
   void _emitWithReadStatus(int id, bool pending, {String? actionError}) {
     final current = state;
     final ids = {...current.markingReadIds};
@@ -163,7 +210,6 @@ final class InAppInboxCubit extends Cubit<InAppInboxState> {
     );
   }
 
-  String _message(Object error) => error is Failure
-      ? error.message
-      : 'Đã có lỗi xảy ra. Vui lòng thử lại sau.';
+  String _message(Object error) =>
+      error is Failure ? error.message : InAppInboxStringsVi.genericError;
 }

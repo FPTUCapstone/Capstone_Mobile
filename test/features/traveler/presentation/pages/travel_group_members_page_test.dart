@@ -51,8 +51,9 @@ void main() {
     );
 
     expect(find.text('Trưởng nhóm'), findsOneWidget);
-    expect(find.text('Lịch trình #10'), findsOneWidget);
-    expect(find.byIcon(Icons.person_outline), findsOneWidget);
+    expect(find.text('Lịch trình'), findsOneWidget);
+    expect(find.text('#10'), findsOneWidget);
+    expect(find.text('RR'), findsOneWidget);
     expect(find.textContaining('A very long traveler name'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -112,10 +113,10 @@ void main() {
       await tester.tap(find.byKey(const Key('remove_member_button_102')));
       await tester.pumpAndSettle();
 
-      // Verify Screen #59 dialog opens with MSG59
+      // Verify Screen #59 sheet opens with Vietnamese MSG59
       expect(find.byType(RemoveGroupMemberDialog), findsOneWidget);
       expect(
-        find.text('Bạn có chắc chắn muốn xóa Bob Member khỏi nhóm này không?'),
+        find.text('Bạn có chắc muốn xóa Bob Member khỏi nhóm này không?'),
         findsOneWidget,
       );
     },
@@ -366,7 +367,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Xóa'), findsNothing);
+    expect(find.text('Remove'), findsNothing);
   });
 
   testWidgets(
@@ -525,7 +526,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.deleteCalls, 1);
-    expect(find.text('Đã xóa Bob Member khỏi nhóm.'), findsOneWidget);
+    expect(find.text('Bob Member đã được xóa khỏi nhóm.'), findsOneWidget);
     expect(find.text('Bob Member'), findsNothing);
   });
 }
