@@ -56,6 +56,8 @@ import 'package:trip_mate_mobile/features/operator_contracts/presentation/cubit/
 import 'package:trip_mate_mobile/features/operator_contracts/presentation/pages/operator_contract_page.dart';
 import 'package:trip_mate_mobile/features/operator_finance/presentation/cubit/operator_settlement_history_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_finance/presentation/pages/operator_settlement_history_page.dart';
+import 'package:trip_mate_mobile/features/operator_payment_channel/presentation/cubit/operator_payment_channel_cubit.dart';
+import 'package:trip_mate_mobile/features/operator_payment_channel/presentation/pages/operator_payment_channel_page.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_detail.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_cubit.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/operator_tours_cubit.dart';
@@ -1043,6 +1045,14 @@ GoRouter createAppRouter(
         builder: (_, _) => BlocProvider(
           create: (_) => serviceLocator<ChangePasswordCubit>(),
           child: const ChangePasswordPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.operatorPaymentSettings,
+        name: AppRouteNames.operatorPaymentSettings,
+        builder: (_, _) => BlocProvider(
+          create: (_) => serviceLocator<OperatorPaymentChannelCubit>(),
+          child: const OperatorPaymentChannelPage(),
         ),
       ),
       GoRoute(

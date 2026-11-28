@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:trip_mate_mobile/app/router/app_routes.dart';
 import 'package:trip_mate_mobile/app/theme/app_spacing.dart';
 import 'package:trip_mate_mobile/features/operator_tours/domain/entities/tour_package_detail.dart';
 import 'package:trip_mate_mobile/features/operator_tours/presentation/cubit/create_tour_package_state.dart';
@@ -13,6 +15,8 @@ const _blockerMessages = {
       'Add at least one future departure with an adult price.',
   'cancellation_policy_missing': 'Select a cancellation policy.',
   'destination_missing': 'Select at least one destination.',
+  'payment_channel_not_ready':
+      'Thiết lập kênh thanh toán payOS trước khi nộp tour duyệt.',
 };
 
 const _warningMessages = {
@@ -381,7 +385,39 @@ final class TourReadinessSection extends StatelessWidget {
             'Needed before review:',
             style: Theme.of(context).textTheme.titleSmall,
           ),
-          for (final code in blockers) Text('• ${tourBlockerMessage(code)}'),
+          for (final code in blockers)
+            if (code == 'payment_channel_not_ready')
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('• '),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () =>
+                          context.push(AppRoutes.operatorPaymentSettings),
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            const TextSpan(
+                              text:
+                                  'Thiết lập kênh thanh toán payOS trước khi nộp tour duyệt. ',
+                            ),
+                            TextSpan(
+                              text: 'Thiết lập ngay →',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              Text('• ${tourBlockerMessage(code)}'),
         ],
         if (warnings.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.sm),
